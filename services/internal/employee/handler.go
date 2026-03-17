@@ -1,7 +1,9 @@
 package employee
 
 import (
+	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -11,11 +13,20 @@ import (
 	"github.com/workived/services/pkg/validate"
 )
 
-type Handler struct {
-	service *Service
+// ServiceInterface is the subset of Service that the handler depends on.
+type ServiceInterface interface {
+	List(ctx context.Context, orgID uuid.UUID, f ListFilters) (*ListResult, error)
+	Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest) (*Employee, error)
+	Get(ctx context.Context, orgID, id uuid.UUID) (*Employee, error)
+	Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest) (*Employee, error)
+	Deactivate(ctx context.Context, orgID, id uuid.UUID) error
 }
 
-func NewHandler(service *Service) *Handler {
+type Handler struct {
+	service ServiceInterface
+}
+
+func NewHandler(service ServiceInterface) *Handler {
 	return &Handler{service: service}
 }
 
@@ -40,7 +51,7 @@ func (h *Handler) List(c *gin.Context) {
 	if d := c.Query("department_id"); d != "" {
 		f.DepartmentID = &d
 	}
-	if l := c.GetInt("limit"); l > 0 {
+	if l, err := strconv.Atoi(c.Query("limit")); err == nil && l > 0 {
 		f.Limit = l
 	} else {
 		f.Limit = paginate.DefaultLimit

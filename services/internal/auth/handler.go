@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -8,11 +9,20 @@ import (
 	"github.com/workived/services/pkg/validate"
 )
 
-type Handler struct {
-	service *Service
+// ServiceInterface is the subset of Service that the handler depends on.
+type ServiceInterface interface {
+	Register(ctx context.Context, req RegisterRequest) (*User, error)
+	Login(ctx context.Context, req LoginRequest) (*LoginResponse, string, error)
+	Refresh(ctx context.Context, rawToken string) (*RefreshResponse, string, error)
+	Logout(ctx context.Context, rawToken string) error
+	VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
 }
 
-func NewHandler(service *Service) *Handler {
+type Handler struct {
+	service ServiceInterface
+}
+
+func NewHandler(service ServiceInterface) *Handler {
 	return &Handler{service: service}
 }
 
