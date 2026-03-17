@@ -47,6 +47,7 @@ func Load() (*Config, error) {
 	v.SetConfigName(".env")
 	v.SetConfigType("env")
 	v.AddConfigPath(".")
+	v.AddConfigPath("../")
 	v.AddConfigPath("../../")
 
 	v.AutomaticEnv()
