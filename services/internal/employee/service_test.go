@@ -13,17 +13,23 @@ import (
 // ── Fakes ─────────────────────────────────────────────────────────────────────
 
 type fakeOrgRepo struct {
-	plan  string
-	limit *int
+	plan    string
+	limit   *int
+	planErr error
 }
 
 func (f *fakeOrgRepo) GetOrgPlanInfo(_ context.Context, _ uuid.UUID) (string, *int, error) {
+	if f.planErr != nil {
+		return "", nil, f.planErr
+	}
 	return f.plan, f.limit, nil
 }
 
 type fakeEmpRepo struct {
-	employees map[uuid.UUID]*employee.Employee
-	count     int
+	employees      map[uuid.UUID]*employee.Employee
+	count          int
+	listErr        error
+	countActiveErr error
 }
 
 func newFakeEmpRepo() *fakeEmpRepo {
@@ -31,6 +37,9 @@ func newFakeEmpRepo() *fakeEmpRepo {
 }
 
 func (f *fakeEmpRepo) CountActive(_ context.Context, _ uuid.UUID) (int, error) {
+	if f.countActiveErr != nil {
+		return 0, f.countActiveErr
+	}
 	return f.count, nil
 }
 
@@ -58,6 +67,9 @@ func (f *fakeEmpRepo) GetByID(_ context.Context, orgID, id uuid.UUID) (*employee
 }
 
 func (f *fakeEmpRepo) List(_ context.Context, _ uuid.UUID, filters employee.ListFilters) ([]employee.Employee, error) {
+	if f.listErr != nil {
+		return nil, f.listErr
+	}
 	var result []employee.Employee
 	for _, e := range f.employees {
 		result = append(result, *e)
@@ -89,6 +101,7 @@ func (f *fakeEmpRepo) SoftDelete(_ context.Context, orgID, id uuid.UUID) error {
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 func intPtr(i int) *int { return &i }
+func strPtr(s string) *string { return &s }
 
 func TestEmployeeService_Create_PlanLimit(t *testing.T) {
 	tests := []struct {
@@ -157,6 +170,130 @@ func TestEmployeeService_Create_PlanLimit(t *testing.T) {
 	}
 }
 
+func TestEmployeeService_List(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)})
+	orgID := uuid.New()
+
+	// Seed two employees
+	_, _ = svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Alice", Email: "alice@example.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+	})
+	_, _ = svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Bob", Email: "bob@example.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+	})
+
+	t.Run("returns employees with meta", func(t *testing.T) {
+		result, err := svc.List(context.Background(), orgID, employee.ListFilters{Limit: 20})
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		if len(result.Employees) != 2 {
+			t.Errorf("want 2 employees, got %d", len(result.Employees))
+		}
+		if result.Meta.Limit != 20 {
+			t.Errorf("meta.limit = %d, want 20", result.Meta.Limit)
+		}
+	})
+
+	t.Run("limit clamped to default when 0", func(t *testing.T) {
+		result, err := svc.List(context.Background(), orgID, employee.ListFilters{Limit: 0})
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		if result.Meta.Limit != 20 { // paginate.DefaultLimit
+			t.Errorf("meta.limit = %d, want 20", result.Meta.Limit)
+		}
+	})
+
+	t.Run("has_more false when under limit", func(t *testing.T) {
+		result, err := svc.List(context.Background(), orgID, employee.ListFilters{Limit: 20})
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		if result.Meta.HasMore {
+			t.Error("has_more should be false")
+		}
+	})
+
+	t.Run("has_more true when page full", func(t *testing.T) {
+		result, err := svc.List(context.Background(), orgID, employee.ListFilters{Limit: 1})
+		if err != nil {
+			t.Fatalf("list: %v", err)
+		}
+		if !result.Meta.HasMore {
+			t.Error("has_more should be true when result fills the page")
+		}
+		if result.Meta.NextCursor == "" {
+			t.Error("next_cursor should be set")
+		}
+	})
+}
+
+func TestEmployeeService_Get(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)})
+	orgID := uuid.New()
+
+	emp, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Ahmad", Email: "ahmad@example.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+	})
+
+	t.Run("existing employee returned", func(t *testing.T) {
+		got, err := svc.Get(context.Background(), orgID, emp.ID)
+		if err != nil {
+			t.Fatalf("get: %v", err)
+		}
+		if got.ID != emp.ID {
+			t.Errorf("id = %v, want %v", got.ID, emp.ID)
+		}
+	})
+
+	t.Run("unknown id returns not found", func(t *testing.T) {
+		_, err := svc.Get(context.Background(), orgID, uuid.New())
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		var appErr *apperr.AppError
+		if !errors.As(err, &appErr) || appErr.Code != apperr.CodeNotFound {
+			t.Errorf("expected NOT_FOUND, got %v", err)
+		}
+	})
+}
+
+func TestEmployeeService_Update(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)})
+	orgID := uuid.New()
+
+	emp, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Ahmad", Email: "ahmad@example.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+	})
+
+	t.Run("update full_name", func(t *testing.T) {
+		updated, err := svc.Update(context.Background(), orgID, emp.ID, employee.UpdateEmployeeRequest{
+			FullName: strPtr("Ahmad Rashid"),
+		})
+		if err != nil {
+			t.Fatalf("update: %v", err)
+		}
+		if updated.FullName != "Ahmad Rashid" {
+			t.Errorf("full_name = %q, want %q", updated.FullName, "Ahmad Rashid")
+		}
+	})
+
+	t.Run("unknown id returns not found", func(t *testing.T) {
+		_, err := svc.Update(context.Background(), orgID, uuid.New(), employee.UpdateEmployeeRequest{})
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		var appErr *apperr.AppError
+		if !errors.As(err, &appErr) || appErr.Code != apperr.CodeNotFound {
+			t.Errorf("expected NOT_FOUND, got %v", err)
+		}
+	})
+}
+
 func TestEmployeeService_SoftDelete(t *testing.T) {
 	fakeRepo := newFakeEmpRepo()
 	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)})
@@ -196,4 +333,46 @@ func TestEmployeeService_SoftDelete(t *testing.T) {
 			t.Fatal("expected error, got nil")
 		}
 	})
+}
+
+// ── Error path coverage ───────────────────────────────────────────────────────
+
+func TestEmployeeService_Create_OrgRepoError(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	orgErr := errors.New("org db down")
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{planErr: orgErr})
+
+	_, err := svc.Create(context.Background(), uuid.New(), employee.CreateEmployeeRequest{
+		FullName: "X", Email: "x@x.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+	})
+	if err == nil {
+		t.Fatal("expected org repo error, got nil")
+	}
+	if err.Error() != orgErr.Error() {
+		t.Errorf("error = %v, want %v", err, orgErr)
+	}
+}
+
+func TestEmployeeService_Create_CountActiveError(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	fakeRepo.countActiveErr = errors.New("count db down")
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)})
+
+	_, err := svc.Create(context.Background(), uuid.New(), employee.CreateEmployeeRequest{
+		FullName: "X", Email: "x@x.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+	})
+	if err == nil {
+		t.Fatal("expected CountActive error, got nil")
+	}
+}
+
+func TestEmployeeService_List_RepoError(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	fakeRepo.listErr = errors.New("list db down")
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)})
+
+	_, err := svc.List(context.Background(), uuid.New(), employee.ListFilters{Limit: 20})
+	if err == nil {
+		t.Fatal("expected repo error, got nil")
+	}
 }
