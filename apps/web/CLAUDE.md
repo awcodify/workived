@@ -309,6 +309,33 @@ const ProGate = ({ children }: { children: ReactNode }) => {
 }
 ```
 
+## Non-negotiable testing rule
+
+> **Every file you create must have a corresponding test file.**
+> No component, hook, utility, or store ships without tests in the same commit.
+> Minimum coverage target: **98%** of component and hook statements.
+
+- **Components:** use React Testing Library — test behaviour, not implementation
+- **Hooks:** test with `renderHook` from `@testing-library/react`
+- **Utilities:** plain Jest unit tests (money formatting, date formatting, etc.)
+- **Stores:** test state transitions directly against the Zustand store
+- **API clients:** mock with `msw` (Mock Service Worker) — never mock `axios` directly
+
+```typescript
+// Example — test a utility
+import { formatMoney } from '@/lib/utils/money'
+
+test('formats IDR with no decimal places', () => {
+  expect(formatMoney(50000, 'IDR')).toBe('Rp 50,000')
+})
+
+test('formats AED with two decimal places', () => {
+  expect(formatMoney(10000, 'AED')).toBe('AED 100.00')
+})
+```
+
+---
+
 ## What NOT to do
 - No `useEffect` for data fetching — use React Query
 - No `any` TypeScript types

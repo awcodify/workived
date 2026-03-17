@@ -181,6 +181,13 @@ After table migrations, add a seed migration for:
 000026_seed_default_leave_policies.up.sql     — Default leave policy templates
 ```
 
+## Testing migrations
+
+> Every schema change must be tested. Write integration tests that run the migration up/down and verify the schema is correct.
+> Tag migration integration tests with `//go:build integration`.
+
+---
+
 ## Checking your migration
 Before committing, verify:
 - [ ] Every table has `organisation_id` with FK and index

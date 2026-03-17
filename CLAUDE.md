@@ -128,6 +128,15 @@ All commands are defined in `.claude/commands/`. Use them as:
 
 ---
 
+## Non-negotiable testing rule
+
+> **Every file you create must have a corresponding test file.**
+> No handler, service, utility, or hook ships without tests in the same commit.
+> Minimum coverage target: **98%** of service and handler statements.
+> Repository/DB layers are tested via integration tests (tagged `//go:build integration`).
+
+---
+
 ## Non-negotiable rules (all roles respect these)
 
 1. Every SQL query → `WHERE organisation_id = $1` always first
