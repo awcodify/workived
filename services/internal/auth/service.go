@@ -53,6 +53,7 @@ func NewService(repo Repo, orgRepo OrgRepo, jwtSecret string, accessTTL, refresh
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
+		// unreachable with DefaultCost; guard against future cost changes
 		return nil, fmt.Errorf("hash password: %w", err)
 	}
 
@@ -91,6 +92,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, 
 
 	accessToken, err := s.issueAccessToken(user.ID, orgID, role)
 	if err != nil {
+		// unreachable with HMAC-SHA256 and a non-nil key
 		return nil, "", fmt.Errorf("issue access token: %w", err)
 	}
 
@@ -121,6 +123,7 @@ func (s *Service) Refresh(ctx context.Context, rawToken string) (*RefreshRespons
 
 	accessToken, err := s.issueAccessToken(user.ID, orgID, role)
 	if err != nil {
+		// unreachable with HMAC-SHA256 and a non-nil key
 		return nil, "", fmt.Errorf("issue access token: %w", err)
 	}
 

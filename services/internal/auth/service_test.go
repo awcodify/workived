@@ -17,6 +17,12 @@ type fakeAuthRepo struct {
 	users  map[string]*auth.User      // keyed by email
 	hashes map[string]string          // email → password hash
 	tokens map[string]*auth.AuthToken // tokenHash → token
+
+	// Error injection hooks — set these to force specific errors
+	createTokenErr  error
+	getUserByIDErr  error
+	consumeTokenErr error
+	markVerifiedErr error
 }
 
 func newFakeAuthRepo() *fakeAuthRepo {
@@ -53,6 +59,9 @@ func (f *fakeAuthRepo) GetUserByEmail(_ context.Context, email string) (*auth.Us
 }
 
 func (f *fakeAuthRepo) GetUserByID(_ context.Context, id uuid.UUID) (*auth.User, error) {
+	if f.getUserByIDErr != nil {
+		return nil, f.getUserByIDErr
+	}
 	for _, u := range f.users {
 		if u.ID == id {
 			return u, nil
@@ -62,6 +71,9 @@ func (f *fakeAuthRepo) GetUserByID(_ context.Context, id uuid.UUID) (*auth.User,
 }
 
 func (f *fakeAuthRepo) MarkEmailVerified(_ context.Context, userID uuid.UUID) error {
+	if f.markVerifiedErr != nil {
+		return f.markVerifiedErr
+	}
 	for _, u := range f.users {
 		if u.ID == userID {
 			u.IsVerified = true
@@ -74,6 +86,9 @@ func (f *fakeAuthRepo) MarkEmailVerified(_ context.Context, userID uuid.UUID) er
 func (f *fakeAuthRepo) UpdateLastLogin(_ context.Context, _ uuid.UUID) error { return nil }
 
 func (f *fakeAuthRepo) CreateToken(_ context.Context, userID uuid.UUID, tokenHash, tokenType string, expiresAt time.Time) error {
+	if f.createTokenErr != nil {
+		return f.createTokenErr
+	}
 	f.tokens[tokenHash] = &auth.AuthToken{
 		ID:        uuid.New(),
 		UserID:    userID,
@@ -94,6 +109,9 @@ func (f *fakeAuthRepo) GetValidToken(_ context.Context, tokenHash, tokenType str
 }
 
 func (f *fakeAuthRepo) ConsumeToken(_ context.Context, tokenHash string) error {
+	if f.consumeTokenErr != nil {
+		return f.consumeTokenErr
+	}
 	t, ok := f.tokens[tokenHash]
 	if !ok || t.UsedAt != nil {
 		return apperr.New(apperr.CodeUnauthorized, "token already used")
@@ -223,39 +241,102 @@ func TestAuthService_Login(t *testing.T) {
 }
 
 func TestAuthService_VerifyEmail(t *testing.T) {
-	svc, repo := newTestService(t)
-
-	_, err := svc.Register(context.Background(), auth.RegisterRequest{
-		Email:    "ahmad@example.com",
-		Password: "password123",
-		FullName: "Ahmad",
-	})
-	if err != nil {
-		t.Fatalf("setup register: %v", err)
-	}
-
-	// Find the verify token stored in fake repo
-	var verifyHash string
-	for hash, tok := range repo.tokens {
-		if tok.TokenType == "email_verify" {
-			verifyHash = hash
-			break
-		}
-	}
-	if verifyHash == "" {
-		t.Fatal("no email_verify token found")
-	}
-
 	t.Run("invalid token rejected", func(t *testing.T) {
+		svc, _ := newTestService(t)
 		err := svc.VerifyEmail(context.Background(), auth.VerifyEmailRequest{Token: "not-a-real-token"})
 		if err == nil {
 			t.Fatal("expected error, got nil")
 		}
+		var appErr *apperr.AppError
+		if !errors.As(err, &appErr) || appErr.Code != apperr.CodeUnauthorized {
+			t.Errorf("expected UNAUTHORIZED, got %v", err)
+		}
 	})
 
-	// The service hashes the raw token before looking it up. We stored the hash, not the raw.
-	// VerifyEmail test is covered by the Register + ConsumeToken path above.
-	// A full round-trip test requires exposing the raw token from Register — deferred to integration tests.
+	t.Run("double-consume rejected", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+			Email: "v@example.com", Password: "password123", FullName: "Verify",
+		})
+
+		// Find the raw verify token — repo stores hash, so we store raw in a patched version.
+		// Instead inject a known token directly into the fake repo.
+		const raw = "known-raw-verify-token"
+		repo.tokens[auth.HashTokenForTest(raw)] = &auth.AuthToken{
+			ID:        uuid.New(),
+			UserID:    repo.users["v@example.com"].ID,
+			TokenHash: auth.HashTokenForTest(raw),
+			TokenType: "email_verify",
+			ExpiresAt: time.Now().Add(time.Hour),
+		}
+
+		if err := svc.VerifyEmail(context.Background(), auth.VerifyEmailRequest{Token: raw}); err != nil {
+			t.Fatalf("first verify: %v", err)
+		}
+		if err := svc.VerifyEmail(context.Background(), auth.VerifyEmailRequest{Token: raw}); err == nil {
+			t.Fatal("expected error on second verify, got nil")
+		}
+	})
+}
+
+func TestAuthService_Refresh(t *testing.T) {
+	t.Run("success rotates tokens", func(t *testing.T) {
+		svc, _ := newTestService(t)
+		_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+			Email: "r@example.com", Password: "password123", FullName: "Refresh",
+		})
+		_, rawRefresh, err := svc.Login(context.Background(), auth.LoginRequest{
+			Email: "r@example.com", Password: "password123",
+		})
+		if err != nil {
+			t.Fatalf("login: %v", err)
+		}
+
+		resp, newRefresh, err := svc.Refresh(context.Background(), rawRefresh)
+		if err != nil {
+			t.Fatalf("refresh: %v", err)
+		}
+		if resp.AccessToken == "" {
+			t.Error("access token should not be empty")
+		}
+		if newRefresh == rawRefresh {
+			t.Error("refresh token should be rotated")
+		}
+	})
+
+	t.Run("consumed token rejected", func(t *testing.T) {
+		svc, _ := newTestService(t)
+		_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+			Email: "r2@example.com", Password: "password123", FullName: "Refresh2",
+		})
+		_, rawRefresh, _ := svc.Login(context.Background(), auth.LoginRequest{
+			Email: "r2@example.com", Password: "password123",
+		})
+
+		// Use the token once
+		_, _, err := svc.Refresh(context.Background(), rawRefresh)
+		if err != nil {
+			t.Fatalf("first refresh: %v", err)
+		}
+
+		// Attempt to reuse the old token
+		_, _, err = svc.Refresh(context.Background(), rawRefresh)
+		if err == nil {
+			t.Fatal("expected error on reuse, got nil")
+		}
+	})
+
+	t.Run("invalid token rejected", func(t *testing.T) {
+		svc, _ := newTestService(t)
+		_, _, err := svc.Refresh(context.Background(), "garbage-token")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		var appErr *apperr.AppError
+		if !errors.As(err, &appErr) || appErr.Code != apperr.CodeUnauthorized {
+			t.Errorf("expected UNAUTHORIZED, got %v", err)
+		}
+	})
 }
 
 func TestAuthService_Logout(t *testing.T) {
@@ -287,4 +368,177 @@ func TestAuthService_Logout(t *testing.T) {
 			t.Error("expected error on second logout, got nil")
 		}
 	})
+}
+
+// ── Error path coverage ───────────────────────────────────────────────────────
+
+func TestAuthService_Register_CreateTokenError(t *testing.T) {
+	repo := newFakeAuthRepo()
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour)
+
+	// CreateUser succeeds; CreateToken then fails
+	repo.createTokenErr = errors.New("db down")
+
+	_, err := svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "e@example.com", Password: "password123", FullName: "E",
+	})
+	if err == nil {
+		t.Fatal("expected error from CreateToken failure, got nil")
+	}
+}
+
+func TestAuthService_Login_InactiveUser(t *testing.T) {
+	repo := newFakeAuthRepo()
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour)
+
+	// Register, then mark inactive
+	_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "inactive@example.com", Password: "password123", FullName: "Inactive",
+	})
+	repo.users["inactive@example.com"].IsActive = false
+	// Reset CreateToken error so Login can proceed past user creation
+	repo.createTokenErr = nil
+
+	_, _, err := svc.Login(context.Background(), auth.LoginRequest{
+		Email: "inactive@example.com", Password: "password123",
+	})
+	if err == nil {
+		t.Fatal("expected error for inactive user, got nil")
+	}
+	var appErr *apperr.AppError
+	if !errors.As(err, &appErr) || appErr.Code != apperr.CodeForbidden {
+		t.Errorf("expected FORBIDDEN, got %v", err)
+	}
+}
+
+func TestAuthService_Login_CreateTokenError(t *testing.T) {
+	repo := newFakeAuthRepo()
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour)
+
+	_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "tok@example.com", Password: "password123", FullName: "Tok",
+	})
+	// Now make CreateToken fail for the refresh token issued on login
+	repo.createTokenErr = errors.New("db down")
+
+	_, _, err := svc.Login(context.Background(), auth.LoginRequest{
+		Email: "tok@example.com", Password: "password123",
+	})
+	if err == nil {
+		t.Fatal("expected error when refresh token creation fails, got nil")
+	}
+}
+
+func TestAuthService_Refresh_GetUserByIDError(t *testing.T) {
+	repo := newFakeAuthRepo()
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour)
+
+	_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "ref@example.com", Password: "password123", FullName: "Ref",
+	})
+	_, rawRefresh, _ := svc.Login(context.Background(), auth.LoginRequest{
+		Email: "ref@example.com", Password: "password123",
+	})
+
+	repo.getUserByIDErr = errors.New("db error")
+
+	_, _, err := svc.Refresh(context.Background(), rawRefresh)
+	if err == nil {
+		t.Fatal("expected error when GetUserByID fails, got nil")
+	}
+}
+
+func TestAuthService_Refresh_ConsumeTokenError(t *testing.T) {
+	repo := newFakeAuthRepo()
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour)
+
+	_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "con@example.com", Password: "password123", FullName: "Con",
+	})
+	_, rawRefresh, _ := svc.Login(context.Background(), auth.LoginRequest{
+		Email: "con@example.com", Password: "password123",
+	})
+
+	repo.consumeTokenErr = errors.New("db error")
+
+	_, _, err := svc.Refresh(context.Background(), rawRefresh)
+	if err == nil {
+		t.Fatal("expected error when ConsumeToken fails, got nil")
+	}
+}
+
+func TestAuthService_Refresh_RotateCreateTokenError(t *testing.T) {
+	repo := newFakeAuthRepo()
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour)
+
+	_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "rot@example.com", Password: "password123", FullName: "Rot",
+	})
+	_, rawRefresh, _ := svc.Login(context.Background(), auth.LoginRequest{
+		Email: "rot@example.com", Password: "password123",
+	})
+
+	// Fail CreateToken after ConsumeToken succeeds (second CreateToken call during rotation)
+	callCount := 0
+	origErr := repo.createTokenErr
+	_ = origErr
+	// Use consumeTokenErr=nil, createTokenErr set after first successful consume
+	// Trick: we intercept after ConsumeToken by setting createTokenErr just-in-time
+	// Instead, make createTokenErr fail only for "refresh" type — simplest: just set it now
+	// ConsumeToken will succeed (it checks its own err field), but CreateToken for new refresh will fail
+	repo.createTokenErr = errors.New("db down")
+	_ = callCount
+
+	_, _, err := svc.Refresh(context.Background(), rawRefresh)
+	if err == nil {
+		t.Fatal("expected error when new refresh token creation fails")
+	}
+}
+
+func TestAuthService_VerifyEmail_ConsumeTokenError(t *testing.T) {
+	repo := newFakeAuthRepo()
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour)
+
+	_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "ct@example.com", Password: "password123", FullName: "CT",
+	})
+
+	const raw = "known-consume-error-token"
+	repo.tokens[auth.HashTokenForTest(raw)] = &auth.AuthToken{
+		ID:        uuid.New(),
+		UserID:    repo.users["ct@example.com"].ID,
+		TokenHash: auth.HashTokenForTest(raw),
+		TokenType: "email_verify",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+	repo.consumeTokenErr = errors.New("db error on consume")
+
+	err := svc.VerifyEmail(context.Background(), auth.VerifyEmailRequest{Token: raw})
+	if err == nil {
+		t.Fatal("expected error when ConsumeToken fails, got nil")
+	}
+}
+
+func TestAuthService_VerifyEmail_MarkVerifiedError(t *testing.T) {
+	repo := newFakeAuthRepo()
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour)
+
+	_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "mv@example.com", Password: "password123", FullName: "MV",
+	})
+
+	const raw = "known-mark-verify-token"
+	repo.tokens[auth.HashTokenForTest(raw)] = &auth.AuthToken{
+		ID:        uuid.New(),
+		UserID:    repo.users["mv@example.com"].ID,
+		TokenHash: auth.HashTokenForTest(raw),
+		TokenType: "email_verify",
+		ExpiresAt: time.Now().Add(time.Hour),
+	}
+	repo.markVerifiedErr = errors.New("db error")
+
+	err := svc.VerifyEmail(context.Background(), auth.VerifyEmailRequest{Token: raw})
+	if err == nil {
+		t.Fatal("expected error when MarkEmailVerified fails, got nil")
+	}
 }
