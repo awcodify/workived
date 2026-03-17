@@ -259,10 +259,41 @@ func ToLocal(t time.Time, timezone string) (time.Time, error) {
 ```
 
 ## Testing
-- Table-driven tests for all service methods
-- Use `testcontainers-go` for integration tests against real PostgreSQL
-- Mock repositories for unit tests using interfaces
-- Test file naming: `{file}_test.go` in same package
+
+> **Non-negotiable:** Every new `.go` file you create **must** have a corresponding `{file}_test.go`.
+> Do not write a handler, service, repository, or utility without writing its unit tests in the same commit.
+
+- **Unit tests:** table-driven, using fake/stub implementations of repository interfaces (no real DB)
+- **Integration tests:** use `testcontainers-go` against a real PostgreSQL instance — keep in `*_integration_test.go` with build tag `//go:build integration`
+- **Repository interfaces:** every service must depend on an interface, not a concrete `*Repository`, so tests can inject fakes
+- **Test file naming:** `{file}_test.go` in the same package (`package foo_test`)
+- **Coverage target:** 100% of service business logic paths (happy path + every error branch)
+
+**Pattern — always extract a repo interface:**
+```go
+// In service.go — not *Repository, always the interface
+type RepositoryInterface interface {
+    Create(ctx context.Context, orgID uuid.UUID, req CreateXRequest) (*X, error)
+    // ...
+}
+
+type Service struct {
+    repo RepositoryInterface
+}
+```
+
+**Pattern — fake repo in tests:**
+```go
+type fakeRepo struct { ... }
+func (f *fakeRepo) Create(...) (*X, error) { ... }
+
+func TestXService_Create(t *testing.T) {
+    tests := []struct { ... }{ ... }
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) { ... })
+    }
+}
+```
 ```go
 func TestLeaveService_Submit(t *testing.T) {
     tests := []struct {

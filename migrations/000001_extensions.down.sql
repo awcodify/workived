@@ -1,0 +1,2 @@
+-- 000001_extensions.down.sql
+DROP FUNCTION IF EXISTS trigger_set_updated_at();

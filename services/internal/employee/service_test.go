@@ -1,0 +1,199 @@
+package employee_test
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/workived/services/internal/employee"
+	"github.com/workived/services/pkg/apperr"
+)
+
+// ── Fakes ─────────────────────────────────────────────────────────────────────
+
+type fakeOrgRepo struct {
+	plan  string
+	limit *int
+}
+
+func (f *fakeOrgRepo) GetOrgPlanInfo(_ context.Context, _ uuid.UUID) (string, *int, error) {
+	return f.plan, f.limit, nil
+}
+
+type fakeEmpRepo struct {
+	employees map[uuid.UUID]*employee.Employee
+	count     int
+}
+
+func newFakeEmpRepo() *fakeEmpRepo {
+	return &fakeEmpRepo{employees: make(map[uuid.UUID]*employee.Employee)}
+}
+
+func (f *fakeEmpRepo) CountActive(_ context.Context, _ uuid.UUID) (int, error) {
+	return f.count, nil
+}
+
+func (f *fakeEmpRepo) Create(_ context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest) (*employee.Employee, error) {
+	emp := &employee.Employee{
+		ID:             uuid.New(),
+		OrganisationID: orgID,
+		FullName:       req.FullName,
+		Email:          req.Email,
+		EmploymentType: req.EmploymentType,
+		Status:         "active",
+		IsActive:       true,
+	}
+	f.employees[emp.ID] = emp
+	f.count++
+	return emp, nil
+}
+
+func (f *fakeEmpRepo) GetByID(_ context.Context, orgID, id uuid.UUID) (*employee.Employee, error) {
+	e, ok := f.employees[id]
+	if !ok || e.OrganisationID != orgID {
+		return nil, apperr.NotFound("employee")
+	}
+	return e, nil
+}
+
+func (f *fakeEmpRepo) List(_ context.Context, _ uuid.UUID, filters employee.ListFilters) ([]employee.Employee, error) {
+	var result []employee.Employee
+	for _, e := range f.employees {
+		result = append(result, *e)
+	}
+	return result, nil
+}
+
+func (f *fakeEmpRepo) Update(_ context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error) {
+	e, ok := f.employees[id]
+	if !ok || e.OrganisationID != orgID {
+		return nil, apperr.NotFound("employee")
+	}
+	if req.FullName != nil {
+		e.FullName = *req.FullName
+	}
+	return e, nil
+}
+
+func (f *fakeEmpRepo) SoftDelete(_ context.Context, orgID, id uuid.UUID) error {
+	e, ok := f.employees[id]
+	if !ok || e.OrganisationID != orgID {
+		return apperr.NotFound("employee")
+	}
+	e.IsActive = false
+	f.count--
+	return nil
+}
+
+// ── Tests ─────────────────────────────────────────────────────────────────────
+
+func intPtr(i int) *int { return &i }
+
+func TestEmployeeService_Create_PlanLimit(t *testing.T) {
+	tests := []struct {
+		name        string
+		plan        string
+		limit       *int
+		activeCount int
+		wantErr     string
+	}{
+		{
+			name:        "under free-tier limit",
+			plan:        "free",
+			limit:       intPtr(25),
+			activeCount: 10,
+		},
+		{
+			name:        "exactly at free-tier limit",
+			plan:        "free",
+			limit:       intPtr(25),
+			activeCount: 25,
+			wantErr:     apperr.CodeEmployeeLimitReached,
+		},
+		{
+			name:        "pro plan — no limit enforced",
+			plan:        "pro",
+			limit:       nil,
+			activeCount: 100,
+		},
+		{
+			name:        "free plan — one below limit",
+			plan:        "free",
+			limit:       intPtr(25),
+			activeCount: 24,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeRepo := newFakeEmpRepo()
+			fakeRepo.count = tt.activeCount
+
+			svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: tt.plan, limit: tt.limit})
+			orgID := uuid.New()
+
+			_, err := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+				FullName:       "Test Employee",
+				Email:          "test@example.com",
+				EmploymentType: "full_time",
+				StartDate:      "2026-01-01",
+			})
+
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("expected error %q, got nil", tt.wantErr)
+				}
+				var appErr *apperr.AppError
+				if !errors.As(err, &appErr) || appErr.Code != tt.wantErr {
+					t.Errorf("expected code %q, got %v", tt.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
+func TestEmployeeService_SoftDelete(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)})
+	orgID := uuid.New()
+
+	// Create an employee first
+	emp, err := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName:       "Ahmad Rashid",
+		Email:          "ahmad@example.com",
+		EmploymentType: "full_time",
+		StartDate:      "2026-01-01",
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	t.Run("deactivate existing employee", func(t *testing.T) {
+		if err := svc.Deactivate(context.Background(), orgID, emp.ID); err != nil {
+			t.Fatalf("deactivate: %v", err)
+		}
+	})
+
+	t.Run("deactivate non-existent employee", func(t *testing.T) {
+		err := svc.Deactivate(context.Background(), orgID, uuid.New())
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		var appErr *apperr.AppError
+		if !errors.As(err, &appErr) || appErr.Code != apperr.CodeNotFound {
+			t.Errorf("expected NOT_FOUND, got %v", err)
+		}
+	})
+
+	t.Run("employee from different org is not found", func(t *testing.T) {
+		err := svc.Deactivate(context.Background(), uuid.New(), emp.ID)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
