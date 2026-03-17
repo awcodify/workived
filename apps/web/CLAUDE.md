@@ -86,7 +86,7 @@ const MODULE_BACKGROUNDS = {
   overview:   'bg-[#0C0C0F]',  // deep violet night
   people:     'bg-[#F5F0E8]',  // warm cream
   attendance: 'bg-[#E8F5EE]',  // fresh green
-  leave:      'bg-[#FDF4E3]',  // warm amber (same as tasks for now)
+  leave:      'bg-[#F3F2FB]',  // soft violet (same as claims)
   claims:     'bg-[#F3F2FB]',  // soft violet
   tasks:      'bg-[#FDF4E3]',  // warm amber
 }
@@ -316,3 +316,92 @@ const ProGate = ({ children }: { children: ReactNode }) => {
 - No direct API calls in components — always go through hooks
 - No client-side currency/timezone assumptions — always use org settings
 - No hardcoded text — use constants or i18n keys (even if i18n comes later)
+
+---
+
+## Design system files — READ THESE
+
+### `design/tokens.ts`
+Single source of truth for all colours, typography, spacing, radius, module backgrounds,
+dock themes, logo mark colours, and status config.
+**Always import from tokens.ts — never hardcode design values.**
+
+```typescript
+import { colors, moduleBackgrounds, dockThemes, statusConfig, getAvatarColor } from '@/design/tokens'
+```
+
+### `../../docs/design/SCREENS.md`
+Detailed specification for every screen — layout, component sizes, colours, spacing,
+interaction states (hover, active, focus), and rules.
+**Read this before building any screen or component.**
+
+---
+
+## Key component rules from the design
+
+### StatusSquare — the ONLY way to show status
+```tsx
+// ✅ CORRECT — small coloured square, border-radius 2px
+import { statusConfig } from '@/design/tokens'
+
+const StatusSquare = ({ status }: { status: string }) => {
+  const cfg = statusConfig[status as keyof typeof statusConfig]
+    ?? { color: '#B0AEBE', label: status }
+  return (
+    <span className="flex items-center gap-1.5 text-xs font-semibold"
+          style={{ color: cfg.color }}>
+      <span style={{ width: 7, height: 7, borderRadius: 2, background: cfg.color, flexShrink: 0 }} />
+      {cfg.label}
+    </span>
+  )
+}
+
+// ❌ WRONG — never use pills, badges, rounded chips
+<span className="px-2 py-1 rounded-full bg-green-100 text-green-700">Active</span>
+<Badge variant="success">Active</Badge>
+```
+
+### Avatar — rounded square, NOT circle
+```tsx
+import { getAvatarColor } from '@/design/tokens'
+
+const Avatar = ({ name, id, size = 32 }: { name: string; id: string; size?: number }) => {
+  const { bg, text } = getAvatarColor(id)
+  const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()
+  return (
+    <div style={{
+      width: size, height: size,
+      borderRadius: size >= 40 ? 12 : 9,   // larger avatars get more radius
+      background: bg, color: text,
+      display: 'grid', placeItems: 'center',
+      fontSize: size * 0.34, fontWeight: 700,
+      flexShrink: 0,
+    }}>
+      {initials}
+    </div>
+  )
+}
+```
+
+### Module layout — full-screen world pattern
+```tsx
+import { moduleBackgrounds, logoMarkColors } from '@/design/tokens'
+
+const ModuleLayout = ({ module, children }: { module: keyof typeof moduleBackgrounds, children: ReactNode }) => (
+  <div className="min-h-screen flex flex-col"
+       style={{ background: moduleBackgrounds[module] }}>
+    <WorkivedLogo module={module} />
+    <main className="flex-1 px-11 py-7 flex flex-col gap-7">
+      {children}
+    </main>
+  </div>
+)
+```
+
+### Dock — floating bottom navigation
+```tsx
+import { dockThemes } from '@/design/tokens'
+
+// Dock background, icon, and label colours all change per active module
+// See tokens.dockThemes for exact values per module
+```
