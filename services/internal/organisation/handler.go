@@ -24,18 +24,6 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	orgs.POST("/invitations", h.InviteMember)
 }
 
-// Create godoc
-// @Summary      Create a new organisation
-// @Tags         Organisations
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        body  body      CreateOrgRequest  true  "Organisation details"
-// @Success      201   {object}  object{data=Organisation}
-// @Failure      400   {object}  object{error=apperr.AppError}
-// @Failure      401   {object}  object{error=apperr.AppError}
-// @Failure      409   {object}  object{error=apperr.AppError}  "Slug already taken"
-// @Router       /organisations [post]
 func (h *Handler) Create(c *gin.Context) {
 	ownerID := middleware.UserIDFromCtx(c)
 
@@ -58,15 +46,6 @@ func (h *Handler) Create(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"data": org})
 }
 
-// GetMine godoc
-// @Summary      Get the authenticated user's organisation
-// @Tags         Organisations
-// @Produce      json
-// @Security     BearerAuth
-// @Success      200  {object}  object{data=Organisation}
-// @Failure      401  {object}  object{error=apperr.AppError}
-// @Failure      404  {object}  object{error=apperr.AppError}
-// @Router       /organisations/me [get]
 func (h *Handler) GetMine(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 
@@ -79,19 +58,6 @@ func (h *Handler) GetMine(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": org})
 }
 
-// InviteMember godoc
-// @Summary      Invite a member to the organisation
-// @Description  Requires owner or admin role.
-// @Tags         Organisations
-// @Accept       json
-// @Produce      json
-// @Security     BearerAuth
-// @Param        body  body      InviteMemberRequest  true  "Invitee email and role"
-// @Success      201   {object}  object{data=object{message=string}}
-// @Failure      400   {object}  object{error=apperr.AppError}
-// @Failure      401   {object}  object{error=apperr.AppError}
-// @Failure      403   {object}  object{error=apperr.AppError}  "Insufficient role"
-// @Router       /organisations/invitations [post]
 func (h *Handler) InviteMember(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	inviterID := middleware.UserIDFromCtx(c)

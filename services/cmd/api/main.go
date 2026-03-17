@@ -1,15 +1,3 @@
-// @title          Workived API
-// @version        1.0
-// @description    HR and operations superapp for SMB founders in Indonesia and UAE.
-//
-// @host           localhost:8080
-// @BasePath       /api/v1
-// @schemes        http https
-//
-// @securityDefinitions.apikey BearerAuth
-// @in             header
-// @name           Authorization
-// @description    JWT access token. Format: Bearer <token>
 package main
 
 import (
@@ -31,10 +19,6 @@ import (
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/platform/middleware"
-
-	// Side-effect import: registers the generated OpenAPI spec with swag.ReadDoc().
-	// Run `make swag` to regenerate after changing handler annotations.
-	_ "github.com/workived/services/docs"
 )
 
 func main() {
@@ -92,7 +76,7 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// API docs — Scalar UI at /docs, spec JSON at /docs/openapi.json
+	// API docs — Scalar UI at /docs, spec at /docs/openapi.yaml
 	registerDocsRoutes(r)
 
 	v1 := r.Group("/api/v1")

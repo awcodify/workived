@@ -35,16 +35,6 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	auth.POST("/verify-email", h.VerifyEmail)
 }
 
-// Register godoc
-// @Summary     Register a new user account
-// @Tags        Auth
-// @Accept      json
-// @Produce     json
-// @Param       body  body      RegisterRequest  true  "Registration payload"
-// @Success     201   {object}  object{data=User}
-// @Failure     400   {object}  object{error=apperr.AppError}
-// @Failure     409   {object}  object{error=apperr.AppError}
-// @Router      /auth/register [post]
 func (h *Handler) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -65,16 +55,6 @@ func (h *Handler) Register(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"data": user})
 }
 
-// Login godoc
-// @Summary     Log in and obtain an access token
-// @Tags        Auth
-// @Accept      json
-// @Produce     json
-// @Param       body  body      LoginRequest  true  "Login credentials"
-// @Success     200   {object}  object{data=LoginResponse}
-// @Failure     400   {object}  object{error=apperr.AppError}
-// @Failure     401   {object}  object{error=apperr.AppError}
-// @Router      /auth/login [post]
 func (h *Handler) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -97,16 +77,6 @@ func (h *Handler) Login(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
-// Refresh godoc
-// @Summary     Refresh the access token
-// @Description Reads the refresh token from the httpOnly cookie. Falls back to request body.
-// @Tags        Auth
-// @Accept      json
-// @Produce     json
-// @Param       body  body      RefreshRequest  false  "Refresh token (only if not using cookie)"
-// @Success     200   {object}  object{data=RefreshResponse}
-// @Failure     401   {object}  object{error=apperr.AppError}
-// @Router      /auth/refresh [post]
 func (h *Handler) Refresh(c *gin.Context) {
 	// Prefer cookie; fall back to body
 	rawToken, _ := c.Cookie("refresh_token")
@@ -129,12 +99,6 @@ func (h *Handler) Refresh(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
-// Logout godoc
-// @Summary     Log out and invalidate the refresh token
-// @Tags        Auth
-// @Produce     json
-// @Success     200  {object}  object{data=object{message=string}}
-// @Router      /auth/logout [post]
 func (h *Handler) Logout(c *gin.Context) {
 	rawToken, _ := c.Cookie("refresh_token")
 	if rawToken == "" {
@@ -148,16 +112,6 @@ func (h *Handler) Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "logged out"}})
 }
 
-// VerifyEmail godoc
-// @Summary     Verify a user's email address
-// @Tags        Auth
-// @Accept      json
-// @Produce     json
-// @Param       body  body      VerifyEmailRequest  true  "Verification token"
-// @Success     200   {object}  object{data=object{message=string}}
-// @Failure     400   {object}  object{error=apperr.AppError}
-// @Failure     404   {object}  object{error=apperr.AppError}
-// @Router      /auth/verify-email [post]
 func (h *Handler) VerifyEmail(c *gin.Context) {
 	var req VerifyEmailRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

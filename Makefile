@@ -6,7 +6,7 @@ DOCKER_COMPOSE := docker compose -f infra/docker-compose.yml
 # Override by exporting DATABASE_URL before running make.
 DATABASE_URL ?= postgres://workived:password@localhost:5432/workived?sslmode=disable
 
-.PHONY: help infra-up infra-down migrate-up migrate-down migrate-create run dev build swag test test-cover
+.PHONY: help infra-up infra-down migrate-up migrate-down migrate-create run dev build test test-cover
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort \
@@ -45,12 +45,6 @@ dev: infra-up ## Start infra, run migrations, then start the API server
 build: ## Build the API binary to bin/api
 	@mkdir -p bin
 	cd $(SERVICES_DIR) && go build -o ../bin/api ./cmd/api
-
-# ── Docs ─────────────────────────────────────────────────────────────────────
-
-swag: ## Regenerate OpenAPI spec from handler annotations
-	@command -v swag >/dev/null 2>&1 || { echo "swag CLI not found. Run: go install github.com/swaggo/swag/cmd/swag@latest"; exit 1; }
-	cd $(SERVICES_DIR) && swag init -g cmd/api/main.go --output docs --parseDependency --parseInternal
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 

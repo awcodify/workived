@@ -1,0 +1,13 @@
+# Secrets
+.env
+
+# Build artifacts
+bin/
+services/api
+
+# Go
+services/coverage.out
+services/coverage.html
+
+# OS
+.DS_Store

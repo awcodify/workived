@@ -1,0 +1,864 @@
+openapi: "3.1.0"
+info:
+  title: Workived API
+  version: "1.0"
+  description: HR and operations superapp for SMB founders in Indonesia and UAE.
+  contact:
+    name: Workived
+    email: support@workived.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development
+
+security:
+  - BearerAuth: []
+
+# ── Paths ─────────────────────────────────────────────────────────────────────
+
+paths:
+  # ── Auth ──────────────────────────────────────────────────────────────────
+  /auth/register:
+    post:
+      operationId: registerUser
+      summary: Register a new user account
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/User"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+  /auth/login:
+    post:
+      operationId: loginUser
+      summary: Log in and obtain an access token
+      description: |
+        Returns an access token in the response body and sets a `refresh_token`
+        httpOnly cookie for silent refresh.
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          headers:
+            Set-Cookie:
+              description: httpOnly refresh_token cookie
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Refresh the access token
+      description: |
+        Reads the refresh token from the httpOnly cookie. Falls back to the
+        request body if the cookie is absent.
+      tags: [Auth]
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: New access token issued
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/RefreshResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
+  /auth/logout:
+    post:
+      operationId: logoutUser
+      summary: Log out and invalidate the refresh token
+      tags: [Auth]
+      security: []
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+
+  /auth/verify-email:
+    post:
+      operationId: verifyEmail
+      summary: Verify a user's email address
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyEmailRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  # ── Organisations ─────────────────────────────────────────────────────────
+  /organisations:
+    post:
+      operationId: createOrganisation
+      summary: Create a new organisation
+      tags: [Organisations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrgRequest"
+      responses:
+        "201":
+          description: Organisation created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Organisation"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+  /organisations/me:
+    get:
+      operationId: getMyOrganisation
+      summary: Get the authenticated user's organisation
+      tags: [Organisations]
+      responses:
+        "200":
+          description: Organisation details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Organisation"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /organisations/invitations:
+    post:
+      operationId: inviteMember
+      summary: Invite a member to the organisation
+      description: Requires `owner` or `admin` role.
+      tags: [Organisations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteMemberRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+
+  # ── Employees ─────────────────────────────────────────────────────────────
+  /employees:
+    get:
+      operationId: listEmployees
+      summary: List employees
+      tags: [Employees]
+      parameters:
+        - name: cursor
+          in: query
+          description: Opaque pagination cursor from a previous response
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: "Page size (default: 20, max: 100)"
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - name: status
+          in: query
+          description: Filter by employment status
+          schema:
+            type: string
+            enum: [active, on_leave, probation, inactive]
+        - name: department_id
+          in: query
+          description: Filter by department UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Paginated employee list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Employee"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+
+    post:
+      operationId: createEmployee
+      summary: Create a new employee
+      tags: [Employees]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEmployeeRequest"
+      responses:
+        "201":
+          description: Employee created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Employee"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "402":
+          description: Free plan employee limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
+
+  /employees/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+
+    get:
+      operationId: getEmployee
+      summary: Get a single employee by ID
+      tags: [Employees]
+      responses:
+        "200":
+          description: Employee details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Employee"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    put:
+      operationId: updateEmployee
+      summary: Update an employee
+      tags: [Employees]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEmployeeRequest"
+      responses:
+        "200":
+          description: Employee updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Employee"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      operationId: deactivateEmployee
+      summary: Deactivate (soft-delete) an employee
+      tags: [Employees]
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  # ── Departments ───────────────────────────────────────────────────────────
+  /departments:
+    get:
+      operationId: listDepartments
+      summary: List departments
+      tags: [Departments]
+      responses:
+        "200":
+          description: Department list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Department"
+
+    post:
+      operationId: createDepartment
+      summary: Create a new department
+      tags: [Departments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDepartmentRequest"
+      responses:
+        "201":
+          description: Department created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Department"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /departments/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+
+    put:
+      operationId: updateDepartment
+      summary: Update a department
+      tags: [Departments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDepartmentRequest"
+      responses:
+        "200":
+          description: Department updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Department"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      operationId: deactivateDepartment
+      summary: Deactivate (soft-delete) a department
+      tags: [Departments]
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+# ── Components ────────────────────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from `/auth/login`
+
+  parameters:
+    ResourceID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  # ── Reusable responses ──────────────────────────────────────────────────
+  responses:
+    MessageResponse:
+      description: Generic success message
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  message:
+                    type: string
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    UnauthorizedError:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    ForbiddenError:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    NotFoundError:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    ConflictError:
+      description: Resource already exists
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+
+  # ── Schemas ─────────────────────────────────────────────────────────────
+  schemas:
+    # ── Shared ────────────────────────────────────────────────────────────
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: "#/components/schemas/AppError"
+
+    AppError:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          enum:
+            - NOT_FOUND
+            - UNAUTHORIZED
+            - FORBIDDEN
+            - VALIDATION_ERROR
+            - UPGRADE_REQUIRED
+            - EMPLOYEE_LIMIT_REACHED
+            - CONFLICT
+            - INTERNAL_ERROR
+          examples:
+            - VALIDATION_ERROR
+        message:
+          type: string
+          examples:
+            - "email is required"
+        field:
+          type: string
+          examples:
+            - "email"
+
+    PaginationMeta:
+      type: object
+      required: [has_more, limit]
+      properties:
+        next_cursor:
+          type: string
+          description: Pass this as `?cursor=` to fetch the next page
+        has_more:
+          type: boolean
+        limit:
+          type: integer
+
+    # ── Auth ──────────────────────────────────────────────────────────────
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        is_verified:
+          type: boolean
+        is_active:
+          type: boolean
+        last_login_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    RegisterRequest:
+      type: object
+      required: [email, password, full_name]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        password:
+          type: string
+          format: password
+          minLength: 8
+          maxLength: 72
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+
+    RefreshRequest:
+      type: object
+      required: [refresh_token]
+      properties:
+        refresh_token:
+          type: string
+          description: Only needed if the httpOnly cookie is absent
+
+    RefreshResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+
+    VerifyEmailRequest:
+      type: object
+      required: [token]
+      properties:
+        token:
+          type: string
+
+    # ── Organisation ──────────────────────────────────────────────────────
+    Organisation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        slug:
+          type: string
+        country_code:
+          type: string
+          description: ISO 3166-1 alpha-2
+          examples: ["ID", "AE"]
+        timezone:
+          type: string
+          examples: ["Asia/Jakarta", "Asia/Dubai"]
+        currency_code:
+          type: string
+          description: ISO 4217
+          examples: ["IDR", "AED"]
+        work_days:
+          type: array
+          items:
+            type: integer
+          description: "0=Sun, 1=Mon, ..., 6=Sat"
+          examples: [[1, 2, 3, 4, 5]]
+        plan:
+          type: string
+          enum: [free, pro]
+        plan_employee_limit:
+          type: integer
+          nullable: true
+          description: "null for Pro (unlimited), 25 for Free"
+        logo_url:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+
+    CreateOrgRequest:
+      type: object
+      required: [name, slug, country_code, timezone, currency_code]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        slug:
+          type: string
+          minLength: 2
+          maxLength: 100
+          pattern: "^[a-zA-Z0-9]+$"
+        country_code:
+          type: string
+          minLength: 2
+          maxLength: 2
+        timezone:
+          type: string
+          maxLength: 50
+        currency_code:
+          type: string
+          minLength: 3
+          maxLength: 3
+
+    InviteMemberRequest:
+      type: object
+      required: [email, role]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        role:
+          type: string
+          enum: [admin, member]
+
+    # ── Employee ──────────────────────────────────────────────────────────
+    Employee:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+          nullable: true
+        employee_code:
+          type: string
+          nullable: true
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+          nullable: true
+        department_id:
+          type: string
+          format: uuid
+          nullable: true
+        job_title:
+          type: string
+          nullable: true
+        employment_type:
+          type: string
+          enum: [full_time, part_time, contract, intern]
+        status:
+          type: string
+          enum: [active, on_leave, probation, inactive]
+        start_date:
+          type: string
+          format: date-time
+        end_date:
+          type: string
+          format: date-time
+          nullable: true
+        base_salary:
+          type: integer
+          format: int64
+          nullable: true
+          description: Smallest currency unit (e.g. IDR has no sub-units)
+        salary_currency:
+          type: string
+          nullable: true
+          examples: ["IDR", "AED"]
+        custom_fields:
+          type: object
+          nullable: true
+          description: Pro-only arbitrary key/value metadata
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateEmployeeRequest:
+      type: object
+      required: [full_name, email, employment_type, start_date]
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 30
+        department_id:
+          type: string
+          format: uuid
+        job_title:
+          type: string
+          maxLength: 150
+        employment_type:
+          type: string
+          enum: [full_time, part_time, contract, intern]
+        start_date:
+          type: string
+          format: date
+          description: "YYYY-MM-DD"
+        employee_code:
+          type: string
+          maxLength: 50
+
+    UpdateEmployeeRequest:
+      type: object
+      properties:
+        full_name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 30
+        department_id:
+          type: string
+          format: uuid
+        job_title:
+          type: string
+          maxLength: 150
+        employment_type:
+          type: string
+          enum: [full_time, part_time, contract, intern]
+        status:
+          type: string
+          enum: [active, on_leave, probation, inactive]
+        end_date:
+          type: string
+          format: date
+
+    # ── Department ────────────────────────────────────────────────────────
+    Department:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Parent department for hierarchy
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateDepartmentRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        parent_id:
+          type: string
+          format: uuid
+
+    UpdateDepartmentRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        parent_id:
+          type: string
+          format: uuid
