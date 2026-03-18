@@ -4,6 +4,12 @@ export interface LoginRequest {
   password: string
 }
 
+export interface RegisterRequest {
+  email: string
+  password: string
+  full_name: string
+}
+
 export interface LoginResponse {
   access_token: string
   user: User
@@ -19,6 +25,75 @@ export interface User {
   full_name: string
   is_verified: boolean
   is_active: boolean
+}
+
+// ── Organisation ────────────────────────────────────────────
+export interface Organisation {
+  id: string
+  name: string
+  slug: string
+  country_code: string
+  timezone: string
+  currency_code: string
+  work_days: number[]
+  plan: 'free' | 'pro' | 'enterprise'
+  plan_employee_limit?: number
+  is_active: boolean
+  created_at: string
+}
+
+export interface CreateOrgRequest {
+  name: string
+  slug: string
+  country_code: string
+  timezone: string
+  currency_code: string
+}
+
+// ── Invitations ─────────────────────────────────────────────
+export type MemberRole = 'owner' | 'admin' | 'member' | 'hr_admin' | 'manager' | 'finance'
+
+export interface InviteMemberRequest {
+  email: string
+  role: MemberRole
+  employee_id?: string
+}
+
+export interface InviteResponse {
+  id: string
+  email: string
+  role: string
+  invite_url: string
+  expires_at: string
+}
+
+export interface AcceptInvitationRequest {
+  token: string
+}
+
+export interface AcceptInvitationResponse {
+  access_token: string
+  organisation: Organisation
+  member: {
+    id: string
+    user_id: string
+    organisation_id: string
+    employee_id?: string
+    role: string
+    is_active: boolean
+    joined_at: string
+  }
+}
+
+export interface PendingInvitation {
+  id: string
+  organisation_id: string
+  email: string
+  role: string
+  invited_by: string
+  employee_id?: string
+  expires_at: string
+  created_at: string
 }
 
 // ── Employees ────────────────────────────────────────────────

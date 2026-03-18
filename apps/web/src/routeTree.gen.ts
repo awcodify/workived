@@ -12,14 +12,19 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthSetupOrgRouteRouteImport } from './routes/_auth/setup-org/route'
+import { Route as AuthRegisterRouteRouteImport } from './routes/_auth/register/route'
 import { Route as AuthLoginRouteRouteImport } from './routes/_auth/login/route'
+import { Route as AuthInviteRouteRouteImport } from './routes/_auth/invite/route'
 import { Route as AppTasksRouteRouteImport } from './routes/_app/tasks/route'
+import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
 import { Route as AppReportsRouteRouteImport } from './routes/_app/reports/route'
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
+import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
 
@@ -36,14 +41,34 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthSetupOrgRouteRoute = AuthSetupOrgRouteRouteImport.update({
+  id: '/setup-org',
+  path: '/setup-org',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthRegisterRouteRoute = AuthRegisterRouteRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AuthLoginRouteRoute = AuthLoginRouteRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthInviteRouteRoute = AuthInviteRouteRouteImport.update({
+  id: '/invite',
+  path: '/invite',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AppTasksRouteRoute = AppTasksRouteRouteImport.update({
   id: '/tasks',
   path: '/tasks',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppSettingsRouteRoute = AppSettingsRouteRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppReportsRouteRoute = AppReportsRouteRouteImport.update({
@@ -76,6 +101,11 @@ const AppAttendanceIndexRoute = AppAttendanceIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppAttendanceRouteRoute,
 } as any)
+const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
+  id: '/members',
+  path: '/members',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
 const AppPeopleIdRouteRoute = AppPeopleIdRouteRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -94,10 +124,15 @@ export interface FileRoutesByFullPath {
   '/overview': typeof AppOverviewRouteRoute
   '/people': typeof AppPeopleRouteRouteWithChildren
   '/reports': typeof AppReportsRouteRoute
+  '/settings': typeof AppSettingsRouteRouteWithChildren
   '/tasks': typeof AppTasksRouteRoute
+  '/invite': typeof AuthInviteRouteRoute
   '/login': typeof AuthLoginRouteRoute
+  '/register': typeof AuthRegisterRouteRoute
+  '/setup-org': typeof AuthSetupOrgRouteRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
+  '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance/': typeof AppAttendanceIndexRoute
   '/people/': typeof AppPeopleIndexRoute
 }
@@ -105,10 +140,15 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/overview': typeof AppOverviewRouteRoute
   '/reports': typeof AppReportsRouteRoute
+  '/settings': typeof AppSettingsRouteRouteWithChildren
   '/tasks': typeof AppTasksRouteRoute
+  '/invite': typeof AuthInviteRouteRoute
   '/login': typeof AuthLoginRouteRoute
+  '/register': typeof AuthRegisterRouteRoute
+  '/setup-org': typeof AuthSetupOrgRouteRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
+  '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance': typeof AppAttendanceIndexRoute
   '/people': typeof AppPeopleIndexRoute
 }
@@ -121,10 +161,15 @@ export interface FileRoutesById {
   '/_app/overview': typeof AppOverviewRouteRoute
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
   '/_app/reports': typeof AppReportsRouteRoute
+  '/_app/settings': typeof AppSettingsRouteRouteWithChildren
   '/_app/tasks': typeof AppTasksRouteRoute
+  '/_auth/invite': typeof AuthInviteRouteRoute
   '/_auth/login': typeof AuthLoginRouteRoute
+  '/_auth/register': typeof AuthRegisterRouteRoute
+  '/_auth/setup-org': typeof AuthSetupOrgRouteRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
+  '/_app/settings/members': typeof AppSettingsMembersRouteRoute
   '/_app/attendance/': typeof AppAttendanceIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
 }
@@ -136,10 +181,15 @@ export interface FileRouteTypes {
     | '/overview'
     | '/people'
     | '/reports'
+    | '/settings'
     | '/tasks'
+    | '/invite'
     | '/login'
+    | '/register'
+    | '/setup-org'
     | '/attendance/monthly'
     | '/people/$id'
+    | '/settings/members'
     | '/attendance/'
     | '/people/'
   fileRoutesByTo: FileRoutesByTo
@@ -147,10 +197,15 @@ export interface FileRouteTypes {
     | '/'
     | '/overview'
     | '/reports'
+    | '/settings'
     | '/tasks'
+    | '/invite'
     | '/login'
+    | '/register'
+    | '/setup-org'
     | '/attendance/monthly'
     | '/people/$id'
+    | '/settings/members'
     | '/attendance'
     | '/people'
   id:
@@ -162,10 +217,15 @@ export interface FileRouteTypes {
     | '/_app/overview'
     | '/_app/people'
     | '/_app/reports'
+    | '/_app/settings'
     | '/_app/tasks'
+    | '/_auth/invite'
     | '/_auth/login'
+    | '/_auth/register'
+    | '/_auth/setup-org'
     | '/_app/attendance/monthly'
     | '/_app/people/$id'
+    | '/_app/settings/members'
     | '/_app/attendance/'
     | '/_app/people/'
   fileRoutesById: FileRoutesById
@@ -199,6 +259,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_auth/setup-org': {
+      id: '/_auth/setup-org'
+      path: '/setup-org'
+      fullPath: '/setup-org'
+      preLoaderRoute: typeof AuthSetupOrgRouteRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/register': {
+      id: '/_auth/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof AuthRegisterRouteRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/login': {
       id: '/_auth/login'
       path: '/login'
@@ -206,11 +280,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_auth/invite': {
+      id: '/_auth/invite'
+      path: '/invite'
+      fullPath: '/invite'
+      preLoaderRoute: typeof AuthInviteRouteRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_app/tasks': {
       id: '/_app/tasks'
       path: '/tasks'
       fullPath: '/tasks'
       preLoaderRoute: typeof AppTasksRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/reports': {
@@ -254,6 +342,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/attendance/'
       preLoaderRoute: typeof AppAttendanceIndexRouteImport
       parentRoute: typeof AppAttendanceRouteRoute
+    }
+    '/_app/settings/members': {
+      id: '/_app/settings/members'
+      path: '/members'
+      fullPath: '/settings/members'
+      preLoaderRoute: typeof AppSettingsMembersRouteRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
     }
     '/_app/people/$id': {
       id: '/_app/people/$id'
@@ -299,11 +394,23 @@ const AppPeopleRouteRouteWithChildren = AppPeopleRouteRoute._addFileChildren(
   AppPeopleRouteRouteChildren,
 )
 
+interface AppSettingsRouteRouteChildren {
+  AppSettingsMembersRouteRoute: typeof AppSettingsMembersRouteRoute
+}
+
+const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
+  AppSettingsMembersRouteRoute: AppSettingsMembersRouteRoute,
+}
+
+const AppSettingsRouteRouteWithChildren =
+  AppSettingsRouteRoute._addFileChildren(AppSettingsRouteRouteChildren)
+
 interface AppRouteRouteChildren {
   AppAttendanceRouteRoute: typeof AppAttendanceRouteRouteWithChildren
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
   AppPeopleRouteRoute: typeof AppPeopleRouteRouteWithChildren
   AppReportsRouteRoute: typeof AppReportsRouteRoute
+  AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
   AppTasksRouteRoute: typeof AppTasksRouteRoute
 }
 
@@ -312,6 +419,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppOverviewRouteRoute: AppOverviewRouteRoute,
   AppPeopleRouteRoute: AppPeopleRouteRouteWithChildren,
   AppReportsRouteRoute: AppReportsRouteRoute,
+  AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
   AppTasksRouteRoute: AppTasksRouteRoute,
 }
 
@@ -320,11 +428,17 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 )
 
 interface AuthRouteRouteChildren {
+  AuthInviteRouteRoute: typeof AuthInviteRouteRoute
   AuthLoginRouteRoute: typeof AuthLoginRouteRoute
+  AuthRegisterRouteRoute: typeof AuthRegisterRouteRoute
+  AuthSetupOrgRouteRoute: typeof AuthSetupOrgRouteRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthInviteRouteRoute: AuthInviteRouteRoute,
   AuthLoginRouteRoute: AuthLoginRouteRoute,
+  AuthRegisterRouteRoute: AuthRegisterRouteRoute,
+  AuthSetupOrgRouteRoute: AuthSetupOrgRouteRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
