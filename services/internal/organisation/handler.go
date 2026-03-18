@@ -20,7 +20,6 @@ func NewHandler(service *Service) *Handler {
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	orgs := rg.Group("/organisations")
-	orgs.POST("", h.Create)
 	orgs.GET("/me", middleware.Require(middleware.PermOrgRead), h.GetMine)
 
 	// Invitation management (owner/admin only).
@@ -32,6 +31,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 // RegisterPublicRoutes registers routes that require authentication but NOT tenant context.
 // These are called by users who may not yet belong to any org.
 func (h *Handler) RegisterPublicRoutes(rg *gin.RouterGroup) {
+	rg.POST("/organisations", h.Create)
 	rg.POST("/invitations/accept", h.AcceptInvitation)
 }
 
