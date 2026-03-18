@@ -10,8 +10,16 @@ export const Route = createFileRoute('/_app/people/')({
   component: PeoplePage,
 })
 
+const STATUS_TABS = [
+  { value: undefined, label: 'All' },
+  { value: 'active', label: 'Active' },
+  { value: 'probation', label: 'Probation' },
+  { value: 'inactive', label: 'Inactive' },
+] as const
+
 function PeoplePage() {
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [history, setHistory] = useState<(string | undefined)[]>([undefined])
 
@@ -19,6 +27,7 @@ function PeoplePage() {
     cursor,
     limit: 20,
     search: search || undefined,
+    status: statusFilter,
   })
   const employees = data?.data ?? []
   const meta = data?.meta
@@ -40,6 +49,12 @@ function PeoplePage() {
 
   const handleSearch = (value: string) => {
     setSearch(value)
+    setCursor(undefined)
+    setHistory([undefined])
+  }
+
+  const handleStatusFilter = (status: string | undefined) => {
+    setStatusFilter(status)
     setCursor(undefined)
     setHistory([undefined])
   }
@@ -78,7 +93,7 @@ function PeoplePage() {
       </div>
 
       {/* Search */}
-      <div className="relative mb-6">
+      <div className="relative mb-4">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#9C8B6E' }} />
         <input
           type="text"
@@ -95,90 +110,89 @@ function PeoplePage() {
         />
       </div>
 
-      {/* Content */}
+      {/* Status filter tabs */}
+      <div className="flex items-center gap-1 mb-5">
+        {STATUS_TABS.map((tab) => {
+          const isActive = statusFilter === tab.value
+          return (
+            <button
+              key={tab.label}
+              onClick={() => handleStatusFilter(tab.value)}
+              className="text-sm font-medium px-3.5 py-1.5 transition-colors"
+              style={{
+                borderRadius: 8,
+                background: isActive ? '#FFFFFF' : 'transparent',
+                color: isActive ? '#1A1208' : '#9C8B6E',
+                boxShadow: isActive ? '0 1px 3px rgba(26,18,8,0.06)' : 'none',
+              }}
+            >
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Employee list */}
       {isLoading ? (
-        <PeopleGridSkeleton />
+        <PeopleRowsSkeleton />
       ) : employees.length === 0 ? (
-        <PeopleEmptyState hasSearch={!!search} search={search} />
+        <PeopleEmptyState hasSearch={!!search} search={search} hasFilter={!!statusFilter} />
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="flex flex-col gap-[3px]">
           {employees.map((emp) => (
             <Link
               key={emp.id}
               to="/people/$id"
               params={{ id: emp.id }}
-              className="block p-[22px] transition-all duration-200 hover:-translate-y-0.5"
+              className="flex items-center gap-4 transition-all duration-150 hover:-translate-y-px"
               style={{
                 background: '#FFFFFF',
-                borderRadius: 16,
-                border: '1px solid rgba(26,18,8,0.06)',
+                borderRadius: 12,
+                padding: '14px 20px',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 8px 24px rgba(26,18,8,0.08)'
+                e.currentTarget.style.background = '#F0EBE0'
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = 'none'
+                e.currentTarget.style.background = '#FFFFFF'
               }}
             >
-              <Avatar name={emp.full_name} id={emp.id} size={44} />
-              <p
-                className="font-bold mt-3 truncate"
-                style={{ fontSize: 15, color: '#1A1208', letterSpacing: '-0.02em' }}
-              >
-                {emp.full_name}
-              </p>
-              <p className="truncate mt-0.5" style={{ fontSize: 12, color: '#9C8B6E' }}>
-                {emp.job_title ?? emp.employment_type.replace('_', ' ')}
-              </p>
+              <Avatar name={emp.full_name} id={emp.id} size={32} />
 
-              <div className="flex items-center justify-between mt-4">
-                {emp.department_name ? (
+              <div className="flex-1 min-w-0 flex items-center gap-4">
+                <p
+                  className="font-semibold truncate"
+                  style={{ fontSize: 13, color: '#1A1208', minWidth: 0, flex: '0 1 auto', maxWidth: 200 }}
+                >
+                  {emp.full_name}
+                </p>
+                <p
+                  className="truncate hidden md:block"
+                  style={{ fontSize: 12, color: '#9C8B6E', flex: '0 1 auto', maxWidth: 160 }}
+                >
+                  {emp.job_title ?? emp.employment_type.replace('_', ' ')}
+                </p>
+
+                {emp.department_name && (
                   <span
-                    className="font-semibold truncate"
+                    className="font-semibold hidden md:inline-block truncate"
                     style={{
                       fontSize: 11,
                       color: '#9C8B6E',
                       background: moduleBackgrounds.people,
                       padding: '3px 9px',
                       borderRadius: 6,
+                      flexShrink: 0,
                     }}
                   >
                     {emp.department_name}
                   </span>
-                ) : (
-                  <span />
                 )}
-                <StatusSquare status={emp.status} />
               </div>
+
+              <StatusSquare status={emp.status} />
             </Link>
           ))}
-
-          {/* Add employee placeholder card */}
-          <Link
-            to="/people/$id"
-            params={{ id: 'new' }}
-            className="flex flex-col items-center justify-center gap-2 p-[22px] transition-colors hover:border-[rgba(26,18,8,0.25)]"
-            style={{
-              borderRadius: 16,
-              border: '1.5px dashed rgba(26,18,8,0.12)',
-              minHeight: 180,
-            }}
-          >
-            <div
-              className="grid place-items-center"
-              style={{
-                width: 44,
-                height: 44,
-                borderRadius: 12,
-                background: 'rgba(26,18,8,0.04)',
-              }}
-            >
-              <Plus size={20} style={{ color: '#9C8B6E' }} />
-            </div>
-            <span className="font-medium" style={{ fontSize: 13, color: '#9C8B6E' }}>
-              Add employee
-            </span>
-          </Link>
         </div>
       )}
 
@@ -188,8 +202,8 @@ function PeoplePage() {
           <button
             onClick={handlePrev}
             disabled={history.length <= 1}
-            className="text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-30"
-            style={{ color: '#9C8B6E' }}
+            className="text-sm font-medium px-4 py-2 transition-colors disabled:opacity-30"
+            style={{ color: '#9C8B6E', borderRadius: 8 }}
             onMouseEnter={(e) => {
               if (!e.currentTarget.disabled) e.currentTarget.style.background = '#FFFFFF'
             }}
@@ -202,8 +216,8 @@ function PeoplePage() {
           <button
             onClick={handleNext}
             disabled={!meta?.has_more}
-            className="text-sm font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-30"
-            style={{ color: '#9C8B6E' }}
+            className="text-sm font-medium px-4 py-2 transition-colors disabled:opacity-30"
+            style={{ color: '#9C8B6E', borderRadius: 8 }}
             onMouseEnter={(e) => {
               if (!e.currentTarget.disabled) e.currentTarget.style.background = '#FFFFFF'
             }}
@@ -220,25 +234,28 @@ function PeoplePage() {
 }
 
 // ── Skeleton loader ──────────────────────────────────────────────
-function PeopleGridSkeleton() {
+function PeopleRowsSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-      {Array.from({ length: 6 }).map((_, i) => (
+    <div className="flex flex-col gap-[3px]">
+      {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="p-[22px] animate-pulse"
+          className="flex items-center gap-4 animate-pulse"
           style={{
             background: '#FFFFFF',
-            borderRadius: 16,
-            border: '1px solid rgba(26,18,8,0.06)',
+            borderRadius: 12,
+            padding: '14px 20px',
           }}
         >
-          <div className="rounded-[12px]" style={{ width: 44, height: 44, background: 'rgba(26,18,8,0.06)' }} />
-          <div className="rounded-md mt-3" style={{ width: '70%', height: 16, background: 'rgba(26,18,8,0.06)' }} />
-          <div className="rounded-md mt-2" style={{ width: '45%', height: 12, background: 'rgba(26,18,8,0.04)' }} />
-          <div className="flex items-center justify-between mt-4">
-            <div className="rounded-md" style={{ width: 72, height: 20, background: 'rgba(26,18,8,0.04)' }} />
+          <div className="rounded-[9px] flex-shrink-0" style={{ width: 32, height: 32, background: 'rgba(26,18,8,0.06)' }} />
+          <div className="flex-1 flex items-center gap-4">
+            <div className="rounded-md" style={{ width: 120, height: 13, background: 'rgba(26,18,8,0.06)' }} />
+            <div className="rounded-md hidden md:block" style={{ width: 80, height: 12, background: 'rgba(26,18,8,0.04)' }} />
+            <div className="rounded-md hidden md:block" style={{ width: 64, height: 20, background: 'rgba(26,18,8,0.03)' }} />
+          </div>
+          <div className="flex items-center gap-1.5">
             <div className="rounded-sm" style={{ width: 7, height: 7, background: 'rgba(26,18,8,0.06)' }} />
+            <div className="rounded-sm" style={{ width: 40, height: 12, background: 'rgba(26,18,8,0.04)' }} />
           </div>
         </div>
       ))}
@@ -247,7 +264,17 @@ function PeopleGridSkeleton() {
 }
 
 // ── Empty state ──────────────────────────────────────────────────
-function PeopleEmptyState({ hasSearch, search }: { hasSearch: boolean; search: string }) {
+function PeopleEmptyState({
+  hasSearch,
+  search,
+  hasFilter,
+}: {
+  hasSearch: boolean
+  search: string
+  hasFilter: boolean
+}) {
+  const hasFiltering = hasSearch || hasFilter
+
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-3">
       <div
@@ -257,14 +284,14 @@ function PeopleEmptyState({ hasSearch, search }: { hasSearch: boolean; search: s
         <Users size={22} style={{ color: '#7C5C2E' }} />
       </div>
       <p className="font-bold" style={{ fontSize: 15, color: '#1A1208' }}>
-        {hasSearch ? `No results for "${search}"` : 'No employees yet'}
+        {hasSearch ? `No results for "${search}"` : hasFilter ? 'No employees match this filter' : 'No employees yet'}
       </p>
       <p style={{ fontSize: 13, color: '#9C8B6E' }}>
-        {hasSearch
-          ? 'Try a different name or clear the filter.'
+        {hasFiltering
+          ? 'Try a different search or clear the filter.'
           : 'Add your first team member to get started.'}
       </p>
-      {!hasSearch && (
+      {!hasFiltering && (
         <Link
           to="/people/$id"
           params={{ id: 'new' }}
