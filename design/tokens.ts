@@ -45,6 +45,7 @@ export const moduleBackgrounds = {
   leave:       '#F3F2FB',  // soft violet
   claims:      '#F3F2FB',  // soft violet
   tasks:       '#FDF4E3',  // warm amber energy
+  reports:     '#0F0F1A',  // deep indigo night
 } as const
 
 // ── DOCK THEMES ───────────────────────────────────────────────
@@ -116,6 +117,17 @@ export const dockThemes = {
       label: 'rgba(255,255,255,0.85)',
     },
   },
+  reports: {
+    bg:     'rgba(255,255,255,0.07)',
+    border: 'rgba(255,255,255,0.1)',
+    icon:   'rgba(255,255,255,0.45)',
+    label:  'rgba(255,255,255,0.28)',
+    active: {
+      bg:    'rgba(255,255,255,0.15)',
+      icon:  '#FFFFFF',
+      label: 'rgba(255,255,255,0.85)',
+    },
+  },
 } as const
 
 // ── LOGO MARK COLOURS PER MODULE ─────────────────────────────
@@ -126,6 +138,7 @@ export const logoMarkColors = {
   leave:       { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
   claims:      { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
   tasks:       { bg: '#1E1A3A', primary: '#818CF8', textPrimary: '#FFFFFF', textAccent: '#818CF8' },
+  reports:     { bg: '#1A1A2E', primary: '#60A5FA', textPrimary: '#FFFFFF', textAccent: '#60A5FA' },
 } as const
 
 // ── TYPOGRAPHY ────────────────────────────────────────────────
