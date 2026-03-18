@@ -413,6 +413,170 @@ function OverviewPage() {
             </p>
           ) : (
             <>
+              {/* Attendance Breakdown Chart */}
+              <div className="mt-6" style={{ 
+                background: 'rgba(255,255,255,0.04)', 
+                border: '1px solid rgba(255,255,255,0.1)',
+                borderRadius: 14,
+                padding: '20px 24px',
+              }}>
+                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 16 }}>
+                  Attendance Breakdown
+                </p>
+                
+                <div className="flex items-center gap-6">
+                  {/* Donut Chart */}
+                  <div className="relative" style={{ width: 140, height: 140, flexShrink: 0 }}>
+                    <svg width="140" height="140" viewBox="0 0 140 140" style={{ transform: 'rotate(-90deg)' }}>
+                      {(() => {
+                        const total = totalEmployees || 1
+                        const radius = 55
+                        const strokeWidth = 18
+                        const circumference = 2 * Math.PI * radius
+                        
+                        // Calculate percentages and offsets
+                        const presentPercent = present / total
+                        const latePercent = late / total
+                        const absentPercent = absent / total
+                        
+                        const presentLength = circumference * presentPercent
+                        const lateLength = circumference * latePercent
+                        const absentLength = circumference * absentPercent
+                        
+                        let offset = 0
+                        
+                        return (
+                          <>
+                            {/* Background circle */}
+                            <circle
+                              cx="70"
+                              cy="70"
+                              r={radius}
+                              fill="none"
+                              stroke="rgba(255,255,255,0.06)"
+                              strokeWidth={strokeWidth}
+                            />
+                            
+                            {/* Present segment */}
+                            {presentLength > 0 && (
+                              <circle
+                                cx="70"
+                                cy="70"
+                                r={radius}
+                                fill="none"
+                                stroke="#12A05C"
+                                strokeWidth={strokeWidth}
+                                strokeDasharray={`${presentLength} ${circumference}`}
+                                strokeDashoffset={-offset}
+                                strokeLinecap="round"
+                                style={{ transition: 'stroke-dasharray 0.6s ease-in-out, stroke-dashoffset 0.6s ease-in-out' }}
+                              />
+                            )}
+                            
+                            {/* Late segment */}
+                            {lateLength > 0 && (() => {
+                              offset += presentLength
+                              return (
+                                <circle
+                                  cx="70"
+                                  cy="70"
+                                  r={radius}
+                                  fill="none"
+                                  stroke="#C97B2A"
+                                  strokeWidth={strokeWidth}
+                                  strokeDasharray={`${lateLength} ${circumference}`}
+                                  strokeDashoffset={-offset}
+                                  strokeLinecap="round"
+                                  style={{ transition: 'stroke-dasharray 0.6s ease-in-out, stroke-dashoffset 0.6s ease-in-out' }}
+                                />
+                              )
+                            })()}
+                            
+                            {/* Absent segment */}
+                            {absentLength > 0 && (() => {
+                              offset += lateLength
+                              return (
+                                <circle
+                                  cx="70"
+                                  cy="70"
+                                  r={radius}
+                                  fill="none"
+                                  stroke="#D44040"
+                                  strokeWidth={strokeWidth}
+                                  strokeDasharray={`${absentLength} ${circumference}`}
+                                  strokeDashoffset={-offset}
+                                  strokeLinecap="round"
+                                  style={{ transition: 'stroke-dasharray 0.6s ease-in-out, stroke-dashoffset 0.6s ease-in-out' }}
+                                />
+                              )
+                            })()}
+                          </>
+                        )
+                      })()}
+                    </svg>
+                    
+                    {/* Center text */}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <p style={{ fontSize: 28, fontWeight: 800, color: 'rgba(255,255,255,0.9)', lineHeight: 1, fontFamily: typography.fontMono }}>
+                        {totalEmployees}
+                      </p>
+                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                        Total
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Legend */}
+                  <div className="flex-1 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#12A05C' }} />
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Present</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontSize: 15, fontFamily: typography.fontMono, color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>
+                          {present}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                          ({totalEmployees > 0 ? Math.round((present / totalEmployees) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#C97B2A' }} />
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Late</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontSize: 15, fontFamily: typography.fontMono, color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>
+                          {late}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                          ({totalEmployees > 0 ? Math.round((late / totalEmployees) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#D44040' }} />
+                        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Absent</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontSize: 15, fontFamily: typography.fontMono, color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>
+                          {absent}
+                        </span>
+                        <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                          ({totalEmployees > 0 ? Math.round((absent / totalEmployees) * 100) : 0}%)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team avatars */}
               <div className="flex flex-wrap gap-3 mt-6">
                 {allEntries.map((e) => {
                   const isAbsent = e.status === 'absent'
