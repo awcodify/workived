@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
@@ -66,6 +66,22 @@ function useElapsedTime(clockInAt: string | undefined) {
   return elapsed
 }
 
+// ── Announcements / Quotes ─────────────────────────────────────
+// TODO: Replace with backend API — GET /api/v1/announcements/active
+// The backend should return org-specific announcements or a quote of the day.
+// For now, we pick a random quote per page load.
+
+const PLACEHOLDER_QUOTES = [
+  { text: 'Great things in business are never done by one person. They\'re done by a team of people.', author: 'Steve Jobs' },
+  { text: 'Coming together is a beginning, staying together is progress, and working together is success.', author: 'Henry Ford' },
+  { text: 'Alone we can do so little; together we can do so much.', author: 'Helen Keller' },
+  { text: 'Talent wins games, but teamwork and intelligence win championships.', author: 'Michael Jordan' },
+  { text: 'If everyone is moving forward together, then success takes care of itself.', author: 'Henry Ford' },
+  { text: 'The strength of the team is each individual member. The strength of each member is the team.', author: 'Phil Jackson' },
+  { text: 'None of us is as smart as all of us.', author: 'Ken Blanchard' },
+  { text: 'It is literally true that you can succeed best and quickest by helping others to succeed.', author: 'Napoleon Hill' },
+]
+
 // ── Page ────────────────────────────────────────────────────────
 
 function OverviewPage() {
@@ -88,6 +104,12 @@ function OverviewPage() {
 
   const greeting = useGreeting()
   const clock = useLiveClock(tz)
+
+  // TODO: Replace with useAnnouncements() hook fetching from backend
+  const dailyQuote = useMemo(
+    () => PLACEHOLDER_QUOTES[Math.floor(Math.random() * PLACEHOLDER_QUOTES.length)]!,
+    [],
+  )
 
   const isLoading = orgLoading || empLoading || dailyLoading
 
@@ -158,17 +180,36 @@ function OverviewPage() {
         {clock}
       </p>
 
-      {/* Metrics strip */}
-      {isLoading ? (
-        <MetricsStripSkeleton />
-      ) : (
-        <div className="flex mt-6 overflow-hidden" style={{ borderRadius: 16 }}>
-          <MetricCell label="EMPLOYEES" value={totalEmployees} color="#9B8FF7" position="first" />
-          <MetricCell label="PRESENT" value={present} color="#12A05C" position="middle" />
-          <MetricCell label="LATE" value={late} color="#C97B2A" position="middle" />
-          <MetricCell label="ABSENT" value={absent} color="#D44040" position="last" />
-        </div>
-      )}
+      {/* Announcement / Quote of the day */}
+      {/* TODO: Replace with announcement data from backend */}
+      <div
+        className="mt-6"
+        style={{
+          padding: '20px 24px',
+          background: 'linear-gradient(135deg, rgba(155,143,247,0.10) 0%, rgba(155,143,247,0.04) 100%)',
+          border: '1px solid rgba(155,143,247,0.15)',
+          borderRadius: 16,
+        }}
+      >
+        <p style={{ fontSize: 11, color: 'rgba(155,143,247,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+          {org?.name ?? 'Your Company'} · Quote of the Day
+        </p>
+        <p
+          style={{
+            fontSize: 16,
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.7)',
+            lineHeight: 1.5,
+            marginTop: 8,
+            fontStyle: 'italic',
+          }}
+        >
+          "{dailyQuote.text}"
+        </p>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>
+          — {dailyQuote.author}
+        </p>
+      </div>
 
       {/* ── Main Content (2 columns) ──────────────────────────── */}
       <div className="grid md:grid-cols-2 gap-8 mt-8">
@@ -811,66 +852,4 @@ const DUMMY_ACTIVITIES = [
 ]
 
 // ── Subcomponents ──────────────────────────────────────────────
-
-function MetricCell({
-  label,
-  value,
-  color,
-  position,
-}: {
-  label: string
-  value: number
-  color: string
-  position: 'first' | 'middle' | 'last'
-}) {
-  return (
-    <div
-      className="flex-1"
-      style={{
-        padding: '20px 20px',
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        marginLeft: position === 'first' ? 0 : -1,
-      }}
-    >
-      <p style={{ fontSize: 40, fontWeight: 800, color, lineHeight: 1, letterSpacing: '-0.03em' }}>
-        {value}
-      </p>
-      <p
-        className="uppercase mt-1.5"
-        style={{
-          fontSize: 11,
-          fontWeight: 600,
-          color: 'rgba(255,255,255,0.3)',
-          letterSpacing: '0.06em',
-        }}
-      >
-        {label}
-      </p>
-    </div>
-  )
-}
-
-function MetricsStripSkeleton() {
-  return (
-    <div className="flex mt-6 overflow-hidden animate-pulse" style={{ borderRadius: 16 }}>
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex-1"
-          style={{
-            padding: '20px 20px',
-            background: 'rgba(255,255,255,0.03)',
-            border: '1px solid rgba(255,255,255,0.06)',
-            marginLeft: i === 0 ? 0 : -1,
-          }}
-        >
-          <div className="rounded-md" style={{ width: 48, height: 36, background: 'rgba(255,255,255,0.06)' }} />
-          <div className="rounded-sm mt-2" style={{ width: 64, height: 12, background: 'rgba(255,255,255,0.04)' }} />
-        </div>
-      ))}
-    </div>
-  )
-}
-
 
