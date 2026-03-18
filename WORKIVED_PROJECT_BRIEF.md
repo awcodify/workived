@@ -76,12 +76,26 @@ Payroll is explicitly out of scope for the initial build. Build the general empl
 
 ## 5. Tech Stack
 
-### Frontend
-- **Framework:** Next.js 14 (App Router)
-- **Styling:** Tailwind CSS + shadcn/ui
-- **Language:** TypeScript
+### Frontend — Dashboard (apps/web)
+- **Build tool:** Vite 8
+- **UI library:** React 19
+- **Routing:** TanStack Router (type-safe, file-based)
+- **Server state:** TanStack Query v5
+- **Client state:** Zustand (auth, org context)
+- **Forms:** React Hook Form + Zod
+- **HTTP:** axios with JWT interceptors
+- **Styling:** Tailwind CSS v4 + shadcn/ui
+- **Testing:** Vitest + React Testing Library + MSW
+- **Language:** TypeScript (strict mode)
 - **Mobile:** PWA (Progressive Web App) — responsive and mobile-first
-- **Font:** Plus Jakarta Sans (700, 800 weights for headings; 400, 500 for body)
+- **Font:** Plus Jakarta Sans (via @fontsource-variable, 700/800 headings, 400/500 body)
+- **Deployment:** Static files (`vite build` → `dist/`) — no Node.js server needed
+
+### Frontend — Landing page (apps/landing, future)
+- **Framework:** Astro (SSG — static site generation for SEO)
+- **Styling:** Tailwind CSS + shared design tokens
+- **Content:** Markdown/MDX for blog posts, changelog
+- **Deployment:** Static files — CDN or any static host
 
 ### Backend
 - **Language:** Go (Golang)
@@ -106,7 +120,8 @@ Payroll is explicitly out of scope for the initial build. Build the general empl
 
 ### Local development
 ```
-docker-compose up  →  PostgreSQL + Redis + MinIO + Go API + Next.js
+make dev           →  PostgreSQL + Redis + MinIO + Go API + Vite dev server
+docker-compose up  →  PostgreSQL + Redis + MinIO (infra only)
 ```
 
 ---
@@ -116,23 +131,24 @@ docker-compose up  →  PostgreSQL + Redis + MinIO + Go API + Next.js
 ```
 workived/
 ├── apps/
-│   └── web/                        # Next.js 14 frontend
-│       ├── app/                    # App Router pages
-│       │   ├── (auth)/             # Login, register, verify
-│       │   ├── (app)/              # Authenticated app shell
-│       │   │   ├── overview/
-│       │   │   ├── people/
-│       │   │   ├── attendance/
-│       │   │   ├── leave/
-│       │   │   ├── claims/
-│       │   │   └── tasks/
-│       │   └── layout.tsx
-│       ├── components/
-│       │   ├── ui/                 # shadcn/ui base components
-│       │   └── workived/           # App-specific components
-│       └── lib/
-│           ├── api/                # API client (fetch wrappers)
-│           └── utils/
+│   ├── web/                        # Vite + React SPA (dashboard)
+│   │   ├── src/
+│   │   │   ├── routes/             # TanStack Router file-based routes
+│   │   │   │   ├── _auth/          # Unauthenticated (login)
+│   │   │   │   └── _app/           # Authenticated (dock, auth guard)
+│   │   │   ├── components/
+│   │   │   │   ├── ui/             # shadcn/ui base components
+│   │   │   │   └── workived/       # App-specific components
+│   │   │   └── lib/
+│   │   │       ├── api/            # axios client + endpoint modules
+│   │   │       ├── hooks/          # TanStack Query wrappers
+│   │   │       ├── stores/         # Zustand (auth, org context)
+│   │   │       └── utils/          # money, date, cn
+│   │   └── package.json
+│   └── landing/                    # Astro marketing site (future)
+│
+├── design/                         # Shared design tokens (both apps import from here)
+│   └── tokens.ts
 │
 ├── services/                       # Go backend — modular monolith
 │   ├── cmd/
@@ -576,49 +592,58 @@ FOR EACH active employee × active leave_policy:
 
 ## 13. Build Order
 
-### Sprint 1 — Foundation
-- [ ] Go project scaffold (module structure, config, middleware)
-- [ ] PostgreSQL migrations (all tables)
-- [ ] Auth module (register, login, JWT, refresh, email verify)
-- [ ] Organisation module (create, invite members)
-- [ ] Employee module (CRUD, documents)
+### Sprint 1 — Foundation (DONE)
+- [x] Go project scaffold (module structure, config, middleware)
+- [x] PostgreSQL migrations (all tables)
+- [x] Auth module (register, login, JWT, refresh)
+- [x] Organisation module (create, invite members)
+- [x] Employee module (CRUD, documents)
+- [x] Department module (CRUD, nested)
 
-### Sprint 2 — Attendance
-- [ ] Work schedules configuration
-- [ ] Public holidays seeding (ID + AE)
-- [ ] Clock-in / clock-out API
-- [ ] Attendance reports
-- [ ] Late detection logic
+### Sprint 2 — Attendance (DONE)
+- [x] Clock-in / clock-out API with late detection
+- [x] Daily and monthly attendance reports
+- [x] Work schedule and public holiday support
+- [x] OpenAPI 3.1 spec + Scalar UI documentation
 
-### Sprint 3 — Leave
+### Sprint 3 — Frontend (Auth + Employees + Attendance)
+- [ ] Vite + React project scaffold (TanStack Router, Query, Tailwind, shadcn/ui)
+- [ ] Design system setup (tokens → Tailwind config, globals.css)
+- [ ] API client + auth store (axios + Zustand + JWT interceptor)
+- [ ] Login page
+- [ ] App shell with floating dock
+- [ ] Dashboard (overview — employee count, today's attendance)
+- [ ] Employee list + detail pages
+- [ ] Attendance: clock-in/out + daily report + monthly report
+
+### Sprint 4 — Leave (backend)
 - [ ] Leave policy configuration
 - [ ] Leave balance initialisation
 - [ ] Leave request flow (submit → approve/reject)
 - [ ] Year-end rollover job
 
-### Sprint 4 — Claims
+### Sprint 5 — Leave + Claims (frontend + backend)
+- [ ] Leave frontend pages
 - [ ] Claim categories configuration
 - [ ] Claim submission + receipt upload
-- [ ] Approval flow
+- [ ] Claims frontend pages
 
-### Sprint 5 — Tasks
+### Sprint 6 — Tasks
 - [ ] Task lists (kanban columns)
-- [ ] Task CRUD
-- [ ] Task comments
+- [ ] Task CRUD + comments
+- [ ] Tasks frontend pages
 
-### Sprint 6 — Frontend
-- [ ] Next.js project scaffold
-- [ ] Design system components
-- [ ] Module screens (Overview, People, Attendance, Leave, Claims, Tasks)
-- [ ] Mobile PWA
+### Sprint 7 — Landing page + PWA
+- [ ] Astro marketing site (apps/landing)
+- [ ] PWA manifest + service worker for dashboard
 
-### Sprint 7 — Pro features + Analytics
+### Sprint 8 — Pro features + Analytics
 - [ ] Feature gating middleware
 - [ ] GPS geofencing
 - [ ] Custom leave types
 - [ ] Analytics endpoints
 
-### Sprint 8 — Payroll (future)
+### Sprint 9 — Payroll (future)
 - [ ] TBD — design separately when ready
 
 ---
@@ -677,4 +702,4 @@ API_URL=http://localhost:8080
 ---
 
 *Last updated: March 2026*
-*Status: Ready for Sprint 1 — Go project scaffold + database migrations*
+*Status: Sprint 3 — Frontend (Vite + React) for Auth, Employees, Attendance*

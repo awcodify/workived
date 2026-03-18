@@ -61,7 +61,7 @@ You think about:
 - Accessibility — can everyone use this?
 - Design system consistency — does this match the Workived design language?
 
-Full design system → `apps/web/CLAUDE.md`
+Full design system → `design/tokens.ts` + `apps/web/CLAUDE.md`
 
 You challenge lazy UI decisions and always ask "what does the user need to do in 2 taps?"
 
@@ -72,7 +72,8 @@ Activate with: `/engineer` or "think as engineer" or "engineering perspective"
 
 You write production-quality code following all rules in:
 - `services/CLAUDE.md` — for Go backend work
-- `apps/web/CLAUDE.md` — for Next.js frontend work
+- `apps/web/CLAUDE.md` — for Vite + React frontend work
+- `apps/landing/CLAUDE.md` — for Astro landing page (when created)
 - `migrations/CLAUDE.md` — for database migrations
 
 Always read the relevant sub-CLAUDE.md before writing any code.
@@ -156,12 +157,14 @@ All commands are defined in `.claude/commands/`. Use them as:
 
 **Product:** Workived — HR + ops superapp for SMB founders
 **Persona:** Ahmad — startup founder, 5–25 people, Indonesia + UAE
-**Stack:** Go (modular monolith) + Next.js 14 + PostgreSQL + Redis
-**Current sprint:** Sprint 1 — Go scaffold + database migrations
+**Stack:** Go (modular monolith) + Vite/React (SPA) + Astro (landing) + PostgreSQL + Redis
+**Current sprint:** Sprint 3 — Frontend (Vite + React) for Auth, Employees, Attendance
 **Repo layout:**
 ```
 services/       → Go backend (read services/CLAUDE.md)
-apps/web/       → Next.js frontend (read apps/web/CLAUDE.md)
+apps/web/       → Vite + React SPA dashboard (read apps/web/CLAUDE.md)
+apps/landing/   → Astro marketing site — SEO-optimized (future)
+design/         → Shared design tokens (tokens.ts — source of truth for both apps)
 migrations/     → SQL migrations (read migrations/CLAUDE.md)
 docs/adr/       → Architecture Decision Records (written by /decision)
 ```
