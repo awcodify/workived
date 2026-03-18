@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { attendanceApi } from '@/lib/api/attendance'
 
 export const attendanceKeys = {
@@ -40,8 +41,19 @@ export function useClockIn() {
   return useMutation({
     mutationFn: (data: { note?: string }) =>
       attendanceApi.clockIn(data).then((r) => r.data.data),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: attendanceKeys.all })
+      const time = new Date(data.clock_in_at).toLocaleTimeString('en', {
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+      toast.success(`Clocked in at ${time}`, {
+        description: data.is_late ? 'Marked as late' : 'On time',
+      })
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.error?.message || 'Failed to clock in'
+      toast.error('Clock in failed', { description: message })
     },
   })
 }
@@ -51,8 +63,21 @@ export function useClockOut() {
   return useMutation({
     mutationFn: (data: { note?: string }) =>
       attendanceApi.clockOut(data).then((r) => r.data.data),
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: attendanceKeys.all })
+      const time = data.clock_out_at 
+        ? new Date(data.clock_out_at).toLocaleTimeString('en', {
+            hour: '2-digit',
+            minute: '2-digit',
+          })
+        : 'now'
+      toast.success(`Clocked out at ${time}`, {
+        description: 'Have a great rest of your day!',
+      })
+    },
+    onError: (error: any) => {
+      const message = error?.response?.data?.error?.message || 'Failed to clock out'
+      toast.error('Clock out failed', { description: message })
     },
   })
 }

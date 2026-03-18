@@ -51,7 +51,7 @@ func (r *Repository) Create(ctx context.Context, orgID, employeeID uuid.UUID, da
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO attendance_records (organisation_id, employee_id, date, clock_in_at, is_late, note)
 		VALUES ($1, $2, $3::date, $4, $5, $6)
-		RETURNING id, organisation_id, employee_id, date,
+		RETURNING id, organisation_id, employee_id, date::text,
 		          clock_in_at, clock_out_at, is_late, note,
 		          created_at, updated_at
 	`, orgID, employeeID, date, clockInAt, isLate, note).Scan(
@@ -78,7 +78,7 @@ func (r *Repository) UpdateClockOut(ctx context.Context, orgID, employeeID uuid.
 		WHERE organisation_id = $1
 		  AND employee_id = $2
 		  AND date = $3::date
-		RETURNING id, organisation_id, employee_id, date,
+		RETURNING id, organisation_id, employee_id, date::text,
 		          clock_in_at, clock_out_at, is_late, note,
 		          created_at, updated_at
 	`, orgID, employeeID, date, clockOutAt, note).Scan(
