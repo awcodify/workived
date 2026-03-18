@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 
 	"github.com/workived/services/internal/attendance"
@@ -64,7 +65,13 @@ func main() {
 	orgHandler := organisation.NewHandler(orgSvc)
 	empHandler := employee.NewHandler(empSvc)
 	deptHandler := department.NewHandler(deptSvc)
-	attHandler := attendance.NewHandler(attSvc)
+	attHandler := attendance.NewHandler(attSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
+		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		return emp.ID, nil
+	})
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {

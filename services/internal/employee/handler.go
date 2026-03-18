@@ -18,6 +18,7 @@ type ServiceInterface interface {
 	List(ctx context.Context, orgID uuid.UUID, f ListFilters) (*ListResult, error)
 	Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest) (*Employee, error)
 	Get(ctx context.Context, orgID, id uuid.UUID) (*Employee, error)
+	GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest) (*Employee, error)
 	Deactivate(ctx context.Context, orgID, id uuid.UUID) error
 }
@@ -34,9 +35,23 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	emps := rg.Group("/employees")
 	emps.GET("", h.List)
 	emps.POST("", h.Create)
+	emps.GET("/me", h.GetMe) // must be before /:id
 	emps.GET("/:id", h.Get)
 	emps.PUT("/:id", h.Update)
 	emps.DELETE("/:id", h.Deactivate)
+}
+
+func (h *Handler) GetMe(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	emp, err := h.service.GetByUserID(c.Request.Context(), orgID, userID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": emp})
 }
 
 func (h *Handler) List(c *gin.Context) {

@@ -4,10 +4,20 @@ import type { ListParams, CreateEmployeeInput, UpdateEmployeeInput } from '@/typ
 
 export const employeeKeys = {
   all: ['employees'] as const,
+  me: () => [...employeeKeys.all, 'me'] as const,
   lists: () => [...employeeKeys.all, 'list'] as const,
   list: (params?: ListParams) => [...employeeKeys.lists(), params] as const,
   details: () => [...employeeKeys.all, 'detail'] as const,
   detail: (id: string) => [...employeeKeys.details(), id] as const,
+}
+
+export function useMyEmployee() {
+  return useQuery({
+    queryKey: employeeKeys.me(),
+    queryFn: () => employeesApi.me().then((r) => r.data.data),
+    staleTime: 5 * 60 * 1000, // 5 min — rarely changes
+    retry: false,
+  })
 }
 
 export function useEmployees(params?: ListParams) {

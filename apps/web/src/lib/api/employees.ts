@@ -18,6 +18,9 @@ export const employeesApi = {
   list: (params?: ListParams) =>
     apiClient.get<EmployeeListResponse>('/api/v1/employees', { params }),
 
+  me: () =>
+    apiClient.get<ApiResponse<Employee>>('/api/v1/employees/me'),
+
   get: (id: string) =>
     apiClient.get<ApiResponse<Employee>>(`/api/v1/employees/${id}`),
 

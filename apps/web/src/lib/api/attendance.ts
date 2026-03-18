@@ -7,10 +7,10 @@ import type {
 } from '@/types/api'
 
 export const attendanceApi = {
-  clockIn: (data: { employee_id: string; note?: string }) =>
+  clockIn: (data: { note?: string }) =>
     apiClient.post<ApiResponse<AttendanceRecord>>('/api/v1/attendance/clock-in', data),
 
-  clockOut: (data: { employee_id: string; note?: string }) =>
+  clockOut: (data: { note?: string }) =>
     apiClient.post<ApiResponse<AttendanceRecord>>('/api/v1/attendance/clock-out', data),
 
   getToday: (employeeId: string) =>

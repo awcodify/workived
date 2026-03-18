@@ -53,18 +53,29 @@ func (m *mockAttService) EmployeeMonthlySummary(ctx context.Context, orgID, empI
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 var (
-	hTestOrgID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	hTestEmpID = uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	hTestOrgID  = uuid.MustParse("00000000-0000-0000-0000-000000000001")
+	hTestEmpID  = uuid.MustParse("00000000-0000-0000-0000-000000000002")
+	hTestUserID = uuid.MustParse("00000000-0000-0000-0000-000000000003")
 )
 
+// defaultEmpLookup always resolves to hTestEmpID.
+var defaultEmpLookup = attendance.EmployeeLookupFunc(func(_ context.Context, _, _ uuid.UUID) (uuid.UUID, error) {
+	return hTestEmpID, nil
+})
+
 func newAttRouter(svc attendance.ServiceInterface) *gin.Engine {
+	return newAttRouterWithLookup(svc, defaultEmpLookup)
+}
+
+func newAttRouterWithLookup(svc attendance.ServiceInterface, lookup attendance.EmployeeLookupFunc) *gin.Engine {
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		c.Set("org_id", hTestOrgID)
+		c.Set("user_id", hTestUserID)
 		c.Set("role", middleware.RoleMember)
 		c.Next()
 	})
-	h := attendance.NewHandler(svc)
+	h := attendance.NewHandler(svc, lookup)
 	h.RegisterRoutes(r.Group("/api/v1"))
 	return r
 }
@@ -95,40 +106,38 @@ func defaultRecord() *attendance.Record {
 // ── ClockIn handler tests ────────────────────────────────────────────────────
 
 func TestHandler_ClockIn(t *testing.T) {
-	validBody := map[string]string{
-		"employee_id": hTestEmpID.String(),
-	}
-
 	tests := []struct {
 		name       string
 		body       any
+		empLookup  attendance.EmployeeLookupFunc
 		serviceErr error
 		wantStatus int
 	}{
 		{
-			name:       "success",
-			body:       validBody,
+			name:       "success — empty body",
+			body:       nil,
 			wantStatus: http.StatusCreated,
 		},
 		{
-			name:       "bad json",
-			body:       "not-json",
-			wantStatus: http.StatusBadRequest,
+			name:       "success — with note",
+			body:       map[string]string{"note": "WFH"},
+			wantStatus: http.StatusCreated,
 		},
 		{
-			name:       "missing employee_id",
-			body:       map[string]string{},
-			wantStatus: http.StatusBadRequest,
+			name:       "employee not linked to user",
+			body:       nil,
+			empLookup:  func(_ context.Context, _, _ uuid.UUID) (uuid.UUID, error) { return uuid.Nil, apperr.NotFound("employee") },
+			wantStatus: http.StatusNotFound,
 		},
 		{
 			name:       "conflict — already clocked in",
-			body:       validBody,
+			body:       nil,
 			serviceErr: apperr.Conflict("already clocked in today"),
 			wantStatus: http.StatusConflict,
 		},
 		{
 			name:       "internal error",
-			body:       validBody,
+			body:       nil,
 			serviceErr: apperr.Internal(),
 			wantStatus: http.StatusInternalServerError,
 		},
@@ -144,16 +153,20 @@ func TestHandler_ClockIn(t *testing.T) {
 					return defaultRecord(), nil
 				},
 			}
+			lookup := defaultEmpLookup
+			if tt.empLookup != nil {
+				lookup = tt.empLookup
+			}
 			w := httptest.NewRecorder()
 			var buf *bytes.Buffer
-			if s, ok := tt.body.(string); ok {
-				buf = bytes.NewBufferString(s)
-			} else {
+			if tt.body != nil {
 				buf = hJsonBody(t, tt.body)
+			} else {
+				buf = bytes.NewBuffer(nil)
 			}
 			req, _ := http.NewRequest(http.MethodPost, "/api/v1/attendance/clock-in", buf)
 			req.Header.Set("Content-Type", "application/json")
-			newAttRouter(svc).ServeHTTP(w, req)
+			newAttRouterWithLookup(svc, lookup).ServeHTTP(w, req)
 			hAssertStatus(t, w, tt.wantStatus)
 		})
 	}
@@ -162,40 +175,33 @@ func TestHandler_ClockIn(t *testing.T) {
 // ── ClockOut handler tests ───────────────────────────────────────────────────
 
 func TestHandler_ClockOut(t *testing.T) {
-	validBody := map[string]string{
-		"employee_id": hTestEmpID.String(),
-	}
-
 	tests := []struct {
 		name       string
 		body       any
+		empLookup  attendance.EmployeeLookupFunc
 		serviceErr error
 		wantStatus int
 	}{
 		{
 			name:       "success",
-			body:       validBody,
+			body:       nil,
 			wantStatus: http.StatusOK,
 		},
 		{
-			name:       "bad json",
-			body:       "not-json",
-			wantStatus: http.StatusBadRequest,
-		},
-		{
-			name:       "missing employee_id",
-			body:       map[string]string{},
-			wantStatus: http.StatusBadRequest,
+			name:       "employee not linked to user",
+			body:       nil,
+			empLookup:  func(_ context.Context, _, _ uuid.UUID) (uuid.UUID, error) { return uuid.Nil, apperr.NotFound("employee") },
+			wantStatus: http.StatusNotFound,
 		},
 		{
 			name:       "conflict — already clocked out",
-			body:       validBody,
+			body:       nil,
 			serviceErr: apperr.Conflict("already clocked out today"),
 			wantStatus: http.StatusConflict,
 		},
 		{
 			name:       "not found",
-			body:       validBody,
+			body:       nil,
 			serviceErr: apperr.NotFound("attendance record"),
 			wantStatus: http.StatusNotFound,
 		},
@@ -214,16 +220,20 @@ func TestHandler_ClockOut(t *testing.T) {
 					return rec, nil
 				},
 			}
+			lookup := defaultEmpLookup
+			if tt.empLookup != nil {
+				lookup = tt.empLookup
+			}
 			w := httptest.NewRecorder()
 			var buf *bytes.Buffer
-			if s, ok := tt.body.(string); ok {
-				buf = bytes.NewBufferString(s)
-			} else {
+			if tt.body != nil {
 				buf = hJsonBody(t, tt.body)
+			} else {
+				buf = bytes.NewBuffer(nil)
 			}
 			req, _ := http.NewRequest(http.MethodPost, "/api/v1/attendance/clock-out", buf)
 			req.Header.Set("Content-Type", "application/json")
-			newAttRouter(svc).ServeHTTP(w, req)
+			newAttRouterWithLookup(svc, lookup).ServeHTTP(w, req)
 			hAssertStatus(t, w, tt.wantStatus)
 		})
 	}
@@ -510,10 +520,7 @@ func TestHandler_ClockIn_WithNote(t *testing.T) {
 			return defaultRecord(), nil
 		},
 	}
-	body := map[string]string{
-		"employee_id": hTestEmpID.String(),
-		"note":        "Working from home",
-	}
+	body := map[string]string{"note": "Working from home"}
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/attendance/clock-in", hJsonBody(t, body))
 	req.Header.Set("Content-Type", "application/json")
@@ -535,10 +542,7 @@ func TestHandler_ClockOut_WithNote(t *testing.T) {
 			return rec, nil
 		},
 	}
-	body := map[string]string{
-		"employee_id": hTestEmpID.String(),
-		"note":        "Leaving early",
-	}
+	body := map[string]string{"note": "Leaving early"}
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodPost, "/api/v1/attendance/clock-out", hJsonBody(t, body))
 	req.Header.Set("Content-Type", "application/json")

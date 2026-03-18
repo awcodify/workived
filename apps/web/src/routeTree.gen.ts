@@ -16,6 +16,8 @@ import { Route as AuthLoginRouteRouteImport } from './routes/_auth/login/route'
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
+import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
+import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
 
@@ -52,6 +54,16 @@ const AppAttendanceRouteRoute = AppAttendanceRouteRouteImport.update({
   path: '/attendance',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppPeopleRouteRoute,
+} as any)
+const AppAttendanceIndexRoute = AppAttendanceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAttendanceRouteRoute,
+} as any)
 const AppPeopleIdRouteRoute = AppPeopleIdRouteRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -72,15 +84,17 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRouteRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
+  '/attendance/': typeof AppAttendanceIndexRoute
+  '/people/': typeof AppPeopleIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/attendance': typeof AppAttendanceRouteRouteWithChildren
   '/overview': typeof AppOverviewRouteRoute
-  '/people': typeof AppPeopleRouteRouteWithChildren
   '/login': typeof AuthLoginRouteRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
+  '/attendance': typeof AppAttendanceIndexRoute
+  '/people': typeof AppPeopleIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,6 +107,8 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRouteRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
+  '/_app/attendance/': typeof AppAttendanceIndexRoute
+  '/_app/people/': typeof AppPeopleIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -104,15 +120,17 @@ export interface FileRouteTypes {
     | '/login'
     | '/attendance/monthly'
     | '/people/$id'
+    | '/attendance/'
+    | '/people/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/attendance'
     | '/overview'
-    | '/people'
     | '/login'
     | '/attendance/monthly'
     | '/people/$id'
+    | '/attendance'
+    | '/people'
   id:
     | '__root__'
     | '/'
@@ -124,6 +142,8 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_app/attendance/monthly'
     | '/_app/people/$id'
+    | '/_app/attendance/'
+    | '/_app/people/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -183,6 +203,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAttendanceRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/people/': {
+      id: '/_app/people/'
+      path: '/'
+      fullPath: '/people/'
+      preLoaderRoute: typeof AppPeopleIndexRouteImport
+      parentRoute: typeof AppPeopleRouteRoute
+    }
+    '/_app/attendance/': {
+      id: '/_app/attendance/'
+      path: '/'
+      fullPath: '/attendance/'
+      preLoaderRoute: typeof AppAttendanceIndexRouteImport
+      parentRoute: typeof AppAttendanceRouteRoute
+    }
     '/_app/people/$id': {
       id: '/_app/people/$id'
       path: '/$id'
@@ -202,10 +236,12 @@ declare module '@tanstack/react-router' {
 
 interface AppAttendanceRouteRouteChildren {
   AppAttendanceMonthlyRouteRoute: typeof AppAttendanceMonthlyRouteRoute
+  AppAttendanceIndexRoute: typeof AppAttendanceIndexRoute
 }
 
 const AppAttendanceRouteRouteChildren: AppAttendanceRouteRouteChildren = {
   AppAttendanceMonthlyRouteRoute: AppAttendanceMonthlyRouteRoute,
+  AppAttendanceIndexRoute: AppAttendanceIndexRoute,
 }
 
 const AppAttendanceRouteRouteWithChildren =
@@ -213,10 +249,12 @@ const AppAttendanceRouteRouteWithChildren =
 
 interface AppPeopleRouteRouteChildren {
   AppPeopleIdRouteRoute: typeof AppPeopleIdRouteRoute
+  AppPeopleIndexRoute: typeof AppPeopleIndexRoute
 }
 
 const AppPeopleRouteRouteChildren: AppPeopleRouteRouteChildren = {
   AppPeopleIdRouteRoute: AppPeopleIdRouteRoute,
+  AppPeopleIndexRoute: AppPeopleIndexRoute,
 }
 
 const AppPeopleRouteRouteWithChildren = AppPeopleRouteRoute._addFileChildren(

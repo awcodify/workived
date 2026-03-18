@@ -60,14 +60,21 @@ type ActiveEmployee struct {
 
 // ── Request / Response types ──────────────────────────────────────────────────
 
+// ClockInRequest is the internal service request (includes resolved employee_id).
 type ClockInRequest struct {
 	EmployeeID uuid.UUID `json:"employee_id" validate:"required"`
 	Note       *string   `json:"note"        validate:"omitempty,max=500"`
 }
 
+// ClockOutRequest is the internal service request (includes resolved employee_id).
 type ClockOutRequest struct {
 	EmployeeID uuid.UUID `json:"employee_id" validate:"required"`
 	Note       *string   `json:"note"        validate:"omitempty,max=500"`
+}
+
+// clockHTTPRequest is the public API request body — no employee_id, auto-resolved from JWT.
+type clockHTTPRequest struct {
+	Note *string `json:"note" validate:"omitempty,max=500"`
 }
 
 type DailyReportFilters struct {

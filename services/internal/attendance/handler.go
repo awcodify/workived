@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
-	"github.com/workived/services/pkg/validate"
 )
 
 // ServiceInterface is the subset of Service that the handler depends on.
@@ -22,12 +21,17 @@ type ServiceInterface interface {
 	EmployeeMonthlySummary(ctx context.Context, orgID, employeeID uuid.UUID, filters MonthlyReportFilters) (*MonthlySummary, error)
 }
 
+// EmployeeLookupFunc resolves the authenticated user's employee ID from their user ID.
+// It is a function type that satisfies itself — pass it directly when wiring.
+type EmployeeLookupFunc func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error)
+
 type Handler struct {
-	service ServiceInterface
+	service   ServiceInterface
+	empLookup EmployeeLookupFunc
 }
 
-func NewHandler(service ServiceInterface) *Handler {
-	return &Handler{service: service}
+func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc) *Handler {
+	return &Handler{service: service, empLookup: empLookup}
 }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
@@ -42,18 +46,22 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 
 func (h *Handler) ClockIn(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
 
-	var req ClockInRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
-		return
-	}
-	if err := validate.Struct(req); err != nil {
-		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
 	}
 
-	rec, err := h.service.ClockIn(c.Request.Context(), orgID, req)
+	var httpReq clockHTTPRequest
+	// Allow empty body (note is optional)
+	_ = c.ShouldBindJSON(&httpReq)
+
+	rec, err := h.service.ClockIn(c.Request.Context(), orgID, ClockInRequest{
+		EmployeeID: employeeID,
+		Note:       httpReq.Note,
+	})
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
@@ -64,18 +72,21 @@ func (h *Handler) ClockIn(c *gin.Context) {
 
 func (h *Handler) ClockOut(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
 
-	var req ClockOutRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
-		return
-	}
-	if err := validate.Struct(req); err != nil {
-		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
 	}
 
-	rec, err := h.service.ClockOut(c.Request.Context(), orgID, req)
+	var httpReq clockHTTPRequest
+	_ = c.ShouldBindJSON(&httpReq)
+
+	rec, err := h.service.ClockOut(c.Request.Context(), orgID, ClockOutRequest{
+		EmployeeID: employeeID,
+		Note:       httpReq.Note,
+	})
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return

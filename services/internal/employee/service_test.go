@@ -66,6 +66,15 @@ func (f *fakeEmpRepo) GetByID(_ context.Context, orgID, id uuid.UUID) (*employee
 	return e, nil
 }
 
+func (f *fakeEmpRepo) GetByUserID(_ context.Context, orgID, userID uuid.UUID) (*employee.Employee, error) {
+	for _, e := range f.employees {
+		if e.OrganisationID == orgID && e.UserID != nil && *e.UserID == userID {
+			return e, nil
+		}
+	}
+	return nil, apperr.NotFound("employee")
+}
+
 func (f *fakeEmpRepo) List(_ context.Context, _ uuid.UUID, filters employee.ListFilters) ([]employee.Employee, error) {
 	if f.listErr != nil {
 		return nil, f.listErr

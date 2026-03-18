@@ -38,10 +38,9 @@ export function useMonthlyReport(year: number, month: number) {
 export function useClockIn() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { employee_id: string; note?: string }) =>
+    mutationFn: (data: { note?: string }) =>
       attendanceApi.clockIn(data).then((r) => r.data.data),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: attendanceKeys.today(vars.employee_id) })
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: attendanceKeys.all })
     },
   })
@@ -50,10 +49,9 @@ export function useClockIn() {
 export function useClockOut() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (data: { employee_id: string; note?: string }) =>
+    mutationFn: (data: { note?: string }) =>
       attendanceApi.clockOut(data).then((r) => r.data.data),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: attendanceKeys.today(vars.employee_id) })
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: attendanceKeys.all })
     },
   })

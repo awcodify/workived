@@ -161,6 +161,33 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 	return e, nil
 }
 
+// GetByUserID returns the employee record linked to the given user account.
+func (r *Repository) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error) {
+	e := &Employee{}
+	err := r.db.QueryRow(ctx, `
+		SELECT id, organisation_id, user_id, employee_code,
+		       full_name, email, phone, department_id, job_title,
+		       employment_type, status, start_date, end_date,
+		       base_salary, salary_currency, custom_fields,
+		       is_active, created_at, updated_at
+		FROM employees
+		WHERE organisation_id = $1 AND user_id = $2 AND is_active = TRUE
+	`, orgID, userID).Scan(
+		&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
+		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
+		&e.EmploymentType, &e.Status, &e.StartDate, &e.EndDate,
+		&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
+		&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperr.NotFound("employee")
+		}
+		return nil, err
+	}
+	return e, nil
+}
+
 // SoftDelete sets is_active = false — HR records are never hard deleted.
 func (r *Repository) SoftDelete(ctx context.Context, orgID, id uuid.UUID) error {
 	tag, err := r.db.Exec(ctx, `

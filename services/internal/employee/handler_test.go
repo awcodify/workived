@@ -23,11 +23,12 @@ func init() {
 // ── Mock service ──────────────────────────────────────────────────────────────
 
 type mockEmpService struct {
-	listFn       func(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error)
-	createFn     func(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest) (*employee.Employee, error)
-	getFn        func(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error)
-	updateFn     func(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error)
-	deactivateFn func(ctx context.Context, orgID, id uuid.UUID) error
+	listFn         func(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error)
+	createFn       func(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest) (*employee.Employee, error)
+	getFn          func(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error)
+	getByUserIDFn  func(ctx context.Context, orgID, userID uuid.UUID) (*employee.Employee, error)
+	updateFn       func(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error)
+	deactivateFn   func(ctx context.Context, orgID, id uuid.UUID) error
 }
 
 func (m *mockEmpService) List(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error) {
@@ -38,6 +39,12 @@ func (m *mockEmpService) Create(ctx context.Context, orgID uuid.UUID, req employ
 }
 func (m *mockEmpService) Get(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error) {
 	return m.getFn(ctx, orgID, id)
+}
+func (m *mockEmpService) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*employee.Employee, error) {
+	if m.getByUserIDFn != nil {
+		return m.getByUserIDFn(ctx, orgID, userID)
+	}
+	return nil, apperr.NotFound("employee")
 }
 func (m *mockEmpService) Update(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error) {
 	return m.updateFn(ctx, orgID, id, req)
@@ -50,12 +57,14 @@ func (m *mockEmpService) Deactivate(ctx context.Context, orgID, id uuid.UUID) er
 
 var testOrgID = uuid.MustParse("00000000-0000-0000-0000-000000000001")
 var testEmpID = uuid.MustParse("00000000-0000-0000-0000-000000000002")
+var testUserID = uuid.MustParse("00000000-0000-0000-0000-000000000003")
 
 func newEmpRouter(svc employee.ServiceInterface) *gin.Engine {
 	r := gin.New()
-	// Inject org_id into context the way TenantMiddleware would
+	// Inject org_id and user_id into context the way middleware would
 	r.Use(func(c *gin.Context) {
 		c.Set("org_id", testOrgID)
+		c.Set("user_id", testUserID)
 		c.Set("role", middleware.RoleMember)
 		c.Next()
 	})
