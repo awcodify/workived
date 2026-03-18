@@ -426,6 +426,81 @@ test('formats AED with two decimal places', () => {
 - No hardcoded text — use constants or i18n keys (even if i18n comes later)
 - No `process.env` — use `import.meta.env` (Vite convention)
 - No server-side rendering patterns — this is a pure SPA
+- No `// @ts-ignore` or `// @ts-expect-error` — fix the type instead
+- No barrel files (`index.ts` re-exports) — import directly from the source file
+- No prop drilling beyond 2 levels — use Zustand store or context
+
+---
+
+## Performance budget
+
+| Metric | Target | Tool |
+|--------|--------|------|
+| Bundle size (gzip, initial) | < 150 KB | `vite-bundle-visualizer` |
+| Largest Contentful Paint | < 1.5s | Lighthouse |
+| Cumulative Layout Shift | < 0.1 | Lighthouse |
+| First Input Delay | < 100ms | Lighthouse |
+| Route-level code split | Every `route.tsx` lazy-loaded | TanStack Router |
+
+**Rules:**
+- Heavy libraries (`chart.js`, `date-fns`, `dnd-kit`) must be lazy-imported or in route-level chunks — never in the main bundle.
+- Images/icons: use SVG inline for icons (lucide-react), WebP for photos, `loading="lazy"` for below-fold images.
+- Debounce search inputs (300ms) and resize handlers — never fire expensive ops on every keystroke.
+- Use `React.memo` only when profiler shows a component re-renders > 5x unnecessarily — do not pre-optimise.
+
+---
+
+## State management boundaries
+
+| What | Where | Why |
+|------|-------|-----|
+| Auth token, current user | `Zustand` (auth store) | Persists across routes, survives refresh |
+| Current org, plan, timezone | `Zustand` (org store) | Needed by almost every component |
+| Server data (employees, leave, claims) | `TanStack Query` | Handles caching, refetch, stale-while-revalidate |
+| Form state (inputs, validation) | `React Hook Form` (local) | Scoped to form lifecycle |
+| UI-only state (modals, tabs, accordions) | `useState` (local) | No reason to lift — dies with component |
+| Filters, sort, pagination | `URL search params` via TanStack Router | Shareable, bookmarkable, survives refresh |
+
+**Rule:** If you're tempted to put server data in Zustand, stop — use TanStack Query.
+**Rule:** If you're tempted to put URL state in useState, stop — use search params.
+
+---
+
+## Loading, error & empty state patterns
+
+Every data-fetching component must handle all four states. Never show a blank screen.
+
+```tsx
+// Standard pattern for every list/detail page
+function EmployeeList() {
+  const { data, isLoading, isError, error } = useEmployees()
+
+  if (isLoading) return <Skeleton variant="list" rows={5} />
+  if (isError) return <ErrorState message={error.message} onRetry={() => window.location.reload()} />
+  if (!data?.length) return <EmptyState icon={Users} title="No employees yet" action="Add your first employee" />
+
+  return <ul>{data.map(emp => <EmployeeRow key={emp.id} employee={emp} />)}</ul>
+}
+```
+
+**Required components** (build these once in `components/workived/feedback/`):
+- `<Skeleton />` — animated placeholder matching the layout shape (list, card, detail)
+- `<ErrorState />` — friendly error message + retry button
+- `<EmptyState />` — illustration/icon + message + primary action CTA
+
+---
+
+## Accessibility (a11y) mandate
+
+Workived must be usable by keyboard and screen reader. Follow these rules:
+
+- **Semantic HTML first:** use `<button>`, `<nav>`, `<main>`, `<table>`, `<ul>` — never `<div onClick>`.
+- **Keyboard navigation:** every interactive element must be focusable and operable with Enter/Space/Escape.
+- **ARIA attributes:** add `aria-label` on icon-only buttons, `aria-live="polite"` on dynamic content, `role="alert"` on errors.
+- **Focus management:** when a modal opens, trap focus inside it. When it closes, return focus to the trigger.
+- **Color contrast:** all text must meet WCAG AA (4.5:1 for body text, 3:1 for large text). Dark-themed modules must be verified.
+- **Skip link:** include a "Skip to main content" link as the first focusable element on every page.
+- **Form labels:** every input must have a visible `<label>` or `aria-label` — never a floating placeholder alone.
 
 ---
 

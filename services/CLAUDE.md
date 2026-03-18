@@ -327,10 +327,115 @@ log.Info("employee created",
 // Never use fmt.Println or log.Printf in production code
 ```
 
+## Concurrency rules
+
+- **Never spawn bare goroutines in handlers.** Use `errgroup.Group` with derived context for fan-out work.
+- Always pass `ctx context.Context` as the first argument — never store it in a struct.
+- Use `context.WithTimeout` or `context.WithDeadline` for outgoing calls (DB, Redis, HTTP).
+- Protect shared mutable state with `sync.Mutex` or prefer channels — never both.
+- Use `sync.Once` for expensive one-time initialisation (e.g. loading config, compiling regex).
+
+```go
+// CORRECT — errgroup with context cancellation
+g, ctx := errgroup.WithContext(ctx)
+g.Go(func() error { return s.repo.UpdateBalance(ctx, orgID, req) })
+g.Go(func() error { return s.notifier.Send(ctx, orgID, msg) })
+if err := g.Wait(); err != nil {
+    return fmt.Errorf("submit leave: %w", err)
+}
+
+// WRONG — bare goroutine, lost error, no context
+go s.notifier.Send(context.Background(), orgID, msg)
+```
+
+## Error wrapping
+
+Always wrap errors with context using `fmt.Errorf("...: %w", err)` — never return raw errors.
+
+```go
+// CORRECT — preserves error chain for errors.Is / errors.As
+employee, err := s.repo.GetByID(ctx, orgID, id)
+if err != nil {
+    return nil, fmt.Errorf("get employee %s: %w", id, err)
+}
+
+// WRONG — loses context
+if err != nil {
+    return nil, err
+}
+```
+
+- Use `errors.Is(err, target)` to check sentinel errors — never `==`
+- Use `errors.As(err, &target)` to extract typed errors
+- Every service method should add its operation name to the wrap message
+
+## Graceful shutdown
+
+The server must shut down cleanly — drain in-flight requests, close DB pool, flush logs.
+
+```go
+// In main.go or cmd/server/main.go
+srv := &http.Server{Addr: ":8080", Handler: router}
+
+go func() {
+    if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+        log.Fatal("server error", zap.Error(err))
+    }
+}()
+
+quit := make(chan os.Signal, 1)
+signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+<-quit
+
+log.Info("shutting down server...")
+ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+defer cancel()
+
+if err := srv.Shutdown(ctx); err != nil {
+    log.Fatal("forced shutdown", zap.Error(err))
+}
+pool.Close() // pgx pool
+log.Info("server exited cleanly")
+```
+
+## Performance & profiling
+
+- **Benchmarks:** write `Benchmark*` tests for hot paths (e.g. money formatting, permission checks).
+- **pprof:** wire up `net/http/pprof` on an internal-only port (never expose to public).
+- **Database:** use `EXPLAIN ANALYZE` on every new query during development — check for seq scans.
+- **Connection pool:** configure `pgxpool` min/max connections — default max = 10, tune per env.
+
+```go
+// Benchmark example
+func BenchmarkFormatMoney(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        FormatMoney(1000000, "IDR")
+    }
+}
+```
+
+## Lint & CI gates
+
+All code must pass these checks before merge:
+
+| Check | Command | What it catches |
+|-------|---------|----------------|
+| golangci-lint | `golangci-lint run ./...` | Style, complexity, bugs, security |
+| Race detector | `go test -race ./...` | Data races in concurrent code |
+| Vet | `go vet ./...` | Suspicious constructs |
+| Test coverage | `go test -coverprofile=coverage.out ./...` | Coverage regressions |
+
+**golangci-lint config** should enable at minimum:
+`errcheck`, `govet`, `staticcheck`, `gosimple`, `ineffassign`, `unused`, `gocritic`, `gosec`, `bodyclose`
+
 ## What NOT to do
 - No ORM (no GORM, no sqlx) — use pgx/v5 directly
 - No global state — inject dependencies via constructor
 - No panic in request handlers — recover in middleware
-- No goroutines in handlers without proper context handling
+- No goroutines in handlers without proper context handling (use errgroup)
 - No hardcoded country-specific rules — always config
 - No payroll code — it is out of scope
+- No bare `err` returns — always wrap with `fmt.Errorf("...: %w", err)`
+- No `context.Background()` in request-scoped code — propagate the request context
+- No `time.Sleep` for backoff — use exponential backoff with jitter
+- No `log.Fatal` in library code — only in `main()`
