@@ -44,7 +44,7 @@ export const moduleBackgrounds = {
   attendance:  '#E8F5EE',  // fresh green morning
   leave:       '#F3F2FB',  // soft violet
   claims:      '#F3F2FB',  // soft violet
-  tasks:       '#FDF4E3',  // warm amber energy
+  tasks:       '#0E0E1A',  // deep dark (dark Kanban board)
   reports:     '#0F0F1A',  // deep indigo night
 } as const
 

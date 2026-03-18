@@ -5,7 +5,7 @@ import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
 import { useDailyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
 import { todayISO, formatDate } from '@/lib/utils/date'
-import { moduleBackgrounds, typography } from '@/design/tokens'
+import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
 
 export const Route = createFileRoute('/_app/overview')({
@@ -169,11 +169,11 @@ function OverviewPage() {
       <p
         className="uppercase"
         style={{
-          fontSize: 11,
-          fontWeight: 600,
+          fontSize: typography.tiny.size,
+          fontWeight: Number(typography.tiny.weight),
           color: 'rgba(255,255,255,0.3)',
           letterSpacing: '0.12em',
-          lineHeight: 1.4,
+          lineHeight: typography.tiny.lineHeight,
         }}
       >
         {formatDateLabel(tz)}
@@ -183,16 +183,16 @@ function OverviewPage() {
       <h1
         className="mt-2"
         style={{
-          fontSize: 44,
-          fontWeight: 800,
-          letterSpacing: '-0.05em',
-          lineHeight: 1,
-          color: '#FFFFFF',
+          fontSize: typography.display.size,
+          fontWeight: typography.display.weight,
+          letterSpacing: typography.display.tracking,
+          lineHeight: typography.display.lineHeight,
+          color: colors.ink0,
         }}
       >
         {greeting}
         <br />
-        <span style={{ color: '#9B8FF7' }}>{firstName}</span>
+        <span style={{ color: colors.accentMid }}>{firstName}</span>
       </h1>
 
       {/* Live clock */}
@@ -200,7 +200,7 @@ function OverviewPage() {
         className="mt-1.5"
         style={{
           fontFamily: typography.fontMono,
-          fontSize: 13,
+          fontSize: typography.label.size,
           color: 'rgba(255,255,255,0.22)',
         }}
       >
@@ -218,7 +218,7 @@ function OverviewPage() {
           borderRadius: 16,
         }}
       >
-        <p style={{ fontSize: 11, color: 'rgba(155,143,247,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
+        <p style={{ fontSize: typography.tiny.size, color: 'rgba(155,143,247,0.7)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
           {org?.name ?? 'Your Company'} · Quote of the Day
         </p>
         <p
@@ -233,7 +233,7 @@ function OverviewPage() {
         >
           "{dailyQuote.text}"
         </p>
-        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>
+        <p style={{ fontSize: typography.mono.size, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>
           — {dailyQuote.author}
         </p>
       </div>
@@ -249,52 +249,52 @@ function OverviewPage() {
           ) : hasClockedOut ? (
             /* Done for the day */
             <div>
-              <p style={{ fontSize: 32, fontWeight: 800, color: '#12A05C', letterSpacing: '-0.04em', lineHeight: 1 }}>
+              <p style={{ fontSize: typography.h1.size, fontWeight: typography.h1.weight, color: colors.ok, letterSpacing: typography.h1.tracking, lineHeight: typography.h1.lineHeight }}>
                 All done for today
               </p>
-              
+
               {/* Calculated hours worked */}
               {myEntry?.clock_in_at && myEntry?.clock_out_at && (() => {
-                const clockIn = new Date(myEntry.clock_in_at)
-                const clockOut = new Date(myEntry.clock_out_at)
-                const diffMs = clockOut.getTime() - clockIn.getTime()
+                const inTime = new Date(myEntry.clock_in_at)
+                const outTime = new Date(myEntry.clock_out_at)
+                const diffMs = outTime.getTime() - inTime.getTime()
                 const hours = Math.floor(diffMs / (1000 * 60 * 60))
                 const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-                
+
                 return (
-                  <div 
+                  <div
                     className="mt-6"
                     style={{
                       padding: '20px 24px',
-                      background: 'linear-gradient(135deg, rgba(18,160,92,0.12) 0%, rgba(18,160,92,0.06) 100%)',
-                      border: '2px solid rgba(18,160,92,0.2)',
+                      background: `linear-gradient(135deg, rgba(18,160,92,0.12) 0%, rgba(18,160,92,0.06) 100%)`,
+                      border: `2px solid rgba(18,160,92,0.2)`,
                       borderRadius: 16,
                     }}
                   >
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+                    <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight) }}>
                       You worked today
                     </p>
                     <div className="flex items-baseline gap-3 mt-2">
-                      <p 
-                        style={{ 
-                          fontFamily: typography.fontMono, 
-                          fontSize: 48, 
-                          fontWeight: 800, 
-                          color: '#12A05C',
+                      <p
+                        style={{
+                          fontFamily: typography.fontMono,
+                          fontSize: 48,
+                          fontWeight: 800,
+                          color: colors.ok,
                           letterSpacing: '-0.02em',
                           lineHeight: 1,
                         }}
                       >
                         {hours}h {minutes}m
                       </p>
-                      <p style={{ fontFamily: typography.fontMono, fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>
+                      <p style={{ fontFamily: typography.fontMono, fontSize: typography.body.size, color: 'rgba(255,255,255,0.35)' }}>
                         {formatDate(myEntry.clock_in_at, tz, 'time')} – {formatDate(myEntry.clock_out_at, tz, 'time')}
                       </p>
                     </div>
                   </div>
                 )
               })()}
-              
+
               {/* Work schedule info */}
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <div
@@ -304,14 +304,14 @@ function OverviewPage() {
                     borderRadius: 10,
                   }}
                 >
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                  <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: Number(typography.tiny.weight) }}>
                     Today's shift
                   </p>
                   <p style={{ fontFamily: typography.fontMono, fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>
                     09:00 - 18:00
                   </p>
                 </div>
-                
+
                 <div
                   style={{
                     padding: '12px 16px',
@@ -319,7 +319,7 @@ function OverviewPage() {
                     borderRadius: 10,
                   }}
                 >
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                  <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: Number(typography.tiny.weight) }}>
                     This week
                   </p>
                   <p style={{ fontFamily: typography.fontMono, fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>
@@ -336,7 +336,7 @@ function OverviewPage() {
                   fontFamily: typography.fontMono,
                   fontSize: 56,
                   fontWeight: 800,
-                  color: '#FFFFFF',
+                  color: colors.ink0,
                   letterSpacing: '-0.03em',
                   lineHeight: 1,
                 }}
@@ -345,12 +345,13 @@ function OverviewPage() {
               </p>
               <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>
                 Started at {myEntry?.clock_in_at ? formatDate(myEntry.clock_in_at, tz, 'time') : ''}
-                {myEntry?.status === 'late' && <span style={{ color: '#C97B2A', fontWeight: 600 }}> · Late</span>}
+                {myEntry?.status === 'late' && <span style={{ color: colors.warn, fontWeight: 600 }}> · Late</span>}
               </p>
               <div className="flex gap-2 mt-6">
                 <input
                   type="text"
                   placeholder="Note (optional)"
+                  aria-label="Clock out note"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   className="flex-1 text-sm px-4 py-3 focus:outline-none"
@@ -358,16 +359,16 @@ function OverviewPage() {
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 12,
-                    color: '#FFFFFF',
+                    color: colors.ink0,
                   }}
                 />
                 <button
                   onClick={handleClockOut}
                   disabled={clockOut.isPending}
                   className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-                  style={{ 
-                    background: '#C97B2A', 
-                    color: '#FFFFFF', 
+                  style={{
+                    background: colors.warn,
+                    color: colors.ink0,
                     borderRadius: 12,
                     fontSize: 15,
                     letterSpacing: '-0.01em',
@@ -380,10 +381,10 @@ function OverviewPage() {
           ) : (
             /* Not clocked in yet */
             <div>
-              <p style={{ fontSize: 32, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+              <p style={{ fontSize: typography.h1.size, fontWeight: typography.h1.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h1.tracking, lineHeight: typography.h1.lineHeight }}>
                 Ready to start?
               </p>
-              
+
               {/* Work schedule info */}
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <div
@@ -393,14 +394,14 @@ function OverviewPage() {
                     borderRadius: 10,
                   }}
                 >
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                  <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: Number(typography.tiny.weight) }}>
                     Today's shift
                   </p>
                   <p style={{ fontFamily: typography.fontMono, fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>
                     09:00 - 18:00
                   </p>
                 </div>
-                
+
                 <div
                   style={{
                     padding: '12px 16px',
@@ -408,7 +409,7 @@ function OverviewPage() {
                     borderRadius: 10,
                   }}
                 >
-                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                  <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: Number(typography.tiny.weight) }}>
                     This week
                   </p>
                   <p style={{ fontFamily: typography.fontMono, fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>
@@ -421,6 +422,7 @@ function OverviewPage() {
                 <input
                   type="text"
                   placeholder="Note (optional)"
+                  aria-label="Clock in note"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   className="flex-1 text-sm px-4 py-3 focus:outline-none"
@@ -428,16 +430,16 @@ function OverviewPage() {
                     background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 12,
-                    color: '#FFFFFF',
+                    color: colors.ink0,
                   }}
                 />
                 <button
                   onClick={handleClockIn}
                   disabled={clockIn.isPending}
                   className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-                  style={{ 
-                    background: '#12A05C', 
-                    color: '#FFFFFF', 
+                  style={{
+                    background: colors.ok,
+                    color: colors.ink0,
                     borderRadius: 12,
                     fontSize: 15,
                     letterSpacing: '-0.01em',
@@ -453,7 +455,7 @@ function OverviewPage() {
           {/* TODO: Replace with real tasks from GET /api/v1/tasks?assigned_to=me&status=in_progress */}
           {myEmployee && (
             <div className="mt-6">
-              <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 10 }}>
+              <p style={{ fontSize: typography.label.size, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 10 }}>
                 Assigned to you
               </p>
               <div className="flex flex-col gap-2">
@@ -472,22 +474,22 @@ function OverviewPage() {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        background: task.priority === 'high' ? '#D44040' : task.priority === 'medium' ? '#C97B2A' : '#9B8FF7',
+                        background: task.priority === 'high' ? colors.err : task.priority === 'medium' ? colors.warn : colors.accentMid,
                         flexShrink: 0,
                       }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>{task.title}</p>
-                      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{task.project}</p>
+                      <p style={{ fontSize: typography.body.size, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>{task.title}</p>
+                      <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>{task.project}</p>
                     </div>
                     <button
                       className="flex-shrink-0 font-semibold transition-opacity"
                       style={{
                         padding: '6px 14px',
                         borderRadius: 8,
-                        fontSize: 12,
+                        fontSize: typography.mono.size,
                         background: task.tracking ? 'rgba(201,123,42,0.15)' : 'rgba(18,160,92,0.15)',
-                        color: task.tracking ? '#C97B2A' : '#12A05C',
+                        color: task.tracking ? colors.warn : colors.ok,
                         border: `1px solid ${task.tracking ? 'rgba(201,123,42,0.25)' : 'rgba(18,160,92,0.25)'}`,
                       }}
                     >
@@ -503,15 +505,13 @@ function OverviewPage() {
         {/* Right: Team Status */}
         <div>
           <div className="flex items-end justify-between">
-            <p style={{ fontSize: 24, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+            <p style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight }}>
               Your team today
             </p>
             <Link
               to="/attendance"
-              className="text-sm font-semibold transition-opacity"
+              className="text-sm font-semibold transition-opacity hover:opacity-100"
               style={{ color: 'rgba(255,255,255,0.4)', opacity: 0.7 }}
-              onMouseEnter={(e) => { e.currentTarget.style.opacity = '1' }}
-              onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.7' }}
             >
               View all →
             </Link>
@@ -536,22 +536,22 @@ function OverviewPage() {
                 {/* Charts grid */}
                 <div className="flex-1 grid grid-cols-2 gap-4">
                   {/* Attendance Chart */}
-                  <div style={{ 
-                    background: 'rgba(255,255,255,0.04)', 
+                  <div style={{
+                    background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 14,
                     padding: '18px 20px',
                   }}>
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 12 }}>
+                    <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: Number(typography.tiny.weight), marginBottom: 12 }}>
                       Attendance
                     </p>
                     <DonutChart
                       size={150}
                       segments={[
-                        { label: 'Present', value: present, color: '#12A05C' },
-                        { label: 'Late', value: late, color: '#C97B2A' },
-                        { label: 'On Leave', value: onLeaveCount, color: '#9B8FF7' },
-                        { label: 'Absent', value: trueAbsent, color: '#D44040' },
+                        { label: 'Present', value: present, color: colors.ok },
+                        { label: 'Late', value: late, color: colors.warn },
+                        { label: 'On Leave', value: onLeaveCount, color: colors.accentMid },
+                        { label: 'Absent', value: trueAbsent, color: colors.err },
                       ]}
                       total={totalEmployees}
                       centerLabel="Total"
@@ -559,20 +559,20 @@ function OverviewPage() {
                   </div>
 
                   {/* Work Mode Chart */}
-                  <div style={{ 
-                    background: 'rgba(255,255,255,0.04)', 
+                  <div style={{
+                    background: 'rgba(255,255,255,0.04)',
                     border: '1px solid rgba(255,255,255,0.1)',
                     borderRadius: 14,
                     padding: '18px 20px',
                   }}>
-                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, marginBottom: 12 }}>
+                    <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: Number(typography.tiny.weight), marginBottom: 12 }}>
                       Work Mode
                     </p>
                     <DonutChart
                       size={150}
                       segments={[
-                        { label: 'WFO', value: wfoCount, color: '#12A05C' },
-                        { label: 'WFH', value: wfhCount, color: '#9B8FF7' },
+                        { label: 'WFO', value: wfoCount, color: colors.ok },
+                        { label: 'WFH', value: wfhCount, color: colors.accentMid },
                       ]}
                       total={wfoCount + wfhCount}
                       centerLabel="Active"
@@ -606,7 +606,7 @@ function OverviewPage() {
                         {displayed.map((e) => {
                           const isAbsent = e.status === 'absent'
                           const isLate = e.status === 'late'
-                          const statusColor = e.onLeave ? '#9B8FF7' : isAbsent ? '#D44040' : isLate ? '#C97B2A' : '#12A05C'
+                          const statusColor = e.onLeave ? colors.accentMid : isAbsent ? colors.err : isLate ? colors.warn : colors.ok
                           const employee = employees?.data?.find(emp => emp.id === e.employee_id)
                           const jobTitle = employee?.job_title || 'Team Member'
                           const statusLabel = e.onLeave ? 'On Leave' : isAbsent ? 'Absent' : isLate ? 'Late' : 'On time'
@@ -662,7 +662,7 @@ function OverviewPage() {
                                     boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                                   }}
                                 >
-                                  <p style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{e.employee_name}</p>
+                                  <p style={{ fontSize: typography.mono.size, fontWeight: 600, color: 'rgba(255,255,255,0.9)' }}>{e.employee_name}</p>
                                   <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{jobTitle}</p>
                                   <div className="flex items-center gap-1.5 mt-1.5">
                                     <div style={{ width: 5, height: 5, borderRadius: '50%', background: statusColor }} />
@@ -679,7 +679,7 @@ function OverviewPage() {
                                       fontWeight: 700,
                                       letterSpacing: '0.05em',
                                       background: e.workMode === 'wfh' ? 'rgba(155,143,247,0.15)' : 'rgba(18,160,92,0.15)',
-                                      color: e.workMode === 'wfh' ? '#9B8FF7' : '#12A05C',
+                                      color: e.workMode === 'wfh' ? colors.accentMid : colors.ok,
                                     }}>
                                       {e.workMode === 'wfh' ? '🏠 WFH' : '🏢 WFO'}
                                     </div>
@@ -720,7 +720,7 @@ function OverviewPage() {
 
       {/* ── Recent Activity ──────────────────────────────────── */}
       <div className="mt-10">
-        <p style={{ fontSize: 24, fontWeight: 800, color: 'rgba(255,255,255,0.7)', letterSpacing: '-0.03em', lineHeight: 1 }}>
+        <p style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight }}>
           Recent activity
         </p>
 
@@ -728,13 +728,11 @@ function OverviewPage() {
           {DUMMY_ACTIVITIES.map((activity, i) => (
             <div
               key={i}
-              className="flex items-center gap-4 py-3 px-4 transition-colors"
+              className="flex items-center gap-4 py-3 px-4 transition-colors hover:bg-white/[0.04]"
               style={{
                 background: 'rgba(255,255,255,0.02)',
                 borderRadius: 12,
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.02)' }}
             >
               <div
                 className="grid place-items-center flex-shrink-0"
@@ -748,10 +746,10 @@ function OverviewPage() {
                 <span style={{ fontSize: 16 }}>{activity.icon}</span>
               </div>
               <div className="flex-1 min-w-0">
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
+                <p style={{ fontSize: typography.body.size, color: 'rgba(255,255,255,0.8)', fontWeight: 500 }}>
                   {activity.text}
                 </p>
-                <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
+                <p style={{ fontSize: typography.mono.size, color: 'rgba(255,255,255,0.3)', marginTop: 2 }}>
                   {activity.time}
                 </p>
               </div>
@@ -763,7 +761,7 @@ function OverviewPage() {
                   background: activity.badgeBg,
                 }}
               >
-                <span style={{ fontSize: 11, fontWeight: 700, color: activity.badgeColor, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <span style={{ fontSize: typography.tiny.size, fontWeight: 700, color: activity.badgeColor, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {activity.badge}
                 </span>
               </div>
@@ -776,6 +774,7 @@ function OverviewPage() {
 }
 
 // ── Dummy Data ──────────────────────────────────────────────────
+// TODO: Replace with real activity feed from backend API
 
 const DUMMY_ACTIVITIES = [
   {
@@ -785,7 +784,7 @@ const DUMMY_ACTIVITIES = [
     time: '2 minutes ago',
     badge: 'On time',
     badgeBg: 'rgba(18,160,92,0.12)',
-    badgeColor: '#12A05C',
+    badgeColor: colors.ok,
   },
   {
     icon: '📝',
@@ -794,7 +793,7 @@ const DUMMY_ACTIVITIES = [
     time: '15 minutes ago',
     badge: 'Leave',
     badgeBg: 'rgba(155,143,247,0.12)',
-    badgeColor: '#9B8FF7',
+    badgeColor: colors.accentMid,
   },
   {
     icon: '⚠️',
@@ -803,7 +802,7 @@ const DUMMY_ACTIVITIES = [
     time: '32 minutes ago',
     badge: 'Late',
     badgeBg: 'rgba(201,123,42,0.12)',
-    badgeColor: '#C97B2A',
+    badgeColor: colors.warn,
   },
   {
     icon: '👤',
@@ -812,7 +811,7 @@ const DUMMY_ACTIVITIES = [
     time: '1 hour ago',
     badge: 'New',
     badgeBg: 'rgba(155,143,247,0.12)',
-    badgeColor: '#9B8FF7',
+    badgeColor: colors.accentMid,
   },
   {
     icon: '✅',
@@ -821,7 +820,7 @@ const DUMMY_ACTIVITIES = [
     time: '2 hours ago',
     badge: 'On time',
     badgeBg: 'rgba(18,160,92,0.12)',
-    badgeColor: '#12A05C',
+    badgeColor: colors.ok,
   },
 ]
 
@@ -861,7 +860,7 @@ function DonutChart({ size, segments, total, centerLabel }: {
     <div className="flex flex-col items-center">
       {/* Chart */}
       <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }}>
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }} aria-label={`Donut chart: ${segments.map(s => `${s.label} ${s.value}`).join(', ')}`}>
           {/* Background ring */}
           <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} />
           {/* Segments */}
@@ -923,8 +922,8 @@ function DonutChart({ size, segments, total, centerLabel }: {
             onMouseLeave={() => setHovered(null)}
           >
             <div style={{ width: 7, height: 7, borderRadius: '50%', background: seg.color }} />
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{seg.label}</span>
-            <span style={{ fontSize: 12, fontFamily: typography.fontMono, color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>{seg.value}</span>
+            <span style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{seg.label}</span>
+            <span style={{ fontSize: typography.mono.size, fontFamily: typography.fontMono, color: 'rgba(255,255,255,0.9)', fontWeight: 700 }}>{seg.value}</span>
           </div>
         ))}
       </div>

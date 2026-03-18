@@ -19,7 +19,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useDroppable } from '@dnd-kit/core'
-import { typography, colors } from '@/design/tokens'
+import { moduleBackgrounds, typography, colors } from '@/design/tokens'
 
 export const Route = createFileRoute('/_app/tasks')({
   component: TasksPage,
@@ -42,7 +42,8 @@ interface Task {
 
 // ── Column Config ───────────────────────────────────────────────
 
-const TASKS_BG = '#0E0E1A'
+// TODO: Replace with backend API — GET /api/v1/tasks
+// No backend exists yet. Using placeholder data for UI development.
 
 const COLUMNS: { id: Status; label: string; accent: string; accentDim: string; headerBg: string }[] = [
   { id: 'todo', label: 'To Do', accent: '#A0A0C0', accentDim: '#1A1A2E', headerBg: 'rgba(255,255,255,0.04)' },
@@ -56,7 +57,8 @@ const PRIORITY_COLORS: Record<Priority, string> = {
   low: colors.accent,
 }
 
-// ── Initial Data ────────────────────────────────────────────────
+// ── Placeholder Data ────────────────────────────────────────────
+// TODO: Replace with TanStack Query hook — useTasksQuery()
 
 const INITIAL_TASKS: Task[] = [
   { id: '1', title: 'Review Q1 budget proposal', project: 'Finance', priority: 'high', status: 'in_progress', assignee: 'Ahmad', dueDate: '2026-03-20' },
@@ -80,9 +82,7 @@ function TasksPage() {
   )
 
   const findColumn = useCallback((id: string): Status | undefined => {
-    // Check if id is a column id
     if (['todo', 'in_progress', 'done'].includes(id)) return id as Status
-    // Otherwise find the task's column
     return tasks.find((t) => t.id === id)?.status
   }, [tasks])
 
@@ -124,7 +124,6 @@ function TasksPage() {
     if (!activeColumn || !overColumn) return
 
     if (activeColumn === overColumn) {
-      // Reorder within the same column
       setTasks((prev) => {
         const columnTasks = prev.filter((t) => t.status === activeColumn)
         const otherTasks = prev.filter((t) => t.status !== activeColumn)
@@ -142,9 +141,9 @@ function TasksPage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
-      style={{ background: TASKS_BG }}
+      style={{ background: moduleBackgrounds.tasks }}
     >
-      {/* Header — matches People / Attendance pattern */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1

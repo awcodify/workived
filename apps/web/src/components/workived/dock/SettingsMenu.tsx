@@ -41,6 +41,9 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
       {/* Settings Icon Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Settings menu"
+        aria-expanded={isOpen}
+        aria-haspopup="true"
         className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-colors"
         style={{
           background: isOpen ? theme.active.bg : 'transparent',
@@ -61,6 +64,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
       {/* Dropdown Menu */}
       {isOpen && (
         <div
+          role="menu"
           className="absolute bottom-full mb-2 right-0 rounded-xl overflow-hidden shadow-lg"
           style={{
             minWidth: 180,
@@ -127,6 +131,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
 
           {/* Logout Button */}
           <button
+            role="menuitem"
             onClick={handleLogout}
             className="w-full px-4 py-3 flex items-center gap-2 transition-colors text-left"
             style={{

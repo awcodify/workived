@@ -1,6 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AxiosError } from 'axios'
 import { toast } from 'sonner'
 import { attendanceApi } from '@/lib/api/attendance'
+
+interface ApiErrorResponse {
+  error?: { message?: string }
+}
 
 export const attendanceKeys = {
   all: ['attendance'] as const,
@@ -51,8 +56,8 @@ export function useClockIn() {
         description: data.is_late ? 'Marked as late' : 'On time',
       })
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.error?.message || 'Failed to clock in'
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      const message = error.response?.data?.error?.message ?? 'Failed to clock in'
       toast.error('Clock in failed', { description: message })
     },
   })
@@ -81,8 +86,8 @@ export function useClockOut() {
         description: `You worked ${hoursWorked} today`,
       })
     },
-    onError: (error: any) => {
-      const message = error?.response?.data?.error?.message || 'Failed to clock out'
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      const message = error.response?.data?.error?.message ?? 'Failed to clock out'
       toast.error('Clock out failed', { description: message })
     },
   })

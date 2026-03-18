@@ -6,7 +6,7 @@ import { todayISO, formatDate } from '@/lib/utils/date'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { QuickClock } from '@/components/workived/attendance/QuickClock'
-import { moduleBackgrounds, typography } from '@/design/tokens'
+import { moduleBackgrounds, typography, colors } from '@/design/tokens'
 import { Clock } from 'lucide-react'
 
 export const Route = createFileRoute('/_app/attendance/')({
@@ -59,11 +59,11 @@ function AttendancePage() {
         <div>
           <h1
             className="font-extrabold"
-            style={{ fontSize: 44, letterSpacing: '-0.05em', color: '#0A2E1A', lineHeight: 1 }}
+            style={{ fontSize: typography.display.size, letterSpacing: typography.display.tracking, color: colors.ink900, lineHeight: typography.display.lineHeight }}
           >
             Attendance
           </h1>
-          <p className="mt-2" style={{ fontSize: 14, color: '#4A7A5A' }}>
+          <p className="mt-2" style={{ fontSize: 14, color: colors.ink500 }}>
             {dateLabel}
           </p>
         </div>
@@ -76,7 +76,7 @@ function AttendancePage() {
             background: '#FFFFFF',
             border: '1px solid rgba(10,46,26,0.08)',
             borderRadius: 10,
-            color: '#0A2E1A',
+            color: colors.ink900,
           }}
         />
       </div>
@@ -85,7 +85,7 @@ function AttendancePage() {
       <div
         className="flex items-center gap-0"
         style={{
-          background: '#0A2E1A',
+          background: colors.ink700,
           borderRadius: 20,
           padding: '30px 34px',
         }}
@@ -119,9 +119,9 @@ function AttendancePage() {
 
         {/* Stats */}
         <div className="flex items-center gap-6 md:gap-8">
-          <HeroStat value={present} label="CLOCKED IN" color="#12A05C" />
-          <HeroStat value={late} label="LATE" color="#C97B2A" />
-          <HeroStat value={absent} label="ABSENT" color="#D44040" />
+          <HeroStat value={present} label="CLOCKED IN" color={colors.ok} />
+          <HeroStat value={late} label="LATE" color={colors.warn} />
+          <HeroStat value={absent} label="ABSENT" color={colors.err} />
         </div>
       </div>
 
@@ -139,7 +139,7 @@ function AttendancePage() {
           style={{
             fontSize: 10,
             fontWeight: 700,
-            color: '#4A7A5A',
+            color: colors.ink500,
             letterSpacing: '0.08em',
           }}
         >
@@ -175,19 +175,19 @@ function AttendancePage() {
               <div className="flex-1 min-w-0">
                 <p
                   className="font-semibold truncate"
-                  style={{ fontSize: 13, color: '#0A2E1A' }}
+                  style={{ fontSize: 13, color: colors.ink900 }}
                 >
                   {entry.employee_name}
                 </p>
                 {/* Mobile: show times below name */}
                 <div className="flex items-center gap-3 md:hidden mt-0.5">
                   {entry.clock_in_at && (
-                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: '#4A7A5A' }}>
+                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: colors.ink500 }}>
                       {formatDate(entry.clock_in_at, tz, 'time')}
                     </span>
                   )}
                   {entry.clock_out_at && (
-                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: '#4A7A5A' }}>
+                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: colors.ink500 }}>
                       — {formatDate(entry.clock_out_at, tz, 'time')}
                     </span>
                   )}
@@ -197,13 +197,13 @@ function AttendancePage() {
               {/* Desktop: times in columns */}
               <span
                 className="hidden md:block"
-                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: '#4A7A5A' }}
+                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: colors.ink500 }}
               >
                 {entry.clock_in_at ? formatDate(entry.clock_in_at, tz, 'time') : '—'}
               </span>
               <span
                 className="hidden md:block"
-                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: '#4A7A5A' }}
+                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: colors.ink500 }}
               >
                 {entry.clock_out_at ? formatDate(entry.clock_out_at, tz, 'time') : '—'}
               </span>
@@ -265,14 +265,14 @@ function AttendanceEmptyState() {
     <div className="flex flex-col items-center justify-center py-16 gap-3">
       <div
         className="grid place-items-center"
-        style={{ width: 48, height: 48, borderRadius: 14, background: '#D0EDD9' }}
+        style={{ width: 48, height: 48, borderRadius: 14, background: colors.okDim }}
       >
-        <Clock size={22} style={{ color: '#0A6E35' }} />
+        <Clock size={22} style={{ color: colors.okText }} />
       </div>
-      <p className="font-bold" style={{ fontSize: 15, color: '#0A2E1A' }}>
+      <p className="font-bold" style={{ fontSize: 15, color: colors.ink900 }}>
         No clock-ins yet today
       </p>
-      <p style={{ fontSize: 13, color: '#4A7A5A' }}>
+      <p style={{ fontSize: 13, color: colors.ink500 }}>
         Records appear here as employees check in.
       </p>
     </div>
