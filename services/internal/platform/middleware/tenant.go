@@ -11,12 +11,13 @@ import (
 
 // OrgMember is the minimum representation the tenant middleware needs.
 type OrgMember struct {
-	OrgID    uuid.UUID
-	UserID   uuid.UUID
-	Role     string
-	IsActive bool
-	OrgPlan  string
-	OrgTimezone string
+	OrgID             uuid.UUID
+	UserID            uuid.UUID
+	Role              string
+	EmployeeID        *uuid.UUID // nullable — not every member is an employee
+	IsActive          bool
+	OrgPlan           string
+	OrgTimezone       string
 	PlanEmployeeLimit *int
 }
 
@@ -56,4 +57,13 @@ func OrgMemberFromCtx(c *gin.Context) *OrgMember {
 	v, _ := c.Get(orgMemberKey)
 	m, _ := v.(*OrgMember)
 	return m
+}
+
+// EmployeeIDFromCtx returns the employee ID linked to the current member, or uuid.Nil.
+func EmployeeIDFromCtx(c *gin.Context) uuid.UUID {
+	m := OrgMemberFromCtx(c)
+	if m != nil && m.EmployeeID != nil {
+		return *m.EmployeeID
+	}
+	return uuid.Nil
 }

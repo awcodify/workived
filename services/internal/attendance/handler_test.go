@@ -72,7 +72,7 @@ func newAttRouterWithLookup(svc attendance.ServiceInterface, lookup attendance.E
 	r.Use(func(c *gin.Context) {
 		c.Set("org_id", hTestOrgID)
 		c.Set("user_id", hTestUserID)
-		c.Set("role", middleware.RoleMember)
+		c.Set("role", middleware.RoleAdmin)
 		c.Next()
 	})
 	h := attendance.NewHandler(svc, lookup)

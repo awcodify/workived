@@ -24,12 +24,26 @@ type Organisation struct {
 }
 
 type Member struct {
-	ID       uuid.UUID `json:"id"`
-	UserID   uuid.UUID `json:"user_id"`
-	OrgID    uuid.UUID `json:"organisation_id"`
-	Role     string    `json:"role"`
-	IsActive bool      `json:"is_active"`
-	JoinedAt time.Time `json:"joined_at"`
+	ID         uuid.UUID  `json:"id"`
+	UserID     uuid.UUID  `json:"user_id"`
+	OrgID      uuid.UUID  `json:"organisation_id"`
+	EmployeeID *uuid.UUID `json:"employee_id,omitempty"`
+	Role       string     `json:"role"`
+	IsActive   bool       `json:"is_active"`
+	JoinedAt   time.Time  `json:"joined_at"`
+}
+
+type Invitation struct {
+	ID        uuid.UUID  `json:"id"`
+	OrgID     uuid.UUID  `json:"organisation_id"`
+	Email     string     `json:"email"`
+	Role      string     `json:"role"`
+	InvitedBy uuid.UUID  `json:"invited_by"`
+	TokenHash string     `json:"-"`
+	EmployeeID *uuid.UUID `json:"employee_id,omitempty"`
+	ExpiresAt time.Time  `json:"expires_at"`
+	AcceptedAt *time.Time `json:"accepted_at,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
 }
 
 // ── Request / Response types ──────────────────────────────────────────────────
@@ -43,6 +57,34 @@ type CreateOrgRequest struct {
 }
 
 type InviteMemberRequest struct {
-	Email string `json:"email" validate:"required,email,max=255"`
-	Role  string `json:"role"  validate:"required,oneof=admin member"`
+	Email      string     `json:"email"       validate:"required,email,max=255"`
+	Role       string     `json:"role"        validate:"required,oneof=admin member hr_admin manager finance"`
+	EmployeeID *uuid.UUID `json:"employee_id" validate:"omitempty"`
+}
+
+type InviteResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	InviteURL string    `json:"invite_url"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+type AcceptInvitationRequest struct {
+	Token string `json:"token" validate:"required"`
+}
+
+type AcceptInvitationResponse struct {
+	AccessToken  string        `json:"access_token"`
+	Organisation *Organisation `json:"organisation"`
+	Member       *Member       `json:"member"`
+}
+
+// AcceptParams holds the validated data needed to accept an invitation in a single transaction.
+type AcceptParams struct {
+	InvitationID uuid.UUID
+	OrgID        uuid.UUID
+	UserID       uuid.UUID
+	Role         string
+	EmployeeID   *uuid.UUID
 }

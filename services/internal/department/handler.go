@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/validate"
@@ -20,10 +21,10 @@ func NewHandler(service *Service) *Handler {
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	depts := rg.Group("/departments")
-	depts.GET("", h.List)
-	depts.POST("", h.Create)
-	depts.PUT("/:id", h.Update)
-	depts.DELETE("/:id", h.Deactivate)
+	depts.GET("", middleware.Require(middleware.PermDepartmentRead), h.List)
+	depts.POST("", middleware.Require(middleware.PermDepartmentWrite), h.Create)
+	depts.PUT("/:id", middleware.Require(middleware.PermDepartmentWrite), h.Update)
+	depts.DELETE("/:id", middleware.Require(middleware.PermDepartmentWrite), h.Deactivate)
 }
 
 func (h *Handler) List(c *gin.Context) {

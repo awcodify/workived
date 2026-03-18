@@ -65,7 +65,7 @@ func newEmpRouter(svc employee.ServiceInterface) *gin.Engine {
 	r.Use(func(c *gin.Context) {
 		c.Set("org_id", testOrgID)
 		c.Set("user_id", testUserID)
-		c.Set("role", middleware.RoleMember)
+		c.Set("role", middleware.RoleAdmin)
 		c.Next()
 	})
 	h := employee.NewHandler(svc)

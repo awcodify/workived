@@ -33,11 +33,11 @@ func NewHandler(service ServiceInterface) *Handler {
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	emps := rg.Group("/employees")
-	emps.GET("", h.List)
-	emps.POST("", h.Create)
-	emps.GET("/:id", h.getOrMe) // handles both "me" and UUID
-	emps.PUT("/:id", h.Update)
-	emps.DELETE("/:id", h.Deactivate)
+	emps.GET("", middleware.Require(middleware.PermEmployeeRead), h.List)
+	emps.POST("", middleware.Require(middleware.PermEmployeeWrite), h.Create)
+	emps.GET("/:id", middleware.RequireAny(middleware.PermEmployeeRead, middleware.PermSelfRead), h.getOrMe)
+	emps.PUT("/:id", middleware.Require(middleware.PermEmployeeWrite), h.Update)
+	emps.DELETE("/:id", middleware.Require(middleware.PermEmployeeDeactivate), h.Deactivate)
 }
 
 // getOrMe dispatches to GetMe when :id is "me", otherwise to Get.

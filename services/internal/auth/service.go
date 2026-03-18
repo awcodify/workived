@@ -90,7 +90,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, 
 	// Try to get org context — may be empty if user has not yet created/joined an org
 	orgID, role, _ := s.orgRepo.GetMemberOrgID(ctx, user.ID)
 
-	accessToken, err := s.issueAccessToken(user.ID, orgID, role)
+	accessToken, err := s.IssueAccessToken(user.ID, orgID, role)
 	if err != nil {
 		// unreachable with HMAC-SHA256 and a non-nil key
 		return nil, "", fmt.Errorf("issue access token: %w", err)
@@ -121,7 +121,7 @@ func (s *Service) Refresh(ctx context.Context, rawToken string) (*RefreshRespons
 
 	orgID, role, _ := s.orgRepo.GetMemberOrgID(ctx, user.ID)
 
-	accessToken, err := s.issueAccessToken(user.ID, orgID, role)
+	accessToken, err := s.IssueAccessToken(user.ID, orgID, role)
 	if err != nil {
 		// unreachable with HMAC-SHA256 and a non-nil key
 		return nil, "", fmt.Errorf("issue access token: %w", err)
@@ -159,7 +159,9 @@ func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-func (s *Service) issueAccessToken(userID, orgID uuid.UUID, role string) (string, error) {
+// IssueAccessToken creates a signed JWT with the given claims.
+// Exported so the organisation service can issue tokens after invitation acceptance.
+func (s *Service) IssueAccessToken(userID, orgID uuid.UUID, role string) (string, error) {
 	now := time.Now().UTC()
 	claims := middleware.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{

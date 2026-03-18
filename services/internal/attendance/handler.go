@@ -36,12 +36,12 @@ func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc) *Handler
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	att := rg.Group("/attendance")
-	att.POST("/clock-in", h.ClockIn)
-	att.POST("/clock-out", h.ClockOut)
-	att.GET("/today/:employee_id", h.GetToday)
-	att.GET("/daily", h.DailyReport)
-	att.GET("/monthly", h.MonthlySummaryReport)
-	att.GET("/monthly/:employee_id", h.EmployeeMonthlySummary)
+	att.POST("/clock-in", middleware.Require(middleware.PermSelfAttendance), h.ClockIn)
+	att.POST("/clock-out", middleware.Require(middleware.PermSelfAttendance), h.ClockOut)
+	att.GET("/today/:employee_id", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.GetToday)
+	att.GET("/daily", middleware.Require(middleware.PermAttendanceRead), h.DailyReport)
+	att.GET("/monthly", middleware.Require(middleware.PermAttendanceRead), h.MonthlySummaryReport)
+	att.GET("/monthly/:employee_id", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.EmployeeMonthlySummary)
 }
 
 func (h *Handler) ClockIn(c *gin.Context) {

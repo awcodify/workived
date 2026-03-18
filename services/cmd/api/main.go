@@ -55,7 +55,7 @@ func main() {
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
-	orgSvc := organisation.NewService(orgRepo, authRepo)
+	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, cfg.AppURL)
 	empSvc := employee.NewService(empRepo, orgRepo)
 	deptSvc := department.NewService(deptRepo)
 	attSvc := attendance.NewService(attRepo, orgRepo)
@@ -95,7 +95,12 @@ func main() {
 	// Public auth routes
 	authHandler.RegisterRoutes(v1)
 
-	// Authenticated routes
+	// Auth-only routes (no tenant context — user may not belong to an org yet).
+	authOnly := v1.Group("")
+	authOnly.Use(middleware.Auth(cfg.JWTSecret))
+	orgHandler.RegisterPublicRoutes(authOnly)
+
+	// Authenticated + tenant-scoped routes.
 	authed := v1.Group("")
 	authed.Use(middleware.Auth(cfg.JWTSecret))
 	authed.Use(middleware.Tenant(orgRepo))
