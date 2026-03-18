@@ -140,6 +140,32 @@ func (r *Repository) GetOrgPlanInfo(ctx context.Context, orgID uuid.UUID) (strin
 	return plan, limit, nil
 }
 
+// GetOrgTimezone returns the timezone for an org — used by attendance service.
+func (r *Repository) GetOrgTimezone(ctx context.Context, orgID uuid.UUID) (string, error) {
+	var tz string
+	err := r.db.QueryRow(ctx, `SELECT timezone FROM organisations WHERE id = $1`, orgID).Scan(&tz)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperr.NotFound("organisation")
+		}
+		return "", err
+	}
+	return tz, nil
+}
+
+// GetOrgCountryCode returns the country_code for an org — used by attendance service.
+func (r *Repository) GetOrgCountryCode(ctx context.Context, orgID uuid.UUID) (string, error) {
+	var cc string
+	err := r.db.QueryRow(ctx, `SELECT country_code FROM organisations WHERE id = $1`, orgID).Scan(&cc)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperr.NotFound("organisation")
+		}
+		return "", err
+	}
+	return cc, nil
+}
+
 func isUniqueViolation(err error) bool {
 	return err != nil && containsCode(err.Error(), "23505")
 }

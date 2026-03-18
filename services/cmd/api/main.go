@@ -12,6 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
+	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/internal/auth"
 	"github.com/workived/services/internal/department"
 	"github.com/workived/services/internal/employee"
@@ -49,18 +50,21 @@ func main() {
 	orgRepo := organisation.NewRepository(db)
 	empRepo := employee.NewRepository(db)
 	deptRepo := department.NewRepository(db)
+	attRepo := attendance.NewRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 	orgSvc := organisation.NewService(orgRepo, authRepo)
 	empSvc := employee.NewService(empRepo, orgRepo)
 	deptSvc := department.NewService(deptRepo)
+	attSvc := attendance.NewService(attRepo, orgRepo)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	authHandler := auth.NewHandler(authSvc)
 	orgHandler := organisation.NewHandler(orgSvc)
 	empHandler := employee.NewHandler(empSvc)
 	deptHandler := department.NewHandler(deptSvc)
+	attHandler := attendance.NewHandler(attSvc)
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -93,6 +97,7 @@ func main() {
 	orgHandler.RegisterRoutes(authed)
 	empHandler.RegisterRoutes(authed)
 	deptHandler.RegisterRoutes(authed)
+	attHandler.RegisterRoutes(authed)
 
 	// ── Server ────────────────────────────────────────────────────────────────
 	srv := &http.Server{

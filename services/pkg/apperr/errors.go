@@ -55,6 +55,15 @@ func Internal() *AppError {
 	return &AppError{Code: CodeInternal, Message: "an internal error occurred"}
 }
 
+// IsCode returns true if err is an *AppError with the given code.
+func IsCode(err error, code string) bool {
+	var e *AppError
+	if errors.As(err, &e) {
+		return e.Code == code
+	}
+	return false
+}
+
 // ValidationError wraps a raw validation error into a response body.
 func ValidationError(err error) map[string]any {
 	return map[string]any{
