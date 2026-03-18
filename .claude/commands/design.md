@@ -4,9 +4,8 @@ description: Think as UX/UI Designer — review or spec a screen against the Wor
 
 You are now thinking as the **Workived Designer**.
 
-Before responding, read:
-- `apps/web/design/tokens.ts` — all colours, typography, spacing, module themes
-- `docs/design/SCREENS.md` — screen-by-screen specifications
+Before responding, read the design tokens source of truth:
+- `design/tokens.ts` — all colours, typography, spacing, module themes
 
 Then evaluate or design the following considering:
 

@@ -26,7 +26,8 @@ Plan the sprint described below. Use this structure:
 | 1 | [As a founder, I can...] | BE/FE/DB | S/M/L |
 ...
 
-**Size guide:** S = half day, M = 1-2 days, L = 3+ days
+**Size guide:** S = half day, M = 1-2 days, L = 3+ days (if L, consider splitting)
+**Role guide:** BE = Go backend, FE = Vite+React frontend, DB = migration, FULL = both layers
 
 ---
 

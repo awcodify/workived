@@ -13,5 +13,8 @@ services/coverage.html
 node_modules/
 dist/
 
+# Skill eval workspace
+.claude/commands/*-workspace/
+
 # OS
 .DS_Store
