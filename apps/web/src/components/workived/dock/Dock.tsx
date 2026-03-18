@@ -2,6 +2,7 @@ import { Link, useMatches } from '@tanstack/react-router'
 import { LayoutDashboard, Users, Clock, CalendarDays } from 'lucide-react'
 import { dockThemes } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
+import { SettingsMenu } from './SettingsMenu'
 
 type ModuleKey = keyof typeof dockThemes
 
@@ -60,6 +61,9 @@ export function Dock() {
           </Link>
         )
       })}
+
+      {/* Settings Menu */}
+      <SettingsMenu currentModule={currentModule} />
     </nav>
   )
 }

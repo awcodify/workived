@@ -38,11 +38,20 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      logout: () =>
-        set({
-          accessToken: null,
-          user: null,
-        }),
+      logout: async () => {
+        try {
+          // Call backend to invalidate refresh token
+          await authApi.logout()
+        } catch {
+          // Ignore errors — we're logging out anyway
+        } finally {
+          // Clear local state
+          set({
+            accessToken: null,
+            user: null,
+          })
+        }
+      },
 
       isAuthenticated: () => !!get().accessToken,
     }),
