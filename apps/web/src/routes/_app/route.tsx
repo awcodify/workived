@@ -14,7 +14,7 @@ export const Route = createFileRoute('/_app')({
 
 function AppLayout() {
   return (
-    <div className="min-h-screen pb-24">
+    <div className="min-h-screen">
       <Outlet />
       <Dock />
     </div>
