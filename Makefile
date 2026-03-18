@@ -46,6 +46,17 @@ build: ## Build the API binary to bin/api
 	@mkdir -p bin
 	cd $(SERVICES_DIR) && go build -o ../bin/api ./cmd/api
 
+# ── Frontend ─────────────────────────────────────────────────────────────────
+
+web-install: ## Install frontend dependencies
+	cd apps/web && npm install --legacy-peer-deps
+
+web-dev: ## Start frontend dev server on :3000
+	cd apps/web && npm run dev
+
+web-build: ## Build frontend for production
+	cd apps/web && npm run build
+
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
 test: ## Run all unit tests

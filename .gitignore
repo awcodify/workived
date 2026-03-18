@@ -9,5 +9,9 @@ services/api
 services/coverage.out
 services/coverage.html
 
+# Node
+node_modules/
+dist/
+
 # OS
 .DS_Store

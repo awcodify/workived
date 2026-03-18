@@ -1,0 +1,41 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+
+  --color-accent: #6357E8;
+  --color-accent-dim: #EFEDFD;
+  --color-accent-mid: #8F86F0;
+  --color-accent-text: #4A3FBF;
+
+  --color-ok: #12A05C;
+  --color-ok-dim: #E8F7EE;
+  --color-ok-text: #0D7A45;
+
+  --color-warn: #C97B2A;
+  --color-warn-dim: #FDF2E3;
+  --color-warn-text: #A0601A;
+
+  --color-err: #D44040;
+  --color-err-dim: #FDECEC;
+  --color-err-text: #AE2E2E;
+
+  --color-ink-900: #0F0E13;
+  --color-ink-700: #1F1D2B;
+  --color-ink-500: #72708A;
+  --color-ink-300: #B0AEBE;
+  --color-ink-150: #DDDBE8;
+  --color-ink-100: #EDECF4;
+  --color-ink-50: #F3F2FB;
+  --color-ink-0: #FFFFFF;
+}
+
+body {
+  margin: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.form-input {
+  @apply w-full px-3 py-2 border border-ink-150 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent bg-white;
+}

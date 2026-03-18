@@ -199,7 +199,7 @@ export const avatarColors = [
 ] as const
 
 // Deterministic avatar colour from a string (employee ID or name)
-export function getAvatarColor(seed: string) {
+export function getAvatarColor(seed: string): { bg: string; text: string } {
   const idx = seed.charCodeAt(0) % avatarColors.length
-  return avatarColors[idx]
+  return avatarColors[idx] ?? avatarColors[0]!
 }
