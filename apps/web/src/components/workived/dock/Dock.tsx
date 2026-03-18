@@ -1,5 +1,5 @@
 import { Link, useMatches } from '@tanstack/react-router'
-import { LayoutDashboard, Users, Clock, CalendarDays } from 'lucide-react'
+import { LayoutDashboard, Users, Clock, CalendarDays, CheckSquare } from 'lucide-react'
 import { dockThemes } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 import { SettingsMenu } from './SettingsMenu'
@@ -11,11 +11,13 @@ const NAV_ITEMS = [
   { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey },
   { to: '/attendance', label: 'Attendance', icon: Clock, module: 'attendance' as ModuleKey },
   { to: '/attendance/monthly', label: 'Monthly', icon: CalendarDays, module: 'attendance' as ModuleKey },
+  { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey },
 ] as const
 
 function getCurrentModule(pathname: string): ModuleKey {
   if (pathname.startsWith('/people')) return 'people'
   if (pathname.startsWith('/attendance')) return 'attendance'
+  if (pathname.startsWith('/tasks')) return 'tasks'
   return 'overview'
 }
 

@@ -106,14 +106,14 @@ export const dockThemes = {
     },
   },
   tasks: {
-    bg:     'rgba(42,24,0,0.07)',
-    border: 'rgba(42,24,0,0.10)',
-    icon:   'rgba(42,24,0,0.28)',
-    label:  'rgba(42,24,0,0.28)',
+    bg:     'rgba(255,255,255,0.07)',
+    border: 'rgba(255,255,255,0.1)',
+    icon:   'rgba(255,255,255,0.45)',
+    label:  'rgba(255,255,255,0.28)',
     active: {
-      bg:    'rgba(42,24,0,0.12)',
-      icon:  '#2A1800',
-      label: '#2A1800',
+      bg:    'rgba(255,255,255,0.15)',
+      icon:  '#FFFFFF',
+      label: 'rgba(255,255,255,0.85)',
     },
   },
 } as const
@@ -125,7 +125,7 @@ export const logoMarkColors = {
   attendance:  { bg: '#D0EDD9', primary: '#0A6E35', textPrimary: '#0A2E1A', textAccent: '#0A6E35' },
   leave:       { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
   claims:      { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
-  tasks:       { bg: '#EDE3CE', primary: '#A06820', textPrimary: '#2A1800', textAccent: '#A06820' },
+  tasks:       { bg: '#1E1A3A', primary: '#818CF8', textPrimary: '#FFFFFF', textAccent: '#818CF8' },
 } as const
 
 // ── TYPOGRAPHY ────────────────────────────────────────────────

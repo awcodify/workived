@@ -13,6 +13,7 @@ import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthLoginRouteRouteImport } from './routes/_auth/login/route'
+import { Route as AppTasksRouteRouteImport } from './routes/_app/tasks/route'
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
@@ -38,6 +39,11 @@ const AuthLoginRouteRoute = AuthLoginRouteRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => AuthRouteRoute,
+} as any)
+const AppTasksRouteRoute = AppTasksRouteRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppPeopleRouteRoute = AppPeopleRouteRouteImport.update({
   id: '/people',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
   '/overview': typeof AppOverviewRouteRoute
   '/people': typeof AppPeopleRouteRouteWithChildren
+  '/tasks': typeof AppTasksRouteRoute
   '/login': typeof AuthLoginRouteRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
@@ -90,6 +97,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/overview': typeof AppOverviewRouteRoute
+  '/tasks': typeof AppTasksRouteRoute
   '/login': typeof AuthLoginRouteRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
   '/_app/overview': typeof AppOverviewRouteRoute
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
+  '/_app/tasks': typeof AppTasksRouteRoute
   '/_auth/login': typeof AuthLoginRouteRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/overview'
     | '/people'
+    | '/tasks'
     | '/login'
     | '/attendance/monthly'
     | '/people/$id'
@@ -126,6 +136,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/overview'
+    | '/tasks'
     | '/login'
     | '/attendance/monthly'
     | '/people/$id'
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/_app/attendance'
     | '/_app/overview'
     | '/_app/people'
+    | '/_app/tasks'
     | '/_auth/login'
     | '/_app/attendance/monthly'
     | '/_app/people/$id'
@@ -181,6 +193,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/login'
       preLoaderRoute: typeof AuthLoginRouteRouteImport
       parentRoute: typeof AuthRouteRoute
+    }
+    '/_app/tasks': {
+      id: '/_app/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AppTasksRouteRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/people': {
       id: '/_app/people'
@@ -265,12 +284,14 @@ interface AppRouteRouteChildren {
   AppAttendanceRouteRoute: typeof AppAttendanceRouteRouteWithChildren
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
   AppPeopleRouteRoute: typeof AppPeopleRouteRouteWithChildren
+  AppTasksRouteRoute: typeof AppTasksRouteRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAttendanceRouteRoute: AppAttendanceRouteRouteWithChildren,
   AppOverviewRouteRoute: AppOverviewRouteRoute,
   AppPeopleRouteRoute: AppPeopleRouteRouteWithChildren,
+  AppTasksRouteRoute: AppTasksRouteRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
