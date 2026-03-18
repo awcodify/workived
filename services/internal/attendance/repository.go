@@ -24,7 +24,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 func (r *Repository) GetByEmployeeAndDate(ctx context.Context, orgID, employeeID uuid.UUID, date string) (*Record, error) {
 	rec := &Record{}
 	err := r.db.QueryRow(ctx, `
-		SELECT id, organisation_id, employee_id, date,
+		SELECT id, organisation_id, employee_id, date::text,
 		       clock_in_at, clock_out_at, is_late, note,
 		       created_at, updated_at
 		FROM attendance_records
@@ -98,7 +98,7 @@ func (r *Repository) UpdateClockOut(ctx context.Context, orgID, employeeID uuid.
 // ListByDate returns all attendance records for an org on a given date.
 func (r *Repository) ListByDate(ctx context.Context, orgID uuid.UUID, date string) ([]Record, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, employee_id, date,
+		SELECT id, organisation_id, employee_id, date::text,
 		       clock_in_at, clock_out_at, is_late, note,
 		       created_at, updated_at
 		FROM attendance_records
@@ -129,7 +129,7 @@ func (r *Repository) ListByDate(ctx context.Context, orgID uuid.UUID, date strin
 // ListByMonth returns all attendance records for an org in a given month.
 func (r *Repository) ListByMonth(ctx context.Context, orgID uuid.UUID, year, month int) ([]Record, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, employee_id, date,
+		SELECT id, organisation_id, employee_id, date::text,
 		       clock_in_at, clock_out_at, is_late, note,
 		       created_at, updated_at
 		FROM attendance_records
@@ -233,7 +233,7 @@ func (r *Repository) ListActiveEmployees(ctx context.Context, orgID uuid.UUID) (
 // ListByEmployeeMonth returns attendance records for a single employee in a given month.
 func (r *Repository) ListByEmployeeMonth(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]Record, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, employee_id, date,
+		SELECT id, organisation_id, employee_id, date::text,
 		       clock_in_at, clock_out_at, is_late, note,
 		       created_at, updated_at
 		FROM attendance_records

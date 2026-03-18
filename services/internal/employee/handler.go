@@ -35,10 +35,18 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	emps := rg.Group("/employees")
 	emps.GET("", h.List)
 	emps.POST("", h.Create)
-	emps.GET("/me", h.GetMe) // must be before /:id
-	emps.GET("/:id", h.Get)
+	emps.GET("/:id", h.getOrMe) // handles both "me" and UUID
 	emps.PUT("/:id", h.Update)
 	emps.DELETE("/:id", h.Deactivate)
+}
+
+// getOrMe dispatches to GetMe when :id is "me", otherwise to Get.
+func (h *Handler) getOrMe(c *gin.Context) {
+	if c.Param("id") == "me" {
+		h.GetMe(c)
+		return
+	}
+	h.Get(c)
 }
 
 func (h *Handler) GetMe(c *gin.Context) {

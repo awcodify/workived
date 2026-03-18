@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useEmployees } from '@/lib/hooks/useEmployees'
+import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
 import { useDailyReport } from '@/lib/hooks/useAttendance'
 import { todayISO } from '@/lib/utils/date'
 import { moduleBackgrounds } from '@/design/tokens'
@@ -16,6 +16,7 @@ export const Route = createFileRoute('/_app/overview')({
 
 function OverviewPage() {
   const user = useAuthStore((s) => s.user)
+  const { data: myEmployee } = useMyEmployee()
   const { data: org } = useOrganisation()
   const tz = org?.timezone ?? 'UTC'
   const today = todayISO(tz)
@@ -28,7 +29,9 @@ function OverviewPage() {
   const late = daily?.filter((e) => e.status === 'late').length ?? 0
   const absent = daily?.filter((e) => e.status === 'absent').length ?? 0
 
-  const firstName = user?.full_name?.split(' ')[0] ?? 'there'
+  // Prefer auth store user name, fall back to employee record name
+  const fullName = user?.full_name ?? myEmployee?.full_name
+  const firstName = fullName?.split(' ')[0] ?? 'there'
 
   // Recent arrivals (who clocked in today)
   const arrivals = (daily ?? []).filter((e) => e.status === 'present' || e.status === 'late')
