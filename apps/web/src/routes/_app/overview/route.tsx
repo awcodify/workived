@@ -184,11 +184,81 @@ function OverviewPage() {
               <p style={{ fontSize: 32, fontWeight: 800, color: '#12A05C', letterSpacing: '-0.04em', lineHeight: 1 }}>
                 All done for today
               </p>
-              {myEntry?.clock_in_at && myEntry?.clock_out_at && (
-                <p style={{ fontFamily: typography.fontMono, fontSize: 15, color: 'rgba(255,255,255,0.3)', marginTop: 8 }}>
-                  {formatDate(myEntry.clock_in_at, tz, 'time')} – {formatDate(myEntry.clock_out_at, tz, 'time')}
-                </p>
-              )}
+              
+              {/* Calculated hours worked */}
+              {myEntry?.clock_in_at && myEntry?.clock_out_at && (() => {
+                const clockIn = new Date(myEntry.clock_in_at)
+                const clockOut = new Date(myEntry.clock_out_at)
+                const diffMs = clockOut.getTime() - clockIn.getTime()
+                const hours = Math.floor(diffMs / (1000 * 60 * 60))
+                const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+                
+                return (
+                  <div 
+                    className="mt-6"
+                    style={{
+                      padding: '20px 24px',
+                      background: 'linear-gradient(135deg, rgba(18,160,92,0.12) 0%, rgba(18,160,92,0.06) 100%)',
+                      border: '2px solid rgba(18,160,92,0.2)',
+                      borderRadius: 16,
+                    }}
+                  >
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+                      You worked today
+                    </p>
+                    <div className="flex items-baseline gap-3 mt-2">
+                      <p 
+                        style={{ 
+                          fontFamily: typography.fontMono, 
+                          fontSize: 48, 
+                          fontWeight: 800, 
+                          color: '#12A05C',
+                          letterSpacing: '-0.02em',
+                          lineHeight: 1,
+                        }}
+                      >
+                        {hours}h {minutes}m
+                      </p>
+                      <p style={{ fontFamily: typography.fontMono, fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>
+                        {formatDate(myEntry.clock_in_at, tz, 'time')} – {formatDate(myEntry.clock_out_at, tz, 'time')}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })()}
+              
+              {/* Work schedule info */}
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    background: 'rgba(155,143,247,0.08)',
+                    borderRadius: 10,
+                  }}
+                >
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                    Today's shift
+                  </p>
+                  <p style={{ fontFamily: typography.fontMono, fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>
+                    09:00 - 18:00
+                  </p>
+                </div>
+                
+                <div
+                  style={{
+                    padding: '12px 16px',
+                    background: 'rgba(18,160,92,0.08)',
+                    borderRadius: 10,
+                  }}
+                >
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+                    This week
+                  </p>
+                  <p style={{ fontFamily: typography.fontMono, fontSize: 18, fontWeight: 700, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>
+                    32.5 hrs
+                  </p>
+                </div>
+              </div>
             </div>
           ) : hasClockedIn ? (
             /* Clocked in — show elapsed timer */

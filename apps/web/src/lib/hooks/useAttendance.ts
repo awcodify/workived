@@ -65,14 +65,20 @@ export function useClockOut() {
       attendanceApi.clockOut(data).then((r) => r.data.data),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: attendanceKeys.all })
-      const time = data.clock_out_at 
-        ? new Date(data.clock_out_at).toLocaleTimeString('en', {
-            hour: '2-digit',
-            minute: '2-digit',
-          })
-        : 'now'
-      toast.success(`Clocked out at ${time}`, {
-        description: 'Have a great rest of your day!',
+      
+      // Calculate hours worked today
+      let hoursWorked = '0h 0m'
+      if (data.clock_in_at && data.clock_out_at) {
+        const clockIn = new Date(data.clock_in_at)
+        const clockOut = new Date(data.clock_out_at)
+        const diffMs = clockOut.getTime() - clockIn.getTime()
+        const hours = Math.floor(diffMs / (1000 * 60 * 60))
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+        hoursWorked = `${hours}h ${minutes}m`
+      }
+      
+      toast.success('All done today', {
+        description: `You worked ${hoursWorked} today`,
       })
     },
     onError: (error: any) => {

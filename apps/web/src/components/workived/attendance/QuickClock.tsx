@@ -67,22 +67,44 @@ export function QuickClock({ variant = 'light' }: QuickClockProps) {
       </div>
 
       {/* Status display */}
-      {hasClockedIn && myEntry?.clock_in_at && (
+      {hasClockedOut && myEntry?.clock_in_at && myEntry?.clock_out_at ? (
+        /* Show calculated hours when done for the day */
+        <div className="mb-3">
+          <p className={`text-xs mb-1.5 ${variant === 'dark' ? 'text-white/40' : 'text-ink-400'}`}>
+            Done for today
+          </p>
+          {(() => {
+            const clockIn = new Date(myEntry.clock_in_at)
+            const clockOut = new Date(myEntry.clock_out_at)
+            const diffMs = clockOut.getTime() - clockIn.getTime()
+            const hours = Math.floor(diffMs / (1000 * 60 * 60))
+            const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+            
+            return (
+              <div className={`p-3 rounded-lg ${variant === 'dark' ? 'bg-ok/10 border border-ok/20' : 'bg-ok/5 border border-ok/20'}`}>
+                <p className={`text-xs mb-1 ${variant === 'dark' ? 'text-white/50' : 'text-ink-500'}`}>
+                  You worked
+                </p>
+                <p className={`text-2xl font-bold ${variant === 'dark' ? 'text-ok' : 'text-ok-text'}`} style={{ fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
+                  {hours}h {minutes}m
+                </p>
+                <p className={`text-xs mt-1 ${variant === 'dark' ? 'text-white/30' : 'text-ink-400'}`} style={{ fontFamily: 'monospace' }}>
+                  {formatDate(myEntry.clock_in_at, tz, 'time')} – {formatDate(myEntry.clock_out_at, tz, 'time')}
+                </p>
+              </div>
+            )
+          })()}
+        </div>
+      ) : hasClockedIn && myEntry?.clock_in_at ? (
         <p className={`text-xs mb-2 ${variant === 'dark' ? 'text-white/50' : 'text-ink-500'}`}>
           <LogIn size={12} className="inline mr-1" />
           Clocked in at {formatDate(myEntry.clock_in_at, tz, 'time')}
           {myEntry.status === 'late' && <span className="text-warn ml-1">(Late)</span>}
         </p>
-      )}
-      {hasClockedOut && myEntry?.clock_out_at && (
-        <p className={`text-xs mb-2 ${variant === 'dark' ? 'text-ok' : 'text-ok-text'}`}>
-          <LogOut size={12} className="inline mr-1" />
-          Clocked out at {formatDate(myEntry.clock_out_at, tz, 'time')}
-        </p>
-      )}
+      ) : null}
 
       {/* Action */}
-      {!hasClockedOut ? (
+      {!hasClockedOut && (
         <>
           <input
             type="text"
@@ -109,10 +131,6 @@ export function QuickClock({ variant = 'light' }: QuickClockProps) {
             </button>
           )}
         </>
-      ) : (
-        <p className={`text-xs text-center py-1 ${variant === 'dark' ? 'text-white/30' : 'text-ink-300'}`}>
-          Done for today
-        </p>
       )}
     </div>
   )
