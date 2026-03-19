@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { useEffect } from 'react'
 import { useEmployee, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
-import { useUnlinkedMembers } from '@/lib/hooks/useInvitations'
+import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { moduleBackgrounds } from '@/design/tokens'
@@ -59,6 +59,7 @@ function NewEmployeePage() {
   const navigate = useNavigate()
   const { user_id: preselectedUserId } = Route.useSearch()
   const createMutation = useCreateEmployee()
+  const inviteMutation = useInviteMember()
   const { data: unlinkedMembers = [], isLoading: loadingMembers } = useUnlinkedMembers()
 
   const form = useForm<NewForm>({
@@ -107,7 +108,17 @@ function NewEmployeePage() {
     }
 
     createMutation.mutate(payload, {
-      onSuccess: () => navigate({ to: '/people' }),
+      onSuccess: (employee) => {
+        if (data.email_mode === 'new' && data.email) {
+          // Send workspace invitation — employee_id links the invite to the new HR record
+          inviteMutation.mutate(
+            { email: data.email, role: 'member', employee_id: employee.id },
+            { onSettled: () => navigate({ to: '/people' }) },
+          )
+        } else {
+          navigate({ to: '/people' })
+        }
+      },
     })
   }
 

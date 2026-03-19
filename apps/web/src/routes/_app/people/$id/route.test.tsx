@@ -16,6 +16,7 @@ vi.mock('@/lib/hooks/useEmployees', () => ({
 
 vi.mock('@/lib/hooks/useInvitations', () => ({
   useUnlinkedMembers: vi.fn(),
+  useInviteMember: vi.fn(() => ({ mutate: vi.fn(), isPending: false, error: null })),
 }))
 
 vi.mock('@/components/workived/layout/Avatar', () => ({
