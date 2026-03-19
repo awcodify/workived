@@ -1,0 +1,27 @@
+version: "2"
+
+linters:
+  enable:
+    - gosec        # Security-focused linter — catches SQL injection, hardcoded creds, weak crypto
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+
+  settings:
+    gosec:
+      includes:
+        - G201  # SQL string formatting
+        - G202  # SQL string concatenation
+        - G101  # Hardcoded credentials
+        - G401  # Weak cryptographic primitive
+        - G501  # Blacklisted crypto import
+        - G304  # File path from tainted input
+        - G107  # URL from tainted input (SSRF)
+
+run:
+  timeout: 3m
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

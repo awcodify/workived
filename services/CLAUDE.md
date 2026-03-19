@@ -117,10 +117,11 @@ Structured zap with `org_id` and `request_id` on every log. No `fmt.Println`.
 - Protect shared state with `sync.Mutex` or channels
 
 ## Lint gates
-`golangci-lint run ./...`, `go test -race ./...`, `go vet ./...`, coverage check
+`golangci-lint run ./...` (includes gosec — catches SQL injection, hardcoded creds, SSRF), `go test -race ./...`, `go vet ./...`, coverage check
 
 ## DON'Ts
 - No ORM (use pgx/v5 directly)
+- No `fmt.Sprintf` / string concatenation for SQL — parameterized queries only ($1, $2)
 - No global state (inject deps via constructor)
 - No panic in handlers (recover in middleware)
 - No hardcoded country rules (config tables)

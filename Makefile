@@ -59,6 +59,9 @@ web-build: ## Build frontend for production
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 
+lint: ## Run golangci-lint (includes gosec)
+	cd $(SERVICES_DIR) && golangci-lint run ./...
+
 test: ## Run all unit tests
 	cd $(SERVICES_DIR) && go test ./... -short
 
