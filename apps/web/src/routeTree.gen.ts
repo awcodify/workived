@@ -32,8 +32,10 @@ import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/setti
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
 import { Route as AppLeaveRequestsIndexRouteImport } from './routes/_app/leave/requests/index'
+import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/policies/index'
 import { Route as AppLeaveRequestsPendingRouteImport } from './routes/_app/leave/requests/pending'
 import { Route as AppLeaveRequestsNewRouteImport } from './routes/_app/leave/requests/new'
+import { Route as AppLeavePoliciesNewRouteImport } from './routes/_app/leave/policies/new'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
@@ -149,6 +151,11 @@ const AppLeaveRequestsIndexRoute = AppLeaveRequestsIndexRouteImport.update({
   path: '/requests/',
   getParentRoute: () => AppLeaveRouteRoute,
 } as any)
+const AppLeavePoliciesIndexRoute = AppLeavePoliciesIndexRouteImport.update({
+  id: '/policies/',
+  path: '/policies/',
+  getParentRoute: () => AppLeaveRouteRoute,
+} as any)
 const AppLeaveRequestsPendingRoute = AppLeaveRequestsPendingRouteImport.update({
   id: '/requests/pending',
   path: '/requests/pending',
@@ -157,6 +164,11 @@ const AppLeaveRequestsPendingRoute = AppLeaveRequestsPendingRouteImport.update({
 const AppLeaveRequestsNewRoute = AppLeaveRequestsNewRouteImport.update({
   id: '/requests/new',
   path: '/requests/new',
+  getParentRoute: () => AppLeaveRouteRoute,
+} as any)
+const AppLeavePoliciesNewRoute = AppLeavePoliciesNewRouteImport.update({
+  id: '/policies/new',
+  path: '/policies/new',
   getParentRoute: () => AppLeaveRouteRoute,
 } as any)
 
@@ -181,8 +193,10 @@ export interface FileRoutesByFullPath {
   '/attendance/': typeof AppAttendanceIndexRoute
   '/leave/': typeof AppLeaveIndexRoute
   '/people/': typeof AppPeopleIndexRoute
+  '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/leave/requests/new': typeof AppLeaveRequestsNewRoute
   '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
+  '/leave/policies/': typeof AppLeavePoliciesIndexRoute
   '/leave/requests/': typeof AppLeaveRequestsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -203,8 +217,10 @@ export interface FileRoutesByTo {
   '/attendance': typeof AppAttendanceIndexRoute
   '/leave': typeof AppLeaveIndexRoute
   '/people': typeof AppPeopleIndexRoute
+  '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/leave/requests/new': typeof AppLeaveRequestsNewRoute
   '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
+  '/leave/policies': typeof AppLeavePoliciesIndexRoute
   '/leave/requests': typeof AppLeaveRequestsIndexRoute
 }
 export interface FileRoutesById {
@@ -231,8 +247,10 @@ export interface FileRoutesById {
   '/_app/attendance/': typeof AppAttendanceIndexRoute
   '/_app/leave/': typeof AppLeaveIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
+  '/_app/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/_app/leave/requests/new': typeof AppLeaveRequestsNewRoute
   '/_app/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
+  '/_app/leave/policies/': typeof AppLeavePoliciesIndexRoute
   '/_app/leave/requests/': typeof AppLeaveRequestsIndexRoute
 }
 export interface FileRouteTypes {
@@ -258,8 +276,10 @@ export interface FileRouteTypes {
     | '/attendance/'
     | '/leave/'
     | '/people/'
+    | '/leave/policies/new'
     | '/leave/requests/new'
     | '/leave/requests/pending'
+    | '/leave/policies/'
     | '/leave/requests/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -280,8 +300,10 @@ export interface FileRouteTypes {
     | '/attendance'
     | '/leave'
     | '/people'
+    | '/leave/policies/new'
     | '/leave/requests/new'
     | '/leave/requests/pending'
+    | '/leave/policies'
     | '/leave/requests'
   id:
     | '__root__'
@@ -307,8 +329,10 @@ export interface FileRouteTypes {
     | '/_app/attendance/'
     | '/_app/leave/'
     | '/_app/people/'
+    | '/_app/leave/policies/new'
     | '/_app/leave/requests/new'
     | '/_app/leave/requests/pending'
+    | '/_app/leave/policies/'
     | '/_app/leave/requests/'
   fileRoutesById: FileRoutesById
 }
@@ -481,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeaveRequestsIndexRouteImport
       parentRoute: typeof AppLeaveRouteRoute
     }
+    '/_app/leave/policies/': {
+      id: '/_app/leave/policies/'
+      path: '/policies'
+      fullPath: '/leave/policies/'
+      preLoaderRoute: typeof AppLeavePoliciesIndexRouteImport
+      parentRoute: typeof AppLeaveRouteRoute
+    }
     '/_app/leave/requests/pending': {
       id: '/_app/leave/requests/pending'
       path: '/requests/pending'
@@ -493,6 +524,13 @@ declare module '@tanstack/react-router' {
       path: '/requests/new'
       fullPath: '/leave/requests/new'
       preLoaderRoute: typeof AppLeaveRequestsNewRouteImport
+      parentRoute: typeof AppLeaveRouteRoute
+    }
+    '/_app/leave/policies/new': {
+      id: '/_app/leave/policies/new'
+      path: '/policies/new'
+      fullPath: '/leave/policies/new'
+      preLoaderRoute: typeof AppLeavePoliciesNewRouteImport
       parentRoute: typeof AppLeaveRouteRoute
     }
   }
@@ -513,15 +551,19 @@ const AppAttendanceRouteRouteWithChildren =
 
 interface AppLeaveRouteRouteChildren {
   AppLeaveIndexRoute: typeof AppLeaveIndexRoute
+  AppLeavePoliciesNewRoute: typeof AppLeavePoliciesNewRoute
   AppLeaveRequestsNewRoute: typeof AppLeaveRequestsNewRoute
   AppLeaveRequestsPendingRoute: typeof AppLeaveRequestsPendingRoute
+  AppLeavePoliciesIndexRoute: typeof AppLeavePoliciesIndexRoute
   AppLeaveRequestsIndexRoute: typeof AppLeaveRequestsIndexRoute
 }
 
 const AppLeaveRouteRouteChildren: AppLeaveRouteRouteChildren = {
   AppLeaveIndexRoute: AppLeaveIndexRoute,
+  AppLeavePoliciesNewRoute: AppLeavePoliciesNewRoute,
   AppLeaveRequestsNewRoute: AppLeaveRequestsNewRoute,
   AppLeaveRequestsPendingRoute: AppLeaveRequestsPendingRoute,
+  AppLeavePoliciesIndexRoute: AppLeavePoliciesIndexRoute,
   AppLeaveRequestsIndexRoute: AppLeaveRequestsIndexRoute,
 }
 

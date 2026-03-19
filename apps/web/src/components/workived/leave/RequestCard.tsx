@@ -1,4 +1,3 @@
-import { ArrowRight } from 'lucide-react'
 import type { LeaveRequestWithDetails } from '@/types/api'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { formatDateRange, canCancelRequest } from '@/lib/utils/leave'

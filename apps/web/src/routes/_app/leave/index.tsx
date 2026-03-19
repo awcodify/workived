@@ -1,7 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 import { useMyBalances } from '@/lib/hooks/useLeave'
-import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { BalanceCard } from '@/components/workived/leave/BalanceCard'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
 
@@ -12,7 +11,6 @@ export const Route = createFileRoute('/_app/leave/')({
 })
 
 function LeaveDashboard() {
-  const { data: org } = useOrganisation()
   const currentYear = new Date().getFullYear()
   const { data: balances, isLoading } = useMyBalances(currentYear)
 
@@ -85,7 +83,7 @@ function LeaveDashboard() {
       </div>
 
       {/* Quick Links */}
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         <Link
           to="/leave/requests"
           className="p-4 transition-colors"
@@ -135,6 +133,32 @@ function LeaveDashboard() {
           </p>
           <p className="text-sm mt-1" style={{ color: t.textMuted }}>
             Review team leave requests
+          </p>
+        </Link>
+
+        <Link
+          to="/leave/calendar"
+          className="p-4 transition-colors"
+          style={{
+            background: t.surface,
+            borderRadius: 14,
+            border: `1px solid ${t.border}`,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = t.surfaceHover
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = t.surface
+          }}
+        >
+          <p
+            className="font-bold"
+            style={{ fontSize: typography.h3.size, color: t.text }}
+          >
+            Calendar View
+          </p>
+          <p className="text-sm mt-1" style={{ color: t.textMuted }}>
+            See team leave schedule
           </p>
         </Link>
       </div>

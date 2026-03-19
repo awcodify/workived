@@ -7,7 +7,7 @@ export const createPolicySchema = z.object({
     .min(1, 'Policy name is required')
     .max(100, 'Policy name must be less than 100 characters'),
   days_per_year: z
-    .number({ required_error: 'Days per year is required' })
+    .number({ message: 'Days per year is required' })
     .min(0, 'Days per year cannot be negative')
     .max(365, 'Days per year cannot exceed 365'),
   carry_over_days: z
