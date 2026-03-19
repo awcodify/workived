@@ -647,26 +647,46 @@ FOR EACH active employee × active leave_policy:
 - [x] Work schedule and public holiday support
 - [x] OpenAPI 3.1 spec + Scalar UI documentation
 
-### Sprint 3 — Frontend (Auth + Employees + Attendance)
-- [ ] Vite + React project scaffold (TanStack Router, Query, Tailwind, shadcn/ui)
-- [ ] Design system setup (tokens → Tailwind config, globals.css)
-- [ ] API client + auth store (axios + Zustand + JWT interceptor)
-- [ ] Login page
-- [ ] App shell with floating dock
-- [ ] Dashboard (overview — employee count, today's attendance)
-- [ ] Employee list + detail pages
-- [ ] Attendance: clock-in/out + daily report + monthly report
+### Sprint 3 — Frontend (Auth + Employees + Attendance) — DONE ✅
+- [x] Vite + React project scaffold (TanStack Router, Query, Tailwind, shadcn/ui)
+- [x] Design system setup (tokens → Tailwind config, globals.css)
+- [x] API client + auth store (axios + Zustand + JWT interceptor)
+- [x] Login page
+- [x] App shell with floating dock
+- [x] Dashboard (overview — employee count, today's attendance)
+- [x] Employee list + detail pages
+- [x] Attendance: clock-in/out + daily report + monthly report
+- [x] Reports page with analytics placeholders
 
-### Sprint 4 — Leave (backend)
-- [ ] Leave policy configuration
-- [ ] Leave balance initialisation
-- [ ] Leave request flow (submit → approve/reject)
-- [ ] Year-end rollover job
+### Sprint 4 — Leave (backend) — DONE ✅
+- [x] Leave policy configuration (CRUD API)
+- [x] Leave balance initialisation and management
+- [x] Leave request flow (submit → approve/reject/cancel)
+- [x] Leave calendar API
+- [x] Year-end rollover job (with tests and documentation)
+- [x] All leave endpoints wired to `/api/v1/leave/*`
 
 ### Sprint 5 — Leave (frontend)
 - [ ] Leave request pages (submit, view, approve/reject)
 - [ ] Leave balance dashboard
 - [ ] Leave policy management (admin)
+
+**Available backend endpoints for Sprint 5:**
+- `GET /api/v1/leave/policies` — List leave policies
+- `POST /api/v1/leave/policies` — Create policy (admin)
+- `PUT /api/v1/leave/policies/:id` — Update policy (admin)
+- `DELETE /api/v1/leave/policies/:id` — Deactivate policy (admin)
+- `GET /api/v1/leave/balances?year=2026` — List all balances (admin)
+- `GET /api/v1/leave/balances/me?year=2026` — My balances (employee)
+- `POST /api/v1/leave/requests` — Submit leave request
+- `GET /api/v1/leave/requests?status=pending` — List requests (admin)
+- `GET /api/v1/leave/requests/me` — My requests (employee)
+- `POST /api/v1/leave/requests/:id/approve` — Approve request
+- `POST /api/v1/leave/requests/:id/reject` — Reject request
+- `POST /api/v1/leave/requests/:id/cancel` — Cancel request (employee)
+- `GET /api/v1/leave/calendar?year=2026&month=3` — Calendar view
+
+**Year-end rollover:** Automated CLI tool available at `services/cmd/rollover` (see README for cron setup)
 
 ### Sprint 6 — Claims (basic flow only)
 - [ ] Claim categories configuration
@@ -752,4 +772,4 @@ API_URL=http://localhost:8080
 ---
 
 *Last updated: March 2026*
-*Status: Sprint 3 — Frontend (Vite + React) for Auth, Employees, Attendance*
+*Status: Sprint 3 (Frontend in progress) + Sprint 4 (Leave backend ✅ complete)*
