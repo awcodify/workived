@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useInvitations, useInviteMember, useRevokeInvitation } from '@/lib/hooks/useInvitations'
+import { useCanInvite } from '@/lib/hooks/useRole'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 
 // Shorthand for token colors used in this page
@@ -44,6 +45,7 @@ function MembersPage() {
   const { data: invitations, isLoading: loadingInvitations } = useInvitations()
   const inviteMember = useInviteMember()
   const revokeInvitation = useRevokeInvitation()
+  const canInvite = useCanInvite()
   const [lastInvite, setLastInvite] = useState<InviteResponse | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
@@ -104,6 +106,7 @@ function MembersPage() {
         </div>
 
         {/* Invite Form Card */}
+        {canInvite && (
         <div
           className="p-8 rounded-2xl"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
@@ -113,11 +116,15 @@ function MembersPage() {
               fontSize: 18,
               fontWeight: 700,
               color: '#FFFFFF',
-              marginBottom: 16,
+              marginBottom: 4,
             }}
           >
             Invite a team member
           </h2>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}>
+            Inviting gives someone login access to this workspace. To add an employee HR record (attendance, leave), go to{' '}
+            <a href="/people/new" style={{ color: 'rgba(155,143,247,0.9)', textDecoration: 'underline' }}>People → Add employee</a>.
+          </p>
 
           <form onSubmit={form.handleSubmit(handleInvite)} className="flex flex-col gap-4">
             {apiError && (
@@ -204,6 +211,7 @@ function MembersPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Pending Invitations */}
         <div
@@ -314,7 +322,7 @@ function InvitationRow({
       <div className="flex items-center gap-2 shrink-0">
         {!isExpired && (
           <button
-            onClick={() => onCopyLink(`${window.location.origin}/invite?token=${invitation.id}`, invitation.id)}
+            onClick={() => onCopyLink(invitation.invite_url, invitation.id)}
             className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
             style={{
               background: 'rgba(255,255,255,0.08)',

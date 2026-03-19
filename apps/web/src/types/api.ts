@@ -113,17 +113,25 @@ export interface PendingInvitation {
   email: string
   role: string
   invited_by: string
+  invite_url: string
   employee_id?: string
   expires_at: string
   created_at: string
 }
 
 // ── Employees ────────────────────────────────────────────────
+export interface UnlinkedMember {
+  user_id: string
+  full_name: string
+  email: string
+  role: string
+}
+
 export interface Employee {
   id: string
   organisation_id: string
   full_name: string
-  email: string
+  email?: string
   phone?: string
   job_title?: string
   department_id?: string
@@ -141,7 +149,8 @@ export interface Employee {
 
 export interface CreateEmployeeInput {
   full_name: string
-  email: string
+  email?: string
+  user_id?: string
   phone?: string
   job_title?: string
   department_id?: string

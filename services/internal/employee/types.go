@@ -15,7 +15,7 @@ type Employee struct {
 	UserID         *uuid.UUID      `json:"user_id,omitempty"`
 	EmployeeCode   *string         `json:"employee_code,omitempty"`
 	FullName       string          `json:"full_name"`
-	Email          string          `json:"email"`
+	Email          *string         `json:"email,omitempty"`
 	Phone          *string         `json:"phone,omitempty"`
 	DepartmentID   *uuid.UUID      `json:"department_id,omitempty"`
 	JobTitle       *string         `json:"job_title,omitempty"`
@@ -35,7 +35,8 @@ type Employee struct {
 
 type CreateEmployeeRequest struct {
 	FullName       string     `json:"full_name"        validate:"required,min=1,max=255"`
-	Email          string     `json:"email"            validate:"required,email,max=255"`
+	Email          *string    `json:"email"            validate:"omitempty,email,max=255"`
+	UserID         *uuid.UUID `json:"user_id"          validate:"omitempty"`
 	Phone          *string    `json:"phone"            validate:"omitempty,max=30"`
 	DepartmentID   *uuid.UUID `json:"department_id"    validate:"omitempty"`
 	JobTitle       *string    `json:"job_title"        validate:"omitempty,max=150"`

@@ -25,11 +25,12 @@ type RepoInterface interface {
 	GetOrgPlanInfo(ctx context.Context, orgID uuid.UUID) (string, *int, error)
 	GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, error)
 	GetActiveMember(ctx context.Context, orgID, userID uuid.UUID) (*Member, error)
-	CreateInvitation(ctx context.Context, orgID uuid.UUID, email, role string, invitedBy uuid.UUID, tokenHash string, employeeID *uuid.UUID, expiresAt time.Time) (*Invitation, error)
+	CreateInvitation(ctx context.Context, orgID uuid.UUID, email, role string, invitedBy uuid.UUID, tokenHash, inviteURL string, employeeID *uuid.UUID, expiresAt time.Time) (*Invitation, error)
 	GetInvitationByToken(ctx context.Context, tokenHash string) (*Invitation, error)
 	AcceptInvitation(ctx context.Context, p AcceptParams) (*Member, error)
 	RevokeInvitation(ctx context.Context, orgID, invitationID uuid.UUID) error
 	ListPendingInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
+	ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]UnlinkedMember, error)
 }
 
 // AuthTokenCreator is the narrow auth interface the org service needs.
@@ -139,13 +140,12 @@ func (s *Service) InviteMember(ctx context.Context, orgID, inviterID uuid.UUID, 
 
 	rawToken, tokenHash := generateToken()
 	expiresAt := time.Now().UTC().Add(72 * time.Hour)
+	inviteURL := fmt.Sprintf("%s/invite?token=%s", s.baseURL, rawToken)
 
-	inv, err := s.repo.CreateInvitation(ctx, orgID, req.Email, req.Role, inviterID, tokenHash, req.EmployeeID, expiresAt)
+	inv, err := s.repo.CreateInvitation(ctx, orgID, req.Email, req.Role, inviterID, tokenHash, inviteURL, req.EmployeeID, expiresAt)
 	if err != nil {
 		return nil, fmt.Errorf("create invitation: %w", err)
 	}
-
-	inviteURL := fmt.Sprintf("%s/invite?token=%s", s.baseURL, rawToken)
 
 	return &InviteResponse{
 		ID:        inv.ID,
@@ -228,6 +228,14 @@ func (s *Service) RevokeInvitation(ctx context.Context, orgID, invitationID uuid
 		return fmt.Errorf("revoke invitation %s: %w", invitationID, err)
 	}
 	return nil
+}
+
+func (s *Service) ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]UnlinkedMember, error) {
+	members, err := s.repo.ListUnlinkedMembers(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("list unlinked members: %w", err)
+	}
+	return members, nil
 }
 
 func (s *Service) ListPendingInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error) {

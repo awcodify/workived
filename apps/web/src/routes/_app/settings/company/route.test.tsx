@@ -14,11 +14,16 @@ vi.mock('@/lib/hooks/useOrganisation', () => ({
   useTransferOwnership: vi.fn(),
 }))
 
+vi.mock('@/lib/hooks/useRole', () => ({
+  useCanEditOrgSettings: vi.fn(() => true),
+}))
+
 vi.mock('@/components/workived/layout/WorkivedLogo', () => ({
   WorkivedLogo: () => <div data-testid="workived-logo" />,
 }))
 
 import { useOrgDetail, useUpdateOrg, useTransferOwnership } from '@/lib/hooks/useOrganisation'
+import { useCanEditOrgSettings } from '@/lib/hooks/useRole'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -252,6 +257,21 @@ describe('CompanyPage', () => {
         expect.any(Object),
       )
     })
+  })
+
+  it('shows read-only view and notice for non-admin role', () => {
+    vi.mocked(useCanEditOrgSettings).mockReturnValueOnce(false)
+    vi.mocked(useOrgDetail).mockReturnValue({
+      data: makeOrg(),
+      isLoading: false,
+      isError: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    render(<CompanyPage />)
+    expect(screen.getByText(/view-only access/i)).toBeTruthy()
+    expect(screen.queryByDisplayValue('Acme Corp')).toBeNull()
+    expect(screen.getAllByText('Acme Corp').length).toBeGreaterThan(0)
   })
 
   it('dismisses confirmation modal on cancel', async () => {

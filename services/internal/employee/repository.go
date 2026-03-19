@@ -73,15 +73,15 @@ func (r *Repository) Create(ctx context.Context, orgID uuid.UUID, req CreateEmpl
 	e := &Employee{}
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO employees (
-			organisation_id, employee_code, full_name, email, phone,
+			organisation_id, user_id, employee_code, full_name, email, phone,
 			department_id, job_title, employment_type, start_date
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::date)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::date)
 		RETURNING id, organisation_id, user_id, employee_code,
 		          full_name, email, phone, department_id, job_title,
 		          employment_type, status, start_date, end_date,
 		          base_salary, salary_currency, custom_fields,
 		          is_active, created_at, updated_at
-	`, orgID, req.EmployeeCode, req.FullName, req.Email, req.Phone,
+	`, orgID, req.UserID, req.EmployeeCode, req.FullName, req.Email, req.Phone,
 		req.DepartmentID, req.JobTitle, req.EmploymentType, req.StartDate).
 		Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,

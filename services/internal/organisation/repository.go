@@ -115,15 +115,15 @@ func (r *Repository) GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid
 }
 
 // CreateInvitation stores an invitation record and returns the invitation.
-func (r *Repository) CreateInvitation(ctx context.Context, orgID uuid.UUID, email, role string, invitedBy uuid.UUID, tokenHash string, employeeID *uuid.UUID, expiresAt time.Time) (*Invitation, error) {
+func (r *Repository) CreateInvitation(ctx context.Context, orgID uuid.UUID, email, role string, invitedBy uuid.UUID, tokenHash, inviteURL string, employeeID *uuid.UUID, expiresAt time.Time) (*Invitation, error) {
 	inv := &Invitation{}
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO invitations (organisation_id, email, role, invited_by, token_hash, employee_id, expires_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-		RETURNING id, organisation_id, email, role, invited_by, employee_id, expires_at, accepted_at, created_at
-	`, orgID, email, role, invitedBy, tokenHash, employeeID, expiresAt).Scan(
+		INSERT INTO invitations (organisation_id, email, role, invited_by, token_hash, invite_url, employee_id, expires_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		RETURNING id, organisation_id, email, role, invited_by, invite_url, employee_id, expires_at, accepted_at, created_at
+	`, orgID, email, role, invitedBy, tokenHash, inviteURL, employeeID, expiresAt).Scan(
 		&inv.ID, &inv.OrgID, &inv.Email, &inv.Role, &inv.InvitedBy,
-		&inv.EmployeeID, &inv.ExpiresAt, &inv.AcceptedAt, &inv.CreatedAt,
+		&inv.InviteURL, &inv.EmployeeID, &inv.ExpiresAt, &inv.AcceptedAt, &inv.CreatedAt,
 	)
 	if err != nil {
 		if isUniqueViolation(err) {
@@ -255,7 +255,7 @@ func (r *Repository) RevokeInvitation(ctx context.Context, orgID, invitationID u
 // ListPendingInvitations returns all non-accepted, non-expired invitations for an org.
 func (r *Repository) ListPendingInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, email, role, invited_by, employee_id,
+		SELECT id, organisation_id, email, role, invited_by, invite_url, employee_id,
 		       expires_at, accepted_at, created_at
 		FROM invitations
 		WHERE organisation_id = $1
@@ -273,7 +273,7 @@ func (r *Repository) ListPendingInvitations(ctx context.Context, orgID uuid.UUID
 		var inv Invitation
 		if err := rows.Scan(
 			&inv.ID, &inv.OrgID, &inv.Email, &inv.Role, &inv.InvitedBy,
-			&inv.EmployeeID, &inv.ExpiresAt, &inv.AcceptedAt, &inv.CreatedAt,
+			&inv.InviteURL, &inv.EmployeeID, &inv.ExpiresAt, &inv.AcceptedAt, &inv.CreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -415,6 +415,34 @@ func (r *Repository) TransferOwnership(ctx context.Context, orgID, currentOwnerI
 	}
 
 	return tx.Commit(ctx)
+}
+
+// ListUnlinkedMembers returns active members who have no linked employee HR record.
+// Used to populate the email combobox on the Add Employee form.
+func (r *Repository) ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]UnlinkedMember, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT om.user_id, u.full_name, u.email, om.role
+		FROM organisation_members om
+		JOIN users u ON u.id = om.user_id
+		WHERE om.organisation_id = $1
+		  AND om.employee_id IS NULL
+		  AND om.is_active = TRUE
+		ORDER BY u.full_name ASC
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var members []UnlinkedMember
+	for rows.Next() {
+		var m UnlinkedMember
+		if err := rows.Scan(&m.UserID, &m.FullName, &m.Email, &m.Role); err != nil {
+			return nil, err
+		}
+		members = append(members, m)
+	}
+	return members, rows.Err()
 }
 
 func isUniqueViolation(err error) bool {

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/lib/stores/auth'
 
 export const invitationKeys = {
   list: ['invitations'] as const,
+  unlinkedMembers: ['unlinked-members'] as const,
 }
 
 export function useInvitations() {
@@ -14,7 +15,6 @@ export function useInvitations() {
     queryKey: invitationKeys.list,
     queryFn: () => organisationsApi.listInvitations().then((r) => r.data.data),
     enabled: isAuthenticated,
-    staleTime: 30_000,
   })
 }
 
@@ -38,3 +38,14 @@ export function useRevokeInvitation() {
     },
   })
 }
+
+export function useUnlinkedMembers() {
+  const isAuthenticated = useAuthStore((s) => !!s.accessToken)
+
+  return useQuery({
+    queryKey: invitationKeys.unlinkedMembers,
+    queryFn: () => organisationsApi.listUnlinkedMembers().then((r) => r.data.data),
+    enabled: isAuthenticated,
+  })
+}
+

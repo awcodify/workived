@@ -12,6 +12,7 @@ import type {
   AcceptInvitationRequest,
   AcceptInvitationResponse,
   PendingInvitation,
+  UnlinkedMember,
 } from '@/types/api'
 
 export const organisationsApi = {
@@ -43,4 +44,8 @@ export const organisationsApi = {
   // Accept invitation — called by invitee (auth-only, no tenant context needed)
   acceptInvitation: (data: AcceptInvitationRequest) =>
     apiClient.post<ApiResponse<AcceptInvitationResponse>>('/api/v1/invitations/accept', data),
+
+  // Members without an HR employee record — used by the Add Employee form
+  listUnlinkedMembers: () =>
+    apiClient.get<ApiResponse<UnlinkedMember[]>>('/api/v1/organisations/members/unlinked'),
 }

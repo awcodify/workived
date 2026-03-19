@@ -47,6 +47,7 @@ func (f *fakeEmpRepo) Create(_ context.Context, orgID uuid.UUID, req employee.Cr
 	emp := &employee.Employee{
 		ID:             uuid.New(),
 		OrganisationID: orgID,
+		UserID:         req.UserID,
 		FullName:       req.FullName,
 		Email:          req.Email,
 		EmploymentType: req.EmploymentType,
@@ -157,7 +158,7 @@ func TestEmployeeService_Create_PlanLimit(t *testing.T) {
 
 			_, err := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
 				FullName:       "Test Employee",
-				Email:          "test@example.com",
+				Email:          strPtr("test@example.com"),
 				EmploymentType: "full_time",
 				StartDate:      "2026-01-01",
 			})
@@ -186,10 +187,10 @@ func TestEmployeeService_List(t *testing.T) {
 
 	// Seed two employees
 	_, _ = svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
-		FullName: "Alice", Email: "alice@example.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+		FullName: "Alice", Email: strPtr("alice@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
 	})
 	_, _ = svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
-		FullName: "Bob", Email: "bob@example.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+		FullName: "Bob", Email: strPtr("bob@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
 	})
 
 	t.Run("returns employees with meta", func(t *testing.T) {
@@ -245,7 +246,7 @@ func TestEmployeeService_Get(t *testing.T) {
 	orgID := uuid.New()
 
 	emp, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
-		FullName: "Ahmad", Email: "ahmad@example.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+		FullName: "Ahmad", Email: strPtr("ahmad@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
 	})
 
 	t.Run("existing employee returned", func(t *testing.T) {
@@ -276,7 +277,7 @@ func TestEmployeeService_Update(t *testing.T) {
 	orgID := uuid.New()
 
 	emp, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
-		FullName: "Ahmad", Email: "ahmad@example.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+		FullName: "Ahmad", Email: strPtr("ahmad@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
 	})
 
 	t.Run("update full_name", func(t *testing.T) {
@@ -311,7 +312,7 @@ func TestEmployeeService_SoftDelete(t *testing.T) {
 	// Create an employee first
 	emp, err := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
 		FullName:       "Ahmad Rashid",
-		Email:          "ahmad@example.com",
+		Email:          strPtr("ahmad@example.com"),
 		EmploymentType: "full_time",
 		StartDate:      "2026-01-01",
 	})
@@ -352,7 +353,7 @@ func TestEmployeeService_Create_OrgRepoError(t *testing.T) {
 	svc := employee.NewService(fakeRepo, &fakeOrgRepo{planErr: orgErr})
 
 	_, err := svc.Create(context.Background(), uuid.New(), employee.CreateEmployeeRequest{
-		FullName: "X", Email: "x@x.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+		FullName: "X", Email: strPtr("x@x.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
 	})
 	if err == nil {
 		t.Fatal("expected org repo error, got nil")
@@ -368,7 +369,7 @@ func TestEmployeeService_Create_CountActiveError(t *testing.T) {
 	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)})
 
 	_, err := svc.Create(context.Background(), uuid.New(), employee.CreateEmployeeRequest{
-		FullName: "X", Email: "x@x.com", EmploymentType: "full_time", StartDate: "2026-01-01",
+		FullName: "X", Email: strPtr("x@x.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
 	})
 	if err == nil {
 		t.Fatal("expected CountActive error, got nil")

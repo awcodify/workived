@@ -151,6 +151,7 @@ function InviteAcceptPage() {
                 </p>
                 <Link
                   to="/login"
+                  search={{ redirect: undefined }}
                   className="inline-block mt-8 font-bold py-3 px-8 rounded-xl transition-all"
                   style={{
                     background: 'linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%)',
@@ -214,6 +215,7 @@ function InviteAcceptPage() {
                   </Link>
                   <Link
                     to="/register"
+                    search={{ invite_token: token }}
                     className="w-full font-bold py-4 rounded-xl transition-all text-center"
                     style={{
                       background: '#F3F2FB',

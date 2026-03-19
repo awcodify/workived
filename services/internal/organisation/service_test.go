@@ -172,7 +172,7 @@ func (f *fakeRepo) TransferOwnership(_ context.Context, orgID, currentOwnerID, n
 	return nil
 }
 
-func (f *fakeRepo) CreateInvitation(_ context.Context, orgID uuid.UUID, email, role string, invitedBy uuid.UUID, tokenHash string, employeeID *uuid.UUID, expiresAt time.Time) (*organisation.Invitation, error) {
+func (f *fakeRepo) CreateInvitation(_ context.Context, orgID uuid.UUID, email, role string, invitedBy uuid.UUID, tokenHash, inviteURL string, employeeID *uuid.UUID, expiresAt time.Time) (*organisation.Invitation, error) {
 	if f.createInvitationErr != nil {
 		return nil, f.createInvitationErr
 	}
@@ -183,6 +183,7 @@ func (f *fakeRepo) CreateInvitation(_ context.Context, orgID uuid.UUID, email, r
 		Role:       role,
 		InvitedBy:  invitedBy,
 		TokenHash:  tokenHash,
+		InviteURL:  inviteURL,
 		EmployeeID: employeeID,
 		ExpiresAt:  expiresAt,
 		CreatedAt:  time.Now().UTC(),
@@ -243,6 +244,22 @@ func (f *fakeRepo) ListPendingInvitations(_ context.Context, orgID uuid.UUID) ([
 	for _, inv := range f.invitations {
 		if inv.OrgID == orgID && inv.AcceptedAt == nil && inv.ExpiresAt.After(now) {
 			result = append(result, *inv)
+		}
+	}
+	return result, nil
+}
+
+func (f *fakeRepo) ListUnlinkedMembers(_ context.Context, orgID uuid.UUID) ([]organisation.UnlinkedMember, error) {
+	var result []organisation.UnlinkedMember
+	for key, m := range f.members {
+		_ = key
+		if m.OrgID == orgID && m.IsActive && m.EmployeeID == nil {
+			result = append(result, organisation.UnlinkedMember{
+				UserID:   m.UserID,
+				FullName: "Unlinked User",
+				Email:    m.UserID.String() + "@example.com",
+				Role:     m.Role,
+			})
 		}
 	}
 	return result, nil
@@ -557,6 +574,81 @@ func TestOrgService_ListPendingInvitations(t *testing.T) {
 	if len(invitations) != 1 {
 		t.Errorf("got %d invitations, want 1", len(invitations))
 	}
+}
+
+func TestOrgService_ListUnlinkedMembers(t *testing.T) {
+	t.Run("returns members with no employee record", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Unlinked Org", Slug: "unlinkedorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+
+		// Add a member with no employee record
+		memberID := uuid.New()
+		repo.members[memberKey(orgID, memberID)] = &organisation.Member{
+			ID: uuid.New(), UserID: memberID, OrgID: orgID,
+			Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
+			// EmployeeID is nil — this member should appear in unlinked list
+		}
+
+		members, err := svc.ListUnlinkedMembers(ctx, orgID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// Owner + memberID both have no EmployeeID in fakeRepo
+		found := false
+		for _, m := range members {
+			if m.UserID == memberID {
+				found = true
+				if m.Role != "member" {
+					t.Errorf("role = %q, want %q", m.Role, "member")
+				}
+			}
+		}
+		if !found {
+			t.Error("expected memberID to appear in unlinked members list")
+		}
+	})
+
+	t.Run("excludes linked members", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Linked Org", Slug: "linkedorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+
+		// Add a member that IS linked to an employee
+		linkedMemberID := uuid.New()
+		empID := uuid.New()
+		repo.members[memberKey(orgID, linkedMemberID)] = &organisation.Member{
+			ID: uuid.New(), UserID: linkedMemberID, OrgID: orgID,
+			Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
+			EmployeeID: &empID, // linked — should NOT appear
+		}
+
+		members, err := svc.ListUnlinkedMembers(ctx, orgID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		for _, m := range members {
+			if m.UserID == linkedMemberID {
+				t.Error("linked member should not appear in unlinked list")
+			}
+		}
+	})
 }
 
 func TestOrgService_GetDetail(t *testing.T) {

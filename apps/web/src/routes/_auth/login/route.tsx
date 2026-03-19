@@ -10,6 +10,9 @@ import type { ApiError } from '@/types/api'
 import { AxiosError } from 'axios'
 
 export const Route = createFileRoute('/_auth/login')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: typeof search.redirect === 'string' ? search.redirect : undefined,
+  }),
   component: LoginPage,
 })
 
@@ -23,6 +26,10 @@ type LoginForm = z.infer<typeof loginSchema>
 function LoginPage() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
+  const { redirect } = Route.useSearch()
+
+  // Guard against open redirect — only allow relative paths starting with /
+  const safeRedirect = redirect?.startsWith('/') ? redirect : undefined
 
   const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -33,7 +40,11 @@ function LoginPage() {
     mutationFn: (data: LoginForm) => authApi.login(data).then((r) => r.data.data),
     onSuccess: (data) => {
       setAuth(data)
-      navigate({ to: '/overview' })
+      if (safeRedirect) {
+        window.location.href = safeRedirect
+      } else {
+        navigate({ to: '/overview' })
+      }
     },
   })
 
@@ -290,6 +301,7 @@ function LoginPage() {
               Don't have an account?{' '}
               <Link
                 to="/register"
+                search={{ invite_token: undefined }}
                 style={{ color: '#6357E8', fontWeight: 600 }}
               >
                 Sign up

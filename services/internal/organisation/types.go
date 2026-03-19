@@ -34,16 +34,17 @@ type Member struct {
 }
 
 type Invitation struct {
-	ID        uuid.UUID  `json:"id"`
-	OrgID     uuid.UUID  `json:"organisation_id"`
-	Email     string     `json:"email"`
-	Role      string     `json:"role"`
-	InvitedBy uuid.UUID  `json:"invited_by"`
-	TokenHash string     `json:"-"`
+	ID         uuid.UUID  `json:"id"`
+	OrgID      uuid.UUID  `json:"organisation_id"`
+	Email      string     `json:"email"`
+	Role       string     `json:"role"`
+	InvitedBy  uuid.UUID  `json:"invited_by"`
+	TokenHash  string     `json:"-"`
+	InviteURL  string     `json:"invite_url"`
 	EmployeeID *uuid.UUID `json:"employee_id,omitempty"`
-	ExpiresAt time.Time  `json:"expires_at"`
+	ExpiresAt  time.Time  `json:"expires_at"`
 	AcceptedAt *time.Time `json:"accepted_at,omitempty"`
-	CreatedAt time.Time  `json:"created_at"`
+	CreatedAt  time.Time  `json:"created_at"`
 }
 
 // ── Request / Response types ──────────────────────────────────────────────────
@@ -113,4 +114,13 @@ type OrgDetail struct {
 	Organisation
 	EmployeeCount int    `json:"employee_count"`
 	OwnerName     string `json:"owner_name"`
+}
+
+// UnlinkedMember is a workspace member who has login access but no HR employee record.
+// Returned by ListUnlinkedMembers to populate the Add Employee email combobox.
+type UnlinkedMember struct {
+	UserID   uuid.UUID `json:"user_id"`
+	FullName string    `json:"full_name"`
+	Email    string    `json:"email"`
+	Role     string    `json:"role"`
 }

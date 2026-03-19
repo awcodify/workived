@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { useOrgDetail, useUpdateOrg, useTransferOwnership } from '@/lib/hooks/useOrganisation'
+import { useCanEditOrgSettings } from '@/lib/hooks/useRole'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
 import type { ApiError } from '@/types/api'
@@ -668,8 +669,33 @@ function TransferOwnershipCard() {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
+function ReadOnlyOrgInfo({ org }: { org: ReturnType<typeof useOrgDetail>['data'] }) {
+  const fields = [
+    { label: 'Company name', value: org?.name },
+    { label: 'Workspace URL', value: org?.slug ? `workived.app/${org.slug}` : undefined },
+    { label: 'Country', value: COUNTRIES.find((c) => c.value === org?.country_code)?.label ?? org?.country_code },
+    { label: 'Timezone', value: TIMEZONES.find((t) => t.value === org?.timezone)?.label ?? org?.timezone },
+    { label: 'Currency', value: CURRENCIES.find((c) => c.value === org?.currency_code)?.label ?? org?.currency_code },
+  ]
+
+  return (
+    <Card>
+      <CardTitle>Company info</CardTitle>
+      <div className="flex flex-col gap-4">
+        {fields.map(({ label, value }) => (
+          <div key={label}>
+            <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{label}</p>
+            <p style={{ fontSize: 15, color: '#FFFFFF', fontWeight: 500 }}>{value ?? '—'}</p>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
 function CompanyPage() {
   const { data: org, isLoading, isError } = useOrgDetail()
+  const canEdit = useCanEditOrgSettings()
 
   return (
     <div
@@ -733,10 +759,30 @@ function CompanyPage() {
 
         {!isLoading && !isError && (
           <>
-            <CompanyInfoCard />
-            <LocationCard />
-            <PlanCard />
-            <TransferOwnershipCard />
+            {!canEdit && (
+              <div
+                role="note"
+                className="px-4 py-3 rounded-xl"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
+                  You have view-only access to company settings. Contact an admin to make changes.
+                </p>
+              </div>
+            )}
+            {canEdit ? (
+              <>
+                <CompanyInfoCard />
+                <LocationCard />
+                <PlanCard />
+                <TransferOwnershipCard />
+              </>
+            ) : (
+              <>
+                <ReadOnlyOrgInfo org={org} />
+                <PlanCard />
+              </>
+            )}
           </>
         )}
       </main>

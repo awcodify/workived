@@ -10,6 +10,9 @@ import type { ApiError } from '@/types/api'
 import { AxiosError } from 'axios'
 
 export const Route = createFileRoute('/_auth/register')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    invite_token: typeof search.invite_token === 'string' ? search.invite_token : undefined,
+  }),
   component: RegisterPage,
 })
 
@@ -24,6 +27,7 @@ type RegisterForm = z.infer<typeof registerSchema>
 function RegisterPage() {
   const navigate = useNavigate()
   const setAuth = useAuthStore((s) => s.setAuth)
+  const { invite_token } = Route.useSearch()
 
   const form = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
@@ -40,8 +44,12 @@ function RegisterPage() {
     },
     onSuccess: (data) => {
       setAuth(data)
-      // After registration, user needs to create an org (or accept an invite)
-      navigate({ to: '/setup-org' })
+      if (invite_token) {
+        // Came from an invite link — go accept the invitation instead of creating a workspace
+        navigate({ to: '/invite', search: { token: invite_token } })
+      } else {
+        navigate({ to: '/setup-org' })
+      }
     },
   })
 
@@ -74,9 +82,19 @@ function RegisterPage() {
               color: '#FFFFFF',
             }}
           >
-            Start managing
-            <br />
-            <span style={{ color: '#9B8FF7' }}>your team.</span>
+            {invite_token ? (
+              <>
+                Join your
+                <br />
+                <span style={{ color: '#9B8FF7' }}>team.</span>
+              </>
+            ) : (
+              <>
+                Start managing
+                <br />
+                <span style={{ color: '#9B8FF7' }}>your team.</span>
+              </>
+            )}
           </h2>
           <p
             style={{
@@ -87,7 +105,9 @@ function RegisterPage() {
               maxWidth: 460,
             }}
           >
-            Free for up to 25 employees. Set up your workspace in under 2 minutes.
+            {invite_token
+              ? "Create an account to accept your invitation and get started with your team."
+              : "Free for up to 25 employees. Set up your workspace in under 2 minutes."}
           </p>
         </div>
 
@@ -132,7 +152,9 @@ function RegisterPage() {
                 Create your account
               </h2>
               <p style={{ fontSize: 15, color: '#72708A', marginTop: 6 }}>
-                Get started with Workived — free for teams up to 25
+                {invite_token
+                  ? "You've been invited — create an account to join your workspace."
+                  : 'Get started with Workived — free for teams up to 25'}
               </p>
             </div>
 
@@ -225,11 +247,10 @@ function RegisterPage() {
                 disabled={register.isPending}
                 className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50"
                 style={{
-                  background: 'linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%)',
+                  background: '#6357E8',
                   color: '#FFFFFF',
                   fontSize: 15,
                   letterSpacing: '-0.01em',
-                  boxShadow: '0 4px 16px rgba(99,87,232,0.3)',
                 }}
               >
                 {register.isPending ? 'Creating account...' : 'Create account'}
@@ -240,6 +261,7 @@ function RegisterPage() {
               Already have an account?{' '}
               <Link
                 to="/login"
+                search={{ redirect: undefined }}
                 style={{ color: '#6357E8', fontWeight: 600 }}
               >
                 Sign in
