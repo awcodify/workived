@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useEmployee, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
 import { useUnlinkedMembers } from '@/lib/hooks/useInvitations'
 import { Avatar } from '@/components/workived/layout/Avatar'
@@ -44,7 +44,6 @@ type NewForm = z.infer<typeof newSchema>
 
 function EmployeeDetailPage() {
   const { id } = Route.useParams()
-  const navigate = useNavigate()
   const isNew = id === 'new'
 
   if (isNew) return <NewEmployeePage />
@@ -124,170 +123,228 @@ function NewEmployeePage() {
         Add Employee
       </h1>
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
-        {/* ── Email / Login access section ───────────────────────────── */}
-        <div className="rounded-xl border border-ink-100 bg-white p-4 space-y-3">
-          <p className="text-sm font-semibold text-ink-900">Login access</p>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-6xl space-y-6">
+        {/* ── Login access section (full width) ───────────────── */}
+        <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-ink-100">
+            <h2 className="text-sm font-semibold text-ink-900">Login Access</h2>
+            <p className="text-xs text-ink-500 mt-0.5 leading-relaxed">
+              Decide whether this employee needs to log in to Workived. Workspace members (invited from Settings) can log in. HR records track attendance and leave — they can exist with or without login access.
+            </p>
+          </div>
 
-          <Controller
-            control={form.control}
-            name="email_mode"
-            render={({ field }) => (
-              <div className="flex flex-col gap-2">
-                {/* Option A: link to an existing workspace member */}
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="member"
-                    checked={field.value === 'member'}
-                    onChange={() => {
-                      field.onChange('member')
-                      form.setValue('email', '')
-                    }}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-ink-900">
-                      <UserCheck size={15} />
-                      Link to a workspace member
-                    </span>
-                    <span className="text-xs text-ink-500">
-                      They already have login access — just add their HR record.
-                    </span>
-                  </span>
-                </label>
+          <div className="p-5 space-y-4">
+            <Controller
+              control={form.control}
+              name="email_mode"
+              render={({ field }) => (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {/* Option A: link to an existing workspace member */}
+                  <label className="flex flex-col gap-2 p-4 rounded-lg border-2 border-ink-100 cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors data-[checked=true]:border-accent data-[checked=true]:bg-accent/5"
+                    data-checked={field.value === 'member'}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        value="member"
+                        checked={field.value === 'member'}
+                        onChange={() => {
+                          field.onChange('member')
+                          form.setValue('email', '')
+                        }}
+                        className="mt-0.5 accent-accent"
+                      />
+                      <span className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
+                        <UserCheck size={16} />
+                        Link existing member
+                      </span>
+                    </div>
+                    <p className="text-xs text-ink-500 pl-7 leading-relaxed">
+                      Choose someone who already has a workspace account (invited from Settings → Members). This connects their login to this HR profile for tracking attendance, leave, and other HR data.
+                    </p>
+                  </label>
 
-                {/* Option B: invite by email */}
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="new"
-                    checked={field.value === 'new'}
-                    onChange={() => {
-                      field.onChange('new')
-                      form.setValue('selected_user_id', '')
-                    }}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-ink-900">
-                      <UserPlus size={15} />
-                      Invite by email
-                    </span>
-                    <span className="text-xs text-ink-500">
-                      They'll receive a link to join the workspace.
-                    </span>
-                  </span>
-                </label>
+                  {/* Option B: invite by email */}
+                  <label className="flex flex-col gap-2 p-4 rounded-lg border-2 border-ink-100 cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors data-[checked=true]:border-accent data-[checked=true]:bg-accent/5"
+                    data-checked={field.value === 'new'}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        value="new"
+                        checked={field.value === 'new'}
+                        onChange={() => {
+                          field.onChange('new')
+                          form.setValue('selected_user_id', '')
+                        }}
+                        className="mt-0.5 accent-accent"
+                      />
+                      <span className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
+                        <Mail size={16} />
+                        Invite new person
+                      </span>
+                    </div>
+                    <p className="text-xs text-ink-500 pl-7 leading-relaxed">
+                      Send an email invitation to someone new. They'll receive a link to create their account and will have both workspace access and a complete HR profile once they join.
+                    </p>
+                  </label>
 
-                {/* Option C: skip */}
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="skip"
-                    checked={field.value === 'skip'}
-                    onChange={() => {
-                      field.onChange('skip')
-                      form.setValue('selected_user_id', '')
-                      form.setValue('email', '')
-                    }}
-                    className="mt-0.5"
-                  />
-                  <span>
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-ink-900">
-                      <Mail size={15} />
-                      No login access yet
-                    </span>
-                    <span className="text-xs text-ink-500">
-                      Add the HR record now; invite them later from Settings → Members.
-                    </span>
-                  </span>
-                </label>
+                  {/* Option C: skip */}
+                  <label className="flex flex-col gap-2 p-4 rounded-lg border-2 border-ink-100 cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors data-[checked=true]:border-accent data-[checked=true]:bg-accent/5"
+                    data-checked={field.value === 'skip'}>
+                    <div className="flex items-start gap-3">
+                      <input
+                        type="radio"
+                        value="skip"
+                        checked={field.value === 'skip'}
+                        onChange={() => {
+                          field.onChange('skip')
+                          form.setValue('selected_user_id', '')
+                          form.setValue('email', '')
+                        }}
+                        className="mt-0.5 accent-accent"
+                      />
+                      <span className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
+                        <UserPlus size={16} />
+                        HR record only
+                      </span>
+                    </div>
+                    <p className="text-xs text-ink-500 pl-7 leading-relaxed">
+                      Create an HR profile without giving login access (ideal for contractors, part-time staff, or remote workers who don't need digital access). You can send an invite later if needed.
+                    </p>
+                  </label>
+                </div>
+              )}
+            />
+
+            {/* Member selector */}
+            {emailMode === 'member' && (
+              <div className="pt-2">
+                {loadingMembers ? (
+                  <p className="text-xs text-ink-500">Loading workspace members…</p>
+                ) : unlinkedMembers.length === 0 ? (
+                  <div className="bg-ink-50 rounded-lg p-3 text-center">
+                    <p className="text-xs text-ink-600">
+                      All workspace members already have an HR record.
+                    </p>
+                  </div>
+                ) : (
+                  <Field
+                    label="Select member"
+                    error={form.formState.errors.selected_user_id?.message}
+                  >
+                    <select
+                      className="form-input"
+                      {...form.register('selected_user_id')}
+                    >
+                      <option value="">— choose —</option>
+                      {unlinkedMembers.map((m) => (
+                        <option key={m.user_id} value={m.user_id}>
+                          {m.full_name} ({m.email})
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                )}
               </div>
             )}
-          />
 
-          {/* Member selector */}
-          {emailMode === 'member' && (
-            <div>
-              {loadingMembers ? (
-                <p className="text-xs text-ink-500">Loading workspace members…</p>
-              ) : unlinkedMembers.length === 0 ? (
-                <p className="text-xs text-ink-500">
-                  All workspace members already have an HR record.
-                </p>
-              ) : (
-                <Field
-                  label="Select member"
-                  error={form.formState.errors.selected_user_id?.message}
-                >
-                  <select
+            {/* Free email input */}
+            {emailMode === 'new' && (
+              <div className="pt-2">
+                <Field label="Email to invite" error={form.formState.errors.email?.message}>
+                  <input
+                    type="email"
                     className="form-input"
-                    {...form.register('selected_user_id')}
-                  >
-                    <option value="">— choose —</option>
-                    {unlinkedMembers.map((m) => (
-                      <option key={m.user_id} value={m.user_id}>
-                        {m.full_name} ({m.email})
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="name@company.com"
+                    {...form.register('email')}
+                  />
                 </Field>
-              )}
-            </div>
-          )}
-
-          {/* Free email input */}
-          {emailMode === 'new' && (
-            <Field label="Email to invite" error={form.formState.errors.email?.message}>
-              <input
-                type="email"
-                className="form-input"
-                placeholder="name@company.com"
-                {...form.register('email')}
-              />
-            </Field>
-          )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* ── HR record fields ────────────────────────────────────────── */}
-        <Field label="Full name" error={form.formState.errors.full_name?.message}>
-          <input className="form-input" {...form.register('full_name')} />
-        </Field>
+        {/* ── Personal & Employment details (two columns) ───────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left column: Personal information */}
+          <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-ink-100">
+              <h2 className="text-sm font-semibold text-ink-900">Personal Information</h2>
+            </div>
+            
+            <div className="p-5 space-y-4">
+              <Field label="Full name" error={form.formState.errors.full_name?.message}>
+                <input 
+                  className="form-input" 
+                  placeholder="e.g., Ahmad Rahman"
+                  {...form.register('full_name')} 
+                />
+              </Field>
 
-        <Field label="Phone" error={form.formState.errors.phone?.message}>
-          <input className="form-input" {...form.register('phone')} />
-        </Field>
+              <Field label="Phone (optional)" error={form.formState.errors.phone?.message}>
+                <input 
+                  className="form-input" 
+                  placeholder="e.g., +62 812 3456 7890"
+                  {...form.register('phone')} 
+                />
+              </Field>
+            </div>
+          </div>
 
-        <Field label="Job title" error={form.formState.errors.job_title?.message}>
-          <input className="form-input" {...form.register('job_title')} />
-        </Field>
+          {/* Right column: Employment details */}
+          <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-ink-100">
+              <h2 className="text-sm font-semibold text-ink-900">Employment Details</h2>
+            </div>
 
-        <Field label="Employment type" error={form.formState.errors.employment_type?.message}>
-          <select className="form-input" {...form.register('employment_type')}>
-            <option value="full_time">Full time</option>
-            <option value="part_time">Part time</option>
-            <option value="contract">Contract</option>
-            <option value="intern">Intern</option>
-          </select>
-        </Field>
+            <div className="p-5 space-y-4">
+              <Field label="Job title (optional)" error={form.formState.errors.job_title?.message}>
+                <input 
+                  className="form-input" 
+                  placeholder="e.g., Senior Designer"
+                  {...form.register('job_title')} 
+                />
+              </Field>
 
-        <Field label="Start date" error={form.formState.errors.start_date?.message}>
-          <input type="date" className="form-input" {...form.register('start_date')} />
-        </Field>
+              <Field label="Employment type" error={form.formState.errors.employment_type?.message}>
+                <select className="form-input" {...form.register('employment_type')}>
+                  <option value="full_time">Full time</option>
+                  <option value="part_time">Part time</option>
+                  <option value="contract">Contract</option>
+                  <option value="intern">Intern</option>
+                </select>
+              </Field>
 
-        <button
-          type="submit"
-          disabled={createMutation.isPending}
-          className="bg-accent text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-accent-text transition-colors disabled:opacity-50"
-        >
-          {createMutation.isPending ? 'Adding…' : 'Add Employee'}
-        </button>
+              <Field label="Start date" error={form.formState.errors.start_date?.message}>
+                <input type="date" className="form-input" {...form.register('start_date')} />
+              </Field>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Actions ─────────────────────────────────────────── */}
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            type="submit"
+            disabled={createMutation.isPending}
+            className="bg-accent text-white font-semibold text-sm px-8 py-3 rounded-lg hover:bg-accent-text transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            {createMutation.isPending ? 'Adding…' : 'Add Employee'}
+          </button>
+          
+          <Link
+            to="/people"
+            className="text-sm text-ink-600 hover:text-ink-900 font-medium px-4 py-3"
+          >
+            Cancel
+          </Link>
+        </div>
 
         {createMutation.isError && (
-          <p className="text-xs text-err">
-            Something went wrong. Please try again.
-          </p>
+          <div className="rounded-lg bg-err/10 border border-err/20 p-4">
+            <p className="text-sm text-err font-medium">
+              Something went wrong. Please try again.
+            </p>
+          </div>
         )}
       </form>
     </div>
@@ -374,49 +431,100 @@ function EditEmployeePage({ id }: { id: string }) {
         </div>
       )}
 
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 max-w-lg">
-        <Field label="Full name" error={form.formState.errors.full_name?.message}>
-          <input className="form-input" {...form.register('full_name')} />
-        </Field>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-6xl">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Left column: Personal information */}
+          <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-ink-100">
+              <h2 className="text-sm font-semibold text-ink-900">Personal Information</h2>
+            </div>
+            
+            <div className="p-5 space-y-4">
+              <Field label="Full name" error={form.formState.errors.full_name?.message}>
+                <input 
+                  className="form-input" 
+                  placeholder="e.g., Ahmad Rahman"
+                  {...form.register('full_name')} 
+                />
+              </Field>
 
-        {employee?.email && (
-          <div>
-            <label className="block text-sm font-medium text-ink-700 mb-1">Email</label>
-            <p className="text-sm text-ink-500 py-2">{employee.email}</p>
+              {employee?.email && (
+                <div>
+                  <label className="block text-sm font-medium text-ink-700 mb-1.5">Email</label>
+                  <div className="bg-ink-50 rounded-lg px-3 py-2.5 text-sm text-ink-600">
+                    {employee.email}
+                  </div>
+                  <p className="text-xs text-ink-500 mt-1">
+                    To change the email, update it in Settings → Members
+                  </p>
+                </div>
+              )}
+
+              <Field label="Phone (optional)" error={form.formState.errors.phone?.message}>
+                <input 
+                  className="form-input" 
+                  placeholder="e.g., +62 812 3456 7890"
+                  {...form.register('phone')} 
+                />
+              </Field>
+            </div>
           </div>
-        )}
 
-        <Field label="Phone" error={form.formState.errors.phone?.message}>
-          <input className="form-input" {...form.register('phone')} />
-        </Field>
+          {/* Right column: Employment details */}
+          <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
+            <div className="px-5 py-4 border-b border-ink-100">
+              <h2 className="text-sm font-semibold text-ink-900">Employment Details</h2>
+            </div>
 
-        <Field label="Job title" error={form.formState.errors.job_title?.message}>
-          <input className="form-input" {...form.register('job_title')} />
-        </Field>
+            <div className="p-5 space-y-4">
+              <Field label="Job title (optional)" error={form.formState.errors.job_title?.message}>
+                <input 
+                  className="form-input" 
+                  placeholder="e.g., Senior Designer"
+                  {...form.register('job_title')} 
+                />
+              </Field>
 
-        <Field label="Employment type" error={form.formState.errors.employment_type?.message}>
-          <select className="form-input" {...form.register('employment_type')}>
-            <option value="full_time">Full time</option>
-            <option value="part_time">Part time</option>
-            <option value="contract">Contract</option>
-            <option value="intern">Intern</option>
-          </select>
-        </Field>
+              <Field label="Employment type" error={form.formState.errors.employment_type?.message}>
+                <select className="form-input" {...form.register('employment_type')}>
+                  <option value="full_time">Full time</option>
+                  <option value="part_time">Part time</option>
+                  <option value="contract">Contract</option>
+                  <option value="intern">Intern</option>
+                </select>
+              </Field>
 
-        <Field label="Start date" error={form.formState.errors.start_date?.message}>
-          <input type="date" className="form-input" {...form.register('start_date')} />
-        </Field>
+              <Field label="Start date" error={form.formState.errors.start_date?.message}>
+                <input type="date" className="form-input" {...form.register('start_date')} />
+              </Field>
+            </div>
+          </div>
+        </div>
 
-        <button
-          type="submit"
-          disabled={updateMutation.isPending}
-          className="bg-accent text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-accent-text transition-colors disabled:opacity-50"
-        >
-          {updateMutation.isPending ? 'Saving…' : 'Save Changes'}
-        </button>
+        {/* ── Actions ─────────────────────────────────────────── */}
+        <div className="flex items-center gap-3 pt-2">
+          <button
+            type="submit"
+            disabled={updateMutation.isPending}
+            className="bg-accent text-white font-semibold text-sm px-8 py-3 rounded-lg hover:bg-accent-text transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+          >
+            {updateMutation.isPending ? 'Saving…' : 'Save Changes'}
+          </button>
+          
+          <Link
+            to="/people"
+            className="text-sm text-ink-600 hover:text-ink-900 font-medium px-4 py-3"
+          >
+            Cancel
+          </Link>
+        </div>
 
         {updateMutation.isError && (
-          <p className="text-xs text-err">Something went wrong. Please try again.</p>
+          <div className="rounded-lg bg-err/10 border border-err/20 p-4">
+            <p className="text-sm text-err font-medium">
+              Something went wrong. Please try again.
+            </p>
+          </div>
         )}
       </form>
     </div>
@@ -436,9 +544,9 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-ink-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-ink-700 mb-1.5">{label}</label>
       {children}
-      {error && <p className="text-xs text-err mt-1">{error}</p>}
+      {error && <p className="text-xs text-err mt-1.5 font-medium">{error}</p>}
     </div>
   )
 }

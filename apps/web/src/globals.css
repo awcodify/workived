@@ -37,5 +37,9 @@ body {
 }
 
 .form-input {
-  @apply w-full px-3 py-2 border border-ink-150 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent bg-white;
+  @apply w-full px-3.5 py-2.5 border border-ink-150 rounded-lg text-sm 
+         focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent 
+         bg-white transition-colors
+         placeholder:text-ink-300
+         disabled:bg-ink-50 disabled:text-ink-400 disabled:cursor-not-allowed;
 }
