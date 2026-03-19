@@ -173,7 +173,7 @@ function OverviewPage() {
           >
             {greeting}
             <br />
-            <span style={{ color: colors.accentMid }}>{firstName}</span>
+            <span style={{ color: colors.accentMid }}>{firstName}</span> 👋
           </h1>
         </div>
 
