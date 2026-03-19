@@ -80,7 +80,7 @@ func (h *Handler) GetFeatureFlagByKey(c *gin.Context) {
 
 func (h *Handler) UpdateFeatureFlag(c *gin.Context) {
 	key := c.Param("key")
-	userID := c.GetString("user_id")
+	uid := middleware.UserIDFromCtx(c)
 
 	var req UpdateFeatureFlagRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -88,7 +88,6 @@ func (h *Handler) UpdateFeatureFlag(c *gin.Context) {
 		return
 	}
 
-	uid, _ := uuid.Parse(userID)
 	flag, err := h.svc.UpdateFeatureFlag(c.Request.Context(), key, req, uid)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
@@ -131,7 +130,7 @@ func (h *Handler) GetProLicenseByOrg(c *gin.Context) {
 }
 
 func (h *Handler) CreateProLicense(c *gin.Context) {
-	userID := c.GetString("user_id")
+	uid := middleware.UserIDFromCtx(c)
 
 	var req CreateProLicenseRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -139,7 +138,6 @@ func (h *Handler) CreateProLicense(c *gin.Context) {
 		return
 	}
 
-	uid, _ := uuid.Parse(userID)
 	license, err := h.svc.CreateProLicense(c.Request.Context(), req, uid)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
@@ -183,7 +181,7 @@ func (h *Handler) ListAdminConfigs(c *gin.Context) {
 
 func (h *Handler) UpdateAdminConfig(c *gin.Context) {
 	key := c.Param("key")
-	userID := c.GetString("user_id")
+	uid := middleware.UserIDFromCtx(c)
 
 	var req UpdateAdminConfigRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -191,7 +189,6 @@ func (h *Handler) UpdateAdminConfig(c *gin.Context) {
 		return
 	}
 
-	uid, _ := uuid.Parse(userID)
 	config, err := h.svc.UpdateAdminConfig(c.Request.Context(), key, req, uid)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
