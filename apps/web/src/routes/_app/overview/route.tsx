@@ -661,32 +661,39 @@ function AttendanceCard({ present, late, onLeaveCount, trueAbsent, totalEmployee
           centerLabel="Total"
           hovered={hovered}
           onHover={setHovered}
+          showPercent
         />
         <div className="flex flex-col gap-2.5 mt-4 w-full">
-          {segments.map((s) => (
-            <div
-              key={s.label}
-              className="flex items-center gap-2 cursor-pointer"
-              style={{ opacity: hovered && hovered !== s.label ? 0.4 : 1, transition: 'opacity 0.15s' }}
-              onMouseEnter={() => setHovered(s.label)}
-              onMouseLeave={() => setHovered(null)}
-            >
-              <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.legendColor ?? s.color, flexShrink: 0 }} />
-              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500, width: 64 }}>{s.label}</span>
-              <span style={{ fontFamily: typography.fontMono, fontSize: 13, fontWeight: 700, color: s.value > 0 ? (s.legendColor ?? s.color) : 'rgba(255,255,255,0.2)', width: 22, textAlign: 'right' }}>
-                {s.value}
-              </span>
-              <div style={{ width: 48, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', flexShrink: 0, flex: 1 }}>
-                <div style={{
-                  width: `${totalEmployees > 0 ? (s.value / totalEmployees) * 100 : 0}%`,
-                  height: '100%',
-                  borderRadius: 2,
-                  background: s.legendColor ?? s.color,
-                  transition: 'width 0.5s ease',
-                }} />
+          {segments.map((s) => {
+            const percent = totalEmployees > 0 ? (s.value / totalEmployees) * 100 : 0
+            return (
+              <div
+                key={s.label}
+                className="flex items-center gap-2 cursor-pointer"
+                style={{ opacity: hovered && hovered !== s.label ? 0.4 : 1, transition: 'opacity 0.15s' }}
+                onMouseEnter={() => setHovered(s.label)}
+                onMouseLeave={() => setHovered(null)}
+              >
+                <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.legendColor ?? s.color, flexShrink: 0 }} />
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500, width: 64 }}>{s.label}</span>
+                <span style={{ fontFamily: typography.fontMono, fontSize: 13, fontWeight: 700, color: s.value > 0 ? (s.legendColor ?? s.color) : 'rgba(255,255,255,0.2)', width: 28, textAlign: 'right' }}>
+                  {s.value}
+                </span>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 600, width: 32, textAlign: 'right' }}>
+                  {percent.toFixed(0)}%
+                </span>
+                <div style={{ width: 48, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', flexShrink: 0, flex: 1 }}>
+                  <div style={{
+                    width: `${percent}%`,
+                    height: '100%',
+                    borderRadius: 2,
+                    background: s.legendColor ?? s.color,
+                    transition: 'width 0.5s ease',
+                  }} />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>
@@ -699,13 +706,14 @@ interface DonutSegment {
   color: string
 }
 
-function DonutChart({ size, segments, total, centerLabel, hovered, onHover }: {
+function DonutChart({ size, segments, total, centerLabel, hovered, onHover, showPercent }: {
   size: number
   segments: DonutSegment[]
   total: number
   centerLabel: string
   hovered?: string | null
   onHover?: (label: string | null) => void
+  showPercent?: boolean
 }) {
   const [localHovered, setLocalHovered] = useState<string | null>(null)
   const activeHover = hovered !== undefined ? hovered : localHovered
