@@ -47,6 +47,9 @@ function SetupOrgPage() {
     defaultValues: { name: '', slug: '', country_code: '' },
   })
 
+  const setAccessToken = useAuthStore((s) => s.setAuth)
+  const currentUser = useAuthStore((s) => s.user)
+
   const createOrg = useMutation({
     mutationFn: (data: SetupOrgForm) => {
       const country = COUNTRIES.find((c) => c.code === data.country_code)
@@ -60,7 +63,12 @@ function SetupOrgPage() {
         })
         .then((r) => r.data.data)
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      // Store the new JWT (now contains org_id + owner role) before navigating.
+      // Without this, every tenant-guarded route returns 403.
+      if (currentUser) {
+        setAccessToken({ access_token: result.access_token, user: currentUser })
+      }
       navigate({ to: '/overview' })
     },
   })

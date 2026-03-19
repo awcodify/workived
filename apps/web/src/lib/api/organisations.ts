@@ -3,6 +3,10 @@ import type {
   ApiResponse,
   Organisation,
   CreateOrgRequest,
+  CreateOrgResponse,
+  UpdateOrgRequest,
+  TransferOwnershipRequest,
+  OrgDetail,
   InviteMemberRequest,
   InviteResponse,
   AcceptInvitationRequest,
@@ -12,10 +16,19 @@ import type {
 
 export const organisationsApi = {
   getMine: () =>
-    apiClient.get<ApiResponse<Organisation>>('/api/v1/organisations/me'),
+    apiClient.get<ApiResponse<OrgDetail>>('/api/v1/organisations/me'),
+
+  getDetail: () =>
+    apiClient.get<ApiResponse<OrgDetail>>('/api/v1/organisations/me'),
+
+  update: (data: UpdateOrgRequest) =>
+    apiClient.put<ApiResponse<Organisation>>('/api/v1/organisations/me', data),
+
+  transferOwnership: (data: TransferOwnershipRequest) =>
+    apiClient.post<ApiResponse<{ message: string }>>('/api/v1/organisations/me/transfer-ownership', data),
 
   create: (data: CreateOrgRequest) =>
-    apiClient.post<ApiResponse<Organisation>>('/api/v1/organisations', data),
+    apiClient.post<ApiResponse<CreateOrgResponse>>('/api/v1/organisations', data),
 
   // Invitation management
   invite: (data: InviteMemberRequest) =>

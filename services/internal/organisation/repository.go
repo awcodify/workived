@@ -324,6 +324,99 @@ func (r *Repository) GetOrgCountryCode(ctx context.Context, orgID uuid.UUID) (st
 	return cc, nil
 }
 
+// GetDetail returns org info enriched with employee count and owner name.
+func (r *Repository) GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail, error) {
+	d := &OrgDetail{}
+	err := r.db.QueryRow(ctx, `
+		SELECT o.id, o.name, o.slug, o.country_code, o.timezone, o.currency_code,
+		       o.work_days, o.plan, o.plan_employee_limit, o.logo_url, o.is_active, o.created_at,
+		       COALESCE((SELECT COUNT(*) FROM employees WHERE organisation_id = o.id AND is_active = TRUE), 0) AS employee_count,
+		       COALESCE(u.full_name, '') AS owner_name
+		FROM organisations o
+		LEFT JOIN organisation_members om ON om.organisation_id = o.id AND om.role = 'owner' AND om.is_active = TRUE
+		LEFT JOIN users u ON u.id = om.user_id
+		WHERE o.id = $1
+	`, orgID).Scan(
+		&d.ID, &d.Name, &d.Slug, &d.CountryCode, &d.Timezone, &d.CurrencyCode,
+		&d.WorkDays, &d.Plan, &d.PlanEmployeeLimit, &d.LogoURL, &d.IsActive, &d.CreatedAt,
+		&d.EmployeeCount, &d.OwnerName,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperr.NotFound("organisation")
+		}
+		return nil, err
+	}
+	return d, nil
+}
+
+// Update performs a partial update on an organisation using COALESCE to skip nil fields.
+func (r *Repository) Update(ctx context.Context, orgID uuid.UUID, req UpdateOrgRequest) (*Organisation, error) {
+	org := &Organisation{}
+	err := r.db.QueryRow(ctx, `
+		UPDATE organisations
+		SET name          = COALESCE($2, name),
+		    slug          = COALESCE($3, slug),
+		    country_code  = COALESCE($4, country_code),
+		    timezone      = COALESCE($5, timezone),
+		    currency_code = COALESCE($6, currency_code),
+		    updated_at    = NOW()
+		WHERE id = $1
+		RETURNING id, name, slug, country_code, timezone, currency_code,
+		          work_days, plan, plan_employee_limit, logo_url, is_active, created_at
+	`, orgID, req.Name, req.Slug, req.CountryCode, req.Timezone, req.CurrencyCode).Scan(
+		&org.ID, &org.Name, &org.Slug, &org.CountryCode, &org.Timezone, &org.CurrencyCode,
+		&org.WorkDays, &org.Plan, &org.PlanEmployeeLimit, &org.LogoURL, &org.IsActive, &org.CreatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperr.NotFound("organisation")
+		}
+		if isUniqueViolation(err) {
+			return nil, apperr.Conflict("an organisation with this slug already exists")
+		}
+		return nil, err
+	}
+	return org, nil
+}
+
+// TransferOwnership atomically demotes the current owner to admin and promotes the new owner.
+func (r *Repository) TransferOwnership(ctx context.Context, orgID, currentOwnerID, newOwnerID uuid.UUID) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	// Step 1: Demote current owner → admin.
+	tag, err := tx.Exec(ctx, `
+		UPDATE organisation_members
+		SET role = 'admin', updated_at = NOW()
+		WHERE organisation_id = $1 AND user_id = $2 AND role = 'owner'
+	`, orgID, currentOwnerID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return apperr.Forbidden()
+	}
+
+	// Step 2: Promote new owner.
+	tag, err = tx.Exec(ctx, `
+		UPDATE organisation_members
+		SET role = 'owner', updated_at = NOW()
+		WHERE organisation_id = $1 AND user_id = $2 AND is_active = TRUE
+	`, orgID, newOwnerID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return apperr.NotFound("member")
+	}
+
+	return tx.Commit(ctx)
+}
+
 func isUniqueViolation(err error) bool {
 	return err != nil && containsCode(err.Error(), "23505")
 }

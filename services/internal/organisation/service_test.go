@@ -21,9 +21,12 @@ type fakeRepo struct {
 	invitations map[string]*organisation.Invitation // key: tokenHash
 
 	// Error injection
-	createInvitationErr error
-	acceptInvitationErr error
-	getOrgPlanInfoErr   error
+	createInvitationErr  error
+	acceptInvitationErr  error
+	getOrgPlanInfoErr    error
+	getDetailErr         error
+	updateErr            error
+	transferOwnershipErr error
 }
 
 func newFakeRepo() *fakeRepo {
@@ -101,6 +104,72 @@ func (f *fakeRepo) GetActiveMember(_ context.Context, orgID, userID uuid.UUID) (
 		return nil, nil
 	}
 	return m, nil
+}
+
+func (f *fakeRepo) GetDetail(_ context.Context, orgID uuid.UUID) (*organisation.OrgDetail, error) {
+	if f.getDetailErr != nil {
+		return nil, f.getDetailErr
+	}
+	org, ok := f.orgs[orgID]
+	if !ok {
+		return nil, apperr.NotFound("organisation")
+	}
+	d := &organisation.OrgDetail{
+		Organisation: *org,
+		OwnerName:    "Fake Owner",
+	}
+	// Count active members as a proxy for employee count in tests.
+	for _, m := range f.members {
+		if m.OrgID == orgID && m.IsActive {
+			d.EmployeeCount++
+		}
+	}
+	return d, nil
+}
+
+func (f *fakeRepo) Update(_ context.Context, orgID uuid.UUID, req organisation.UpdateOrgRequest) (*organisation.Organisation, error) {
+	if f.updateErr != nil {
+		return nil, f.updateErr
+	}
+	org, ok := f.orgs[orgID]
+	if !ok {
+		return nil, apperr.NotFound("organisation")
+	}
+	if req.Name != nil {
+		org.Name = *req.Name
+	}
+	if req.Slug != nil {
+		org.Slug = *req.Slug
+	}
+	if req.CountryCode != nil {
+		org.CountryCode = *req.CountryCode
+	}
+	if req.Timezone != nil {
+		org.Timezone = *req.Timezone
+	}
+	if req.CurrencyCode != nil {
+		org.CurrencyCode = *req.CurrencyCode
+	}
+	return org, nil
+}
+
+func (f *fakeRepo) TransferOwnership(_ context.Context, orgID, currentOwnerID, newOwnerID uuid.UUID) error {
+	if f.transferOwnershipErr != nil {
+		return f.transferOwnershipErr
+	}
+	currentKey := memberKey(orgID, currentOwnerID)
+	cm, ok := f.members[currentKey]
+	if !ok || cm.Role != "owner" {
+		return apperr.Forbidden()
+	}
+	newKey := memberKey(orgID, newOwnerID)
+	nm, ok := f.members[newKey]
+	if !ok || !nm.IsActive {
+		return apperr.NotFound("member")
+	}
+	cm.Role = "admin"
+	nm.Role = "owner"
+	return nil
 }
 
 func (f *fakeRepo) CreateInvitation(_ context.Context, orgID uuid.UUID, email, role string, invitedBy uuid.UUID, tokenHash string, employeeID *uuid.UUID, expiresAt time.Time) (*organisation.Invitation, error) {
@@ -192,11 +261,14 @@ func (f *fakeAuthTokenCreator) CreateToken(_ context.Context, _ uuid.UUID, _, _ 
 // ── Fake access token issuer ─────────────────────────────────────────────────
 
 type fakeTokenIssuer struct {
-	err error
+	err       error
+	failAfter int // fail starting from this call number (0 = always fail, -1 = never fail)
+	calls     int
 }
 
 func (f *fakeTokenIssuer) IssueAccessToken(_, _ uuid.UUID, _ string) (string, error) {
-	if f.err != nil {
+	f.calls++
+	if f.err != nil && (f.failAfter < 0 || f.calls > f.failAfter) {
 		return "", f.err
 	}
 	return "fake-jwt-token", nil
@@ -228,14 +300,14 @@ func setupOrgAndInvitation(t *testing.T, svc *organisation.Service, repo *fakeRe
 	ctx := context.Background()
 	ownerID := uuid.New()
 
-	org, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+	resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
 		Name: "Test Org", Slug: "testorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
 	})
 	if err != nil {
 		t.Fatalf("create org: %v", err)
 	}
 
-	inv, err := svc.InviteMember(ctx, org.ID, ownerID, organisation.InviteMemberRequest{
+	inv, err := svc.InviteMember(ctx, resp.Organisation.ID, ownerID, organisation.InviteMemberRequest{
 		Email: "invite@example.com",
 		Role:  "member",
 	})
@@ -243,7 +315,7 @@ func setupOrgAndInvitation(t *testing.T, svc *organisation.Service, repo *fakeRe
 		t.Fatalf("invite member: %v", err)
 	}
 
-	return org.ID, ownerID, inv
+	return resp.Organisation.ID, ownerID, inv
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -251,17 +323,20 @@ func setupOrgAndInvitation(t *testing.T, svc *organisation.Service, repo *fakeRe
 func TestOrgService_Create(t *testing.T) {
 	svc, _ := newTestService(t)
 
-	org, err := svc.Create(context.Background(), uuid.New(), organisation.CreateOrgRequest{
+	resp, err := svc.Create(context.Background(), uuid.New(), organisation.CreateOrgRequest{
 		Name: "Workived", Slug: "workived", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if org.Name != "Workived" {
-		t.Errorf("name = %q, want %q", org.Name, "Workived")
+	if resp.Organisation.Name != "Workived" {
+		t.Errorf("name = %q, want %q", resp.Organisation.Name, "Workived")
 	}
-	if org.Plan != "free" {
-		t.Errorf("plan = %q, want %q", org.Plan, "free")
+	if resp.Organisation.Plan != "free" {
+		t.Errorf("plan = %q, want %q", resp.Organisation.Plan, "free")
+	}
+	if resp.AccessToken == "" {
+		t.Error("access token should not be empty")
 	}
 }
 
@@ -288,11 +363,11 @@ func TestOrgService_InviteMember(t *testing.T) {
 		ctx := context.Background()
 		ownerID := uuid.New()
 
-		org, _ := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+		resp, _ := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
 			Name: "Free Org", Slug: "freeorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
 		})
 
-		_, err := svc.InviteMember(ctx, org.ID, ownerID, organisation.InviteMemberRequest{
+		_, err := svc.InviteMember(ctx, resp.Organisation.ID, ownerID, organisation.InviteMemberRequest{
 			Email: "hr@example.com",
 			Role:  "hr_admin",
 		})
@@ -309,14 +384,14 @@ func TestOrgService_InviteMember(t *testing.T) {
 		ctx := context.Background()
 		ownerID := uuid.New()
 
-		org, _ := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+		resp, _ := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
 			Name: "Pro Org", Slug: "proorg", CountryCode: "AE", Timezone: "Asia/Dubai", CurrencyCode: "AED",
 		})
 		// Upgrade to pro
-		repo.orgs[org.ID].Plan = "pro"
-		repo.orgs[org.ID].PlanEmployeeLimit = nil
+		repo.orgs[resp.Organisation.ID].Plan = "pro"
+		repo.orgs[resp.Organisation.ID].PlanEmployeeLimit = nil
 
-		inv, err := svc.InviteMember(ctx, org.ID, ownerID, organisation.InviteMemberRequest{
+		inv, err := svc.InviteMember(ctx, resp.Organisation.ID, ownerID, organisation.InviteMemberRequest{
 			Email: "hr@example.com",
 			Role:  "hr_admin",
 		})
@@ -434,7 +509,8 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("token issuer error propagates", func(t *testing.T) {
-		issuer := &fakeTokenIssuer{err: errors.New("jwt signing failed")}
+		// failAfter: 1 — Create succeeds (call 1), AcceptInvitation fails (call 2+)
+		issuer := &fakeTokenIssuer{err: errors.New("jwt signing failed"), failAfter: 1}
 		svc, repo := newTestServiceWithIssuer(t, issuer)
 		_, _, inv := setupOrgAndInvitation(t, svc, repo)
 
@@ -480,6 +556,216 @@ func TestOrgService_ListPendingInvitations(t *testing.T) {
 	}
 	if len(invitations) != 1 {
 		t.Errorf("got %d invitations, want 1", len(invitations))
+	}
+}
+
+func TestOrgService_GetDetail(t *testing.T) {
+	tests := []struct {
+		name      string
+		setup     func(svc *organisation.Service, repo *fakeRepo) uuid.UUID
+		wantErr   string
+		wantOwner string
+	}{
+		{
+			name: "happy path returns detail",
+			setup: func(svc *organisation.Service, repo *fakeRepo) uuid.UUID {
+				ownerID := uuid.New()
+				resp, err := svc.Create(context.Background(), ownerID, organisation.CreateOrgRequest{
+					Name: "Detail Org", Slug: "detailorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+				})
+				if err != nil {
+					t.Fatalf("create org: %v", err)
+				}
+				return resp.Organisation.ID
+			},
+			wantOwner: "Fake Owner",
+		},
+		{
+			name: "org not found returns NOT_FOUND",
+			setup: func(_ *organisation.Service, _ *fakeRepo) uuid.UUID {
+				return uuid.New() // non-existent org
+			},
+			wantErr: apperr.CodeNotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc, repo := newTestService(t)
+			orgID := tt.setup(svc, repo)
+
+			detail, err := svc.GetDetail(context.Background(), orgID)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !apperr.IsCode(err, tt.wantErr) {
+					t.Errorf("error code = %v, want %s", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if detail.OwnerName != tt.wantOwner {
+				t.Errorf("owner name = %q, want %q", detail.OwnerName, tt.wantOwner)
+			}
+		})
+	}
+}
+
+func TestOrgService_Update(t *testing.T) {
+	newStr := func(s string) *string { return &s }
+
+	tests := []struct {
+		name          string
+		req           organisation.UpdateOrgRequest
+		employeeCount int
+		repoErr       error
+		wantErr       string
+		wantName      string
+	}{
+		{
+			name:     "happy path updates name",
+			req:      organisation.UpdateOrgRequest{Name: newStr("New Name")},
+			wantName: "New Name",
+		},
+		{
+			name:          "country locked when employees exist",
+			req:           organisation.UpdateOrgRequest{CountryCode: newStr("AE")},
+			employeeCount: 1,
+			wantErr:       apperr.CodeValidation,
+		},
+		{
+			name:          "timezone locked when employees exist",
+			req:           organisation.UpdateOrgRequest{Timezone: newStr("Asia/Dubai")},
+			employeeCount: 3,
+			wantErr:       apperr.CodeValidation,
+		},
+		{
+			name:          "currency locked when employees exist",
+			req:           organisation.UpdateOrgRequest{CurrencyCode: newStr("AED")},
+			employeeCount: 2,
+			wantErr:       apperr.CodeValidation,
+		},
+		{
+			name:    "slug conflict from repo returns CONFLICT",
+			req:     organisation.UpdateOrgRequest{Slug: newStr("taken")},
+			repoErr: apperr.Conflict("an organisation with this slug already exists"),
+			wantErr: apperr.CodeConflict,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc, repo := newTestService(t)
+			ctx := context.Background()
+
+			ownerID := uuid.New()
+			resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+				Name: "Update Org", Slug: "updateorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+			})
+			if err != nil {
+				t.Fatalf("create org: %v", err)
+			}
+			if tt.repoErr != nil {
+				repo.updateErr = tt.repoErr
+			}
+
+			result, err := svc.Update(ctx, resp.Organisation.ID, tt.req, tt.employeeCount)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !apperr.IsCode(err, tt.wantErr) {
+					t.Errorf("error code = %v, want %s", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if tt.wantName != "" && result.Name != tt.wantName {
+				t.Errorf("name = %q, want %q", result.Name, tt.wantName)
+			}
+		})
+	}
+}
+
+func TestOrgService_TransferOwnership(t *testing.T) {
+	tests := []struct {
+		name    string
+		setup   func(svc *organisation.Service, repo *fakeRepo) (orgID, ownerID uuid.UUID, newOwnerID uuid.UUID)
+		wantErr string
+	}{
+		{
+			name: "happy path transfers ownership",
+			setup: func(svc *organisation.Service, repo *fakeRepo) (uuid.UUID, uuid.UUID, uuid.UUID) {
+				ctx := context.Background()
+				ownerID := uuid.New()
+				resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+					Name: "Transfer Org", Slug: "transferorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+				})
+				if err != nil {
+					t.Fatalf("create org: %v", err)
+				}
+				newOwnerID := uuid.New()
+				repo.members[memberKey(resp.Organisation.ID, newOwnerID)] = &organisation.Member{
+					ID: uuid.New(), UserID: newOwnerID, OrgID: resp.Organisation.ID,
+					Role: "admin", IsActive: true, JoinedAt: time.Now().UTC(),
+				}
+				return resp.Organisation.ID, ownerID, newOwnerID
+			},
+		},
+		{
+			name: "self-transfer returns VALIDATION_ERROR",
+			setup: func(svc *organisation.Service, repo *fakeRepo) (uuid.UUID, uuid.UUID, uuid.UUID) {
+				ctx := context.Background()
+				ownerID := uuid.New()
+				resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+					Name: "Self Transfer Org", Slug: "selftransferorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+				})
+				if err != nil {
+					t.Fatalf("create org: %v", err)
+				}
+				return resp.Organisation.ID, ownerID, ownerID // same user
+			},
+			wantErr: apperr.CodeValidation,
+		},
+		{
+			name: "new owner not a member returns NOT_FOUND",
+			setup: func(svc *organisation.Service, repo *fakeRepo) (uuid.UUID, uuid.UUID, uuid.UUID) {
+				ctx := context.Background()
+				ownerID := uuid.New()
+				resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+					Name: "NotMember Org", Slug: "notmemberorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+				})
+				if err != nil {
+					t.Fatalf("create org: %v", err)
+				}
+				return resp.Organisation.ID, ownerID, uuid.New() // random user not in org
+			},
+			wantErr: apperr.CodeNotFound,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc, repo := newTestService(t)
+			orgID, ownerID, newOwnerID := tt.setup(svc, repo)
+
+			req := organisation.TransferOwnershipRequest{NewOwnerUserID: newOwnerID}
+			err := svc.TransferOwnership(context.Background(), orgID, ownerID, req)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if !apperr.IsCode(err, tt.wantErr) {
+					t.Errorf("error code = %v, want %s", err, tt.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
 	}
 }
 

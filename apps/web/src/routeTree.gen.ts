@@ -25,6 +25,7 @@ import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
+import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
 
@@ -106,6 +107,11 @@ const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
   path: '/members',
   getParentRoute: () => AppSettingsRouteRoute,
 } as any)
+const AppSettingsCompanyRouteRoute = AppSettingsCompanyRouteRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => AppSettingsRouteRoute,
+} as any)
 const AppPeopleIdRouteRoute = AppPeopleIdRouteRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/setup-org': typeof AuthSetupOrgRouteRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
+  '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance/': typeof AppAttendanceIndexRoute
   '/people/': typeof AppPeopleIndexRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/setup-org': typeof AuthSetupOrgRouteRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
+  '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance': typeof AppAttendanceIndexRoute
   '/people': typeof AppPeopleIndexRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/_auth/setup-org': typeof AuthSetupOrgRouteRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
+  '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
   '/_app/attendance/': typeof AppAttendanceIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
@@ -189,6 +198,7 @@ export interface FileRouteTypes {
     | '/setup-org'
     | '/attendance/monthly'
     | '/people/$id'
+    | '/settings/company'
     | '/settings/members'
     | '/attendance/'
     | '/people/'
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/setup-org'
     | '/attendance/monthly'
     | '/people/$id'
+    | '/settings/company'
     | '/settings/members'
     | '/attendance'
     | '/people'
@@ -225,6 +236,7 @@ export interface FileRouteTypes {
     | '/_auth/setup-org'
     | '/_app/attendance/monthly'
     | '/_app/people/$id'
+    | '/_app/settings/company'
     | '/_app/settings/members'
     | '/_app/attendance/'
     | '/_app/people/'
@@ -350,6 +362,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsMembersRouteRouteImport
       parentRoute: typeof AppSettingsRouteRoute
     }
+    '/_app/settings/company': {
+      id: '/_app/settings/company'
+      path: '/company'
+      fullPath: '/settings/company'
+      preLoaderRoute: typeof AppSettingsCompanyRouteRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
     '/_app/people/$id': {
       id: '/_app/people/$id'
       path: '/$id'
@@ -395,10 +414,12 @@ const AppPeopleRouteRouteWithChildren = AppPeopleRouteRoute._addFileChildren(
 )
 
 interface AppSettingsRouteRouteChildren {
+  AppSettingsCompanyRouteRoute: typeof AppSettingsCompanyRouteRoute
   AppSettingsMembersRouteRoute: typeof AppSettingsMembersRouteRoute
 }
 
 const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
+  AppSettingsCompanyRouteRoute: AppSettingsCompanyRouteRoute,
   AppSettingsMembersRouteRoute: AppSettingsMembersRouteRoute,
 }
 

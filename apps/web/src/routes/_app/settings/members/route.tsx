@@ -176,9 +176,8 @@ function MembersPage() {
                 disabled={inviteMember.isPending}
                 className="px-6 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50"
                 style={{
-                  background: `linear-gradient(135deg, ${C.accentDim} 0%, ${C.accent} 100%)`,
+                  background: C.accent,
                   color: '#FFFFFF',
-                  boxShadow: `0 4px 16px rgba(99,87,232,0.3)`,
                 }}
               >
                 {inviteMember.isPending ? 'Sending...' : 'Send invite'}

@@ -53,7 +53,23 @@ describe('SettingsMenu', () => {
     
     expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('test@workived.com')).toBeInTheDocument()
+    expect(screen.getByText('Company settings')).toBeInTheDocument()
+    expect(screen.getByText('Team members')).toBeInTheDocument()
     expect(screen.getByText('Logout')).toBeInTheDocument()
+  })
+
+  it('navigates to company settings when Company settings is clicked', () => {
+    render(<SettingsMenu currentModule="overview" />)
+    fireEvent.click(screen.getByText('Settings'))
+    fireEvent.click(screen.getByText('Company settings'))
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/settings/company' })
+  })
+
+  it('navigates to team members when Team members is clicked', () => {
+    render(<SettingsMenu currentModule="overview" />)
+    fireEvent.click(screen.getByText('Settings'))
+    fireEvent.click(screen.getByText('Team members'))
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/settings/members' })
   })
 
   it('calls logout and navigates to login when logout is clicked', async () => {

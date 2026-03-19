@@ -50,6 +50,28 @@ export interface CreateOrgRequest {
   currency_code: string
 }
 
+export interface CreateOrgResponse {
+  access_token: string
+  organisation: Organisation
+}
+
+export interface UpdateOrgRequest {
+  name?: string
+  slug?: string
+  country_code?: string
+  timezone?: string
+  currency_code?: string
+}
+
+export interface TransferOwnershipRequest {
+  new_owner_user_id: string
+}
+
+export interface OrgDetail extends Organisation {
+  employee_count: number
+  owner_name: string
+}
+
 // ── Invitations ─────────────────────────────────────────────
 export type MemberRole = 'owner' | 'admin' | 'member' | 'hr_admin' | 'manager' | 'finance'
 

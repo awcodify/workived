@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Settings, LogOut, User } from 'lucide-react'
+import { Settings, LogOut, User, Building2, Users } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { dockThemes } from '@/design/tokens'
 
@@ -128,6 +128,49 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
               </div>
             </div>
           )}
+
+          {/* Settings Links */}
+          <button
+            role="menuitem"
+            onClick={() => { setIsOpen(false); navigate({ to: '/settings/company' }) }}
+            className="w-full px-4 py-3 flex items-center gap-2 transition-colors text-left"
+            style={{
+              color: currentModule === 'overview'
+                ? 'rgba(255,255,255,0.85)'
+                : '#0F0E13',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = currentModule === 'overview'
+                ? 'rgba(255,255,255,0.08)'
+                : 'rgba(0,0,0,0.04)'
+            }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <Building2 size={16} />
+            <span className="text-sm font-medium">Company settings</span>
+          </button>
+          <button
+            role="menuitem"
+            onClick={() => { setIsOpen(false); navigate({ to: '/settings/members' }) }}
+            className="w-full px-4 py-3 flex items-center gap-2 transition-colors text-left"
+            style={{
+              color: currentModule === 'overview'
+                ? 'rgba(255,255,255,0.85)'
+                : '#0F0E13',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = currentModule === 'overview'
+                ? 'rgba(255,255,255,0.08)'
+                : 'rgba(0,0,0,0.04)'
+            }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <Users size={16} />
+            <span className="text-sm font-medium">Team members</span>
+          </button>
+
+          {/* Divider */}
+          <div style={{ height: 1, background: currentModule === 'overview' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }} />
 
           {/* Logout Button */}
           <button

@@ -50,7 +50,7 @@ type Invitation struct {
 
 type CreateOrgRequest struct {
 	Name         string `json:"name"          validate:"required,min=1,max=255"`
-	Slug         string `json:"slug"          validate:"required,min=2,max=100,alphanum"`
+	Slug         string `json:"slug"          validate:"required,min=2,max=100,slug"`
 	CountryCode  string `json:"country_code"  validate:"required,len=2"`
 	Timezone     string `json:"timezone"      validate:"required,max=50"`
 	CurrencyCode string `json:"currency_code" validate:"required,len=3"`
@@ -80,6 +80,12 @@ type AcceptInvitationResponse struct {
 	Member       *Member       `json:"member"`
 }
 
+// CreateOrgResponse includes the new org and a fresh JWT scoped to that org.
+type CreateOrgResponse struct {
+	AccessToken  string        `json:"access_token"`
+	Organisation *Organisation `json:"organisation"`
+}
+
 // AcceptParams holds the validated data needed to accept an invitation in a single transaction.
 type AcceptParams struct {
 	InvitationID uuid.UUID
@@ -87,4 +93,24 @@ type AcceptParams struct {
 	UserID       uuid.UUID
 	Role         string
 	EmployeeID   *uuid.UUID
+}
+
+// UpdateOrgRequest allows partial updates — nil fields are not changed.
+type UpdateOrgRequest struct {
+	Name         *string `json:"name"          validate:"omitempty,min=1,max=255"`
+	Slug         *string `json:"slug"          validate:"omitempty,min=2,max=100,slug"`
+	CountryCode  *string `json:"country_code"  validate:"omitempty,len=2"`
+	Timezone     *string `json:"timezone"      validate:"omitempty,max=50"`
+	CurrencyCode *string `json:"currency_code" validate:"omitempty,len=3"`
+}
+
+type TransferOwnershipRequest struct {
+	NewOwnerUserID uuid.UUID `json:"new_owner_user_id" validate:"required"`
+}
+
+// OrgDetail extends Organisation with runtime-computed fields for the settings page.
+type OrgDetail struct {
+	Organisation
+	EmployeeCount int    `json:"employee_count"`
+	OwnerName     string `json:"owner_name"`
 }

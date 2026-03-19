@@ -19,6 +19,9 @@ import (
 type RepoInterface interface {
 	Create(ctx context.Context, req CreateOrgRequest, ownerID uuid.UUID) (*Organisation, error)
 	GetByID(ctx context.Context, orgID uuid.UUID) (*Organisation, error)
+	GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail, error)
+	Update(ctx context.Context, orgID uuid.UUID, req UpdateOrgRequest) (*Organisation, error)
+	TransferOwnership(ctx context.Context, orgID, currentOwnerID, newOwnerID uuid.UUID) error
 	GetOrgPlanInfo(ctx context.Context, orgID uuid.UUID) (string, *int, error)
 	GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, error)
 	GetActiveMember(ctx context.Context, orgID, userID uuid.UUID) (*Member, error)
@@ -59,12 +62,17 @@ func NewService(repo RepoInterface, authRepo AuthTokenCreator, tokenIssuer Acces
 
 // ── Org CRUD ─────────────────────────────────────────────────────────────────
 
-func (s *Service) Create(ctx context.Context, ownerID uuid.UUID, req CreateOrgRequest) (*Organisation, error) {
+func (s *Service) Create(ctx context.Context, ownerID uuid.UUID, req CreateOrgRequest) (*CreateOrgResponse, error) {
 	org, err := s.repo.Create(ctx, req, ownerID)
 	if err != nil {
 		return nil, fmt.Errorf("create organisation: %w", err)
 	}
-	return org, nil
+	// Issue a new JWT so the caller immediately has org context without re-logging in.
+	accessToken, err := s.tokenIssuer.IssueAccessToken(ownerID, org.ID, "owner")
+	if err != nil {
+		return nil, fmt.Errorf("issue access token after org creation: %w", err)
+	}
+	return &CreateOrgResponse{AccessToken: accessToken, Organisation: org}, nil
 }
 
 func (s *Service) Get(ctx context.Context, orgID uuid.UUID) (*Organisation, error) {
@@ -73,6 +81,45 @@ func (s *Service) Get(ctx context.Context, orgID uuid.UUID) (*Organisation, erro
 		return nil, fmt.Errorf("get organisation %s: %w", orgID, err)
 	}
 	return org, nil
+}
+
+func (s *Service) GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail, error) {
+	detail, err := s.repo.GetDetail(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("get org detail %s: %w", orgID, err)
+	}
+	return detail, nil
+}
+
+func (s *Service) Update(ctx context.Context, orgID uuid.UUID, req UpdateOrgRequest, employeeCount int) (*Organisation, error) {
+	// Block country/timezone/currency changes if employees exist.
+	if employeeCount > 0 && (req.CountryCode != nil || req.Timezone != nil || req.CurrencyCode != nil) {
+		return nil, apperr.New(apperr.CodeValidation,
+			"country, timezone, and currency cannot be changed after employees are added")
+	}
+	org, err := s.repo.Update(ctx, orgID, req)
+	if err != nil {
+		return nil, fmt.Errorf("update organisation %s: %w", orgID, err)
+	}
+	return org, nil
+}
+
+func (s *Service) TransferOwnership(ctx context.Context, orgID, currentOwnerID uuid.UUID, req TransferOwnershipRequest) error {
+	if currentOwnerID == req.NewOwnerUserID {
+		return apperr.New(apperr.CodeValidation, "you are already the owner")
+	}
+	// Verify the new owner is an active member.
+	member, err := s.repo.GetActiveMember(ctx, orgID, req.NewOwnerUserID)
+	if err != nil {
+		return fmt.Errorf("get new owner member: %w", err)
+	}
+	if member == nil {
+		return apperr.NotFound("member")
+	}
+	if err := s.repo.TransferOwnership(ctx, orgID, currentOwnerID, req.NewOwnerUserID); err != nil {
+		return fmt.Errorf("transfer ownership: %w", err)
+	}
+	return nil
 }
 
 // ── Invitation flow ──────────────────────────────────────────────────────────

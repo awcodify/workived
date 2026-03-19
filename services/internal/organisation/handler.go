@@ -21,8 +21,10 @@ func NewHandler(service *Service) *Handler {
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	orgs := rg.Group("/organisations")
 	orgs.GET("/me", middleware.Require(middleware.PermOrgRead), h.GetMine)
+	orgs.PUT("/me", middleware.Require(middleware.PermOrgSettings), h.Update)
+	orgs.POST("/me/transfer-ownership", h.TransferOwnership) // owner check in service
 
-	// Invitation management (owner/admin only).
+	// Invitation management (admin only).
 	orgs.POST("/invitations", middleware.Require(middleware.PermInvitationWrite), h.InviteMember)
 	orgs.GET("/invitations", middleware.Require(middleware.PermInvitationWrite), h.ListPendingInvitations)
 	orgs.DELETE("/invitations/:id", middleware.Require(middleware.PermInvitationWrite), h.RevokeInvitation)
@@ -48,25 +50,76 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	org, err := h.service.Create(c.Request.Context(), ownerID, req)
+	resp, err := h.service.Create(c.Request.Context(), ownerID, req)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
 	}
 
-	c.JSON(http.StatusCreated, gin.H{"data": org})
+	c.JSON(http.StatusCreated, gin.H{"data": resp})
 }
 
 func (h *Handler) GetMine(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 
-	org, err := h.service.Get(c.Request.Context(), orgID)
+	detail, err := h.service.GetDetail(c.Request.Context(), orgID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": detail})
+}
+
+func (h *Handler) Update(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	var req UpdateOrgRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+	if err := validate.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	// Get current employee count to enforce country lock.
+	detail, err := h.service.GetDetail(c.Request.Context(), orgID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	org, err := h.service.Update(c.Request.Context(), orgID, req, detail.EmployeeCount)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": org})
+}
+
+func (h *Handler) TransferOwnership(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	var req TransferOwnershipRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+	if err := validate.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.TransferOwnership(c.Request.Context(), orgID, userID, req); err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "ownership transferred"}})
 }
 
 func (h *Handler) InviteMember(c *gin.Context) {
