@@ -22,3 +22,17 @@ export function parseJwtRole(token: string | null): string | null {
   if (!payload) return null
   return typeof payload['role'] === 'string' ? payload['role'] : null
 }
+
+// Returns the org_id claim from the JWT, or null if the user has no org yet.
+// Claim key is `oid` per services/internal/platform/middleware/auth.go (Claims.OrgID json:"oid").
+// OrgID is uuid.UUID (not a pointer), so no-org tokens carry the zero UUID
+// "00000000-0000-0000-0000-000000000000" rather than an empty string.
+const ZERO_UUID = '00000000-0000-0000-0000-000000000000'
+
+export function parseJwtOrgId(token: string | null): string | null {
+  if (!token) return null
+  const payload = parseJwtPayload(token)
+  if (!payload) return null
+  const oid = payload['oid']
+  return typeof oid === 'string' && oid !== '' && oid !== ZERO_UUID ? oid : null
+}

@@ -7,6 +7,25 @@ import type { OrgDetail } from '@/types/api'
 
 const mockUpdateMutate = vi.fn()
 const mockTransferMutate = vi.fn()
+const mockAcceptMutate = vi.fn()
+const mockNavigate = vi.fn()
+
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-router')>()
+  return {
+    ...actual,
+    createFileRoute: () => (opts: Record<string, unknown>) => ({ options: opts }),
+    useNavigate: () => mockNavigate,
+  }
+})
+
+vi.mock('@tanstack/react-query', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@tanstack/react-query')>()
+  return {
+    ...actual,
+    useMutation: vi.fn(() => ({ mutate: mockAcceptMutate, isPending: false, error: null })),
+  }
+})
 
 vi.mock('@/lib/hooks/useOrganisation', () => ({
   useOrgDetail: vi.fn(),
@@ -16,6 +35,21 @@ vi.mock('@/lib/hooks/useOrganisation', () => ({
 
 vi.mock('@/lib/hooks/useRole', () => ({
   useCanEditOrgSettings: vi.fn(() => true),
+  useHasOrg: vi.fn(() => true),
+}))
+
+vi.mock('@/lib/hooks/useInvitations', () => ({
+  useMyInvitations: vi.fn(() => ({ data: [] })),
+}))
+
+vi.mock('@/lib/stores/auth', () => ({
+  useAuthStore: vi.fn((selector) =>
+    selector({
+      accessToken: 'fake-token',
+      user: { id: 'user-1', full_name: 'Ahmad', email: 'ahmad@example.com' },
+      setAuth: vi.fn(),
+    }),
+  ),
 }))
 
 vi.mock('@/components/workived/layout/WorkivedLogo', () => ({
@@ -23,7 +57,7 @@ vi.mock('@/components/workived/layout/WorkivedLogo', () => ({
 }))
 
 import { useOrgDetail, useUpdateOrg, useTransferOwnership } from '@/lib/hooks/useOrganisation'
-import { useCanEditOrgSettings } from '@/lib/hooks/useRole'
+import { useCanEditOrgSettings, useHasOrg } from '@/lib/hooks/useRole'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 

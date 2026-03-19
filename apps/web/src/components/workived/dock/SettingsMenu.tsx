@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { Settings, LogOut, User, Building2, Users } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
+import { useHasOrg } from '@/lib/hooks/useRole'
 import { dockThemes } from '@/design/tokens'
 
 type ModuleKey = keyof typeof dockThemes
@@ -15,6 +16,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
+  const hasOrg = useHasOrg()
   const theme = dockThemes[currentModule]
 
   // Close menu when clicking outside
@@ -149,6 +151,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             <Building2 size={16} />
             <span className="text-sm font-medium">Company settings</span>
           </button>
+          {hasOrg && (
           <button
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/members' }) }}
@@ -168,6 +171,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             <Users size={16} />
             <span className="text-sm font-medium">Team members</span>
           </button>
+          )}
 
           {/* Divider */}
           <div style={{ height: 1, background: currentModule === 'overview' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }} />

@@ -95,7 +95,8 @@ type SetupOrgForm = z.infer<typeof setupOrgSchema>
 function SetupOrgPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
-  const { data: myInvitations = [] } = useMyInvitations()
+  const { data: myInvitationsData } = useMyInvitations()
+  const myInvitations = myInvitationsData ?? []
 
   const form = useForm<SetupOrgForm>({
     resolver: zodResolver(setupOrgSchema),

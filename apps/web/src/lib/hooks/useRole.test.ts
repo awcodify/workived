@@ -1,12 +1,14 @@
 import { renderHook } from '@testing-library/react'
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useRole, useCanEditOrgSettings, useCanInvite } from './useRole'
+import { useRole, useCanEditOrgSettings, useCanInvite, useHasOrg } from './useRole'
 import { useAuthStore } from '@/lib/stores/auth'
 
-function makeToken(role: string): string {
+function makeToken(role: string, orgId?: string): string {
   const encode = (obj: Record<string, unknown>) =>
     btoa(JSON.stringify(obj)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
-  return `${encode({ alg: 'HS256' })}.${encode({ uid: 'u1', oid: 'o1', role })}.sig`
+  const payload: Record<string, unknown> = { uid: 'u1', role }
+  if (orgId !== undefined) payload['oid'] = orgId
+  return `${encode({ alg: 'HS256' })}.${encode(payload)}.sig`
 }
 
 beforeEach(() => {
@@ -97,5 +99,30 @@ describe('useCanInvite', () => {
   it('returns false when unauthenticated', () => {
     const { result } = renderHook(() => useCanInvite())
     expect(result.current).toBe(false)
+  })
+})
+
+describe('useHasOrg', () => {
+  it('returns false when unauthenticated', () => {
+    const { result } = renderHook(() => useHasOrg())
+    expect(result.current).toBe(false)
+  })
+
+  it('returns false when token has no org_id', () => {
+    useAuthStore.setState({ accessToken: makeToken('member') })
+    const { result } = renderHook(() => useHasOrg())
+    expect(result.current).toBe(false)
+  })
+
+  it('returns false when org_id is empty string', () => {
+    useAuthStore.setState({ accessToken: makeToken('member', '') })
+    const { result } = renderHook(() => useHasOrg())
+    expect(result.current).toBe(false)
+  })
+
+  it('returns true when token contains a non-empty org_id', () => {
+    useAuthStore.setState({ accessToken: makeToken('owner', 'org-abc') })
+    const { result } = renderHook(() => useHasOrg())
+    expect(result.current).toBe(true)
   })
 })

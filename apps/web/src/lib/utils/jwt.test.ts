@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseJwtPayload, parseJwtRole } from './jwt'
+import { parseJwtPayload, parseJwtRole, parseJwtOrgId } from './jwt'
 
 // Build a minimal JWT with a given payload (unsigned — for test purposes only)
 function makeToken(payload: Record<string, unknown>): string {
@@ -46,5 +46,31 @@ describe('parseJwtRole', () => {
 
   it('returns null for an invalid token', () => {
     expect(parseJwtRole('bad.token')).toBeNull()
+  })
+})
+
+describe('parseJwtOrgId', () => {
+  it('extracts oid from a valid token', () => {
+    expect(parseJwtOrgId(makeToken({ oid: 'org-abc', role: 'owner' }))).toBe('org-abc')
+  })
+
+  it('returns null for null token', () => {
+    expect(parseJwtOrgId(null)).toBeNull()
+  })
+
+  it('returns null if oid claim is missing', () => {
+    expect(parseJwtOrgId(makeToken({ role: 'member' }))).toBeNull()
+  })
+
+  it('returns null if oid is an empty string', () => {
+    expect(parseJwtOrgId(makeToken({ oid: '' }))).toBeNull()
+  })
+
+  it('returns null if oid is the zero UUID (no org assigned in backend)', () => {
+    expect(parseJwtOrgId(makeToken({ oid: '00000000-0000-0000-0000-000000000000' }))).toBeNull()
+  })
+
+  it('returns null for an invalid token', () => {
+    expect(parseJwtOrgId('bad.token')).toBeNull()
   })
 })

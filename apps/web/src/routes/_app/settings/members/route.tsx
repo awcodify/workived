@@ -1,4 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { parseJwtOrgId } from '@/lib/utils/jwt'
+import { useAuthStore } from '@/lib/stores/auth'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -22,6 +24,12 @@ import type { ApiError, MemberRole, MemberWithProfile, PendingInvitation, Invite
 import { AxiosError } from 'axios'
 
 export const Route = createFileRoute('/_app/settings/members')({
+  beforeLoad: () => {
+    const { accessToken } = useAuthStore.getState()
+    if (!parseJwtOrgId(accessToken)) {
+      throw redirect({ to: '/setup-org' })
+    }
+  },
   component: MembersPage,
 })
 

@@ -1,13 +1,17 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
+import { useMutation } from '@tanstack/react-query'
 import { useOrgDetail, useUpdateOrg, useTransferOwnership } from '@/lib/hooks/useOrganisation'
-import { useCanEditOrgSettings } from '@/lib/hooks/useRole'
+import { useCanEditOrgSettings, useHasOrg } from '@/lib/hooks/useRole'
+import { useMyInvitations } from '@/lib/hooks/useInvitations'
+import { organisationsApi } from '@/lib/api/organisations'
+import { useAuthStore } from '@/lib/stores/auth'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
-import type { ApiError } from '@/types/api'
+import type { ApiError, MyInvitation } from '@/types/api'
 import { AxiosError } from 'axios'
 
 export const Route = createFileRoute('/_app/settings/company')({
@@ -693,7 +697,94 @@ function ReadOnlyOrgInfo({ org }: { org: ReturnType<typeof useOrgDetail>['data']
   )
 }
 
+function NoOrgView() {
+  const navigate = useNavigate()
+  const { data: myInvitationsData } = useMyInvitations()
+  const myInvitations = myInvitationsData ?? []
+  const setAuth = useAuthStore((s) => s.setAuth)
+  const currentUser = useAuthStore((s) => s.user)
+
+  const acceptInvitation = useMutation({
+    mutationFn: (token: string) =>
+      organisationsApi.acceptInvitation({ token }).then((r) => r.data.data),
+    onSuccess: (result) => {
+      if (currentUser) {
+        setAuth({ access_token: result.access_token, user: currentUser })
+      }
+      navigate({ to: '/overview' })
+    },
+  })
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div
+        className="p-8 rounded-2xl"
+        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+      >
+        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+          You haven&apos;t set up a workspace yet. Create one or accept a pending invitation below.
+        </p>
+        <button
+          onClick={() => navigate({ to: '/setup-org' })}
+          className="mt-5 px-6 py-3 rounded-xl font-bold text-sm"
+          style={{ background: colors.accent, color: '#FFFFFF' }}
+        >
+          Set up workspace
+        </button>
+      </div>
+
+      {myInvitations.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <p
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'rgba(255,255,255,0.5)',
+              letterSpacing: '0.05em',
+              textTransform: 'uppercase',
+            }}
+          >
+            Pending invitations
+          </p>
+          {myInvitations.map((inv: MyInvitation) => {
+            const token = inv.invite_url.split('?token=')[1] ?? ''
+            return (
+              <div
+                key={inv.id}
+                className="px-5 py-4 rounded-xl flex items-center justify-between gap-4"
+                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
+              >
+                <div>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: '#FFFFFF' }}>{inv.org_name}</p>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
+                    Invited as{' '}
+                    <span
+                      className="px-1.5 py-0.5 rounded text-xs font-semibold"
+                      style={{ background: 'rgba(155,143,247,0.15)', color: '#9B8FF7' }}
+                    >
+                      {inv.role}
+                    </span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => acceptInvitation.mutate(token)}
+                  disabled={acceptInvitation.isPending || !token}
+                  className="shrink-0 px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-50"
+                  style={{ background: colors.accent, color: '#FFFFFF' }}
+                >
+                  {acceptInvitation.isPending ? 'Joining…' : 'Accept & join'}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 function CompanyPage() {
+  const hasOrg = useHasOrg()
   const { data: org, isLoading, isError } = useOrgDetail()
   const canEdit = useCanEditOrgSettings()
 
@@ -733,7 +824,9 @@ function CompanyPage() {
           </p>
         </div>
 
-        {isLoading && (
+        {!hasOrg && <NoOrgView />}
+
+        {hasOrg && isLoading && (
           <div className="flex flex-col gap-5" aria-label="Loading company settings">
             {[1, 2, 3, 4].map((i) => (
               <div
@@ -745,7 +838,7 @@ function CompanyPage() {
           </div>
         )}
 
-        {isError && (
+        {hasOrg && isError && (
           <div
             role="alert"
             className="px-4 py-3 rounded-xl"
@@ -757,7 +850,7 @@ function CompanyPage() {
           </div>
         )}
 
-        {!isLoading && !isError && (
+        {hasOrg && !isLoading && !isError && (
           <>
             {!canEdit && (
               <div

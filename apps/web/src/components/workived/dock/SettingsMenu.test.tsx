@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { SettingsMenu } from './SettingsMenu'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useNavigate } from '@tanstack/react-router'
+import { useHasOrg } from '@/lib/hooks/useRole'
 
 // Mock dependencies
 vi.mock('@tanstack/react-router', () => ({
@@ -11,6 +12,10 @@ vi.mock('@tanstack/react-router', () => ({
 
 vi.mock('@/lib/stores/auth', () => ({
   useAuthStore: vi.fn(),
+}))
+
+vi.mock('@/lib/hooks/useRole', () => ({
+  useHasOrg: vi.fn(),
 }))
 
 describe('SettingsMenu', () => {
@@ -37,6 +42,8 @@ describe('SettingsMenu', () => {
       refresh: vi.fn(),
       isAuthenticated: vi.fn(() => true),
     })
+    // Default: user has an org
+    vi.mocked(useHasOrg).mockReturnValue(true)
   })
 
   it('renders settings button', () => {
@@ -94,11 +101,45 @@ describe('SettingsMenu', () => {
 
   it('displays user information correctly', () => {
     render(<SettingsMenu currentModule="people" />)
-    
+
     const settingsButton = screen.getByText('Settings')
     fireEvent.click(settingsButton)
-    
+
     expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('test@workived.com')).toBeInTheDocument()
+  })
+
+  describe('when user has no org', () => {
+    beforeEach(() => {
+      vi.mocked(useHasOrg).mockReturnValue(false)
+    })
+
+    it('hides Team members menu item', () => {
+      render(<SettingsMenu currentModule="overview" />)
+      fireEvent.click(screen.getByText('Settings'))
+      expect(screen.queryByText('Team members')).toBeNull()
+    })
+
+    it('still navigates to /settings/company when Company settings is clicked', () => {
+      render(<SettingsMenu currentModule="overview" />)
+      fireEvent.click(screen.getByText('Settings'))
+      fireEvent.click(screen.getByText('Company settings'))
+      expect(mockNavigate).toHaveBeenCalledWith({ to: '/settings/company' })
+    })
+  })
+
+  describe('when user has an org', () => {
+    it('shows Team members menu item', () => {
+      render(<SettingsMenu currentModule="overview" />)
+      fireEvent.click(screen.getByText('Settings'))
+      expect(screen.getByText('Team members')).toBeInTheDocument()
+    })
+
+    it('navigates to /settings/company when Company settings is clicked', () => {
+      render(<SettingsMenu currentModule="overview" />)
+      fireEvent.click(screen.getByText('Settings'))
+      fireEvent.click(screen.getByText('Company settings'))
+      expect(mockNavigate).toHaveBeenCalledWith({ to: '/settings/company' })
+    })
   })
 })
