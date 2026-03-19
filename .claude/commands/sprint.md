@@ -2,43 +2,21 @@
 description: Plan a sprint — PO prioritises, Architect flags risks, stories scoped
 ---
 
-Plan the sprint described below. Use this structure:
+Plan the sprint.
 
-## Sprint [N] — [theme]
+**Sprint [N] — [theme]**
 
-**Sprint goal (one sentence):**
-[What is the single most important outcome of this sprint?]
+**Goal (one sentence):** Single most important outcome?
 
----
+**🧠 PO:** What matters to Ahmad? What pain does this relieve?
+**🏗️ Architect:** Technical constraints, prerequisite decisions, risks?
 
-### 🧠 PO priorities
-[What matters most to Ahmad this sprint? What user pain does this sprint relieve?]
+**Stories table:** # | Story (As a founder, I can...) | Role (BE/FE/DB/FULL) | Size (S/M/L)
 
-### 🏗️ Architect notes
-[Any technical constraints, prerequisite decisions, or risks to address this sprint]
+**Size:** S=half day, M=1-2 days, L=3+ (split if L)
 
----
+**Out of scope:** [Item — reason: deferred/too large/not validated]
 
-### Stories
-
-| # | Story | Role | Size |
-|---|-------|------|------|
-| 1 | [As a founder, I can...] | BE/FE/DB | S/M/L |
-...
-
-**Size guide:** S = half day, M = 1-2 days, L = 3+ days (if L, consider splitting)
-**Role guide:** BE = Go backend, FE = Vite+React frontend, DB = migration, FULL = both layers
-
----
-
-### Out of scope this sprint
-- [Item] — [reason: deferred / too large / not validated]
-
-### Definition of done
-- [ ] All endpoints tested
-- [ ] Migration files written and reversible
-- [ ] No hardcoded country rules
-- [ ] Audit log entries for all state changes
-- [ ] organisation_id validated on all queries
+**Definition of done:** All endpoints tested, migrations reversible, no hardcoded country rules, audit log, org_id validated.
 
 $ARGUMENTS

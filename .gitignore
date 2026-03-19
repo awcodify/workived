@@ -14,7 +14,7 @@ node_modules/
 dist/
 
 # Skill eval workspace
-.claude/commands/*-workspace/
+**/workived-skills-workspace/
 
 # OS
 .DS_Store

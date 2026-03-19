@@ -8,10 +8,15 @@
 
 ## 1. What is Workived?
 
-Workived is an **HR and operations superapp for SMBs** — a freemium SaaS that consolidates leave management, attendance, claims & reimbursement, employee management, and task management into a single product. It targets small company founders who currently manage HR through WhatsApp, Google Sheets, and email.
+Workived is an **attendance and leave management platform for 5–25 person startups** — a freemium SaaS focused on compliance-first HR operations. It targets small company founders in Indonesia and UAE who currently track attendance via WhatsApp and leave via Google Sheets.
 
-**Domain:** `workived.com`
-**Tagline:** Work, managed.
+**Core wedge:** Attendance tracking + Leave management (daily compliance pain)  
+**Future expansion:** Claims, employee records, task management (Phase 2)
+
+**Domain:** `workived.com`  
+**Tagline:** Attendance done right.
+
+**See:** `docs/adr/004-product-focus-attendance-leave-first.md` for strategic rationale.
 
 ---
 
@@ -72,6 +77,23 @@ Payroll is explicitly out of scope for the initial build. Build the general empl
 - **Key conversion triggers:** hitting 25-employee limit, needing geofencing, wanting analytics, multi-level approvals
 - **Free tier limit:** 25 employees per organisation — enforced at application layer via `organisations.plan_employee_limit`
 
+### Billing Implementation (Post-MVP)
+
+**Not built yet. Key decisions TBD:**
+
+- **Payment provider:** Stripe vs Paddle vs Lemon Squeezy
+  - Stripe: Full control, more work
+  - Paddle/Lemon: Merchant of record, handles tax/compliance
+- **Per-seat sync:** How to track active employee count for billing
+- **Proration:** Mid-cycle upgrades/downgrades
+- **Downgrade behavior:** 
+  - Immediate feature lock or grace period?
+  - What happens to data over limit?
+- **Subscription management:** Self-serve portal via provider (Stripe Customer Portal)
+- **Webhook handling:** `subscription.updated`, `payment_failed`, etc.
+
+**Sprint priority:** Post-Sprint 8 (after core features proven)
+
 ---
 
 ## 5. Tech Stack
@@ -101,11 +123,13 @@ Payroll is explicitly out of scope for the initial build. Build the general empl
 - **Language:** Go (Golang)
 - **Architecture:** Modular monolith — NOT microservices. Clean module boundaries that can be extracted later if needed.
 - **API style:** REST (JSON)
-- **Auth:** JWT with refresh tokens
-- **Async:** Redis Streams for notifications, audit events, future payroll triggers
+- **Auth:** JWT with refresh tokens (contains `user_id` + `organisation_id`)
+  - **Known limitation:** Single-org assumption. Multi-org users need token refresh to switch orgs.
+  - **Future:** Migrate to `user_id`-only JWT + org context via header/subdomain when multi-org is needed.
+- **Async:** Background workers (goroutines + DB polling for MVP). Redis Streams later for replayability.
 
 ### Database
-- **Primary DB:** PostgreSQL (multi-tenant, schema-per-tenant pattern)
+- **Primary DB:** PostgreSQL (single schema, application-layer multi-tenancy via `organisation_id`)
 - **Cache / Sessions:** Redis
 - **File storage:** S3-compatible (AWS S3 or MinIO for local dev)
 - **Migrations:** golang-migrate
@@ -393,8 +417,23 @@ GET    /api/v1/attendance/today
 ### Pagination
 Use **cursor-based pagination** for all list endpoints — NOT offset pagination. Offset breaks on fast-changing datasets (attendance records, notifications).
 
+**How cursor pagination works:**
+- Client sends `cursor` (encoded last-seen value) + `limit`
+- Server uses `WHERE field > $cursor ORDER BY field LIMIT $limit`
+- Response includes `next_cursor` for the next page
+- Cursor is typically the sort field value (e.g., `created_at`, `full_name`)
+
 ```
-GET /api/v1/attendance?cursor=<opaque_cursor>&limit=20
+GET /api/v1/attendance?cursor=<base64_encoded_value>&limit=20
+
+Response:
+{
+  "data": [...],
+  "meta": {
+    "next_cursor": "eyJjcmVhdGVkX2F0IjoiMjAyNi0wMy0xOVQxMDowMDowMFoifQ==",
+    "has_more": true
+  }
+}
 ```
 
 ---
@@ -429,12 +468,14 @@ func (r *EmployeeRepo) List(
     filters EmployeeFilters,
 ) ([]Employee, error) {
     // Every query starts with organisation_id = $1
+    // Use cursor-based pagination (not LIMIT/OFFSET)
     query := `
         SELECT * FROM employees
         WHERE organisation_id = $1
         AND ($2::varchar IS NULL OR status = $2)
+        AND ($3::varchar IS NULL OR full_name > $3)  -- cursor: last seen full_name
         ORDER BY full_name ASC
-        LIMIT $3 OFFSET $4
+        LIMIT $4
     `
     ...
 }
@@ -622,44 +663,53 @@ FOR EACH active employee × active leave_policy:
 - [ ] Leave request flow (submit → approve/reject)
 - [ ] Year-end rollover job
 
-### Sprint 5 — Leave + Claims (frontend + backend)
-- [ ] Leave frontend pages
-- [ ] Claim categories configuration
-- [ ] Claim submission + receipt upload
-- [ ] Claims frontend pages
+### Sprint 5 — Leave (frontend)
+- [ ] Leave request pages (submit, view, approve/reject)
+- [ ] Leave balance dashboard
+- [ ] Leave policy management (admin)
 
-### Sprint 6 — Tasks
-- [ ] Task lists (kanban columns)
-- [ ] Task CRUD + comments
-- [ ] Tasks frontend pages
+### Sprint 6 — Claims (basic flow only)
+- [ ] Claim categories configuration
+- [ ] Claim submission + receipt upload (S3)
+- [ ] Approval flow (single-level only)
+- [ ] Claims frontend pages
 
 ### Sprint 7 — Landing page + PWA
 - [ ] Astro marketing site (apps/landing)
 - [ ] PWA manifest + service worker for dashboard
+- [ ] SEO optimization, blog setup
 
-### Sprint 8 — Pro features + Analytics
+### Sprint 8 — Pro features (monetization)
 - [ ] Feature gating middleware
-- [ ] GPS geofencing
-- [ ] Custom leave types
-- [ ] Analytics endpoints
+- [ ] GPS geofencing for clock-in
+- [ ] Custom leave types (Pro only)
+- [ ] Shift scheduling + overtime auto-calc
+- [ ] Upgrade flow + billing integration (TBD: Stripe/Paddle)
 
-### Sprint 9 — Payroll (future)
-- [ ] TBD — design separately when ready
+### Sprint 9+ — Analytics + Tasks (if validated demand)
+- [ ] HR analytics dashboard (Pro feature)
+- [ ] Custom reports
+- [ ] **Tasks module (CONDITIONAL — build only if customers request it)**
+  - Task lists, CRUD, comments
+  - Does NOT include: subtasks, dependencies, time tracking, Gantt (avoid feature parity with Trello/Asana)
+
+### Future — Payroll (Phase 2)
+- [ ] TBD — design separately when core is proven
 
 ---
 
-## 14. Development Rules
+## 14. Non-Negotiable Rules
 
-1. **Every SQL query starts with `WHERE organisation_id = $1`** — no exceptions
-2. **Never store floats for money** — always BIGINT in smallest currency unit
-3. **Never store local time in the database** — always UTC TIMESTAMPTZ
-4. **Never hardcode country-specific rules** — always configurable via config tables
-5. **Soft delete HR records** — use `is_active = false`, never DELETE
-6. **Audit log every state change** — INSERT into audit_logs on every significant action
-7. **All monetary amounts carry a currency_code** — never assume a single currency
-8. **organisation_id is always the first param in every repository function**
-9. **No business logic in handlers** — handlers are thin, services own all logic
-10. **Payroll is out of scope** — do not build payroll processing logic until Sprint 8
+See `CLAUDE.md` for the complete list of 10 non-negotiable rules.
+
+Key highlights:
+- Multi-tenancy: `organisation_id` first in every query
+- Money: `BIGINT` + `currency_code` (never float)
+- Timestamps: UTC `TIMESTAMPTZ`, convert at API layer
+- Country rules: config tables (never hardcode)
+- HR records: soft delete (`is_active`)
+- Every state change → audit log
+- Payroll: out of scope
 
 ---
 

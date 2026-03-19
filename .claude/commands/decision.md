@@ -2,45 +2,24 @@
 description: Write an Architecture Decision Record (ADR) for a technical decision
 ---
 
-Write a structured Architecture Decision Record (ADR) for the following decision.
-Then save it as `docs/adr/NNN-<slug>.md` where NNN is the next available number (check existing files in docs/adr/).
+Write ADR for the decision below. Save as `docs/adr/NNN-<slug>.md` (check docs/adr/ for next number).
 
-Format:
+**Format:**
 
 ## ADR: $ARGUMENTS
 
-**Status:** Proposed
-**Date:** today
+**Status:** Proposed | **Date:** today
 
----
+**Context:** Why this decision? What problem?
 
-### Context
-[Why do we need to make this decision? What problem are we solving?]
+**Options:** For each: name, pros, cons
 
-### Options considered
+**Decision:** What we chose + primary reason
 
-**Option 1: [name]**
-- Pros: ...
-- Cons: ...
+**Rationale:** Why this over alternatives?
 
-**Option 2: [name]**
-- Pros: ...
-- Cons: ...
+**Consequences:** Good / Bad (trade-offs) / Neutral
 
-**Option 3: [name]** (if applicable)
-- Pros: ...
-- Cons: ...
+**References:** Links if relevant
 
-### Decision
-[What we chose and the primary reason why]
-
-### Rationale
-[Deeper explanation — why this over the alternatives]
-
-### Consequences
-**Good:** ...
-**Bad / trade-offs:** ...
-**Neutral:** ...
-
-### References
-[Links or context if relevant]
+$ARGUMENTS
