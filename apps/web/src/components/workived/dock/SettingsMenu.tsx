@@ -4,6 +4,7 @@ import { Settings, LogOut, User, Building2, Users } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useHasOrg } from '@/lib/hooks/useRole'
 import { dockThemes } from '@/design/tokens'
+import { cn } from '@/lib/utils/cn'
 
 type ModuleKey = keyof typeof dockThemes
 
@@ -35,71 +36,89 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
 
   const handleLogout = async () => {
     await logout()
-    navigate({ to: '/login' })
+    navigate({ to: '/login', search: { redirect: undefined } })
   }
 
   return (
     <div className="relative" ref={menuRef}>
-      {/* Settings Icon Button */}
+      {/* Settings Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Settings menu"
         aria-expanded={isOpen}
         aria-haspopup="true"
-        className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-colors"
-        style={{
-          background: isOpen ? theme.active.bg : 'transparent',
-        }}
+        className="relative group"
       >
-        <Settings
-          size={20}
-          style={{ color: isOpen ? theme.active.icon : theme.icon }}
-        />
-        <span
-          className="text-[10px] font-semibold tracking-wide"
-          style={{ color: isOpen ? theme.active.label : theme.label }}
+        <div
+          className={cn(
+            'relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300',
+            isOpen ? 'scale-100 bg-opacity-100' : 'scale-95 opacity-60 hover:opacity-100 hover:scale-100'
+          )}
+          style={{
+            background: isOpen ? theme.active.bg : 'transparent',
+          }}
         >
-          Settings
-        </span>
+          <Settings
+            size={20}
+            style={{ 
+              color: isOpen ? theme.active.icon : theme.icon,
+              strokeWidth: isOpen ? 2.5 : 2,
+              transition: 'all 0.2s ease',
+            }}
+          />
+          <span
+            className="text-[9px] font-bold tracking-wider uppercase"
+            style={{ 
+              color: isOpen ? theme.active.label : theme.label,
+              transition: 'color 0.2s ease',
+            }}
+          >
+            Settings
+          </span>
+        </div>
       </button>
 
       {/* Dropdown Menu */}
       {isOpen && (
         <div
           role="menu"
-          className="absolute bottom-full mb-2 right-0 rounded-xl overflow-hidden shadow-lg"
+          className="absolute bottom-full mb-3 right-0 rounded-2xl overflow-hidden shadow-2xl"
           style={{
-            minWidth: 180,
+            minWidth: 200,
             background: theme.bg,
-            backdropFilter: 'blur(20px)',
             border: `1px solid ${theme.border}`,
+            backdropFilter: 'blur(40px) saturate(180%)',
+            boxShadow: `0 8px 32px rgba(0, 0, 0, 0.4)`,
+            animation: 'slideUpFade 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}
         >
           {/* User Info */}
           {user && (
             <div
-              className="px-4 py-3 border-b"
+              className="px-3 py-3 border-b"
               style={{ borderColor: theme.border }}
             >
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{ background: theme.active.bg }}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ 
+                    background: theme.active.bg,
+                  }}
                 >
                   <User
                     size={16}
-                    style={{ color: theme.icon }}
+                    style={{ color: theme.active.icon }}
                   />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <p
-                    className="text-sm font-semibold leading-tight"
+                    className="text-xs font-semibold leading-tight truncate"
                     style={{ color: theme.active.icon }}
                   >
                     {user.full_name}
                   </p>
                   <p
-                    className="text-xs leading-tight mt-0.5"
+                    className="text-[10px] leading-tight mt-0.5 truncate opacity-70"
                     style={{ color: theme.icon }}
                   >
                     {user.email}
@@ -113,45 +132,64 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           <button
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/company' }) }}
-            className="w-full px-4 py-3 flex items-center gap-2 transition-colors text-left"
+            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
             style={{ color: theme.active.icon }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = theme.active.bg }}
+            onMouseEnter={(e) => { 
+              e.currentTarget.style.background = theme.active.bg
+            }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
-            <Building2 size={16} />
-            <span className="text-sm font-medium">Company settings</span>
+            <Building2 size={16} className="transition-transform group-hover/item:scale-110" />
+            <span className="text-xs font-medium">Company settings</span>
           </button>
           {hasOrg && (
           <button
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/members' }) }}
-            className="w-full px-4 py-3 flex items-center gap-2 transition-colors text-left"
+            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
             style={{ color: theme.active.icon }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = theme.active.bg }}
+            onMouseEnter={(e) => { 
+              e.currentTarget.style.background = theme.active.bg
+            }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
-            <Users size={16} />
-            <span className="text-sm font-medium">Team members</span>
+            <Users size={16} className="transition-transform group-hover/item:scale-110" />
+            <span className="text-xs font-medium">Team members</span>
           </button>
           )}
 
           {/* Divider */}
-          <div style={{ height: 1, background: theme.border }} />
+          <div className="my-1" style={{ height: 1, background: theme.border }} />
 
           {/* Logout Button */}
           <button
             role="menuitem"
             onClick={handleLogout}
-            className="w-full px-4 py-3 flex items-center gap-2 transition-colors text-left"
+            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
             style={{ color: theme.active.icon }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = theme.active.bg }}
+            onMouseEnter={(e) => { 
+              e.currentTarget.style.background = theme.active.bg
+            }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
-            <LogOut size={16} />
-            <span className="text-sm font-medium">Logout</span>
+            <LogOut size={16} className="transition-transform group-hover/item:scale-110" />
+            <span className="text-xs font-medium">Logout</span>
           </button>
         </div>
       )}
+
+      <style>{`
+        @keyframes slideUpFade {
+          from {
+            opacity: 0;
+            transform: translateY(8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
     </div>
   )
 }
