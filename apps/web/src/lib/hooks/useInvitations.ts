@@ -7,6 +7,7 @@ export const invitationKeys = {
   list: ['invitations'] as const,
   unlinkedMembers: ['unlinked-members'] as const,
   members: ['org-members'] as const,
+  mine: ['my-invitations'] as const,
 }
 
 export function useInvitations() {
@@ -52,6 +53,19 @@ export function useUnlinkedMembers() {
     queryKey: invitationKeys.unlinkedMembers,
     queryFn: () => organisationsApi.listUnlinkedMembers().then((r) => r.data.data),
     enabled: isAuthenticated,
+  })
+}
+
+// Invitations addressed to the current user — used on the setup-org / onboarding page.
+// Does NOT require tenant context (user may have no org yet).
+export function useMyInvitations() {
+  const isAuthenticated = useAuthStore((s) => !!s.accessToken)
+
+  return useQuery({
+    queryKey: invitationKeys.mine,
+    queryFn: () => organisationsApi.getMyInvitations().then((r) => r.data.data),
+    enabled: isAuthenticated,
+    staleTime: 15_000,
   })
 }
 

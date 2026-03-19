@@ -14,6 +14,7 @@ import type {
   PendingInvitation,
   UnlinkedMember,
   MemberWithProfile,
+  MyInvitation,
 } from '@/types/api'
 
 export const organisationsApi = {
@@ -53,4 +54,8 @@ export const organisationsApi = {
   // All active members with HR profile link status — used by Settings → Members page
   listMembers: () =>
     apiClient.get<ApiResponse<MemberWithProfile[]>>('/api/v1/organisations/members'),
+
+  // Pending invitations addressed to the current user — no org context required
+  getMyInvitations: () =>
+    apiClient.get<ApiResponse<MyInvitation[]>>('/api/v1/invitations/mine'),
 }

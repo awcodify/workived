@@ -451,6 +451,41 @@ func (r *Repository) TransferOwnership(ctx context.Context, orgID, currentOwnerI
 	return tx.Commit(ctx)
 }
 
+// GetPendingInvitationsByUserID returns all pending, non-expired invitations addressed
+// to the current user's email — used by the onboarding page for users with no org yet.
+func (r *Repository) GetPendingInvitationsByUserID(ctx context.Context, userID uuid.UUID) ([]MyInvitation, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT i.id, i.organisation_id, i.email, i.role, i.invited_by, i.invite_url, i.employee_id,
+		       i.expires_at, i.accepted_at, i.created_at,
+		       o.name AS org_name, o.slug AS org_slug
+		FROM invitations i
+		JOIN users u ON u.email = i.email
+		JOIN organisations o ON o.id = i.organisation_id
+		WHERE u.id = $1
+		  AND i.accepted_at IS NULL
+		  AND i.expires_at > NOW()
+		ORDER BY i.created_at DESC
+	`, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []MyInvitation
+	for rows.Next() {
+		var mi MyInvitation
+		if err := rows.Scan(
+			&mi.ID, &mi.OrgID, &mi.Email, &mi.Role, &mi.InvitedBy,
+			&mi.InviteURL, &mi.EmployeeID, &mi.ExpiresAt, &mi.AcceptedAt, &mi.CreatedAt,
+			&mi.OrgName, &mi.OrgSlug,
+		); err != nil {
+			return nil, err
+		}
+		result = append(result, mi)
+	}
+	return result, rows.Err()
+}
+
 // ListMembers returns all active workspace members enriched with their HR profile link status.
 func (r *Repository) ListMembers(ctx context.Context, orgID uuid.UUID) ([]MemberWithProfile, error) {
 	rows, err := r.db.Query(ctx, `

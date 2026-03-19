@@ -127,6 +127,11 @@ export interface UnlinkedMember {
   role: string
 }
 
+export interface MyInvitation extends PendingInvitation {
+  org_name: string
+  org_slug: string
+}
+
 export interface MemberWithProfile {
   id: string
   user_id: string

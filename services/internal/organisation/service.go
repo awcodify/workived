@@ -34,6 +34,7 @@ type RepoInterface interface {
 	ListPendingInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
 	ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]UnlinkedMember, error)
 	ListMembers(ctx context.Context, orgID uuid.UUID) ([]MemberWithProfile, error)
+	GetPendingInvitationsByUserID(ctx context.Context, userID uuid.UUID) ([]MyInvitation, error)
 }
 
 // AuthTokenCreator is the narrow auth interface the org service needs.
@@ -255,6 +256,14 @@ func (s *Service) ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]U
 		return nil, fmt.Errorf("list unlinked members: %w", err)
 	}
 	return members, nil
+}
+
+func (s *Service) GetMyInvitations(ctx context.Context, userID uuid.UUID) ([]MyInvitation, error) {
+	invitations, err := s.repo.GetPendingInvitationsByUserID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get my invitations: %w", err)
+	}
+	return invitations, nil
 }
 
 func (s *Service) ListMembers(ctx context.Context, orgID uuid.UUID) ([]MemberWithProfile, error) {

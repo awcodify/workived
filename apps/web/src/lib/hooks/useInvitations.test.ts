@@ -25,4 +25,12 @@ describe('useInvitations', () => {
   it('members key is referentially stable', () => {
     expect(invitationKeys.members).toBe(invitationKeys.members)
   })
+
+  it('exports mine query key', () => {
+    expect(invitationKeys.mine).toEqual(['my-invitations'])
+  })
+
+  it('mine key is referentially stable', () => {
+    expect(invitationKeys.mine).toBe(invitationKeys.mine)
+  })
 })

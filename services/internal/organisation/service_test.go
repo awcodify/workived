@@ -269,6 +269,27 @@ func (f *fakeRepo) ListPendingInvitations(_ context.Context, orgID uuid.UUID) ([
 	return result, nil
 }
 
+func (f *fakeRepo) GetPendingInvitationsByUserID(_ context.Context, userID uuid.UUID) ([]organisation.MyInvitation, error) {
+	now := time.Now().UTC()
+	var result []organisation.MyInvitation
+	for _, inv := range f.invitations {
+		if inv.AcceptedAt == nil && inv.ExpiresAt.After(now) {
+			// In the fake, we match by checking if any org has this userID as a member
+			// whose email equals the invitation email. For simplicity: match all pending invitations.
+			org := f.orgs[inv.OrgID]
+			if org == nil {
+				continue
+			}
+			result = append(result, organisation.MyInvitation{
+				Invitation: *inv,
+				OrgName:    org.Name,
+				OrgSlug:    org.Slug,
+			})
+		}
+	}
+	return result, nil
+}
+
 func (f *fakeRepo) ListMembers(_ context.Context, orgID uuid.UUID) ([]organisation.MemberWithProfile, error) {
 	var result []organisation.MemberWithProfile
 	for _, m := range f.members {
@@ -688,6 +709,44 @@ func TestOrgService_ListUnlinkedMembers(t *testing.T) {
 			if m.UserID == linkedMemberID {
 				t.Error("linked member should not appear in unlinked list")
 			}
+		}
+	})
+}
+
+func TestOrgService_GetMyInvitations(t *testing.T) {
+	t.Run("returns pending invitations for user", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		orgID, _, inv := setupOrgAndInvitation(t, svc, repo)
+		_ = orgID
+
+		invitations, err := svc.GetMyInvitations(context.Background(), uuid.New())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		// The fake returns all pending invitations; we just verify the shape
+		found := false
+		for _, mi := range invitations {
+			if mi.ID == inv.ID {
+				found = true
+				if mi.OrgName == "" {
+					t.Error("org_name should not be empty")
+				}
+			}
+		}
+		if !found {
+			t.Error("expected invitation to appear in GetMyInvitations result")
+		}
+	})
+
+	t.Run("returns empty when no pending invitations", func(t *testing.T) {
+		svc, _ := newTestService(t)
+
+		invitations, err := svc.GetMyInvitations(context.Background(), uuid.New())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(invitations) != 0 {
+			t.Errorf("expected 0 invitations, got %d", len(invitations))
 		}
 	})
 }

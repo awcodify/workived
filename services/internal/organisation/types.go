@@ -125,6 +125,14 @@ type UnlinkedMember struct {
 	Role     string    `json:"role"`
 }
 
+// MyInvitation is an invitation addressed to the current user, enriched with org info.
+// Returned by GetMyInvitations for the setup-org / onboarding page.
+type MyInvitation struct {
+	Invitation
+	OrgName string `json:"org_name"`
+	OrgSlug string `json:"org_slug"`
+}
+
 // MemberWithProfile enriches a workspace member record with their HR profile link status.
 // Returned by ListMembers for the Settings → Members page.
 type MemberWithProfile struct {

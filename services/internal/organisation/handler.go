@@ -40,6 +40,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 func (h *Handler) RegisterPublicRoutes(rg *gin.RouterGroup) {
 	rg.POST("/organisations", h.Create)
 	rg.POST("/invitations/accept", h.AcceptInvitation)
+	rg.GET("/invitations/mine", h.GetMyInvitations)
 }
 
 func (h *Handler) Create(c *gin.Context) {
@@ -198,6 +199,18 @@ func (h *Handler) RevokeInvitation(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "invitation revoked"}})
+}
+
+func (h *Handler) GetMyInvitations(c *gin.Context) {
+	userID := middleware.UserIDFromCtx(c)
+
+	invitations, err := h.service.GetMyInvitations(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": invitations})
 }
 
 func (h *Handler) ListMembers(c *gin.Context) {

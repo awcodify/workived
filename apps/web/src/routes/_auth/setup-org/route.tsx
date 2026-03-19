@@ -5,8 +5,9 @@ import { z } from 'zod/v4'
 import { useMutation } from '@tanstack/react-query'
 import { organisationsApi } from '@/lib/api/organisations'
 import { useAuthStore } from '@/lib/stores/auth'
+import { useMyInvitations } from '@/lib/hooks/useInvitations'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
-import type { ApiError } from '@/types/api'
+import type { ApiError, MyInvitation } from '@/types/api'
 import { AxiosError } from 'axios'
 
 export const Route = createFileRoute('/_auth/setup-org')({
@@ -18,6 +19,59 @@ export const Route = createFileRoute('/_auth/setup-org')({
   },
   component: SetupOrgPage,
 })
+
+function InvitationCard({
+  invitation,
+  onAccept,
+  isPending,
+}: {
+  invitation: MyInvitation
+  onAccept: (token: string) => void
+  isPending: boolean
+}) {
+  // Extract raw token from invite_url (?token=...)
+  const token = invitation.invite_url.split('?token=')[1] ?? ''
+
+  return (
+    <div
+      className="p-5 rounded-2xl"
+      style={{
+        background: '#FFFFFF',
+        boxShadow: '0 4px 20px rgba(99,87,232,0.10), 0 0 0 1px rgba(99,87,232,0.08)',
+      }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p style={{ fontSize: 16, fontWeight: 700, color: '#0F0E13', marginBottom: 4 }}>
+            {invitation.org_name}
+          </p>
+          <p style={{ fontSize: 13, color: '#72708A', lineHeight: 1.5 }}>
+            You've been invited as{' '}
+            <span
+              className="px-1.5 py-0.5 rounded text-xs font-semibold"
+              style={{ background: '#EFEDFD', color: '#6357E8' }}
+            >
+              {invitation.role}
+            </span>
+          </p>
+        </div>
+        <button
+          onClick={() => onAccept(token)}
+          disabled={isPending || !token}
+          className="shrink-0 font-bold px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
+          style={{
+            background: 'linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%)',
+            color: '#FFFFFF',
+            fontSize: 14,
+            boxShadow: '0 2px 8px rgba(99,87,232,0.3)',
+          }}
+        >
+          {isPending ? 'Joining…' : 'Accept & join'}
+        </button>
+      </div>
+    </div>
+  )
+}
 
 const COUNTRIES = [
   { code: 'ID', name: 'Indonesia', timezone: 'Asia/Jakarta', currency: 'IDR' },
@@ -41,6 +95,7 @@ type SetupOrgForm = z.infer<typeof setupOrgSchema>
 function SetupOrgPage() {
   const navigate = useNavigate()
   const user = useAuthStore((s) => s.user)
+  const { data: myInvitations = [] } = useMyInvitations()
 
   const form = useForm<SetupOrgForm>({
     resolver: zodResolver(setupOrgSchema),
@@ -49,6 +104,17 @@ function SetupOrgPage() {
 
   const setAccessToken = useAuthStore((s) => s.setAuth)
   const currentUser = useAuthStore((s) => s.user)
+
+  const acceptInvitation = useMutation({
+    mutationFn: (token: string) =>
+      organisationsApi.acceptInvitation({ token }).then((r) => r.data.data),
+    onSuccess: (result) => {
+      if (currentUser) {
+        setAccessToken({ access_token: result.access_token, user: currentUser })
+      }
+      navigate({ to: '/overview' })
+    },
+  })
 
   const createOrg = useMutation({
     mutationFn: (data: SetupOrgForm) => {
@@ -151,6 +217,39 @@ function SetupOrgPage() {
               HR & Operations Superapp
             </p>
           </div>
+
+          {/* Pending invitations — shown when the user was already invited */}
+          {myInvitations.length > 0 && (
+            <div className="mb-6 space-y-3">
+              <p
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: '#72708A',
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  marginBottom: 4,
+                }}
+              >
+                You've been invited
+              </p>
+              {myInvitations.map((inv) => (
+                <InvitationCard
+                  key={inv.id}
+                  invitation={inv}
+                  onAccept={(token) => acceptInvitation.mutate(token)}
+                  isPending={acceptInvitation.isPending}
+                />
+              ))}
+              <div className="flex items-center gap-3 my-6">
+                <div className="flex-1 h-px" style={{ background: '#EDECF4' }} />
+                <span style={{ fontSize: 13, color: '#B0AEBE', fontWeight: 500 }}>
+                  or create a new workspace
+                </span>
+                <div className="flex-1 h-px" style={{ background: '#EDECF4' }} />
+              </div>
+            </div>
+          )}
 
           {/* Form Card */}
           <div
