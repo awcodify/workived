@@ -106,29 +106,15 @@ function OverviewPage() {
   const { data: employees, isLoading: empLoading } = useEmployees({ limit: 100 })
   const { data: daily, isLoading: dailyLoading } = useDailyReport(today)
 
-  // Monthly summary
-  const now = new Date()
-  const { data: monthly } = useMonthlyReport(now.getFullYear(), now.getMonth() + 1)
-  const monthName = new Intl.DateTimeFormat('en', { month: 'long' }).format(now)
-
   const totalEmployees = employees?.data?.length ?? 0
   const present = daily?.filter((e) => e.status === 'present').length ?? 0
   const late = daily?.filter((e) => e.status === 'late').length ?? 0
   const absent = daily?.filter((e) => e.status === 'absent').length ?? 0
 
-  // TODO: Replace with real data from GET /api/v1/attendance/daily?date=...&include=work_mode,leave
-  // Enrich entries with simulated WFH/WFO and on-leave status
+  // Use only real attendance data, no simulation
   const enrichedEntries = useMemo(() => {
     if (!daily) return []
-    return daily.map((e) => {
-      // Simulate: ~30% of present/late are WFH, rest WFO
-      const hash = e.employee_id.charCodeAt(0) + e.employee_id.charCodeAt(e.employee_id.length - 1)
-      const isActive = e.status === 'present' || e.status === 'late'
-      const workMode: 'wfh' | 'wfo' | null = isActive ? (hash % 3 === 0 ? 'wfh' : 'wfo') : null
-      // Simulate: ~40% of absent employees are "on leave"
-      const onLeave = e.status === 'absent' && hash % 5 < 2
-      return { ...e, workMode, onLeave }
-    })
+    return daily.map((e) => ({ ...e }))
   }, [daily])
 
   const onLeaveCount = enrichedEntries.filter((e) => e.onLeave).length
@@ -139,9 +125,6 @@ function OverviewPage() {
 
   const greeting = useGreeting()
   const clock = useLiveClock(tz)
-
-  const isLoading = orgLoading || empLoading || dailyLoading
-  const quote = useDailyQuote()
 
   // My clock-in state
   const myEntry = daily?.find((e) => e.employee_id === myEmployee?.id)
