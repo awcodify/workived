@@ -19,6 +19,7 @@ import (
 	"github.com/workived/services/internal/auth"
 	"github.com/workived/services/internal/department"
 	"github.com/workived/services/internal/employee"
+	"github.com/workived/services/internal/leave"
 	"github.com/workived/services/internal/organisation"
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
@@ -54,6 +55,7 @@ func main() {
 	empRepo := employee.NewRepository(db)
 	deptRepo := department.NewRepository(db)
 	attRepo := attendance.NewRepository(db)
+	leaveRepo := leave.NewRepository(db)
 	adminRepo := admin.NewRepository(db)
 	auditRepo := audit.NewRepository(db)
 
@@ -63,6 +65,7 @@ func main() {
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo))
 	deptSvc := department.NewService(deptRepo)
 	attSvc := attendance.NewService(attRepo, orgRepo)
+	leaveSvc := leave.NewService(leaveRepo, orgRepo)
 	adminSvc := admin.NewService(adminRepo)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
@@ -76,6 +79,13 @@ func main() {
 		log.Fatal("create admin UI handler", zap.Error(err))
 	}
 	attHandler := attendance.NewHandler(attSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
+		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		return emp.ID, nil
+	})
+	leaveHandler := leave.NewHandler(leaveSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
 		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
 		if err != nil {
 			return uuid.Nil, err
@@ -120,6 +130,7 @@ func main() {
 	empHandler.RegisterRoutes(authed)
 	deptHandler.RegisterRoutes(authed)
 	attHandler.RegisterRoutes(authed)
+	leaveHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)
