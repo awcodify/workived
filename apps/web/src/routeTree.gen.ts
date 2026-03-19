@@ -21,14 +21,19 @@ import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/rou
 import { Route as AppReportsRouteRouteImport } from './routes/_app/reports/route'
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
+import { Route as AppLeaveRouteRouteImport } from './routes/_app/leave/route'
 import { Route as AppFeatureDisabledRouteRouteImport } from './routes/_app/feature-disabled/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
+import { Route as AppLeaveIndexRouteImport } from './routes/_app/leave/index'
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
+import { Route as AppLeaveRequestsIndexRouteImport } from './routes/_app/leave/requests/index'
+import { Route as AppLeaveRequestsPendingRouteImport } from './routes/_app/leave/requests/pending'
+import { Route as AppLeaveRequestsNewRouteImport } from './routes/_app/leave/requests/new'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
@@ -88,6 +93,11 @@ const AppOverviewRouteRoute = AppOverviewRouteRouteImport.update({
   path: '/overview',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppLeaveRouteRoute = AppLeaveRouteRouteImport.update({
+  id: '/leave',
+  path: '/leave',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppFeatureDisabledRouteRoute = AppFeatureDisabledRouteRouteImport.update({
   id: '/feature-disabled',
   path: '/feature-disabled',
@@ -102,6 +112,11 @@ const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppPeopleRouteRoute,
+} as any)
+const AppLeaveIndexRoute = AppLeaveIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppLeaveRouteRoute,
 } as any)
 const AppAttendanceIndexRoute = AppAttendanceIndexRouteImport.update({
   id: '/',
@@ -129,11 +144,27 @@ const AppAttendanceMonthlyRouteRoute =
     path: '/monthly',
     getParentRoute: () => AppAttendanceRouteRoute,
   } as any)
+const AppLeaveRequestsIndexRoute = AppLeaveRequestsIndexRouteImport.update({
+  id: '/requests/',
+  path: '/requests/',
+  getParentRoute: () => AppLeaveRouteRoute,
+} as any)
+const AppLeaveRequestsPendingRoute = AppLeaveRequestsPendingRouteImport.update({
+  id: '/requests/pending',
+  path: '/requests/pending',
+  getParentRoute: () => AppLeaveRouteRoute,
+} as any)
+const AppLeaveRequestsNewRoute = AppLeaveRequestsNewRouteImport.update({
+  id: '/requests/new',
+  path: '/requests/new',
+  getParentRoute: () => AppLeaveRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
+  '/leave': typeof AppLeaveRouteRouteWithChildren
   '/overview': typeof AppOverviewRouteRoute
   '/people': typeof AppPeopleRouteRouteWithChildren
   '/reports': typeof AppReportsRouteRoute
@@ -148,7 +179,11 @@ export interface FileRoutesByFullPath {
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance/': typeof AppAttendanceIndexRoute
+  '/leave/': typeof AppLeaveIndexRoute
   '/people/': typeof AppPeopleIndexRoute
+  '/leave/requests/new': typeof AppLeaveRequestsNewRoute
+  '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
+  '/leave/requests/': typeof AppLeaveRequestsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -166,7 +201,11 @@ export interface FileRoutesByTo {
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance': typeof AppAttendanceIndexRoute
+  '/leave': typeof AppLeaveIndexRoute
   '/people': typeof AppPeopleIndexRoute
+  '/leave/requests/new': typeof AppLeaveRequestsNewRoute
+  '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
+  '/leave/requests': typeof AppLeaveRequestsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -175,6 +214,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
   '/_app/feature-disabled': typeof AppFeatureDisabledRouteRoute
+  '/_app/leave': typeof AppLeaveRouteRouteWithChildren
   '/_app/overview': typeof AppOverviewRouteRoute
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
   '/_app/reports': typeof AppReportsRouteRoute
@@ -189,7 +229,11 @@ export interface FileRoutesById {
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
   '/_app/attendance/': typeof AppAttendanceIndexRoute
+  '/_app/leave/': typeof AppLeaveIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
+  '/_app/leave/requests/new': typeof AppLeaveRequestsNewRoute
+  '/_app/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
+  '/_app/leave/requests/': typeof AppLeaveRequestsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -197,6 +241,7 @@ export interface FileRouteTypes {
     | '/'
     | '/attendance'
     | '/feature-disabled'
+    | '/leave'
     | '/overview'
     | '/people'
     | '/reports'
@@ -211,7 +256,11 @@ export interface FileRouteTypes {
     | '/settings/company'
     | '/settings/members'
     | '/attendance/'
+    | '/leave/'
     | '/people/'
+    | '/leave/requests/new'
+    | '/leave/requests/pending'
+    | '/leave/requests/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -229,7 +278,11 @@ export interface FileRouteTypes {
     | '/settings/company'
     | '/settings/members'
     | '/attendance'
+    | '/leave'
     | '/people'
+    | '/leave/requests/new'
+    | '/leave/requests/pending'
+    | '/leave/requests'
   id:
     | '__root__'
     | '/'
@@ -237,6 +290,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/_app/attendance'
     | '/_app/feature-disabled'
+    | '/_app/leave'
     | '/_app/overview'
     | '/_app/people'
     | '/_app/reports'
@@ -251,7 +305,11 @@ export interface FileRouteTypes {
     | '/_app/settings/company'
     | '/_app/settings/members'
     | '/_app/attendance/'
+    | '/_app/leave/'
     | '/_app/people/'
+    | '/_app/leave/requests/new'
+    | '/_app/leave/requests/pending'
+    | '/_app/leave/requests/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -346,6 +404,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOverviewRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/leave': {
+      id: '/_app/leave'
+      path: '/leave'
+      fullPath: '/leave'
+      preLoaderRoute: typeof AppLeaveRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/feature-disabled': {
       id: '/_app/feature-disabled'
       path: '/feature-disabled'
@@ -366,6 +431,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/people/'
       preLoaderRoute: typeof AppPeopleIndexRouteImport
       parentRoute: typeof AppPeopleRouteRoute
+    }
+    '/_app/leave/': {
+      id: '/_app/leave/'
+      path: '/'
+      fullPath: '/leave/'
+      preLoaderRoute: typeof AppLeaveIndexRouteImport
+      parentRoute: typeof AppLeaveRouteRoute
     }
     '/_app/attendance/': {
       id: '/_app/attendance/'
@@ -402,6 +474,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAttendanceMonthlyRouteRouteImport
       parentRoute: typeof AppAttendanceRouteRoute
     }
+    '/_app/leave/requests/': {
+      id: '/_app/leave/requests/'
+      path: '/requests'
+      fullPath: '/leave/requests/'
+      preLoaderRoute: typeof AppLeaveRequestsIndexRouteImport
+      parentRoute: typeof AppLeaveRouteRoute
+    }
+    '/_app/leave/requests/pending': {
+      id: '/_app/leave/requests/pending'
+      path: '/requests/pending'
+      fullPath: '/leave/requests/pending'
+      preLoaderRoute: typeof AppLeaveRequestsPendingRouteImport
+      parentRoute: typeof AppLeaveRouteRoute
+    }
+    '/_app/leave/requests/new': {
+      id: '/_app/leave/requests/new'
+      path: '/requests/new'
+      fullPath: '/leave/requests/new'
+      preLoaderRoute: typeof AppLeaveRequestsNewRouteImport
+      parentRoute: typeof AppLeaveRouteRoute
+    }
   }
 }
 
@@ -417,6 +510,24 @@ const AppAttendanceRouteRouteChildren: AppAttendanceRouteRouteChildren = {
 
 const AppAttendanceRouteRouteWithChildren =
   AppAttendanceRouteRoute._addFileChildren(AppAttendanceRouteRouteChildren)
+
+interface AppLeaveRouteRouteChildren {
+  AppLeaveIndexRoute: typeof AppLeaveIndexRoute
+  AppLeaveRequestsNewRoute: typeof AppLeaveRequestsNewRoute
+  AppLeaveRequestsPendingRoute: typeof AppLeaveRequestsPendingRoute
+  AppLeaveRequestsIndexRoute: typeof AppLeaveRequestsIndexRoute
+}
+
+const AppLeaveRouteRouteChildren: AppLeaveRouteRouteChildren = {
+  AppLeaveIndexRoute: AppLeaveIndexRoute,
+  AppLeaveRequestsNewRoute: AppLeaveRequestsNewRoute,
+  AppLeaveRequestsPendingRoute: AppLeaveRequestsPendingRoute,
+  AppLeaveRequestsIndexRoute: AppLeaveRequestsIndexRoute,
+}
+
+const AppLeaveRouteRouteWithChildren = AppLeaveRouteRoute._addFileChildren(
+  AppLeaveRouteRouteChildren,
+)
 
 interface AppPeopleRouteRouteChildren {
   AppPeopleIdRouteRoute: typeof AppPeopleIdRouteRoute
@@ -448,6 +559,7 @@ const AppSettingsRouteRouteWithChildren =
 interface AppRouteRouteChildren {
   AppAttendanceRouteRoute: typeof AppAttendanceRouteRouteWithChildren
   AppFeatureDisabledRouteRoute: typeof AppFeatureDisabledRouteRoute
+  AppLeaveRouteRoute: typeof AppLeaveRouteRouteWithChildren
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
   AppPeopleRouteRoute: typeof AppPeopleRouteRouteWithChildren
   AppReportsRouteRoute: typeof AppReportsRouteRoute
@@ -458,6 +570,7 @@ interface AppRouteRouteChildren {
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAttendanceRouteRoute: AppAttendanceRouteRouteWithChildren,
   AppFeatureDisabledRouteRoute: AppFeatureDisabledRouteRoute,
+  AppLeaveRouteRoute: AppLeaveRouteRouteWithChildren,
   AppOverviewRouteRoute: AppOverviewRouteRoute,
   AppPeopleRouteRoute: AppPeopleRouteRouteWithChildren,
   AppReportsRouteRoute: AppReportsRouteRoute,

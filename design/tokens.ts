@@ -62,12 +62,25 @@ const _dock = {
   },
 } as const
 
+// Dock theme for light backgrounds (leave, claims)
+const _dockLight = {
+  bg:     'rgba(0,0,0,0.04)',
+  border: 'rgba(0,0,0,0.08)',
+  icon:   'rgba(0,0,0,0.50)',
+  label:  'rgba(0,0,0,0.40)',
+  active: {
+    bg:    'rgba(0,0,0,0.08)',
+    icon:  '#0F0E13', // ink900 - near black
+    label: 'rgba(0,0,0,0.85)',
+  },
+} as const
+
 export const dockThemes = {
   overview:   _dock,
   people:     _dock,
   attendance: _dock,
-  leave:      _dock,
-  claims:     _dock,
+  leave:      _dockLight,
+  claims:     _dockLight,
   tasks:      _dock,
   reports:    _dock,
 } as const

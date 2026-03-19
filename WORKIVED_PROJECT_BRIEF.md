@@ -666,7 +666,7 @@ FOR EACH active employee × active leave_policy:
 - [x] Year-end rollover job (with tests and documentation)
 - [x] All leave endpoints wired to `/api/v1/leave/*`
 
-### Sprint 5 — Leave (frontend)
+### Sprint 5 — Leave (frontend) — READY TO START 🟢
 - [ ] Leave request pages (submit, view, approve/reject)
 - [ ] Leave balance dashboard
 - [ ] Leave policy management (admin)

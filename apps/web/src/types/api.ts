@@ -244,6 +244,96 @@ export interface ApiError {
   }
 }
 
+// ── Leave ───────────────────────────────────────────────────
+export interface LeavePolicy {
+  id: string
+  organisation_id: string
+  name: string
+  days_per_year: number
+  carry_over_days: number
+  min_tenure_days: number
+  requires_approval: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface LeaveBalance {
+  id: string
+  organisation_id: string
+  employee_id: string
+  leave_policy_id: string
+  year: number
+  entitled_days: number
+  carried_over_days: number
+  used_days: number
+  pending_days: number
+  created_at: string
+  updated_at: string
+}
+
+export interface LeaveBalanceWithPolicy extends LeaveBalance {
+  policy_name: string
+}
+
+export interface LeaveRequest {
+  id: string
+  organisation_id: string
+  employee_id: string
+  leave_policy_id: string
+  start_date: string  // YYYY-MM-DD
+  end_date: string    // YYYY-MM-DD
+  total_days: number
+  reason?: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  reviewed_by?: string
+  reviewed_at?: string
+  review_note?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface LeaveRequestWithDetails extends LeaveRequest {
+  employee_name: string
+  policy_name: string
+}
+
+export interface CalendarEntry {
+  employee_id: string
+  employee_name: string
+  policy_name: string
+  start_date: string
+  end_date: string
+  total_days: number
+}
+
+export interface CreatePolicyInput {
+  name: string
+  days_per_year: number
+  carry_over_days?: number
+  min_tenure_days?: number
+  requires_approval?: boolean
+}
+
+export interface UpdatePolicyInput {
+  name?: string
+  days_per_year?: number
+  carry_over_days?: number
+  min_tenure_days?: number
+  requires_approval?: boolean
+}
+
+export interface SubmitRequestInput {
+  leave_policy_id: string
+  start_date: string
+  end_date: string
+  reason?: string
+}
+
+export interface ReviewInput {
+  note?: string
+}
+
 // ── API wrapper ──────────────────────────────────────────────
 // All API responses are wrapped in {"data": ...}
 export interface ApiResponse<T> {

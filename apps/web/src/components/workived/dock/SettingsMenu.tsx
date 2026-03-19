@@ -102,7 +102,9 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             background: theme.bg,
             border: `1px solid ${theme.border}`,
             backdropFilter: 'blur(40px) saturate(180%)',
-            boxShadow: `0 8px 32px rgba(0, 0, 0, 0.4)`,
+            boxShadow: currentModule === 'leave' || currentModule === 'claims'
+              ? '0 8px 32px rgba(0, 0, 0, 0.12)'
+              : '0 8px 32px rgba(0, 0, 0, 0.4)',
             animation: 'slideUpFade 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}
         >
