@@ -3,6 +3,7 @@ package admin
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,7 +44,9 @@ func (r *Repository) ListFeatureFlags(ctx context.Context) ([]FeatureFlag, error
 			return nil, err
 		}
 		if targetIDsJSON != nil {
-			json.Unmarshal(targetIDsJSON, &f.TargetIDs)
+			if err := json.Unmarshal(targetIDsJSON, &f.TargetIDs); err != nil {
+				return nil, fmt.Errorf("unmarshal target_ids: %w", err)
+			}
 		}
 		flags = append(flags, f)
 	}
@@ -66,7 +69,9 @@ func (r *Repository) GetFeatureFlagByKey(ctx context.Context, key string) (*Feat
 		return nil, apperr.NotFound("feature flag")
 	}
 	if targetIDsJSON != nil {
-		json.Unmarshal(targetIDsJSON, &f.TargetIDs)
+		if err := json.Unmarshal(targetIDsJSON, &f.TargetIDs); err != nil {
+			return nil, fmt.Errorf("unmarshal target_ids: %w", err)
+		}
 	}
 	return &f, nil
 }
@@ -97,7 +102,9 @@ func (r *Repository) UpdateFeatureFlag(ctx context.Context, key string, req Upda
 		return nil, err
 	}
 	if respTargetIDsJSON != nil {
-		json.Unmarshal(respTargetIDsJSON, &f.TargetIDs)
+		if err := json.Unmarshal(respTargetIDsJSON, &f.TargetIDs); err != nil {
+			return nil, fmt.Errorf("unmarshal target_ids: %w", err)
+		}
 	}
 	return &f, nil
 }
@@ -231,7 +238,9 @@ func (r *Repository) ListAdminConfigs(ctx context.Context) ([]AdminConfig, error
 		if err := rows.Scan(&c.Key, &valueJSON, &c.Description, &c.UpdatedBy, &c.UpdatedAt); err != nil {
 			return nil, err
 		}
-		json.Unmarshal(valueJSON, &c.Value)
+		if err := json.Unmarshal(valueJSON, &c.Value); err != nil {
+			return nil, fmt.Errorf("unmarshal config value: %w", err)
+		}
 		configs = append(configs, c)
 	}
 	return configs, rows.Err()
@@ -251,7 +260,9 @@ func (r *Repository) UpdateAdminConfig(ctx context.Context, key string, req Upda
 	if err != nil {
 		return nil, err
 	}
-	json.Unmarshal(respValueJSON, &c.Value)
+	if err := json.Unmarshal(respValueJSON, &c.Value); err != nil {
+		return nil, fmt.Errorf("unmarshal config value: %w", err)
+	}
 	return &c, nil
 }
 
@@ -264,16 +275,28 @@ func (r *Repository) GetSystemStats(ctx context.Context) (*SystemStatsResponse, 
 	}
 
 	// Total organisations
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM organisations WHERE is_active = TRUE`).Scan(&stats.TotalOrganisations)
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM organisations WHERE is_active = TRUE AND plan = 'free'`).Scan(&stats.FreeOrganisations)
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM organisations WHERE is_active = TRUE AND plan = 'pro'`).Scan(&stats.ProOrganisations)
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM organisations WHERE is_active = TRUE`).Scan(&stats.TotalOrganisations); err != nil {
+		return nil, fmt.Errorf("count organisations: %w", err)
+	}
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM organisations WHERE is_active = TRUE AND plan = 'free'`).Scan(&stats.FreeOrganisations); err != nil {
+		return nil, fmt.Errorf("count free organisations: %w", err)
+	}
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM organisations WHERE is_active = TRUE AND plan = 'pro'`).Scan(&stats.ProOrganisations); err != nil {
+		return nil, fmt.Errorf("count pro organisations: %w", err)
+	}
 
 	// Users and employees
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&stats.TotalUsers)
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM employees WHERE is_active = TRUE`).Scan(&stats.TotalEmployees)
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&stats.TotalUsers); err != nil {
+		return nil, fmt.Errorf("count users: %w", err)
+	}
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM employees WHERE is_active = TRUE`).Scan(&stats.TotalEmployees); err != nil {
+		return nil, fmt.Errorf("count employees: %w", err)
+	}
 
 	// Active licenses
-	r.db.QueryRow(ctx, `SELECT COUNT(*) FROM pro_licenses WHERE status = 'active' AND expires_at > NOW()`).Scan(&stats.ActiveLicenses)
+	if err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM pro_licenses WHERE status = 'active' AND expires_at > NOW()`).Scan(&stats.ActiveLicenses); err != nil {
+		return nil, fmt.Errorf("count active licenses: %w", err)
+	}
 
 	// Expiring licenses (next 7 days)
 	rows, err := r.db.Query(ctx, `
@@ -291,12 +314,14 @@ func (r *Repository) GetSystemStats(ctx context.Context) (*SystemStatsResponse, 
 		defer rows.Close()
 		for rows.Next() {
 			var l ProLicense
-			rows.Scan(
+			if err := rows.Scan(
 				&l.ID, &l.OrganisationID, &l.LicenseType, &l.Status, &l.MaxEmployees,
 				&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 				&l.StripeSubscriptionID, &l.StripeCustomerID,
 				&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
-			)
+			); err != nil {
+				return nil, fmt.Errorf("scan expiring license: %w", err)
+			}
 			stats.ExpiringLicenses = append(stats.ExpiringLicenses, l)
 		}
 	}

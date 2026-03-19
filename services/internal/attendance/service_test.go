@@ -84,8 +84,6 @@ var (
 	testEmpID = uuid.MustParse("00000000-0000-0000-0000-000000000002")
 )
 
-func strPtr(s string) *string { return &s }
-
 func fixedNow(t time.Time) func() time.Time {
 	return func() time.Time { return t }
 }

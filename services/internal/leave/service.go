@@ -221,7 +221,7 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Lock balance row.
 	balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, employeeID, input.LeavePolicyID, year)
@@ -270,7 +270,7 @@ func (s *Service) ApproveRequest(ctx context.Context, orgID, reviewerEmployeeID,
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Lock balance and move days from pending → used.
 	year, _ := time.Parse("2006-01-02", existing.StartDate)
@@ -312,7 +312,7 @@ func (s *Service) RejectRequest(ctx context.Context, orgID, reviewerEmployeeID, 
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Restore pending days.
 	year, _ := time.Parse("2006-01-02", existing.StartDate)
@@ -361,7 +361,7 @@ func (s *Service) CancelRequest(ctx context.Context, orgID, employeeID, requestI
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	year, _ := time.Parse("2006-01-02", existing.StartDate)
 	balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, existing.EmployeeID, existing.LeavePolicyID, year.Year())

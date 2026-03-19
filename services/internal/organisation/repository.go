@@ -25,7 +25,7 @@ func (r *Repository) Create(ctx context.Context, req CreateOrgRequest, ownerID u
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	org := &Organisation{}
 	err = tx.QueryRow(ctx, `
@@ -186,7 +186,7 @@ func (r *Repository) AcceptInvitation(ctx context.Context, p AcceptParams) (*Mem
 	if err != nil {
 		return nil, err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// 1. Mark invitation accepted (atomic — WHERE accepted_at IS NULL prevents double-accept).
 	tag, err := tx.Exec(ctx, `
@@ -433,7 +433,7 @@ func (r *Repository) TransferOwnership(ctx context.Context, orgID, currentOwnerI
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Step 1: Demote current owner → admin.
 	tag, err := tx.Exec(ctx, `

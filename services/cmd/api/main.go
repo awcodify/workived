@@ -27,7 +27,7 @@ import (
 
 func main() {
 	log, _ := zap.NewProduction()
-	defer log.Sync()
+	defer func() { _ = log.Sync() }()
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -46,7 +46,7 @@ func main() {
 	if err != nil {
 		log.Fatal("connect redis", zap.Error(err))
 	}
-	defer rdb.Close()
+	defer func() { _ = rdb.Close() }()
 
 	// ── Repositories ─────────────────────────────────────────────────────────
 	authRepo := auth.NewRepository(db)

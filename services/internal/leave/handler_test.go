@@ -19,16 +19,6 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-// ── Test UUIDs ───────────────────────────────────────────────────────────────
-
-var (
-	testOrgID    = uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	testUserID   = uuid.MustParse("00000000-0000-0000-0000-000000000002")
-	testEmpID    = uuid.MustParse("00000000-0000-0000-0000-000000000003")
-	testPolicyID = uuid.MustParse("00000000-0000-0000-0000-000000000004")
-	testReqID    = uuid.MustParse("00000000-0000-0000-0000-000000000005")
-)
-
 // ── Fake service ─────────────────────────────────────────────────────────────
 
 type fakeService struct {

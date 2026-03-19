@@ -12,28 +12,20 @@ import (
 	"github.com/workived/services/pkg/apperr"
 )
 
-// ── Test UUIDs ──────────────────────────────────────────────────────────────
-
-var (
-	testOrgID    = uuid.MustParse("00000000-0000-0000-0000-000000000001")
-	testEmpID    = uuid.MustParse("00000000-0000-0000-0000-000000000002")
-	testPolicyID = uuid.MustParse("00000000-0000-0000-0000-000000000003")
-	testReqID    = uuid.MustParse("00000000-0000-0000-0000-000000000004")
-	testBalID    = uuid.MustParse("00000000-0000-0000-0000-000000000005")
-)
-
 // ── fakeTx ──────────────────────────────────────────────────────────────────
 
 type fakeTx struct{}
 
-func (f *fakeTx) Begin(_ context.Context) (pgx.Tx, error)       { return &fakeTx{}, nil }
-func (f *fakeTx) Commit(_ context.Context) error                 { return nil }
-func (f *fakeTx) Rollback(_ context.Context) error               { return nil }
+func (f *fakeTx) Begin(_ context.Context) (pgx.Tx, error) { return &fakeTx{}, nil }
+func (f *fakeTx) Commit(_ context.Context) error          { return nil }
+func (f *fakeTx) Rollback(_ context.Context) error        { return nil }
 func (f *fakeTx) CopyFrom(_ context.Context, _ pgx.Identifier, _ []string, _ pgx.CopyFromSource) (int64, error) {
 	return 0, nil
 }
-func (f *fakeTx) SendBatch(_ context.Context, _ *pgx.Batch) pgx.BatchResults { return &fakeBatchResults{} }
-func (f *fakeTx) LargeObjects() pgx.LargeObjects                             { return pgx.LargeObjects{} }
+func (f *fakeTx) SendBatch(_ context.Context, _ *pgx.Batch) pgx.BatchResults {
+	return &fakeBatchResults{}
+}
+func (f *fakeTx) LargeObjects() pgx.LargeObjects { return pgx.LargeObjects{} }
 func (f *fakeTx) Prepare(_ context.Context, _, _ string) (*pgconn.StatementDescription, error) {
 	return &pgconn.StatementDescription{}, nil
 }
@@ -42,7 +34,7 @@ func (f *fakeTx) Exec(_ context.Context, _ string, _ ...any) (pgconn.CommandTag,
 }
 func (f *fakeTx) Query(_ context.Context, _ string, _ ...any) (pgx.Rows, error) { return nil, nil }
 func (f *fakeTx) QueryRow(_ context.Context, _ string, _ ...any) pgx.Row        { return &fakeRow{} }
-func (f *fakeTx) Conn() *pgx.Conn                                                { return nil }
+func (f *fakeTx) Conn() *pgx.Conn                                               { return nil }
 
 type fakeRow struct{}
 
