@@ -525,7 +525,6 @@ function OverviewPage() {
           border: '1px solid rgba(255,255,255,0.10)',
           borderRadius: 18,
           boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
-          background: 'rgba(255,255,255,0.03)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -563,7 +562,6 @@ function OverviewPage() {
           border: '1px solid rgba(255,255,255,0.10)',
           borderRadius: 18,
           boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
-          background: 'rgba(255,255,255,0.03)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -591,7 +589,7 @@ function OverviewPage() {
                 const noRecord = !att
 
                 const statusColor = isOnLeave ? colors.accentMid : isAbsent ? colors.err : isLate ? colors.warn : isPresent ? colors.ok : 'rgba(255,255,255,0.15)'
-                const statusLabel = isOnLeave ? 'On Leave' : isAbsent ? 'Absent' : isLate ? 'Late' : isPresent ? 'On time' : 'Not clocked in'
+                const statusLabel = isOnLeave ? 'On Leave' : isAbsent ? 'Absent' : isLate ? 'Late' : isPresent ? 'Ontime' : 'Not clocked in'
 
                 // Calculate worked hours for present employees
                 let workedHours = ''
