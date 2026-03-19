@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -130,6 +131,8 @@ func (s *Service) TransferOwnership(ctx context.Context, orgID, currentOwnerID u
 // ── Invitation flow ──────────────────────────────────────────────────────────
 
 func (s *Service) InviteMember(ctx context.Context, orgID, inviterID uuid.UUID, req InviteMemberRequest) (*InviteResponse, error) {
+	req.Email = strings.ToLower(req.Email)
+
 	// 1. Check if email is already an active member.
 	isMember, err := s.repo.IsEmailAlreadyMember(ctx, orgID, req.Email)
 	if err != nil {

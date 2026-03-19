@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import { authApi } from '@/lib/api/auth'
 import { useAuthStore } from '@/lib/stores/auth'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
+import { colors, moduleBackgrounds } from '@/design/tokens'
 import type { ApiError } from '@/types/api'
 import { AxiosError } from 'axios'
 
@@ -58,7 +59,7 @@ function LoginPage() {
       {/* Left Side - Black Background with Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
-        style={{ background: '#0C0C0F' }}
+        style={{ background: moduleBackgrounds.overview }}
       >
         {/* Logo */}
         <div>
@@ -82,7 +83,7 @@ function LoginPage() {
               fontWeight: 800,
               letterSpacing: '-0.05em',
               lineHeight: 1.1,
-              color: '#FFFFFF',
+              color: colors.ink0,
             }}
           >
             Your team,
@@ -117,7 +118,7 @@ function LoginPage() {
       <div
         className="flex-1 flex items-center justify-center p-8"
         style={{
-          background: 'linear-gradient(135deg, #F3F2FB 0%, #EFEDFD 100%)',
+          background: `linear-gradient(135deg, ${colors.ink50} 0%, ${colors.accentDim} 100%)`,
         }}
       >
         <div className="w-full max-w-md">
@@ -129,7 +130,7 @@ function LoginPage() {
             <p
               style={{
                 fontSize: 14,
-                color: '#72708A',
+                color: colors.ink500,
                 marginTop: 8,
               }}
             >
@@ -141,7 +142,7 @@ function LoginPage() {
           <div
             className="p-10 rounded-3xl"
             style={{
-              background: '#FFFFFF',
+              background: colors.ink0,
               boxShadow: '0 20px 60px rgba(99,87,232,0.12), 0 0 0 1px rgba(99,87,232,0.08)',
             }}
           >
@@ -151,7 +152,7 @@ function LoginPage() {
                   fontSize: 28,
                   fontWeight: 800,
                   letterSpacing: '-0.03em',
-                  color: '#0F0E13',
+                  color: colors.ink900,
                 }}
               >
                 Welcome back
@@ -159,7 +160,7 @@ function LoginPage() {
               <p
                 style={{
                   fontSize: 15,
-                  color: '#72708A',
+                  color: colors.ink500,
                   marginTop: 6,
                 }}
               >
@@ -175,14 +176,14 @@ function LoginPage() {
                 <div
                   className="px-4 py-3 rounded-xl"
                   style={{
-                    background: '#FDECEC',
-                    border: '1px solid #D44040',
+                    background: colors.errDim,
+                    border: `1px solid ${colors.err}`,
                   }}
                 >
                   <p
                     style={{
                       fontSize: 14,
-                      color: '#AE2E2E',
+                      color: colors.errText,
                       fontWeight: 500,
                     }}
                   >
@@ -198,7 +199,7 @@ function LoginPage() {
                     display: 'block',
                     fontSize: 14,
                     fontWeight: 600,
-                    color: '#1F1D2B',
+                    color: colors.ink700,
                     marginBottom: 8,
                   }}
                 >
@@ -211,9 +212,9 @@ function LoginPage() {
                   placeholder="you@company.com"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{
-                    background: '#F3F2FB',
-                    border: '1.5px solid #EDECF4',
-                    color: '#0F0E13',
+                    background: colors.ink50,
+                    border: `1.5px solid ${colors.ink100}`,
+                    color: colors.ink900,
                   }}
                   {...form.register('email')}
                 />
@@ -221,7 +222,7 @@ function LoginPage() {
                   <p
                     style={{
                       fontSize: 13,
-                      color: '#D44040',
+                      color: colors.err,
                       marginTop: 6,
                       fontWeight: 500,
                     }}
@@ -238,7 +239,7 @@ function LoginPage() {
                     display: 'block',
                     fontSize: 14,
                     fontWeight: 600,
-                    color: '#1F1D2B',
+                    color: colors.ink700,
                     marginBottom: 8,
                   }}
                 >
@@ -251,9 +252,9 @@ function LoginPage() {
                   placeholder="••••••••"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{
-                    background: '#F3F2FB',
-                    border: '1.5px solid #EDECF4',
-                    color: '#0F0E13',
+                    background: colors.ink50,
+                    border: `1.5px solid ${colors.ink100}`,
+                    color: colors.ink900,
                   }}
                   {...form.register('password')}
                 />
@@ -261,7 +262,7 @@ function LoginPage() {
                   <p
                     style={{
                       fontSize: 13,
-                      color: '#D44040',
+                      color: colors.err,
                       marginTop: 6,
                       fontWeight: 500,
                     }}
@@ -276,8 +277,8 @@ function LoginPage() {
                 disabled={login.isPending}
                 className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50"
                 style={{
-                  background: 'linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%)',
-                  color: '#FFFFFF',
+                  background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,
+                  color: colors.ink0,
                   fontSize: 15,
                   letterSpacing: '-0.01em',
                   boxShadow: '0 4px 16px rgba(99,87,232,0.3)',
@@ -297,12 +298,12 @@ function LoginPage() {
               </button>
             </form>
 
-            <p className="text-center mt-6" style={{ fontSize: 14, color: '#72708A' }}>
+            <p className="text-center mt-6" style={{ fontSize: 14, color: colors.ink500 }}>
               Don't have an account?{' '}
               <Link
                 to="/register"
                 search={{ invite_token: undefined }}
-                style={{ color: '#6357E8', fontWeight: 600 }}
+                style={{ color: colors.accent, fontWeight: 600 }}
               >
                 Sign up
               </Link>

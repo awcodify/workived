@@ -14,8 +14,10 @@ import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 const C = {
   err: colors.err,
   errDim: colors.errDim,
+  errText: colors.errText,
   ok: colors.ok,
   okDim: colors.okDim,
+  okText: colors.okText,
   accent: colors.accent,
   accentDim: colors.accentDim,
 }
@@ -105,7 +107,7 @@ function MembersPage() {
               fontSize: typography.h1.size,
               fontWeight: typography.h1.weight,
               letterSpacing: typography.h1.tracking,
-              color: '#FFFFFF',
+              color: colors.ink0,
             }}
           >
             Workspace Members
@@ -150,7 +152,7 @@ function MembersPage() {
             style={{
               fontSize: 18,
               fontWeight: 700,
-              color: '#FFFFFF',
+              color: colors.ink0,
               marginBottom: 4,
             }}
           >
@@ -166,7 +168,7 @@ function MembersPage() {
                 className="px-4 py-3 rounded-xl"
                 style={{ background: C.errDim, border: `1px solid ${C.err}` }}
               >
-                <p style={{ fontSize: 14, color: '#AE2E2E', fontWeight: 500 }}>{apiError}</p>
+                <p style={{ fontSize: 14, color: C.errText, fontWeight: 500 }}>{apiError}</p>
               </div>
             )}
 
@@ -179,7 +181,7 @@ function MembersPage() {
                   style={{
                     background: 'rgba(255,255,255,0.08)',
                     border: '1.5px solid rgba(255,255,255,0.12)',
-                    color: '#FFFFFF',
+                    color: colors.ink0,
                   }}
                   {...form.register('email')}
                 />
@@ -196,7 +198,7 @@ function MembersPage() {
                   style={{
                     background: 'rgba(255,255,255,0.08)',
                     border: '1.5px solid rgba(255,255,255,0.12)',
-                    color: '#FFFFFF',
+                    color: colors.ink0,
                   }}
                   {...form.register('role')}
                 >
@@ -218,7 +220,7 @@ function MembersPage() {
                 className="px-6 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50"
                 style={{
                   background: C.accent,
-                  color: '#FFFFFF',
+                  color: colors.ink0,
                 }}
               >
                 {inviteMember.isPending ? 'Sending...' : 'Send invite'}
@@ -234,10 +236,10 @@ function MembersPage() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                  <p style={{ fontSize: 14, color: '#0A7B46', fontWeight: 600, marginBottom: 4 }}>
+                  <p style={{ fontSize: 14, color: C.okText, fontWeight: 600, marginBottom: 4 }}>
                     ✓ Invitation sent to {lastInvite.email}
                   </p>
-                  <p style={{ fontSize: 12, color: '#0D7A45', lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 12, color: C.okText, lineHeight: 1.5 }}>
                     They can now log in to the workspace. Need HR tracking? 
                     Add them as an <a href="/people/new" style={{ textDecoration: 'underline', fontWeight: 600 }}>employee</a> for 
                     attendance, leave, and payroll records.
@@ -246,7 +248,7 @@ function MembersPage() {
                 <button
                   onClick={() => handleCopyLink(lastInvite.invite_url, lastInvite.id)}
                   className="px-3 py-1.5 rounded-lg text-xs font-bold shrink-0"
-                  style={{ background: C.ok, color: '#FFFFFF' }}
+                  style={{ background: C.ok, color: colors.ink0 }}
                 >
                   {copiedId === lastInvite.id ? 'Copied!' : 'Copy link'}
                 </button>
@@ -274,7 +276,7 @@ function MembersPage() {
               style={{
                 fontSize: 18,
                 fontWeight: 700,
-                color: '#FFFFFF',
+                color: colors.ink0,
               }}
             >
               Pending invitations
@@ -346,7 +348,7 @@ function TeamMembersSection({
       style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
     >
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF' }}>Team members</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: colors.ink0 }}>Team members</h2>
 
         {/* Filter toggle */}
         <div className="flex items-center gap-1.5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -355,7 +357,7 @@ function TeamMembersSection({
             className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
             style={
               filter === 'all'
-                ? { background: 'rgba(255,255,255,0.14)', color: '#FFFFFF' }
+                ? { background: 'rgba(255,255,255,0.14)', color: colors.ink0 }
                 : { color: 'rgba(255,255,255,0.45)' }
             }
           >
@@ -366,7 +368,7 @@ function TeamMembersSection({
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
             style={
               filter === 'missing_hr'
-                ? { background: 'rgba(255,255,255,0.14)', color: '#FFFFFF' }
+                ? { background: 'rgba(255,255,255,0.14)', color: colors.ink0 }
                 : { color: 'rgba(255,255,255,0.45)' }
             }
           >
@@ -423,7 +425,7 @@ function MemberRow({ member }: { member: MemberWithProfile }) {
       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
     >
       <div className="flex-1 min-w-0">
-        <p style={{ fontSize: 14, fontWeight: 600, color: '#FFFFFF' }} className="truncate">
+        <p style={{ fontSize: 14, fontWeight: 600, color: colors.ink0 }} className="truncate">
           {member.full_name}
         </p>
         <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }} className="truncate">
@@ -444,9 +446,9 @@ function MemberRow({ member }: { member: MemberWithProfile }) {
         {hrStatus === 'active' && (
           <span
             className="flex items-center gap-1 text-xs font-semibold"
-            style={{ color: '#12A05C' }}
+            style={{ color: colors.ok }}
           >
-            <span style={{ width: 7, height: 7, borderRadius: 2, background: '#12A05C', flexShrink: 0, display: 'inline-block' }} />
+            <span style={{ width: 7, height: 7, borderRadius: 2, background: colors.ok, flexShrink: 0, display: 'inline-block' }} />
             Linked
           </span>
         )}
@@ -498,7 +500,7 @@ function InvitationRow({
       <div className="flex-1 min-w-0">
         <p
           className="truncate"
-          style={{ fontSize: 14, fontWeight: 600, color: '#FFFFFF' }}
+          style={{ fontSize: 14, fontWeight: 600, color: colors.ink0 }}
         >
           {invitation.email}
         </p>
@@ -517,7 +519,7 @@ function InvitationRow({
               className="text-xs font-medium px-2 py-0.5 rounded"
               style={{
                 background: 'rgba(212,64,64,0.15)',
-                color: '#D44040',
+                color: C.err,
               }}
             >
               Expired
@@ -551,7 +553,7 @@ function InvitationRow({
           className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all disabled:opacity-50"
           style={{
             background: 'rgba(212,64,64,0.1)',
-            color: '#D44040',
+            color: C.err,
             border: '1px solid rgba(212,64,64,0.2)',
           }}
         >

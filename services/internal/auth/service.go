@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -51,6 +52,8 @@ func NewService(repo Repo, orgRepo OrgRepo, jwtSecret string, accessTTL, refresh
 }
 
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, error) {
+	req.Email = strings.ToLower(req.Email)
+
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		// unreachable with DefaultCost; guard against future cost changes
@@ -74,6 +77,8 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, err
 }
 
 func (s *Service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, string, error) {
+	req.Email = strings.ToLower(req.Email)
+
 	user, hash, err := s.repo.GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		return nil, "", apperr.New(apperr.CodeUnauthorized, "invalid email or password")

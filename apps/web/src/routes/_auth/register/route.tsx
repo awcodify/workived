@@ -6,8 +6,8 @@ import { useMutation } from '@tanstack/react-query'
 import { authApi } from '@/lib/api/auth'
 import { useAuthStore } from '@/lib/stores/auth'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
-import type { ApiError } from '@/types/api'
-import { AxiosError } from 'axios'
+import { colors, moduleBackgrounds } from '@/design/tokens'
+import { extractApiError } from '@/lib/utils/errors'
 
 export const Route = createFileRoute('/_auth/register')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -53,17 +53,14 @@ function RegisterPage() {
     },
   })
 
-  const apiError =
-    register.error instanceof AxiosError
-      ? (register.error.response?.data as ApiError | undefined)?.error?.message
-      : undefined
+  const apiError = extractApiError(register.error)
 
   return (
     <div className="flex-1 flex">
       {/* Left Side - Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
-        style={{ background: '#0C0C0F' }}
+        style={{ background: moduleBackgrounds.overview }}
       >
         <div>
           <WorkivedLogo size={48} showWordmark={true} variant="light" />
@@ -79,7 +76,7 @@ function RegisterPage() {
               fontWeight: 800,
               letterSpacing: '-0.05em',
               lineHeight: 1.1,
-              color: '#FFFFFF',
+              color: colors.ink0,
             }}
           >
             {invite_token ? (
@@ -119,7 +116,7 @@ function RegisterPage() {
       {/* Right Side - Form */}
       <div
         className="flex-1 flex items-center justify-center p-8"
-        style={{ background: 'linear-gradient(135deg, #F3F2FB 0%, #EFEDFD 100%)' }}
+        style={{ background: `linear-gradient(135deg, ${colors.ink50} 0%, ${colors.accentDim} 100%)` }}
       >
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
@@ -127,7 +124,7 @@ function RegisterPage() {
             <div className="flex justify-center">
               <WorkivedLogo size={48} showWordmark={true} variant="dark" />
             </div>
-            <p style={{ fontSize: 14, color: '#72708A', marginTop: 8 }}>
+            <p style={{ fontSize: 14, color: colors.ink500, marginTop: 8 }}>
               HR & Operations Superapp
             </p>
           </div>
@@ -136,7 +133,7 @@ function RegisterPage() {
           <div
             className="p-10 rounded-3xl"
             style={{
-              background: '#FFFFFF',
+              background: colors.ink0,
               boxShadow: '0 20px 60px rgba(99,87,232,0.12), 0 0 0 1px rgba(99,87,232,0.08)',
             }}
           >
@@ -146,12 +143,12 @@ function RegisterPage() {
                   fontSize: 28,
                   fontWeight: 800,
                   letterSpacing: '-0.03em',
-                  color: '#0F0E13',
+                  color: colors.ink900,
                 }}
               >
                 Create your account
               </h2>
-              <p style={{ fontSize: 15, color: '#72708A', marginTop: 6 }}>
+              <p style={{ fontSize: 15, color: colors.ink500, marginTop: 6 }}>
                 {invite_token
                   ? "You've been invited — create an account to join your workspace."
                   : 'Get started with Workived — free for teams up to 25'}
@@ -165,9 +162,9 @@ function RegisterPage() {
               {apiError && (
                 <div
                   className="px-4 py-3 rounded-xl"
-                  style={{ background: '#FDECEC', border: '1px solid #D44040' }}
+                  style={{ background: colors.errDim, border: `1px solid ${colors.err}` }}
                 >
-                  <p style={{ fontSize: 14, color: '#AE2E2E', fontWeight: 500 }}>
+                  <p style={{ fontSize: 14, color: colors.errText, fontWeight: 500 }}>
                     {apiError}
                   </p>
                 </div>
@@ -176,7 +173,7 @@ function RegisterPage() {
               <div>
                 <label
                   htmlFor="full_name"
-                  style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1F1D2B', marginBottom: 8 }}
+                  style={{ display: 'block', fontSize: 14, fontWeight: 600, color: colors.ink700, marginBottom: 8 }}
                 >
                   Full name
                 </label>
@@ -186,11 +183,11 @@ function RegisterPage() {
                   autoComplete="name"
                   placeholder="Ahmad Rizky"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
-                  style={{ background: '#F3F2FB', border: '1.5px solid #EDECF4', color: '#0F0E13' }}
+                  style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
                   {...form.register('full_name')}
                 />
                 {form.formState.errors.full_name && (
-                  <p style={{ fontSize: 13, color: '#D44040', marginTop: 6, fontWeight: 500 }}>
+                  <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
                     {form.formState.errors.full_name.message}
                   </p>
                 )}
@@ -199,7 +196,7 @@ function RegisterPage() {
               <div>
                 <label
                   htmlFor="email"
-                  style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1F1D2B', marginBottom: 8 }}
+                  style={{ display: 'block', fontSize: 14, fontWeight: 600, color: colors.ink700, marginBottom: 8 }}
                 >
                   Work email
                 </label>
@@ -209,11 +206,11 @@ function RegisterPage() {
                   autoComplete="email"
                   placeholder="you@company.com"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
-                  style={{ background: '#F3F2FB', border: '1.5px solid #EDECF4', color: '#0F0E13' }}
+                  style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
                   {...form.register('email')}
                 />
                 {form.formState.errors.email && (
-                  <p style={{ fontSize: 13, color: '#D44040', marginTop: 6, fontWeight: 500 }}>
+                  <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
                     {form.formState.errors.email.message}
                   </p>
                 )}
@@ -222,7 +219,7 @@ function RegisterPage() {
               <div>
                 <label
                   htmlFor="password"
-                  style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#1F1D2B', marginBottom: 8 }}
+                  style={{ display: 'block', fontSize: 14, fontWeight: 600, color: colors.ink700, marginBottom: 8 }}
                 >
                   Password
                 </label>
@@ -232,11 +229,11 @@ function RegisterPage() {
                   autoComplete="new-password"
                   placeholder="At least 8 characters"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
-                  style={{ background: '#F3F2FB', border: '1.5px solid #EDECF4', color: '#0F0E13' }}
+                  style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
                   {...form.register('password')}
                 />
                 {form.formState.errors.password && (
-                  <p style={{ fontSize: 13, color: '#D44040', marginTop: 6, fontWeight: 500 }}>
+                  <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
                     {form.formState.errors.password.message}
                   </p>
                 )}
@@ -247,8 +244,8 @@ function RegisterPage() {
                 disabled={register.isPending}
                 className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50"
                 style={{
-                  background: '#6357E8',
-                  color: '#FFFFFF',
+                  background: colors.accent,
+                  color: colors.ink0,
                   fontSize: 15,
                   letterSpacing: '-0.01em',
                 }}
@@ -257,12 +254,12 @@ function RegisterPage() {
               </button>
             </form>
 
-            <p className="text-center mt-6" style={{ fontSize: 14, color: '#72708A' }}>
+            <p className="text-center mt-6" style={{ fontSize: 14, color: colors.ink500 }}>
               Already have an account?{' '}
               <Link
                 to="/login"
                 search={{ redirect: undefined }}
-                style={{ color: '#6357E8', fontWeight: 600 }}
+                style={{ color: colors.accent, fontWeight: 600 }}
               >
                 Sign in
               </Link>

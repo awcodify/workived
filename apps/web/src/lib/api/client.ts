@@ -12,13 +12,23 @@ apiClient.interceptors.request.use((config) => {
   return config
 })
 
+let isRefreshing = false
+
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
-    if (error.response?.status === 401 && !error.config._retry) {
-      error.config._retry = true
-      const refreshed = await useAuthStore.getState().refresh()
-      if (refreshed) return apiClient(error.config)
+    if (error.response?.status === 401 && !isRefreshing) {
+      isRefreshing = true
+      try {
+        await useAuthStore.getState().refresh()
+        isRefreshing = false
+        return apiClient(error.config)
+      } catch {
+        isRefreshing = false
+        useAuthStore.getState().logout()
+        window.location.href = '/login'
+        return Promise.reject(error)
+      }
     }
     return Promise.reject(error)
   },

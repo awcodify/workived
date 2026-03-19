@@ -11,8 +11,9 @@ import { organisationsApi } from '@/lib/api/organisations'
 import { useAuthStore } from '@/lib/stores/auth'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
-import type { ApiError, MyInvitation } from '@/types/api'
-import { AxiosError } from 'axios'
+import { extractApiError } from '@/lib/utils/errors'
+import { extractInviteToken } from '@/lib/utils/url'
+import type { MyInvitation } from '@/types/api'
 
 export const Route = createFileRoute('/_app/settings/company')({
   component: CompanyPage,
@@ -58,15 +59,6 @@ const C = {
   warnDim: colors.warnDim,
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function extractApiError(error: unknown): string | undefined {
-  if (error instanceof AxiosError) {
-    return (error.response?.data as ApiError | undefined)?.error?.message
-  }
-  return undefined
-}
-
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
 function Card({ children }: { children: React.ReactNode }) {
@@ -89,7 +81,7 @@ function CardTitle({ children }: { children: React.ReactNode }) {
       style={{
         fontSize: 18,
         fontWeight: 700,
-        color: '#FFFFFF',
+        color: colors.ink0,
         marginBottom: 16,
       }}
     >
@@ -122,7 +114,7 @@ function DarkInput({
       style={{
         background: 'rgba(255,255,255,0.08)',
         border: '1.5px solid rgba(255,255,255,0.12)',
-        color: '#FFFFFF',
+        color: colors.ink0,
       }}
       {...props}
     />
@@ -174,7 +166,7 @@ function PrimaryButton({
       className="px-6 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50"
       style={{
         background: C.accent,
-        color: '#FFFFFF',
+        color: colors.ink0,
       }}
     >
       {children}
@@ -245,7 +237,7 @@ function CompanyInfoCard() {
               type="text"
               placeholder="acme-corp"
               className="flex-1 px-4 py-3 text-sm focus:outline-none bg-transparent"
-              style={{ color: '#FFFFFF' }}
+              style={{ color: colors.ink0 }}
               {...form.register('slug')}
             />
           </div>
@@ -343,7 +335,7 @@ function LocationCard() {
           {isLocked ? (
             <p
               id="country-code"
-              style={{ fontSize: 15, color: '#FFFFFF', fontWeight: 500 }}
+              style={{ fontSize: 15, color: colors.ink0, fontWeight: 500 }}
             >
               {COUNTRIES.find((c) => c.value === org?.country_code)?.label ?? org?.country_code}
             </p>
@@ -354,7 +346,7 @@ function LocationCard() {
               style={{
                 background: 'rgba(255,255,255,0.08)',
                 border: '1.5px solid rgba(255,255,255,0.12)',
-                color: '#FFFFFF',
+                color: colors.ink0,
               }}
               {...form.register('country_code')}
             >
@@ -377,7 +369,7 @@ function LocationCard() {
           {isLocked ? (
             <p
               id="timezone"
-              style={{ fontSize: 15, color: '#FFFFFF', fontWeight: 500 }}
+              style={{ fontSize: 15, color: colors.ink0, fontWeight: 500 }}
             >
               {TIMEZONES.find((t) => t.value === org?.timezone)?.label ?? org?.timezone}
             </p>
@@ -388,7 +380,7 @@ function LocationCard() {
               style={{
                 background: 'rgba(255,255,255,0.08)',
                 border: '1.5px solid rgba(255,255,255,0.12)',
-                color: '#FFFFFF',
+                color: colors.ink0,
               }}
               {...form.register('timezone')}
             >
@@ -411,7 +403,7 @@ function LocationCard() {
           {isLocked ? (
             <p
               id="currency-code"
-              style={{ fontSize: 15, color: '#FFFFFF', fontWeight: 500 }}
+              style={{ fontSize: 15, color: colors.ink0, fontWeight: 500 }}
             >
               {CURRENCIES.find((cur) => cur.value === org?.currency_code)?.label ?? org?.currency_code}
             </p>
@@ -422,7 +414,7 @@ function LocationCard() {
               style={{
                 background: 'rgba(255,255,255,0.08)',
                 border: '1.5px solid rgba(255,255,255,0.12)',
-                color: '#FFFFFF',
+                color: colors.ink0,
               }}
               {...form.register('currency_code')}
             >
@@ -472,7 +464,7 @@ function PlanCard() {
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: '#FFFFFF' }}>{planLabel} plan</p>
+            <p style={{ fontSize: 15, fontWeight: 700, color: colors.ink0 }}>{planLabel} plan</p>
             <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
               {count} employee{count !== 1 ? 's' : ''}
               {limit ? ` of ${limit} included` : ' (no limit)'}
@@ -485,7 +477,7 @@ function PlanCard() {
               className="px-4 py-2 rounded-xl text-xs font-bold"
               style={{
                 background: C.accent,
-                color: '#FFFFFF',
+                color: colors.ink0,
                 textDecoration: 'none',
               }}
             >
@@ -627,13 +619,13 @@ function TransferOwnershipCard() {
           >
             <h3
               id="confirm-transfer-title"
-              style={{ fontSize: 20, fontWeight: 700, color: '#FFFFFF' }}
+              style={{ fontSize: 20, fontWeight: 700, color: colors.ink0 }}
             >
               Confirm ownership transfer
             </h3>
             <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
               You are about to transfer ownership to user{' '}
-              <span style={{ fontFamily: 'monospace', color: '#FFFFFF', wordBreak: 'break-all' }}>
+              <span style={{ fontFamily: 'monospace', color: colors.ink0, wordBreak: 'break-all' }}>
                 {pendingData?.new_owner_user_id}
               </span>
               . This action cannot be undone.
@@ -658,7 +650,7 @@ function TransferOwnershipCard() {
                 className="px-5 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
                 style={{
                   background: C.err,
-                  color: '#FFFFFF',
+                  color: colors.ink0,
                 }}
               >
                 {transferOwnership.isPending ? 'Transferring...' : 'Yes, transfer'}
@@ -689,7 +681,7 @@ function ReadOnlyOrgInfo({ org }: { org: ReturnType<typeof useOrgDetail>['data']
         {fields.map(({ label, value }) => (
           <div key={label}>
             <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{label}</p>
-            <p style={{ fontSize: 15, color: '#FFFFFF', fontWeight: 500 }}>{value ?? '—'}</p>
+            <p style={{ fontSize: 15, color: colors.ink0, fontWeight: 500 }}>{value ?? '—'}</p>
           </div>
         ))}
       </div>
@@ -727,7 +719,7 @@ function NoOrgView() {
         <button
           onClick={() => navigate({ to: '/setup-org' })}
           className="mt-5 px-6 py-3 rounded-xl font-bold text-sm"
-          style={{ background: colors.accent, color: '#FFFFFF' }}
+          style={{ background: colors.accent, color: colors.ink0 }}
         >
           Set up workspace
         </button>
@@ -747,7 +739,7 @@ function NoOrgView() {
             Pending invitations
           </p>
           {myInvitations.map((inv: MyInvitation) => {
-            const token = inv.invite_url.split('?token=')[1] ?? ''
+            const token = extractInviteToken(inv.invite_url)
             return (
               <div
                 key={inv.id}
@@ -755,7 +747,7 @@ function NoOrgView() {
                 style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
               >
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: '#FFFFFF' }}>{inv.org_name}</p>
+                  <p style={{ fontSize: 14, fontWeight: 700, color: colors.ink0 }}>{inv.org_name}</p>
                   <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
                     Invited as{' '}
                     <span
@@ -770,7 +762,7 @@ function NoOrgView() {
                   onClick={() => acceptInvitation.mutate(token)}
                   disabled={acceptInvitation.isPending || !token}
                   className="shrink-0 px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-50"
-                  style={{ background: colors.accent, color: '#FFFFFF' }}
+                  style={{ background: colors.accent, color: colors.ink0 }}
                 >
                   {acceptInvitation.isPending ? 'Joining…' : 'Accept & join'}
                 </button>
@@ -796,7 +788,7 @@ function CompanyPage() {
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-bold"
-        style={{ background: colors.accent, color: '#FFFFFF' }}
+        style={{ background: colors.accent, color: colors.ink0 }}
       >
         Skip to main content
       </a>
@@ -814,7 +806,7 @@ function CompanyPage() {
               fontSize: typography.h1.size,
               fontWeight: typography.h1.weight,
               letterSpacing: typography.h1.tracking,
-              color: '#FFFFFF',
+              color: colors.ink0,
             }}
           >
             Company settings

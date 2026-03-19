@@ -4,8 +4,8 @@ import { useMutation } from '@tanstack/react-query'
 import { organisationsApi } from '@/lib/api/organisations'
 import { useAuthStore } from '@/lib/stores/auth'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
-import type { ApiError } from '@/types/api'
-import { AxiosError } from 'axios'
+import { colors, moduleBackgrounds } from '@/design/tokens'
+import { extractApiError } from '@/lib/utils/errors'
 
 const inviteSearchSchema = z.object({
   token: z.string().optional(),
@@ -31,10 +31,7 @@ function InviteAcceptPage() {
     },
   })
 
-  const apiError =
-    acceptInvite.error instanceof AxiosError
-      ? (acceptInvite.error.response?.data as ApiError | undefined)?.error?.message
-      : undefined
+  const apiError = extractApiError(acceptInvite.error)
 
   const handleAccept = () => {
     if (token) {
@@ -47,7 +44,7 @@ function InviteAcceptPage() {
       {/* Left Side - Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
-        style={{ background: '#0C0C0F' }}
+        style={{ background: moduleBackgrounds.overview }}
       >
         <div>
           <WorkivedLogo size={48} showWordmark={true} variant="light" />
@@ -63,7 +60,7 @@ function InviteAcceptPage() {
               fontWeight: 800,
               letterSpacing: '-0.05em',
               lineHeight: 1.1,
-              color: '#FFFFFF',
+              color: colors.ink0,
             }}
           >
             Join your
@@ -92,7 +89,7 @@ function InviteAcceptPage() {
       {/* Right Side - Content */}
       <div
         className="flex-1 flex items-center justify-center p-8"
-        style={{ background: 'linear-gradient(135deg, #F3F2FB 0%, #EFEDFD 100%)' }}
+        style={{ background: `linear-gradient(135deg, ${colors.ink50} 0%, ${colors.accentDim} 100%)` }}
       >
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
@@ -100,7 +97,7 @@ function InviteAcceptPage() {
             <div className="flex justify-center">
               <WorkivedLogo size={48} showWordmark={true} variant="dark" />
             </div>
-            <p style={{ fontSize: 14, color: '#72708A', marginTop: 8 }}>
+            <p style={{ fontSize: 14, color: colors.ink500, marginTop: 8 }}>
               HR & Operations Superapp
             </p>
           </div>
@@ -109,7 +106,7 @@ function InviteAcceptPage() {
           <div
             className="p-10 rounded-3xl"
             style={{
-              background: '#FFFFFF',
+              background: colors.ink0,
               boxShadow: '0 20px 60px rgba(99,87,232,0.12), 0 0 0 1px rgba(99,87,232,0.08)',
             }}
           >
@@ -118,14 +115,14 @@ function InviteAcceptPage() {
               <div className="text-center">
                 <div
                   className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
-                  style={{ background: '#FDECEC' }}
+                  style={{ background: colors.errDim }}
                 >
                   <svg
                     width="28"
                     height="28"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#D44040"
+                    stroke={colors.err}
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -140,12 +137,12 @@ function InviteAcceptPage() {
                     fontSize: 28,
                     fontWeight: 800,
                     letterSpacing: '-0.03em',
-                    color: '#0F0E13',
+                    color: colors.ink900,
                   }}
                 >
                   Invalid invite link
                 </h2>
-                <p style={{ fontSize: 15, color: '#72708A', marginTop: 8, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 15, color: colors.ink500, marginTop: 8, lineHeight: 1.6 }}>
                   This invitation link appears to be invalid or incomplete. Please ask your team
                   admin to send a new invitation.
                 </p>
@@ -154,8 +151,8 @@ function InviteAcceptPage() {
                   search={{ redirect: undefined }}
                   className="inline-block mt-8 font-bold py-3 px-8 rounded-xl transition-all"
                   style={{
-                    background: 'linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%)',
-                    color: '#FFFFFF',
+                    background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,
+                    color: colors.ink0,
                     fontSize: 15,
                     boxShadow: '0 4px 16px rgba(99,87,232,0.3)',
                   }}
@@ -168,14 +165,14 @@ function InviteAcceptPage() {
               <div className="text-center">
                 <div
                   className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
-                  style={{ background: '#EFEDFD' }}
+                  style={{ background: colors.accentDim }}
                 >
                   <svg
                     width="28"
                     height="28"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#6357E8"
+                    stroke={colors.accent}
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -191,12 +188,12 @@ function InviteAcceptPage() {
                     fontSize: 28,
                     fontWeight: 800,
                     letterSpacing: '-0.03em',
-                    color: '#0F0E13',
+                    color: colors.ink900,
                   }}
                 >
                   You're invited!
                 </h2>
-                <p style={{ fontSize: 15, color: '#72708A', marginTop: 8, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 15, color: colors.ink500, marginTop: 8, lineHeight: 1.6 }}>
                   Sign in or create an account to accept this invitation and join your team.
                 </p>
                 <div className="flex flex-col gap-3 mt-8">
@@ -205,8 +202,8 @@ function InviteAcceptPage() {
                     search={{ redirect: `/invite?token=${token}` }}
                     className="w-full font-bold py-4 rounded-xl transition-all text-center"
                     style={{
-                      background: 'linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%)',
-                      color: '#FFFFFF',
+                      background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,
+                      color: colors.ink0,
                       fontSize: 15,
                       boxShadow: '0 4px 16px rgba(99,87,232,0.3)',
                     }}
@@ -218,10 +215,10 @@ function InviteAcceptPage() {
                     search={{ invite_token: token }}
                     className="w-full font-bold py-4 rounded-xl transition-all text-center"
                     style={{
-                      background: '#F3F2FB',
-                      color: '#6357E8',
+                      background: colors.ink50,
+                      color: colors.accent,
                       fontSize: 15,
-                      border: '1.5px solid #EDECF4',
+                      border: `1.5px solid ${colors.ink100}`,
                     }}
                   >
                     Create account
@@ -233,14 +230,14 @@ function InviteAcceptPage() {
               <div className="text-center">
                 <div
                   className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
-                  style={{ background: '#E8F7EE' }}
+                  style={{ background: colors.okDim }}
                 >
                   <svg
                     width="28"
                     height="28"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="#12A05C"
+                    stroke={colors.ok}
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -255,21 +252,21 @@ function InviteAcceptPage() {
                     fontSize: 28,
                     fontWeight: 800,
                     letterSpacing: '-0.03em',
-                    color: '#0F0E13',
+                    color: colors.ink900,
                   }}
                 >
                   Accept invitation
                 </h2>
-                <p style={{ fontSize: 15, color: '#72708A', marginTop: 8, lineHeight: 1.6 }}>
+                <p style={{ fontSize: 15, color: colors.ink500, marginTop: 8, lineHeight: 1.6 }}>
                   You've been invited to join a workspace. Click below to accept and get started.
                 </p>
 
                 {apiError && (
                   <div
                     className="px-4 py-3 rounded-xl mt-6 text-left"
-                    style={{ background: '#FDECEC', border: '1px solid #D44040' }}
+                    style={{ background: colors.errDim, border: `1px solid ${colors.err}` }}
                   >
-                    <p style={{ fontSize: 14, color: '#AE2E2E', fontWeight: 500 }}>{apiError}</p>
+                    <p style={{ fontSize: 14, color: colors.errText, fontWeight: 500 }}>{apiError}</p>
                   </div>
                 )}
 
@@ -278,8 +275,8 @@ function InviteAcceptPage() {
                   disabled={acceptInvite.isPending}
                   className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50 mt-8"
                   style={{
-                    background: 'linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%)',
-                    color: '#FFFFFF',
+                    background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,
+                    color: colors.ink0,
                     fontSize: 15,
                     letterSpacing: '-0.01em',
                     boxShadow: '0 4px 16px rgba(99,87,232,0.3)',

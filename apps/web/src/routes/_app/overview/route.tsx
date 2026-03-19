@@ -3,11 +3,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
-import { useDailyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
+import { useDailyReport, useMonthlyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
 import { todayISO, formatDate } from '@/lib/utils/date'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
-import { LogIn, LogOut, Clock, Timer } from 'lucide-react'
+import { LogIn, LogOut, Clock, Timer, Users, CalendarDays, TrendingUp, Building2, ChevronRight } from 'lucide-react'
 
 export const Route = createFileRoute('/_app/overview')({
   component: OverviewPage,
@@ -45,22 +45,27 @@ function useGreeting() {
 }
 
 function useLiveClock(tz: string) {
-  const [time, setTime] = useState(() => formatTime(tz))
+  const [clock, setClock] = useState(() => formatTime(tz))
   useEffect(() => {
-    const id = setInterval(() => setTime(formatTime(tz)), 1000)
+    const id = setInterval(() => setClock(formatTime(tz)), 1000)
     return () => clearInterval(id)
   }, [tz])
-  return time
+  return clock
 }
 
 function formatTime(tz: string) {
-  return new Intl.DateTimeFormat('en', {
+  const now = new Date()
+  const time = new Intl.DateTimeFormat('en', {
     timeZone: tz,
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: false,
-  }).format(new Date())
+    hour12: true,
+  }).format(now)
+  // Split into time and period (e.g. "06:23:10 PM")
+  const parts = time.match(/^(.+?)\s*(AM|PM)$/i)
+  if (parts) return { time: parts[1]!.trim(), period: parts[2]!.toUpperCase() }
+  return { time, period: '' }
 }
 
 function formatDateLabel(tz: string) {
@@ -100,6 +105,11 @@ function OverviewPage() {
 
   const { data: employees, isLoading: empLoading } = useEmployees({ limit: 100 })
   const { data: daily, isLoading: dailyLoading } = useDailyReport(today)
+
+  // Monthly summary
+  const now = new Date()
+  const { data: monthly } = useMonthlyReport(now.getFullYear(), now.getMonth() + 1)
+  const monthName = new Intl.DateTimeFormat('en', { month: 'long' }).format(now)
 
   const totalEmployees = employees?.data?.length ?? 0
   const present = daily?.filter((e) => e.status === 'present').length ?? 0
@@ -198,16 +208,30 @@ function OverviewPage() {
           </h1>
 
           {/* Live clock */}
-          <p
-            className="mt-1.5"
-            style={{
-              fontFamily: typography.fontMono,
-              fontSize: typography.label.size,
-              color: 'rgba(255,255,255,0.22)',
-            }}
-          >
-            {clock}
-          </p>
+          <div className="mt-3 flex items-baseline gap-2">
+            <p
+              style={{
+                fontFamily: typography.fontMono,
+                fontSize: 32,
+                fontWeight: 700,
+                color: 'rgba(255,255,255,0.6)',
+                letterSpacing: '-0.02em',
+                lineHeight: 1,
+              }}
+            >
+              {clock.time}
+            </p>
+            <span
+              style={{
+                fontSize: 14,
+                fontWeight: 700,
+                color: 'rgba(255,255,255,0.3)',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {clock.period}
+            </span>
+          </div>
         </div>
 
         {/* Daily quote */}
@@ -382,18 +406,23 @@ function OverviewPage() {
                     Attendance Clock
                   </p>
                 </div>
-                <p
-                  style={{
-                    fontFamily: typography.fontMono,
-                    fontSize: 64,
-                    fontWeight: 800,
-                    color: colors.ink0,
-                    letterSpacing: '-0.03em',
-                    lineHeight: 1,
-                  }}
-                >
-                  {clock}
-                </p>
+                <div className="flex items-baseline gap-3">
+                  <p
+                    style={{
+                      fontFamily: typography.fontMono,
+                      fontSize: 64,
+                      fontWeight: 800,
+                      color: colors.ink0,
+                      letterSpacing: '-0.03em',
+                      lineHeight: 1,
+                    }}
+                  >
+                    {clock.time}
+                  </p>
+                  <span style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>
+                    {clock.period}
+                  </span>
+                </div>
                 <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', marginTop: 14, fontWeight: 500 }}>
                   Ready to start your day?
                 </p>

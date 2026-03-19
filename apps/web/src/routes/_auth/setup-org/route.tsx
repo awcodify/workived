@@ -7,8 +7,10 @@ import { organisationsApi } from '@/lib/api/organisations'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useMyInvitations } from '@/lib/hooks/useInvitations'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
-import type { ApiError, MyInvitation } from '@/types/api'
-import { AxiosError } from 'axios'
+import { colors, moduleBackgrounds } from '@/design/tokens'
+import { extractApiError } from '@/lib/utils/errors'
+import { extractInviteToken } from '@/lib/utils/url'
+import type { MyInvitation } from '@/types/api'
 
 export const Route = createFileRoute('/_auth/setup-org')({
   beforeLoad: () => {
@@ -30,26 +32,26 @@ function InvitationCard({
   isPending: boolean
 }) {
   // Extract raw token from invite_url (?token=...)
-  const token = invitation.invite_url.split('?token=')[1] ?? ''
+  const token = extractInviteToken(invitation.invite_url)
 
   return (
     <div
       className="p-5 rounded-2xl"
       style={{
-        background: '#FFFFFF',
+        background: colors.ink0,
         boxShadow: '0 4px 20px rgba(99,87,232,0.10), 0 0 0 1px rgba(99,87,232,0.08)',
       }}
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p style={{ fontSize: 16, fontWeight: 700, color: '#0F0E13', marginBottom: 4 }}>
+          <p style={{ fontSize: 16, fontWeight: 700, color: colors.ink900, marginBottom: 4 }}>
             {invitation.org_name}
           </p>
-          <p style={{ fontSize: 13, color: '#72708A', lineHeight: 1.5 }}>
+          <p style={{ fontSize: 13, color: colors.ink500, lineHeight: 1.5 }}>
             You've been invited as{' '}
             <span
               className="px-1.5 py-0.5 rounded text-xs font-semibold"
-              style={{ background: '#EFEDFD', color: '#6357E8' }}
+              style={{ background: colors.accentDim, color: colors.accent }}
             >
               {invitation.role}
             </span>
@@ -60,8 +62,8 @@ function InvitationCard({
           disabled={isPending || !token}
           className="shrink-0 font-bold px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
           style={{
-            background: 'linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%)',
-            color: '#FFFFFF',
+            background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,
+            color: colors.ink0,
             fontSize: 14,
             boxShadow: '0 2px 8px rgba(99,87,232,0.3)',
           }}
@@ -140,10 +142,7 @@ function SetupOrgPage() {
     },
   })
 
-  const apiError =
-    createOrg.error instanceof AxiosError
-      ? (createOrg.error.response?.data as ApiError | undefined)?.error?.message
-      : undefined
+  const apiError = extractApiError(createOrg.error)
 
   // Auto-generate slug from company name
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,7 +161,7 @@ function SetupOrgPage() {
       {/* Left Side - Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
-        style={{ background: '#0C0C0F' }}
+        style={{ background: moduleBackgrounds.overview }}
       >
         <div>
           <WorkivedLogo size={48} showWordmark={true} variant="light" />
@@ -178,7 +177,7 @@ function SetupOrgPage() {
               fontWeight: 800,
               letterSpacing: '-0.05em',
               lineHeight: 1.1,
-              color: '#FFFFFF',
+              color: colors.ink0,
             }}
           >
             Set up your
@@ -206,7 +205,7 @@ function SetupOrgPage() {
       {/* Right Side - Form */}
       <div
         className="flex-1 flex items-center justify-center p-8"
-        style={{ background: 'linear-gradient(135deg, #F3F2FB 0%, #EFEDFD 100%)' }}
+        style={{ background: `linear-gradient(135deg, ${colors.ink50} 0%, ${colors.accentDim} 100%)` }}
       >
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
@@ -214,7 +213,7 @@ function SetupOrgPage() {
             <div className="flex justify-center">
               <WorkivedLogo size={48} showWordmark={true} variant="dark" />
             </div>
-            <p style={{ fontSize: 14, color: '#72708A', marginTop: 8 }}>
+            <p style={{ fontSize: 14, color: colors.ink500, marginTop: 8 }}>
               HR & Operations Superapp
             </p>
           </div>
@@ -226,7 +225,7 @@ function SetupOrgPage() {
                 style={{
                   fontSize: 13,
                   fontWeight: 600,
-                  color: '#72708A',
+                  color: colors.ink500,
                   letterSpacing: '0.05em',
                   textTransform: 'uppercase',
                   marginBottom: 4,
@@ -243,11 +242,11 @@ function SetupOrgPage() {
                 />
               ))}
               <div className="flex items-center gap-3 my-6">
-                <div className="flex-1 h-px" style={{ background: '#EDECF4' }} />
-                <span style={{ fontSize: 13, color: '#B0AEBE', fontWeight: 500 }}>
+                <div className="flex-1 h-px" style={{ background: colors.ink100 }} />
+                <span style={{ fontSize: 13, color: colors.ink300, fontWeight: 500 }}>
                   or create a new workspace
                 </span>
-                <div className="flex-1 h-px" style={{ background: '#EDECF4' }} />
+                <div className="flex-1 h-px" style={{ background: colors.ink100 }} />
               </div>
             </div>
           )}
@@ -256,7 +255,7 @@ function SetupOrgPage() {
           <div
             className="p-10 rounded-3xl"
             style={{
-              background: '#FFFFFF',
+              background: colors.ink0,
               boxShadow: '0 20px 60px rgba(99,87,232,0.12), 0 0 0 1px rgba(99,87,232,0.08)',
             }}
           >
@@ -266,12 +265,12 @@ function SetupOrgPage() {
                   fontSize: 28,
                   fontWeight: 800,
                   letterSpacing: '-0.03em',
-                  color: '#0F0E13',
+                  color: colors.ink900,
                 }}
               >
                 Create your workspace
               </h2>
-              <p style={{ fontSize: 15, color: '#72708A', marginTop: 6 }}>
+              <p style={{ fontSize: 15, color: colors.ink500, marginTop: 6 }}>
                 {user?.full_name ? `Welcome, ${user.full_name}! ` : ''}Set up your company to get
                 started.
               </p>
@@ -284,9 +283,9 @@ function SetupOrgPage() {
               {apiError && (
                 <div
                   className="px-4 py-3 rounded-xl"
-                  style={{ background: '#FDECEC', border: '1px solid #D44040' }}
+                  style={{ background: colors.errDim, border: `1px solid ${colors.err}` }}
                 >
-                  <p style={{ fontSize: 14, color: '#AE2E2E', fontWeight: 500 }}>{apiError}</p>
+                  <p style={{ fontSize: 14, color: colors.errText, fontWeight: 500 }}>{apiError}</p>
                 </div>
               )}
 
@@ -297,7 +296,7 @@ function SetupOrgPage() {
                     display: 'block',
                     fontSize: 14,
                     fontWeight: 600,
-                    color: '#1F1D2B',
+                    color: colors.ink700,
                     marginBottom: 8,
                   }}
                 >
@@ -308,12 +307,12 @@ function SetupOrgPage() {
                   type="text"
                   placeholder="Acme Corp"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
-                  style={{ background: '#F3F2FB', border: '1.5px solid #EDECF4', color: '#0F0E13' }}
+                  style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
                   {...form.register('name')}
                   onChange={handleNameChange}
                 />
                 {form.formState.errors.name && (
-                  <p style={{ fontSize: 13, color: '#D44040', marginTop: 6, fontWeight: 500 }}>
+                  <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
                     {form.formState.errors.name.message}
                   </p>
                 )}
@@ -326,7 +325,7 @@ function SetupOrgPage() {
                     display: 'block',
                     fontSize: 14,
                     fontWeight: 600,
-                    color: '#1F1D2B',
+                    color: colors.ink700,
                     marginBottom: 8,
                   }}
                 >
@@ -334,11 +333,11 @@ function SetupOrgPage() {
                 </label>
                 <div
                   className="flex items-center rounded-xl overflow-hidden"
-                  style={{ background: '#F3F2FB', border: '1.5px solid #EDECF4' }}
+                  style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}` }}
                 >
                   <span
                     className="px-4 py-3.5 text-sm select-none"
-                    style={{ color: '#72708A', background: '#EDECF4' }}
+                    style={{ color: colors.ink500, background: colors.ink100 }}
                   >
                     workived.com/
                   </span>
@@ -347,12 +346,12 @@ function SetupOrgPage() {
                     type="text"
                     placeholder="acme-corp"
                     className="flex-1 px-3 py-3.5 text-sm focus:outline-none bg-transparent"
-                    style={{ color: '#0F0E13' }}
+                    style={{ color: colors.ink900 }}
                     {...form.register('slug')}
                   />
                 </div>
                 {form.formState.errors.slug && (
-                  <p style={{ fontSize: 13, color: '#D44040', marginTop: 6, fontWeight: 500 }}>
+                  <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
                     {form.formState.errors.slug.message}
                   </p>
                 )}
@@ -365,7 +364,7 @@ function SetupOrgPage() {
                     display: 'block',
                     fontSize: 14,
                     fontWeight: 600,
-                    color: '#1F1D2B',
+                    color: colors.ink700,
                     marginBottom: 8,
                   }}
                 >
@@ -374,7 +373,7 @@ function SetupOrgPage() {
                 <select
                   id="country_code"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all appearance-none"
-                  style={{ background: '#F3F2FB', border: '1.5px solid #EDECF4', color: '#0F0E13' }}
+                  style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
                   {...form.register('country_code')}
                 >
                   <option value="">Select your country</option>
@@ -385,12 +384,12 @@ function SetupOrgPage() {
                   ))}
                 </select>
                 {form.formState.errors.country_code && (
-                  <p style={{ fontSize: 13, color: '#D44040', marginTop: 6, fontWeight: 500 }}>
+                  <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
                     {form.formState.errors.country_code.message}
                   </p>
                 )}
                 {form.watch('country_code') && (
-                  <p style={{ fontSize: 12, color: '#72708A', marginTop: 6 }}>
+                  <p style={{ fontSize: 12, color: colors.ink500, marginTop: 6 }}>
                     Timezone:{' '}
                     {COUNTRIES.find((c) => c.code === form.watch('country_code'))?.timezone} —
                     Currency:{' '}
@@ -404,8 +403,8 @@ function SetupOrgPage() {
                 disabled={createOrg.isPending}
                 className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50"
                 style={{
-                  background: 'linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%)',
-                  color: '#FFFFFF',
+                  background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,
+                  color: colors.ink0,
                   fontSize: 15,
                   letterSpacing: '-0.01em',
                   boxShadow: '0 4px 16px rgba(99,87,232,0.3)',
@@ -415,7 +414,7 @@ function SetupOrgPage() {
               </button>
             </form>
 
-            <p className="text-center mt-6" style={{ fontSize: 13, color: '#B0AEBE' }}>
+            <p className="text-center mt-6" style={{ fontSize: 13, color: colors.ink300 }}>
               Free for up to 25 employees. No credit card required.
             </p>
           </div>
