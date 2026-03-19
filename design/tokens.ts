@@ -40,8 +40,8 @@ export const colors = {
 // Each module is a full-screen world with its own colour temperature
 export const moduleBackgrounds = {
   overview:    '#0C0C0F',  // deep violet night
-  people:      '#F5F0E8',  // warm cream
-  attendance:  '#E8F5EE',  // fresh green morning
+  people:      '#080A12',  // deep midnight navy
+  attendance:  '#111214',  // deep charcoal
   leave:       '#F3F2FB',  // soft violet
   claims:      '#F3F2FB',  // soft violet
   tasks:       '#0E0E1A',  // deep dark (dark Kanban board)
@@ -50,91 +50,116 @@ export const moduleBackgrounds = {
 
 // ── DOCK THEMES ───────────────────────────────────────────────
 // The floating dock adapts its colour to the current module
+const _dock = {
+  bg:     'rgba(255,255,255,0.09)',
+  border: 'rgba(255,255,255,0.12)',
+  icon:   'rgba(255,255,255,0.45)',
+  label:  'rgba(255,255,255,0.28)',
+  active: {
+    bg:    'rgba(255,255,255,0.16)',
+    icon:  '#FFFFFF',
+    label: 'rgba(255,255,255,0.85)',
+  },
+} as const
+
 export const dockThemes = {
+  overview:   _dock,
+  people:     _dock,
+  attendance: _dock,
+  leave:      _dock,
+  claims:     _dock,
+  tasks:      _dock,
+  reports:    _dock,
+} as const
+
+// ── MODULE THEMES ─────────────────────────────────────────────
+// Per-module colour palette for page content (text, surfaces, accents).
+// All dark modules share the same structure so pages never hardcode rgba().
+export const moduleThemes = {
   overview: {
-    bg:     'rgba(255,255,255,0.09)',
-    border: 'rgba(255,255,255,0.12)',
-    icon:   'rgba(255,255,255,0.45)',
-    label:  'rgba(255,255,255,0.28)',
-    active: {
-      bg:    'rgba(255,255,255,0.16)',
-      icon:  '#FFFFFF',
-      label: 'rgba(255,255,255,0.85)',
-    },
+    text:         'rgba(255,255,255,0.92)',
+    textMuted:    'rgba(200,190,255,0.45)',
+    surface:      'rgba(255,255,255,0.05)',
+    surfaceHover: 'rgba(255,255,255,0.10)',
+    accent:       'rgba(255,255,255,0.12)',
+    accentText:   '#FFFFFF',
+    border:       'rgba(255,255,255,0.10)',
+    input:        'rgba(255,255,255,0.07)',
+    inputBorder:  'rgba(255,255,255,0.12)',
   },
   people: {
-    bg:     'rgba(26,18,8,0.08)',
-    border: 'rgba(26,18,8,0.11)',
-    icon:   'rgba(26,18,8,0.28)',
-    label:  'rgba(26,18,8,0.28)',
-    active: {
-      bg:    'rgba(26,18,8,0.13)',
-      icon:  '#1A1208',
-      label: '#1A1208',
-    },
+    text:         'rgba(255,255,255,0.92)',
+    textMuted:    'rgba(255,160,190,0.55)',
+    surface:      'rgba(255,160,190,0.06)',
+    surfaceHover: 'rgba(255,160,190,0.11)',
+    accent:       'rgba(255,160,190,0.14)',
+    accentText:   '#FFD0E0',
+    border:       'rgba(255,160,190,0.14)',
+    input:        'rgba(255,255,255,0.07)',
+    inputBorder:  'rgba(255,160,190,0.18)',
   },
   attendance: {
-    bg:     'rgba(10,46,26,0.08)',
-    border: 'rgba(10,46,26,0.11)',
-    icon:   'rgba(10,46,26,0.28)',
-    label:  'rgba(10,46,26,0.28)',
-    active: {
-      bg:    'rgba(10,46,26,0.13)',
-      icon:  '#0A2E1A',
-      label: '#0A2E1A',
-    },
+    text:         'rgba(255,255,255,0.92)',
+    textMuted:    'rgba(130,200,255,0.55)',
+    surface:      'rgba(130,200,255,0.06)',
+    surfaceHover: 'rgba(130,200,255,0.11)',
+    accent:       'rgba(130,200,255,0.14)',
+    accentText:   '#A8D8FF',
+    border:       'rgba(130,200,255,0.14)',
+    input:        'rgba(255,255,255,0.07)',
+    inputBorder:  'rgba(130,200,255,0.18)',
   },
   leave: {
-    bg:     'rgba(99,87,232,0.07)',
-    border: 'rgba(99,87,232,0.12)',
-    icon:   'rgba(99,87,232,0.35)',
-    label:  'rgba(99,87,232,0.35)',
-    active: {
-      bg:    'rgba(99,87,232,0.14)',
-      icon:  '#4A3FBF',
-      label: '#4A3FBF',
-    },
+    text:         '#0F0E13',
+    textMuted:    '#72708A',
+    surface:      '#FFFFFF',
+    surfaceHover: '#F3F2FB',
+    accent:       '#6357E8',
+    accentText:   '#FFFFFF',
+    border:       'rgba(99,87,232,0.10)',
+    input:        '#FFFFFF',
+    inputBorder:  'rgba(99,87,232,0.12)',
   },
   claims: {
-    bg:     'rgba(99,87,232,0.07)',
-    border: 'rgba(99,87,232,0.12)',
-    icon:   'rgba(99,87,232,0.35)',
-    label:  'rgba(99,87,232,0.35)',
-    active: {
-      bg:    'rgba(99,87,232,0.14)',
-      icon:  '#4A3FBF',
-      label: '#4A3FBF',
-    },
+    text:         '#0F0E13',
+    textMuted:    '#72708A',
+    surface:      '#FFFFFF',
+    surfaceHover: '#F3F2FB',
+    accent:       '#6357E8',
+    accentText:   '#FFFFFF',
+    border:       'rgba(99,87,232,0.10)',
+    input:        '#FFFFFF',
+    inputBorder:  'rgba(99,87,232,0.12)',
   },
   tasks: {
-    bg:     'rgba(255,255,255,0.09)',
-    border: 'rgba(255,255,255,0.12)',
-    icon:   'rgba(255,255,255,0.45)',
-    label:  'rgba(255,255,255,0.28)',
-    active: {
-      bg:    'rgba(255,255,255,0.16)',
-      icon:  '#FFFFFF',
-      label: 'rgba(255,255,255,0.85)',
-    },
+    text:         'rgba(255,255,255,0.92)',
+    textMuted:    'rgba(200,190,255,0.45)',
+    surface:      'rgba(255,255,255,0.05)',
+    surfaceHover: 'rgba(255,255,255,0.10)',
+    accent:       'rgba(255,255,255,0.12)',
+    accentText:   '#FFFFFF',
+    border:       'rgba(255,255,255,0.10)',
+    input:        'rgba(255,255,255,0.07)',
+    inputBorder:  'rgba(255,255,255,0.12)',
   },
   reports: {
-    bg:     'rgba(255,255,255,0.09)',
-    border: 'rgba(255,255,255,0.12)',
-    icon:   'rgba(255,255,255,0.45)',
-    label:  'rgba(255,255,255,0.28)',
-    active: {
-      bg:    'rgba(255,255,255,0.16)',
-      icon:  '#FFFFFF',
-      label: 'rgba(255,255,255,0.85)',
-    },
+    text:         'rgba(255,255,255,0.92)',
+    textMuted:    'rgba(160,185,255,0.45)',
+    surface:      'rgba(255,255,255,0.05)',
+    surfaceHover: 'rgba(255,255,255,0.10)',
+    accent:       'rgba(255,255,255,0.12)',
+    accentText:   '#FFFFFF',
+    border:       'rgba(255,255,255,0.10)',
+    input:        'rgba(255,255,255,0.07)',
+    inputBorder:  'rgba(255,255,255,0.12)',
   },
 } as const
 
 // ── LOGO MARK COLOURS PER MODULE ─────────────────────────────
 export const logoMarkColors = {
   overview:    { bg: '#1E1A3A', primary: '#9B8FF7', textPrimary: '#FFFFFF', textAccent: '#9B8FF7' },
-  people:      { bg: '#EAE4D8', primary: '#7C5C2E', textPrimary: '#1A1208', textAccent: '#7C5C2E' },
-  attendance:  { bg: '#D0EDD9', primary: '#0A6E35', textPrimary: '#0A2E1A', textAccent: '#0A6E35' },
+  people:      { bg: '#0D1224', primary: '#FF8AAE', textPrimary: '#FFFFFF', textAccent: '#FF8AAE' },
+  attendance:  { bg: '#1E2026', primary: '#5BB8F5', textPrimary: '#FFFFFF', textAccent: '#5BB8F5' },
   leave:       { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
   claims:      { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
   tasks:       { bg: '#1E1A3A', primary: '#818CF8', textPrimary: '#FFFFFF', textAccent: '#818CF8' },

@@ -5,12 +5,23 @@ import { useDailyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendan
 import { todayISO, formatDate } from '@/lib/utils/date'
 import { Clock, LogIn, LogOut } from 'lucide-react'
 
+interface ThemeOverride {
+  surface: string
+  border: string
+  text: string
+  textMuted: string
+  input: string
+  inputBorder: string
+}
+
 interface QuickClockProps {
   /** 'light' for green/cream pages, 'dark' for dark overview page */
   variant?: 'light' | 'dark'
+  /** Optional theme tokens for tinted blending (e.g. moduleThemes.attendance) */
+  theme?: ThemeOverride
 }
 
-export function QuickClock({ variant = 'light' }: QuickClockProps) {
+export function QuickClock({ variant = 'light', theme }: QuickClockProps) {
   const { data: org } = useOrganisation()
   const tz = org?.timezone ?? 'UTC'
   const today = todayISO(tz)
@@ -22,6 +33,16 @@ export function QuickClock({ variant = 'light' }: QuickClockProps) {
   const clockOut = useClockOut()
 
   const [note, setNote] = useState('')
+
+  // Inline color overrides when a module theme is provided for tinted blending
+  const cs = theme ? {
+    card:  { backgroundColor: theme.surface, borderColor: theme.border },
+    icon:  { color: theme.textMuted },
+    title: { color: theme.text },
+    muted: { color: theme.textMuted },
+    faded: { color: theme.textMuted, opacity: 0.6 },
+    input: { backgroundColor: theme.input, borderColor: theme.inputBorder, color: theme.text },
+  } : null
 
   // Find the current user's entry in today's daily report
   const myEntry = dailyEntries?.find((e) => e.employee_id === myEmployee?.id)
@@ -47,12 +68,12 @@ export function QuickClock({ variant = 'light' }: QuickClockProps) {
   // User has no employee record — cannot clock in
   if (!myEmployee) {
     return (
-      <div className={cardClass(variant)}>
+      <div className={cardClass(variant)} style={cs?.card}>
         <div className="flex items-center gap-2 mb-2">
-          <Clock size={16} className={iconClass(variant)} />
-          <span className={titleClass(variant)}>Quick Clock</span>
+          <Clock size={16} className={iconClass(variant)} style={cs?.icon} />
+          <span className={titleClass(variant)} style={cs?.title}>Quick Clock</span>
         </div>
-        <p className={mutedClass(variant)}>
+        <p className={mutedClass(variant)} style={cs?.muted}>
           No employee record linked to your account.
         </p>
       </div>
@@ -60,17 +81,17 @@ export function QuickClock({ variant = 'light' }: QuickClockProps) {
   }
 
   return (
-    <div className={cardClass(variant)}>
+    <div className={cardClass(variant)} style={cs?.card}>
       <div className="flex items-center gap-2 mb-3">
-        <Clock size={16} className={iconClass(variant)} />
-        <span className={titleClass(variant)}>Quick Clock</span>
+        <Clock size={16} className={iconClass(variant)} style={cs?.icon} />
+        <span className={titleClass(variant)} style={cs?.title}>Quick Clock</span>
       </div>
 
       {/* Status display */}
       {hasClockedOut && myEntry?.clock_in_at && myEntry?.clock_out_at ? (
         /* Show calculated hours when done for the day */
         <div className="mb-3">
-          <p className={`text-xs mb-1.5 ${variant === 'dark' ? 'text-white/40' : 'text-ink-400'}`}>
+          <p className={`text-xs mb-1.5 ${variant === 'dark' ? 'text-white/40' : 'text-ink-400'}`} style={cs?.faded}>
             Done for today
           </p>
           {(() => {
@@ -82,13 +103,13 @@ export function QuickClock({ variant = 'light' }: QuickClockProps) {
             
             return (
               <div className={`p-3 rounded-lg ${variant === 'dark' ? 'bg-ok/10 border border-ok/20' : 'bg-ok/5 border border-ok/20'}`}>
-                <p className={`text-xs mb-1 ${variant === 'dark' ? 'text-white/50' : 'text-ink-500'}`}>
+                <p className={`text-xs mb-1 ${variant === 'dark' ? 'text-white/50' : 'text-ink-500'}`} style={cs?.muted}>
                   You worked
                 </p>
                 <p className={`text-2xl font-bold ${variant === 'dark' ? 'text-ok' : 'text-ok-text'}`} style={{ fontFamily: 'monospace', letterSpacing: '-0.02em' }}>
                   {hours}h {minutes}m
                 </p>
-                <p className={`text-xs mt-1 ${variant === 'dark' ? 'text-white/30' : 'text-ink-400'}`} style={{ fontFamily: 'monospace' }}>
+                <p className={`text-xs mt-1 ${variant === 'dark' ? 'text-white/30' : 'text-ink-400'}`} style={{ fontFamily: 'monospace', ...(cs?.faded) }}>
                   {formatDate(myEntry.clock_in_at, tz, 'time')} – {formatDate(myEntry.clock_out_at, tz, 'time')}
                 </p>
               </div>
@@ -96,7 +117,7 @@ export function QuickClock({ variant = 'light' }: QuickClockProps) {
           })()}
         </div>
       ) : hasClockedIn && myEntry?.clock_in_at ? (
-        <p className={`text-xs mb-2 ${variant === 'dark' ? 'text-white/50' : 'text-ink-500'}`}>
+        <p className={`text-xs mb-2 ${variant === 'dark' ? 'text-white/50' : 'text-ink-500'}`} style={cs?.muted}>
           <LogIn size={12} className="inline mr-1" />
           Clocked in at {formatDate(myEntry.clock_in_at, tz, 'time')}
           {myEntry.status === 'late' && <span className="text-warn ml-1">(Late)</span>}
@@ -112,6 +133,7 @@ export function QuickClock({ variant = 'light' }: QuickClockProps) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             className={inputClass(variant)}
+            style={cs?.input}
           />
           {!hasClockedIn ? (
             <button

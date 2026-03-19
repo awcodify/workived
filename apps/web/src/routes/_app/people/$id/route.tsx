@@ -7,9 +7,11 @@ import { useEmployee, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/u
 import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
-import { moduleBackgrounds } from '@/design/tokens'
+import { moduleBackgrounds, moduleThemes } from '@/design/tokens'
 import { ArrowLeft, UserCheck, UserPlus, Mail } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+
+const t = moduleThemes.people
 
 export const Route = createFileRoute('/_app/people/$id')({
   component: EmployeeDetailPage,
@@ -129,24 +131,25 @@ function NewEmployeePage() {
     >
       <Link
         to="/people"
-        className="flex items-center gap-1 text-sm text-ink-500 hover:text-ink-700 mb-6"
+        className="flex items-center gap-1 text-sm mb-6"
+        style={{ color: t.textMuted }}
       >
         <ArrowLeft size={16} />
         Back to People
       </Link>
 
-      <h1 className="text-xl font-extrabold tracking-tight text-ink-900 mb-6">
+      <h1 className="text-xl font-extrabold tracking-tight mb-6" style={{ color: t.text }}>
         Add Employee
       </h1>
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-6xl space-y-6">
         {/* ── Login access section (full width) ───────────────── */}
-        <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-ink-100">
-            <h2 className="text-sm font-semibold text-ink-900">Login Access</h2>
-            <p className="text-xs text-ink-500 mt-0.5 leading-relaxed">
-              Decide whether this employee needs workspace login access. <strong className="text-ink-700">Workspace members</strong> (invited from Settings → Members) 
-              can log in to Workived. <strong className="text-ink-700">Employee profiles</strong> track attendance, leave, and HR data — they can exist with or without login access.
+        <div className="rounded-xl overflow-hidden" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+          <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+            <h2 className="text-sm font-semibold" style={{ color: t.text }}>Login Access</h2>
+            <p className="text-xs mt-0.5 leading-relaxed" style={{ color: t.textMuted }}>
+              Decide whether this employee needs workspace login access. <strong style={{ color: t.text }}>Workspace members</strong> (invited from Settings → Members) 
+              can log in to Workived. <strong style={{ color: t.text }}>Employee profiles</strong> track attendance, leave, and HR data — they can exist with or without login access.
             </p>
           </div>
 
@@ -157,8 +160,13 @@ function NewEmployeePage() {
               render={({ field }) => (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Option A: link to an existing workspace member */}
-                  <label className="flex flex-col gap-2 p-4 rounded-lg border-2 border-ink-100 cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors data-[checked=true]:border-accent data-[checked=true]:bg-accent/5"
-                    data-checked={field.value === 'member'}>
+                  <label
+                    className={`flex flex-col gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${field.value === 'member' ? 'border-accent' : ''}`}
+                    style={{
+                      borderColor: field.value === 'member' ? undefined : t.border,
+                      background: field.value === 'member' ? t.accent : 'transparent',
+                    }}
+                  >
                     <div className="flex items-start gap-3">
                       <input
                         type="radio"
@@ -170,19 +178,24 @@ function NewEmployeePage() {
                         }}
                         className="mt-0.5 accent-accent"
                       />
-                      <span className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
+                      <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: t.text }}>
                         <UserCheck size={16} />
                         Link existing member
                       </span>
                     </div>
-                    <p className="text-xs text-ink-500 pl-7 leading-relaxed">
+                    <p className="text-xs pl-7 leading-relaxed" style={{ color: t.textMuted }}>
                       Choose someone who already has a workspace account (invited from Settings → Members). This connects their login to this HR profile for tracking attendance, leave, and other HR data.
                     </p>
                   </label>
 
                   {/* Option B: invite by email */}
-                  <label className="flex flex-col gap-2 p-4 rounded-lg border-2 border-ink-100 cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors data-[checked=true]:border-accent data-[checked=true]:bg-accent/5"
-                    data-checked={field.value === 'new'}>
+                  <label
+                    className={`flex flex-col gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${field.value === 'new' ? 'border-accent' : ''}`}
+                    style={{
+                      borderColor: field.value === 'new' ? undefined : t.border,
+                      background: field.value === 'new' ? t.accent : 'transparent',
+                    }}
+                  >
                     <div className="flex items-start gap-3">
                       <input
                         type="radio"
@@ -194,19 +207,24 @@ function NewEmployeePage() {
                         }}
                         className="mt-0.5 accent-accent"
                       />
-                      <span className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
+                      <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: t.text }}>
                         <Mail size={16} />
                         Invite new person
                       </span>
                     </div>
-                    <p className="text-xs text-ink-500 pl-7 leading-relaxed">
+                    <p className="text-xs pl-7 leading-relaxed" style={{ color: t.textMuted }}>
                       Send an email invitation to someone new. They'll receive a link to create their account and will have both workspace access and a complete HR profile once they join.
                     </p>
                   </label>
 
                   {/* Option C: skip */}
-                  <label className="flex flex-col gap-2 p-4 rounded-lg border-2 border-ink-100 cursor-pointer hover:border-accent hover:bg-accent/5 transition-colors data-[checked=true]:border-accent data-[checked=true]:bg-accent/5"
-                    data-checked={field.value === 'skip'}>
+                  <label
+                    className={`flex flex-col gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${field.value === 'skip' ? 'border-accent' : ''}`}
+                    style={{
+                      borderColor: field.value === 'skip' ? undefined : t.border,
+                      background: field.value === 'skip' ? t.accent : 'transparent',
+                    }}
+                  >
                     <div className="flex items-start gap-3">
                       <input
                         type="radio"
@@ -219,12 +237,12 @@ function NewEmployeePage() {
                         }}
                         className="mt-0.5 accent-accent"
                       />
-                      <span className="flex items-center gap-1.5 text-sm font-semibold text-ink-900">
+                      <span className="flex items-center gap-1.5 text-sm font-semibold" style={{ color: t.text }}>
                         <UserPlus size={16} />
                         HR record only
                       </span>
                     </div>
-                    <p className="text-xs text-ink-500 pl-7 leading-relaxed">
+                    <p className="text-xs pl-7 leading-relaxed" style={{ color: t.textMuted }}>
                       Create an HR profile without giving login access (ideal for contractors, part-time staff, or remote workers who don't need digital access). You can send an invite later if needed.
                     </p>
                   </label>
@@ -236,10 +254,10 @@ function NewEmployeePage() {
             {emailMode === 'member' && (
               <div className="pt-2">
                 {loadingMembers ? (
-                  <p className="text-xs text-ink-500">Loading workspace members…</p>
+                  <p className="text-xs" style={{ color: t.textMuted }}>Loading workspace members…</p>
                 ) : unlinkedMembers.length === 0 ? (
-                  <div className="bg-ink-50 rounded-lg p-3 text-center">
-                    <p className="text-xs text-ink-600">
+                  <div className="rounded-lg p-3 text-center" style={{ background: t.surface }}>
+                    <p className="text-xs" style={{ color: t.textMuted }}>
                       All workspace members already have an HR record.
                     </p>
                   </div>
@@ -249,7 +267,8 @@ function NewEmployeePage() {
                     error={form.formState.errors.selected_user_id?.message}
                   >
                     <select
-                      className="form-input"
+                      className="form-input-dark"
+                      style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                       {...form.register('selected_user_id')}
                     >
                       <option value="">— choose —</option>
@@ -270,8 +289,9 @@ function NewEmployeePage() {
                 <Field label="Email to invite" error={form.formState.errors.email?.message}>
                   <input
                     type="email"
-                    className="form-input"
+                    className="form-input-dark"
                     placeholder="name@company.com"
+                    style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                     {...form.register('email')}
                   />
                 </Field>
@@ -283,24 +303,26 @@ function NewEmployeePage() {
         {/* ── Personal & Employment details (two columns) ───────── */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column: Personal information */}
-          <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-ink-100">
-              <h2 className="text-sm font-semibold text-ink-900">Personal Information</h2>
+          <div className="rounded-xl overflow-hidden" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+            <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+              <h2 className="text-sm font-semibold" style={{ color: t.text }}>Personal Information</h2>
             </div>
             
             <div className="p-5 space-y-4">
               <Field label="Full name" error={form.formState.errors.full_name?.message}>
                 <input 
-                  className="form-input" 
+                  className="form-input-dark" 
                   placeholder="e.g., Ahmad Rahman"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                   {...form.register('full_name')} 
                 />
               </Field>
 
               <Field label="Phone (optional)" error={form.formState.errors.phone?.message}>
                 <input 
-                  className="form-input" 
+                  className="form-input-dark" 
                   placeholder="e.g., +62 812 3456 7890"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                   {...form.register('phone')} 
                 />
               </Field>
@@ -308,22 +330,27 @@ function NewEmployeePage() {
           </div>
 
           {/* Right column: Employment details */}
-          <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-ink-100">
-              <h2 className="text-sm font-semibold text-ink-900">Employment Details</h2>
+          <div className="rounded-xl overflow-hidden" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+            <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+              <h2 className="text-sm font-semibold" style={{ color: t.text }}>Employment Details</h2>
             </div>
 
             <div className="p-5 space-y-4">
               <Field label="Job title (optional)" error={form.formState.errors.job_title?.message}>
                 <input 
-                  className="form-input" 
+                  className="form-input-dark" 
                   placeholder="e.g., Senior Designer"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                   {...form.register('job_title')} 
                 />
               </Field>
 
               <Field label="Employment type" error={form.formState.errors.employment_type?.message}>
-                <select className="form-input" {...form.register('employment_type')}>
+                <select
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('employment_type')}
+                >
                   <option value="full_time">Full time</option>
                   <option value="part_time">Part time</option>
                   <option value="contract">Contract</option>
@@ -332,7 +359,12 @@ function NewEmployeePage() {
               </Field>
 
               <Field label="Start date" error={form.formState.errors.start_date?.message}>
-                <input type="date" className="form-input" {...form.register('start_date')} />
+                <input
+                  type="date"
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('start_date')}
+                />
               </Field>
             </div>
           </div>
@@ -350,7 +382,8 @@ function NewEmployeePage() {
           
           <Link
             to="/people"
-            className="text-sm text-ink-600 hover:text-ink-900 font-medium px-4 py-3"
+            className="text-sm font-medium px-4 py-3"
+            style={{ color: t.textMuted }}
           >
             Cancel
           </Link>
@@ -418,7 +451,7 @@ function EditEmployeePage({ id }: { id: string }) {
         className="min-h-screen px-6 py-8"
         style={{ background: moduleBackgrounds.people }}
       >
-        <p className="text-sm text-ink-500">Loading…</p>
+        <p className="text-sm" style={{ color: t.textMuted }}>Loading…</p>
       </div>
     )
   }
@@ -430,7 +463,8 @@ function EditEmployeePage({ id }: { id: string }) {
     >
       <Link
         to="/people"
-        className="flex items-center gap-1 text-sm text-ink-500 hover:text-ink-700 mb-6"
+        className="flex items-center gap-1 text-sm mb-6"
+        style={{ color: t.textMuted }}
       >
         <ArrowLeft size={16} />
         Back to People
@@ -440,7 +474,7 @@ function EditEmployeePage({ id }: { id: string }) {
         <div className="flex items-center gap-3 mb-6">
           <Avatar name={employee.full_name} id={employee.id} size={48} />
           <div>
-            <h1 className="text-xl font-extrabold tracking-tight text-ink-900">
+            <h1 className="text-xl font-extrabold tracking-tight" style={{ color: t.text }}>
               {employee.full_name}
             </h1>
             <StatusSquare status={employee.status} />
@@ -451,27 +485,28 @@ function EditEmployeePage({ id }: { id: string }) {
       <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Left column: Personal information */}
-          <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-ink-100">
-              <h2 className="text-sm font-semibold text-ink-900">Personal Information</h2>
+          <div className="rounded-xl overflow-hidden" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+            <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+              <h2 className="text-sm font-semibold" style={{ color: t.text }}>Personal Information</h2>
             </div>
             
             <div className="p-5 space-y-4">
               <Field label="Full name" error={form.formState.errors.full_name?.message}>
                 <input 
-                  className="form-input" 
+                  className="form-input-dark" 
                   placeholder="e.g., Ahmad Rahman"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                   {...form.register('full_name')} 
                 />
               </Field>
 
               {employee?.email && (
                 <div>
-                  <label className="block text-sm font-medium text-ink-700 mb-1.5">Email</label>
-                  <div className="bg-ink-50 rounded-lg px-3 py-2.5 text-sm text-ink-600">
+                  <label className="block text-sm font-medium mb-1.5" style={{ color: t.textMuted }}>Email</label>
+                  <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: t.input, color: t.text }}>
                     {employee.email}
                   </div>
-                  <p className="text-xs text-ink-500 mt-1">
+                  <p className="text-xs mt-1" style={{ color: t.textMuted }}>
                     To change the email, update it in Settings → Members
                   </p>
                 </div>
@@ -479,8 +514,9 @@ function EditEmployeePage({ id }: { id: string }) {
 
               <Field label="Phone (optional)" error={form.formState.errors.phone?.message}>
                 <input 
-                  className="form-input" 
+                  className="form-input-dark" 
                   placeholder="e.g., +62 812 3456 7890"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                   {...form.register('phone')} 
                 />
               </Field>
@@ -488,22 +524,27 @@ function EditEmployeePage({ id }: { id: string }) {
           </div>
 
           {/* Right column: Employment details */}
-          <div className="rounded-xl border border-ink-100 bg-white shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-ink-100">
-              <h2 className="text-sm font-semibold text-ink-900">Employment Details</h2>
+          <div className="rounded-xl overflow-hidden" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+            <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+              <h2 className="text-sm font-semibold" style={{ color: t.text }}>Employment Details</h2>
             </div>
 
             <div className="p-5 space-y-4">
               <Field label="Job title (optional)" error={form.formState.errors.job_title?.message}>
                 <input 
-                  className="form-input" 
+                  className="form-input-dark" 
                   placeholder="e.g., Senior Designer"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                   {...form.register('job_title')} 
                 />
               </Field>
 
               <Field label="Employment type" error={form.formState.errors.employment_type?.message}>
-                <select className="form-input" {...form.register('employment_type')}>
+                <select
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('employment_type')}
+                >
                   <option value="full_time">Full time</option>
                   <option value="part_time">Part time</option>
                   <option value="contract">Contract</option>
@@ -512,7 +553,12 @@ function EditEmployeePage({ id }: { id: string }) {
               </Field>
 
               <Field label="Start date" error={form.formState.errors.start_date?.message}>
-                <input type="date" className="form-input" {...form.register('start_date')} />
+                <input
+                  type="date"
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('start_date')}
+                />
               </Field>
             </div>
           </div>
@@ -530,7 +576,8 @@ function EditEmployeePage({ id }: { id: string }) {
           
           <Link
             to="/people"
-            className="text-sm text-ink-600 hover:text-ink-900 font-medium px-4 py-3"
+            className="text-sm font-medium px-4 py-3"
+            style={{ color: t.textMuted }}
           >
             Cancel
           </Link>
@@ -561,7 +608,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-ink-700 mb-1.5">{label}</label>
+      <label className="block text-sm font-medium mb-1.5" style={{ color: t.textMuted }}>{label}</label>
       {children}
       {error && <p className="text-xs text-err mt-1.5 font-medium">{error}</p>}
     </div>

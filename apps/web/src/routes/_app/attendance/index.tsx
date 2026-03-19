@@ -6,8 +6,10 @@ import { todayISO, formatDate } from '@/lib/utils/date'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { QuickClock } from '@/components/workived/attendance/QuickClock'
-import { moduleBackgrounds, typography, colors } from '@/design/tokens'
+import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 import { Clock } from 'lucide-react'
+
+const t = moduleThemes.attendance
 
 export const Route = createFileRoute('/_app/attendance/')({
   component: AttendancePage,
@@ -59,11 +61,11 @@ function AttendancePage() {
         <div>
           <h1
             className="font-extrabold"
-            style={{ fontSize: typography.display.size, letterSpacing: typography.display.tracking, color: colors.ink900, lineHeight: typography.display.lineHeight }}
+            style={{ fontSize: typography.display.size, letterSpacing: typography.display.tracking, color: t.text, lineHeight: typography.display.lineHeight }}
           >
             Attendance
           </h1>
-          <p className="mt-2" style={{ fontSize: 14, color: colors.ink500 }}>
+          <p className="mt-2" style={{ fontSize: 14, color: t.textMuted }}>
             {dateLabel}
           </p>
         </div>
@@ -73,10 +75,10 @@ function AttendancePage() {
           onChange={(e) => setDate(e.target.value)}
           className="text-sm px-3 py-2 focus:outline-none focus:ring-2"
           style={{
-            background: '#FFFFFF',
-            border: '1px solid rgba(10,46,26,0.08)',
+            background: t.input,
+            border: `1px solid ${t.inputBorder}`,
             borderRadius: 10,
-            color: colors.ink900,
+            color: t.text,
           }}
         />
       </div>
@@ -128,7 +130,7 @@ function AttendancePage() {
       {/* Quick Clock (only today) */}
       {isToday && (
         <div className="mt-4">
-          <QuickClock />
+          <QuickClock variant="dark" theme={t} />
         </div>
       )}
 
@@ -163,31 +165,31 @@ function AttendancePage() {
               key={entry.employee_id}
               className="flex items-center gap-4 transition-colors duration-150"
               style={{
-                background: '#FFFFFF',
+                background: t.surface,
                 borderRadius: 12,
                 padding: '14px 20px',
               }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#F0FAF4' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF' }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = t.surface }}
             >
               <Avatar name={entry.employee_name} id={entry.employee_id} size={32} />
 
               <div className="flex-1 min-w-0">
                 <p
                   className="font-semibold truncate"
-                  style={{ fontSize: 13, color: colors.ink900 }}
+                  style={{ fontSize: 13, color: t.text }}
                 >
                   {entry.employee_name}
                 </p>
                 {/* Mobile: show times below name */}
                 <div className="flex items-center gap-3 md:hidden mt-0.5">
                   {entry.clock_in_at && (
-                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: colors.ink500 }}>
+                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: t.textMuted }}>
                       {formatDate(entry.clock_in_at, tz, 'time')}
                     </span>
                   )}
                   {entry.clock_out_at && (
-                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: colors.ink500 }}>
+                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: t.textMuted }}>
                       — {formatDate(entry.clock_out_at, tz, 'time')}
                     </span>
                   )}
@@ -197,13 +199,13 @@ function AttendancePage() {
               {/* Desktop: times in columns */}
               <span
                 className="hidden md:block"
-                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: colors.ink500 }}
+                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: t.textMuted }}
               >
                 {entry.clock_in_at ? formatDate(entry.clock_in_at, tz, 'time') : '—'}
               </span>
               <span
                 className="hidden md:block"
-                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: colors.ink500 }}
+                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: t.textMuted }}
               >
                 {entry.clock_out_at ? formatDate(entry.clock_out_at, tz, 'time') : '—'}
               </span>
@@ -242,17 +244,17 @@ function AttendanceSkeleton() {
         <div
           key={i}
           className="flex items-center gap-4 animate-pulse"
-          style={{ background: '#FFFFFF', borderRadius: 12, padding: '14px 20px' }}
+          style={{ background: t.surface, borderRadius: 12, padding: '14px 20px' }}
         >
-          <div className="rounded-[9px] flex-shrink-0" style={{ width: 32, height: 32, background: 'rgba(10,46,26,0.06)' }} />
+          <div className="rounded-[9px] flex-shrink-0" style={{ width: 32, height: 32, background: t.surfaceHover }} />
           <div className="flex-1">
-            <div className="rounded-md" style={{ width: 120, height: 13, background: 'rgba(10,46,26,0.06)' }} />
+            <div className="rounded-md" style={{ width: 120, height: 13, background: t.surfaceHover }} />
           </div>
-          <div className="rounded-md hidden md:block" style={{ width: 50, height: 13, background: 'rgba(10,46,26,0.04)' }} />
-          <div className="rounded-md hidden md:block" style={{ width: 50, height: 13, background: 'rgba(10,46,26,0.04)' }} />
+          <div className="rounded-md hidden md:block" style={{ width: 50, height: 13, background: t.surface }} />
+          <div className="rounded-md hidden md:block" style={{ width: 50, height: 13, background: t.surface }} />
           <div className="flex items-center gap-1.5" style={{ width: 80, justifyContent: 'flex-end' }}>
-            <div className="rounded-sm" style={{ width: 7, height: 7, background: 'rgba(10,46,26,0.06)' }} />
-            <div className="rounded-sm" style={{ width: 36, height: 12, background: 'rgba(10,46,26,0.04)' }} />
+            <div className="rounded-sm" style={{ width: 7, height: 7, background: t.surfaceHover }} />
+            <div className="rounded-sm" style={{ width: 36, height: 12, background: t.surface }} />
           </div>
         </div>
       ))}
@@ -265,14 +267,14 @@ function AttendanceEmptyState() {
     <div className="flex flex-col items-center justify-center py-16 gap-3">
       <div
         className="grid place-items-center"
-        style={{ width: 48, height: 48, borderRadius: 14, background: colors.okDim }}
+        style={{ width: 48, height: 48, borderRadius: 14, background: t.accent }}
       >
-        <Clock size={22} style={{ color: colors.okText }} />
+        <Clock size={22} style={{ color: t.accentText }} />
       </div>
-      <p className="font-bold" style={{ fontSize: 15, color: colors.ink900 }}>
+      <p className="font-bold" style={{ fontSize: 15, color: t.text }}>
         No clock-ins yet today
       </p>
-      <p style={{ fontSize: 13, color: colors.ink500 }}>
+      <p style={{ fontSize: 13, color: t.textMuted }}>
         Records appear here as employees check in.
       </p>
     </div>
