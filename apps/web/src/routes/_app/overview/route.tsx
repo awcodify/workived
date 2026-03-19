@@ -12,6 +12,28 @@ import { LogIn, LogOut } from 'lucide-react'
 export const Route = createFileRoute('/_app/overview')({
   component: OverviewPage,
 })
+// TODO: move it to admin config.
+// ── Quotes ──────────────────────────────────────────────────────
+
+const QUOTES = [
+  { text: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' },
+  { text: 'Success is not final, failure is not fatal: it is the courage to continue that counts.', author: 'Winston Churchill' },
+  { text: 'Done is better than perfect.', author: 'Sheryl Sandberg' },
+  { text: 'Move fast and break things. Unless you are breaking stuff, you are not moving fast enough.', author: 'Mark Zuckerberg' },
+  { text: 'The best time to plant a tree was 20 years ago. The second best time is now.', author: 'Chinese Proverb' },
+  { text: 'It always seems impossible until it is done.', author: 'Nelson Mandela' },
+  { text: 'Stay hungry, stay foolish.', author: 'Steve Jobs' },
+  { text: 'Talent wins games, but teamwork and intelligence win championships.', author: 'Michael Jordan' },
+  { text: 'If you want to go fast, go alone. If you want to go far, go together.', author: 'African Proverb' },
+  { text: 'Work hard in silence, let your success be your noise.', author: 'Frank Ocean' },
+  { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
+  { text: 'What you do today can improve all your tomorrows.', author: 'Ralph Marston' },
+]
+
+function useDailyQuote() {
+  const [index] = useState(() => Math.floor(Math.random() * QUOTES.length))
+  return QUOTES[index]
+}
 
 // ── Hooks ───────────────────────────────────────────────────────
 
@@ -109,6 +131,7 @@ function OverviewPage() {
   const clock = useLiveClock(tz)
 
   const isLoading = orgLoading || empLoading || dailyLoading
+  const quote = useDailyQuote()
 
   // My clock-in state
   const myEntry = daily?.find((e) => e.employee_id === myEmployee?.id)
@@ -141,50 +164,65 @@ function OverviewPage() {
       className="min-h-screen px-6 py-6 md:px-11 md:py-8 pb-24"
       style={{ background: moduleBackgrounds.overview }}
     >
-      {/* Date label */}
-      <p
-        className="uppercase"
-        style={{
-          fontSize: typography.tiny.size,
-          fontWeight: Number(typography.tiny.weight),
-          color: 'rgba(255,255,255,0.3)',
-          letterSpacing: '0.12em',
-          lineHeight: typography.tiny.lineHeight,
-        }}
-      >
-        {formatDateLabel(tz)}
-      </p>
+      {/* Header: Greeting left, Quote right */}
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+        <div>
+          {/* Date label */}
+          <p
+            className="uppercase"
+            style={{
+              fontSize: typography.tiny.size,
+              fontWeight: Number(typography.tiny.weight),
+              color: 'rgba(255,255,255,0.3)',
+              letterSpacing: '0.12em',
+              lineHeight: typography.tiny.lineHeight,
+            }}
+          >
+            {formatDateLabel(tz)}
+          </p>
 
-      {/* Greeting */}
-      <h1
-        className="mt-2"
-        style={{
-          fontSize: typography.display.size,
-          fontWeight: typography.display.weight,
-          letterSpacing: typography.display.tracking,
-          lineHeight: typography.display.lineHeight,
-          color: colors.ink0,
-        }}
-      >
-        {greeting}
-        <br />
-        <span style={{ color: colors.accentMid }}>{firstName}</span>
-      </h1>
+          {/* Greeting */}
+          <h1
+            className="mt-2"
+            style={{
+              fontSize: typography.display.size,
+              fontWeight: typography.display.weight,
+              letterSpacing: typography.display.tracking,
+              lineHeight: typography.display.lineHeight,
+              color: colors.ink0,
+            }}
+          >
+            {greeting}
+            <br />
+            <span style={{ color: colors.accentMid }}>{firstName}</span>
+          </h1>
 
-      {/* Live clock */}
-      <p
-        className="mt-1.5"
-        style={{
-          fontFamily: typography.fontMono,
-          fontSize: typography.label.size,
-          color: 'rgba(255,255,255,0.22)',
-        }}
-      >
-        {clock}
-      </p>
+          {/* Live clock */}
+          <p
+            className="mt-1.5"
+            style={{
+              fontFamily: typography.fontMono,
+              fontSize: typography.label.size,
+              color: 'rgba(255,255,255,0.22)',
+            }}
+          >
+            {clock}
+          </p>
+        </div>
+
+        {/* Daily quote */}
+        <div className="md:text-right" style={{ maxWidth: 420 }}>
+          <p style={{ fontSize: typography.h2.size, fontStyle: 'italic', color: colors.ink0, lineHeight: typography.h2.lineHeight, fontWeight: typography.h2.weight, letterSpacing: typography.h2.tracking }}>
+            "{quote.text}"
+          </p>
+          <p className="mt-2" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>
+            — {quote.author}
+          </p>
+        </div>
+      </div>
 
       {/* ── Main Content (2 columns) ──────────────────────────── */}
-      <div className="grid md:grid-cols-2 gap-8 mt-8">
+      <div className="grid md:grid-cols-2 gap-8">
         {/* Left: Clock In/Out */}
         <div>
           {!myEmployee ? (
