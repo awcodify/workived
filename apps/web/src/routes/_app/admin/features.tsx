@@ -65,7 +65,8 @@ function FeaturesPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen px-6 py-8 md:px-11 md:py-10">
+      <div className="space-y-6">
       {/* Header */}
       <div>
         <Link
@@ -170,6 +171,7 @@ function FeaturesPage() {
             ))
           )}
         </div>
+      </div>
       </div>
     </div>
   );
