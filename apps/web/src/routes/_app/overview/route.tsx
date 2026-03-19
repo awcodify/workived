@@ -125,6 +125,7 @@ function OverviewPage() {
 
   const greeting = useGreeting()
   const clock = useLiveClock(tz)
+  const dailyQuote = useDailyQuote()
 
   // My clock-in state
   const myEntry = daily?.find((e) => e.employee_id === myEmployee?.id)
@@ -158,7 +159,7 @@ function OverviewPage() {
       style={{ background: moduleBackgrounds.overview }}
     >
       {/* Header: Greeting left, Date/clock right */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6" style={{ marginBottom: 24 }}>
         <div>
           {/* Greeting */}
           <h1
@@ -173,7 +174,7 @@ function OverviewPage() {
           >
             {greeting}
             <br />
-            <span style={{ color: colors.accentMid }}>{firstName}</span> 👋
+            <span style={{ color: colors.accentMid }}>{firstName}</span> <span aria-label="wave" role="img">👋</span>
           </h1>
         </div>
 
@@ -220,13 +221,47 @@ function OverviewPage() {
           </div>
         </div>
       </div>
+      {/* Motivational Quote Card (moved below header) */}
+      <div
+        style={{
+          maxWidth: 680,
+          margin: '0 auto 32px auto',
+          background: 'rgba(255,255,255,0.07)',
+          borderRadius: 16,
+          boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)',
+          padding: '22px 40px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 22,
+        }}
+      >
+        <span style={{ fontSize: 32, color: colors.accentMid, marginRight: 8 }}>❝</span>
+        <div style={{ flex: 1 }}>
+          <p style={{ fontSize: 17, color: colors.ink0, fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>{dailyQuote.text}</p>
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: 500, textAlign: 'right' }}>— {dailyQuote.author}</p>
+        </div>
+      </div>
       {/* ── Main Content (responsive 3 columns, flex grid, with border) ──────────────────────────── */}
       <div
         className="dashboard-columns"
-        style={{ display: 'flex', gap: 32, marginTop: 40 }}
+        style={{ display: 'flex', gap: 32, marginTop: 32 }}
       >
         {/* Left: My Attendance Card */}
-        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14, background: colors.accentText, color: colors.ink0 }}>
+        <div className="dashboard-col" style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 18,
+          background: colors.accentText,
+          color: colors.ink0,
+          boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)',
+          position: 'relative',
+          overflow: 'hidden',
+        }}>
+          {/* Accent bar */}
+          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 7, background: colors.accentMid, opacity: 0.18, borderTopLeftRadius: 18, borderBottomLeftRadius: 18 }} />
           <h3
             style={{
               fontSize: typography.h2.size,
@@ -415,7 +450,16 @@ function OverviewPage() {
         </div>
 
         {/* Middle: Attendance Graph */}
-        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14 }}>
+        <div className="dashboard-col" style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 18,
+          boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
+          background: 'rgba(255,255,255,0.03)',
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
             <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
               Team attendance
@@ -441,7 +485,16 @@ function OverviewPage() {
         </div>
 
         {/* Right: Team Member List */}
-        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14 }}>
+        <div className="dashboard-col" style={{
+          flex: 1,
+          minWidth: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 18,
+          boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
+          background: 'rgba(255,255,255,0.03)',
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
             <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
               Your team today
@@ -483,13 +536,18 @@ function OverviewPage() {
                     key={m.id}
                     to="/people/$id"
                     params={{ id: m.id }}
-                    className="flex items-center gap-3 px-4 py-3 transition-all duration-150 hover:-translate-y-px"
+                    className="flex items-center gap-3 px-4 py-3 transition-all duration-150 hover:-translate-y-0.5"
                     style={{
                       opacity: isAbsent || noRecord ? 0.55 : 1,
-                      borderRadius: 10,
+                      borderRadius: 12,
                       cursor: 'pointer',
                       textDecoration: 'none',
+                      background: 'rgba(255,255,255,0.01)',
+                      boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
+                      transition: 'background 0.15s, box-shadow 0.15s, transform 0.15s',
                     }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.01)'}
                   >
                     <div className="relative flex-shrink-0">
                       <Avatar name={m.full_name} id={m.id} size={34} />
@@ -558,7 +616,18 @@ function OverviewPage() {
           }
           .dashboard-col {
             width: 100% !important;
-            margin-bottom: 32px;
+            margin-bottom: 36px;
+            box-shadow: 0 2px 16px 0 rgba(0,0,0,0.10) !important;
+          }
+        }
+        @media (max-width: 600px) {
+          .dashboard-columns {
+            margin-top: 0 !important;
+          }
+          .dashboard-col {
+            border-radius: 14px !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
           }
         }
       `}</style>
