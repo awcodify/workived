@@ -118,6 +118,9 @@ func main() {
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)
 
+	// Public feature-flag check (auth-only, any user with a valid JWT + org)
+	adminHandler.RegisterPublicRoutes(authOnly)
+
 	// ── Server ────────────────────────────────────────────────────────────────
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),

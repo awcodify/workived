@@ -103,3 +103,20 @@ export function useUpdateAdminConfig() {
     },
   });
 }
+
+// ── App-level feature flags (non-admin, every authenticated user) ─────────────
+
+/** Returns a map of feature_key → bool for the current user's org. */
+export function useEnabledFeatures() {
+  return useQuery({
+    queryKey: ['features'],
+    queryFn: admin.getEnabledFeatures,
+    staleTime: 5 * 60 * 1000, // 5 minutes — flags rarely change
+  });
+}
+
+/** Convenience hook: returns true when a specific feature is enabled. */
+export function useIsFeatureEnabled(featureKey: string): boolean {
+  const { data } = useEnabledFeatures();
+  return data?.[featureKey] === true;
+}

@@ -3,15 +3,16 @@ import { LayoutDashboard, Users, Clock, BarChart3, CheckSquare } from 'lucide-re
 import { dockThemes } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 import { SettingsMenu } from './SettingsMenu'
+import { useEnabledFeatures } from '@/lib/hooks/useAdmin'
 
 type ModuleKey = keyof typeof dockThemes
 
 const NAV_ITEMS = [
-  { to: '/overview', label: 'Overview', icon: LayoutDashboard, module: 'overview' as ModuleKey },
-  { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey },
-  { to: '/attendance', label: 'Attendance', icon: Clock, module: 'attendance' as ModuleKey },
-  { to: '/reports', label: 'Reports', icon: BarChart3, module: 'reports' as ModuleKey },
-  { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey },
+  { to: '/overview', label: 'Overview', icon: LayoutDashboard, module: 'overview' as ModuleKey, featureKey: null },
+  { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey, featureKey: null },
+  { to: '/attendance', label: 'Attendance', icon: Clock, module: 'attendance' as ModuleKey, featureKey: null },
+  { to: '/reports', label: 'Reports', icon: BarChart3, module: 'reports' as ModuleKey, featureKey: 'reports' },
+  { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey, featureKey: 'tasks' },
 ] as const
 
 function getCurrentModule(pathname: string): ModuleKey {
@@ -27,6 +28,13 @@ export function Dock() {
   const pathname = matches[matches.length - 1]?.pathname ?? '/'
   const currentModule = getCurrentModule(pathname)
   const theme = dockThemes[currentModule]
+  const { data: features } = useEnabledFeatures()
+
+  // Only show items with no feature gate, or where the flag is enabled.
+  // While loading (features is undefined) we optimistically show all items.
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => item.featureKey === null || features === undefined || features[item.featureKey] === true
+  )
 
   return (
     <nav
@@ -36,7 +44,7 @@ export function Dock() {
         borderColor: theme.border,
       }}
     >
-      {NAV_ITEMS.map((item) => {
+      {visibleItems.map((item) => {
         const isActive = pathname === item.to || pathname.startsWith(item.to + '/')
         const Icon = item.icon
         return (

@@ -41,6 +41,11 @@ func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
 	admin.PATCH("/configs/:key", h.UpdateAdminConfig)
 }
 
+// RegisterPublicRoutes registers auth-only (non-admin) feature-check routes.
+func (h *Handler) RegisterPublicRoutes(r *gin.RouterGroup) {
+	r.GET("/features", h.GetEnabledFeatures)
+}
+
 // ── System Stats ────────────────────────────────────────────────────────────
 
 func (h *Handler) GetSystemStats(c *gin.Context) {
@@ -193,4 +198,20 @@ func (h *Handler) UpdateAdminConfig(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": config})
+}
+
+// ── Public feature-flag check ────────────────────────────────────────────────
+
+// GetEnabledFeatures returns a map of feature_key → bool for the current user's org.
+// This endpoint is auth-only (not super_admin-only) so regular users can call it.
+func (h *Handler) GetEnabledFeatures(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	features, err := h.svc.GetEnabledFeaturesForOrg(c.Request.Context(), orgID, userID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": features})
 }

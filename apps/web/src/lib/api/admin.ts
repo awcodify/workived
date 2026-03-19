@@ -143,6 +143,12 @@ const admin = {
     );
     return data.data;
   },
+
+  // Enabled features for current user's org (public — no super_admin required)
+  getEnabledFeatures: async () => {
+    const { data } = await apiClient.get<{ data: Record<string, boolean> }>('/api/v1/features');
+    return data.data;
+  },
 };
 
 export default admin;

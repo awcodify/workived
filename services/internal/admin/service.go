@@ -33,6 +33,22 @@ func (s *Service) UpdateFeatureFlag(ctx context.Context, key string, req UpdateF
 	return flag, nil
 }
 
+// GetEnabledFeaturesForOrg returns a map of feature_key → bool for all known flags
+// evaluated against the given org and user. Safe to call from non-admin handlers.
+func (s *Service) GetEnabledFeaturesForOrg(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) (map[string]bool, error) {
+	flags, err := s.repo.ListFeatureFlags(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list feature flags: %w", err)
+	}
+
+	result := make(map[string]bool, len(flags))
+	for _, f := range flags {
+		enabled, _ := s.IsFeatureEnabled(ctx, f.FeatureKey, &orgID, &userID)
+		result[f.FeatureKey] = enabled
+	}
+	return result, nil
+}
+
 // IsFeatureEnabled checks if a feature is enabled globally or for a specific org/user.
 func (s *Service) IsFeatureEnabled(ctx context.Context, featureKey string, orgID *uuid.UUID, userID *uuid.UUID) (bool, error) {
 	flag, err := s.repo.GetFeatureFlagByKey(ctx, featureKey)

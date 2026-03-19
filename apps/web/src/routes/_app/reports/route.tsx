@@ -1,4 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
+import { apiClient } from '@/lib/api/client'
 import { moduleBackgrounds, typography } from '@/design/tokens'
 import {
   Clock,
@@ -12,6 +13,17 @@ import {
 } from 'lucide-react'
 
 export const Route = createFileRoute('/_app/reports')({
+  loader: async () => {
+    try {
+      const { data } = await apiClient.get<{ data: Record<string, boolean> }>('/api/v1/features')
+      if (data.data.reports === false) {
+        throw redirect({ to: '/feature-disabled' })
+      }
+    } catch (err) {
+      // Re-throw TanStack Router redirects; ignore network errors (fail open)
+      if (err && typeof err === 'object' && 'to' in err) throw err
+    }
+  },
   component: ReportsPage,
 })
 

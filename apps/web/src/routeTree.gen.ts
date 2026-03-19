@@ -21,6 +21,7 @@ import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/rou
 import { Route as AppReportsRouteRouteImport } from './routes/_app/reports/route'
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
+import { Route as AppFeatureDisabledRouteRouteImport } from './routes/_app/feature-disabled/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
 import { Route as AppAdminRouteRouteImport } from './routes/_app/admin/route'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
@@ -92,6 +93,11 @@ const AppOverviewRouteRoute = AppOverviewRouteRouteImport.update({
   path: '/overview',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppFeatureDisabledRouteRoute = AppFeatureDisabledRouteRouteImport.update({
+  id: '/feature-disabled',
+  path: '/feature-disabled',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppAttendanceRouteRoute = AppAttendanceRouteRouteImport.update({
   id: '/attendance',
   path: '/attendance',
@@ -158,6 +164,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AppAdminRouteRouteWithChildren
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
+  '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/overview': typeof AppOverviewRouteRoute
   '/people': typeof AppPeopleRouteRouteWithChildren
   '/reports': typeof AppReportsRouteRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/overview': typeof AppOverviewRouteRoute
   '/reports': typeof AppReportsRouteRoute
   '/settings': typeof AppSettingsRouteRouteWithChildren
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_app/admin': typeof AppAdminRouteRouteWithChildren
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
+  '/_app/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/_app/overview': typeof AppOverviewRouteRoute
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
   '/_app/reports': typeof AppReportsRouteRoute
@@ -232,6 +241,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/attendance'
+    | '/feature-disabled'
     | '/overview'
     | '/people'
     | '/reports'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/feature-disabled'
     | '/overview'
     | '/reports'
     | '/settings'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/_app/admin'
     | '/_app/attendance'
+    | '/_app/feature-disabled'
     | '/_app/overview'
     | '/_app/people'
     | '/_app/reports'
@@ -390,6 +402,13 @@ declare module '@tanstack/react-router' {
       path: '/overview'
       fullPath: '/overview'
       preLoaderRoute: typeof AppOverviewRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/feature-disabled': {
+      id: '/_app/feature-disabled'
+      path: '/feature-disabled'
+      fullPath: '/feature-disabled'
+      preLoaderRoute: typeof AppFeatureDisabledRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/attendance': {
@@ -540,6 +559,7 @@ const AppSettingsRouteRouteWithChildren =
 interface AppRouteRouteChildren {
   AppAdminRouteRoute: typeof AppAdminRouteRouteWithChildren
   AppAttendanceRouteRoute: typeof AppAttendanceRouteRouteWithChildren
+  AppFeatureDisabledRouteRoute: typeof AppFeatureDisabledRouteRoute
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
   AppPeopleRouteRoute: typeof AppPeopleRouteRouteWithChildren
   AppReportsRouteRoute: typeof AppReportsRouteRoute
@@ -550,6 +570,7 @@ interface AppRouteRouteChildren {
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAdminRouteRoute: AppAdminRouteRouteWithChildren,
   AppAttendanceRouteRoute: AppAttendanceRouteRouteWithChildren,
+  AppFeatureDisabledRouteRoute: AppFeatureDisabledRouteRoute,
   AppOverviewRouteRoute: AppOverviewRouteRoute,
   AppPeopleRouteRoute: AppPeopleRouteRouteWithChildren,
   AppReportsRouteRoute: AppReportsRouteRoute,
