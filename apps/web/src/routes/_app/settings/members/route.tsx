@@ -98,11 +98,36 @@ function MembersPage() {
               color: '#FFFFFF',
             }}
           >
-            Team members
+            Workspace Members
           </h1>
-          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-            Invite people to join {org?.name ?? 'your workspace'}
+          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', marginTop: 4, lineHeight: 1.5 }}>
+            Invite people to access {org?.name ?? 'your workspace'}. Need attendance and leave tracking? Add them in <a href="/people" style={{ color: 'rgba(155,143,247,0.9)', textDecoration: 'underline' }}>People</a> after inviting.
           </p>
+        </div>
+
+        {/* Info box explaining the difference */}
+        <div
+          className="p-5 rounded-xl"
+          style={{ background: 'rgba(155,143,247,0.08)', border: '1px solid rgba(155,143,247,0.15)' }}
+        >
+          <div className="flex gap-3">
+            <div style={{ fontSize: 20, marginTop: 2 }}>💡</div>
+            <div>
+              <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', fontWeight: 600, marginBottom: 6 }}>
+                What's the difference?
+              </p>
+              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.6 }}>
+                <p style={{ marginBottom: 8 }}>
+                  <strong style={{ color: 'rgba(255,255,255,0.85)' }}>Workspace Member:</strong> Someone who can log in to Workived. 
+                  They get access based on their role (Admin, Member, etc.).
+                </p>
+                <p>
+                  <strong style={{ color: 'rgba(255,255,255,0.85)' }}>Employee:</strong> Someone with an HR profile for attendance, 
+                  leave, claims, and payroll tracking. One person can be both.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Invite Form Card */}
@@ -119,11 +144,10 @@ function MembersPage() {
               marginBottom: 4,
             }}
           >
-            Invite a team member
+            Invite a new member
           </h2>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}>
-            Inviting gives someone login access to this workspace. To add an employee HR record (attendance, leave), go to{' '}
-            <a href="/people/new" style={{ color: 'rgba(155,143,247,0.9)', textDecoration: 'underline' }}>People → Add employee</a>.
+          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 16, lineHeight: 1.6 }}>
+            They'll receive an email invitation to create their account and access the workspace.
           </p>
 
           <form onSubmit={form.handleSubmit(handleInvite)} className="flex flex-col gap-4">
@@ -195,19 +219,28 @@ function MembersPage() {
           {/* Last invite success banner */}
           {lastInvite && (
             <div
-              className="mt-4 px-4 py-3 rounded-xl flex items-center justify-between gap-3"
+              className="mt-4 px-4 py-3.5 rounded-xl"
               style={{ background: C.okDim, border: `1px solid ${C.ok}` }}
             >
-              <p style={{ fontSize: 14, color: '#0A7B46', fontWeight: 500 }}>
-                Invitation sent to {lastInvite.email}
-              </p>
-              <button
-                onClick={() => handleCopyLink(lastInvite.invite_url, lastInvite.id)}
-                className="px-3 py-1.5 rounded-lg text-xs font-bold shrink-0"
-                style={{ background: C.ok, color: '#FFFFFF' }}
-              >
-                {copiedId === lastInvite.id ? 'Copied!' : 'Copy link'}
-              </button>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1">
+                  <p style={{ fontSize: 14, color: '#0A7B46', fontWeight: 600, marginBottom: 4 }}>
+                    ✓ Invitation sent to {lastInvite.email}
+                  </p>
+                  <p style={{ fontSize: 12, color: '#0D7A45', lineHeight: 1.5 }}>
+                    They can now log in to the workspace. Need HR tracking? 
+                    Add them as an <a href="/people/new" style={{ textDecoration: 'underline', fontWeight: 600 }}>employee</a> for 
+                    attendance, leave, and payroll records.
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleCopyLink(lastInvite.invite_url, lastInvite.id)}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold shrink-0"
+                  style={{ background: C.ok, color: '#FFFFFF' }}
+                >
+                  {copiedId === lastInvite.id ? 'Copied!' : 'Copy link'}
+                </button>
+              </div>
             </div>
           )}
         </div>

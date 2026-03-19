@@ -129,7 +129,8 @@ function NewEmployeePage() {
           <div className="px-5 py-4 border-b border-ink-100">
             <h2 className="text-sm font-semibold text-ink-900">Login Access</h2>
             <p className="text-xs text-ink-500 mt-0.5 leading-relaxed">
-              Decide whether this employee needs to log in to Workived. Workspace members (invited from Settings) can log in. HR records track attendance and leave — they can exist with or without login access.
+              Decide whether this employee needs workspace login access. <strong className="text-ink-700">Workspace members</strong> (invited from Settings → Members) 
+              can log in to Workived. <strong className="text-ink-700">Employee profiles</strong> track attendance, leave, and HR data — they can exist with or without login access.
             </p>
           </div>
 
