@@ -234,5 +234,8 @@ func (h *Handler) ListUnlinkedMembers(c *gin.Context) {
 		return
 	}
 
+	if members == nil {
+		members = []UnlinkedMember{}
+	}
 	c.JSON(http.StatusOK, gin.H{"data": members})
 }

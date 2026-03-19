@@ -51,7 +51,7 @@ export function useUnlinkedMembers() {
 
   return useQuery({
     queryKey: invitationKeys.unlinkedMembers,
-    queryFn: () => organisationsApi.listUnlinkedMembers().then((r) => r.data.data),
+    queryFn: () => organisationsApi.listUnlinkedMembers().then((r) => r.data.data ?? []),
     enabled: isAuthenticated,
   })
 }
