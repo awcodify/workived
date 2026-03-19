@@ -70,59 +70,37 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           className="absolute bottom-full mb-2 right-0 rounded-xl overflow-hidden shadow-lg"
           style={{
             minWidth: 180,
-            background: currentModule === 'overview' 
-              ? 'rgba(255,255,255,0.1)' 
-              : 'rgba(255,255,255,0.95)',
+            background: theme.bg,
             backdropFilter: 'blur(20px)',
-            border: currentModule === 'overview'
-              ? '1px solid rgba(255,255,255,0.15)'
-              : '1px solid rgba(0,0,0,0.08)',
+            border: `1px solid ${theme.border}`,
           }}
         >
           {/* User Info */}
           {user && (
             <div
               className="px-4 py-3 border-b"
-              style={{
-                borderColor: currentModule === 'overview'
-                  ? 'rgba(255,255,255,0.1)'
-                  : 'rgba(0,0,0,0.06)',
-              }}
+              style={{ borderColor: theme.border }}
             >
               <div className="flex items-center gap-2">
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center"
-                  style={{
-                    background: currentModule === 'overview'
-                      ? 'rgba(255,255,255,0.15)'
-                      : 'rgba(0,0,0,0.06)',
-                  }}
+                  style={{ background: theme.active.bg }}
                 >
                   <User
                     size={16}
-                    style={{
-                      color: currentModule === 'overview' 
-                        ? 'rgba(255,255,255,0.7)' 
-                        : '#0F0E13',
-                    }}
+                    style={{ color: theme.icon }}
                   />
                 </div>
                 <div>
                   <p
                     className="text-sm font-semibold leading-tight"
-                    style={{
-                      color: currentModule === 'overview' ? '#FFFFFF' : '#0F0E13',
-                    }}
+                    style={{ color: theme.active.icon }}
                   >
                     {user.full_name}
                   </p>
                   <p
                     className="text-xs leading-tight mt-0.5"
-                    style={{
-                      color: currentModule === 'overview' 
-                        ? 'rgba(255,255,255,0.5)' 
-                        : '#72708A',
-                    }}
+                    style={{ color: theme.icon }}
                   >
                     {user.email}
                   </p>
@@ -136,16 +114,8 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/company' }) }}
             className="w-full px-4 py-3 flex items-center gap-2 transition-colors text-left"
-            style={{
-              color: currentModule === 'overview'
-                ? 'rgba(255,255,255,0.85)'
-                : '#0F0E13',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = currentModule === 'overview'
-                ? 'rgba(255,255,255,0.08)'
-                : 'rgba(0,0,0,0.04)'
-            }}
+            style={{ color: theme.active.icon }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = theme.active.bg }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
             <Building2 size={16} />
@@ -156,16 +126,8 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/members' }) }}
             className="w-full px-4 py-3 flex items-center gap-2 transition-colors text-left"
-            style={{
-              color: currentModule === 'overview'
-                ? 'rgba(255,255,255,0.85)'
-                : '#0F0E13',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = currentModule === 'overview'
-                ? 'rgba(255,255,255,0.08)'
-                : 'rgba(0,0,0,0.04)'
-            }}
+            style={{ color: theme.active.icon }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = theme.active.bg }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
             <Users size={16} />
@@ -174,26 +136,16 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           )}
 
           {/* Divider */}
-          <div style={{ height: 1, background: currentModule === 'overview' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)' }} />
+          <div style={{ height: 1, background: theme.border }} />
 
           {/* Logout Button */}
           <button
             role="menuitem"
             onClick={handleLogout}
             className="w-full px-4 py-3 flex items-center gap-2 transition-colors text-left"
-            style={{
-              color: currentModule === 'overview' 
-                ? 'rgba(255,255,255,0.85)' 
-                : '#0F0E13',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = currentModule === 'overview'
-                ? 'rgba(255,255,255,0.08)'
-                : 'rgba(0,0,0,0.04)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'transparent'
-            }}
+            style={{ color: theme.active.icon }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = theme.active.bg }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
             <LogOut size={16} />
             <span className="text-sm font-medium">Logout</span>

@@ -42,6 +42,7 @@ export function Dock() {
       style={{
         background: theme.bg,
         borderColor: theme.border,
+        transition: 'background 0.25s ease, border-color 0.25s ease',
       }}
     >
       {visibleItems.map((item) => {

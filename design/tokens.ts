@@ -52,34 +52,34 @@ export const moduleBackgrounds = {
 // The floating dock adapts its colour to the current module
 export const dockThemes = {
   overview: {
-    bg:     'rgba(255,255,255,0.07)',
-    border: 'rgba(255,255,255,0.1)',
+    bg:     'rgba(255,255,255,0.09)',
+    border: 'rgba(255,255,255,0.12)',
     icon:   'rgba(255,255,255,0.45)',
     label:  'rgba(255,255,255,0.28)',
     active: {
-      bg:    'rgba(255,255,255,0.15)',
+      bg:    'rgba(255,255,255,0.16)',
       icon:  '#FFFFFF',
       label: 'rgba(255,255,255,0.85)',
     },
   },
   people: {
-    bg:     'rgba(26,18,8,0.07)',
-    border: 'rgba(26,18,8,0.10)',
+    bg:     'rgba(26,18,8,0.08)',
+    border: 'rgba(26,18,8,0.11)',
     icon:   'rgba(26,18,8,0.28)',
     label:  'rgba(26,18,8,0.28)',
     active: {
-      bg:    'rgba(26,18,8,0.12)',
+      bg:    'rgba(26,18,8,0.13)',
       icon:  '#1A1208',
       label: '#1A1208',
     },
   },
   attendance: {
-    bg:     'rgba(10,46,26,0.07)',
-    border: 'rgba(10,46,26,0.10)',
+    bg:     'rgba(10,46,26,0.08)',
+    border: 'rgba(10,46,26,0.11)',
     icon:   'rgba(10,46,26,0.28)',
     label:  'rgba(10,46,26,0.28)',
     active: {
-      bg:    'rgba(10,46,26,0.12)',
+      bg:    'rgba(10,46,26,0.13)',
       icon:  '#0A2E1A',
       label: '#0A2E1A',
     },
@@ -107,23 +107,23 @@ export const dockThemes = {
     },
   },
   tasks: {
-    bg:     'rgba(255,255,255,0.07)',
-    border: 'rgba(255,255,255,0.1)',
+    bg:     'rgba(255,255,255,0.09)',
+    border: 'rgba(255,255,255,0.12)',
     icon:   'rgba(255,255,255,0.45)',
     label:  'rgba(255,255,255,0.28)',
     active: {
-      bg:    'rgba(255,255,255,0.15)',
+      bg:    'rgba(255,255,255,0.16)',
       icon:  '#FFFFFF',
       label: 'rgba(255,255,255,0.85)',
     },
   },
   reports: {
-    bg:     'rgba(255,255,255,0.07)',
-    border: 'rgba(255,255,255,0.1)',
+    bg:     'rgba(255,255,255,0.09)',
+    border: 'rgba(255,255,255,0.12)',
     icon:   'rgba(255,255,255,0.45)',
     label:  'rgba(255,255,255,0.28)',
     active: {
-      bg:    'rgba(255,255,255,0.15)',
+      bg:    'rgba(255,255,255,0.16)',
       icon:  '#FFFFFF',
       label: 'rgba(255,255,255,0.85)',
     },
