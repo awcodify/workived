@@ -9,6 +9,51 @@ import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { LogIn, LogOut, Clock, Timer, Users, CalendarDays, TrendingUp, Building2, ChevronRight } from 'lucide-react'
 
+// ── Tooltip ──────────────────────────────────────────────────────
+import { useRef, useState as useTooltipState } from 'react'
+
+function TeamTooltip({ children, content }: { children: React.ReactNode, content: React.ReactNode }) {
+  const [visible, setVisible] = useTooltipState(false)
+  const timeout = useRef<NodeJS.Timeout | null>(null)
+  return (
+    <span
+      style={{ position: 'relative', display: 'block' }}
+      onMouseEnter={() => { timeout.current = setTimeout(() => setVisible(true), 200) }}
+      onMouseLeave={() => { if (timeout.current) clearTimeout(timeout.current); setVisible(false) }}
+      onFocus={() => setVisible(true)}
+      onBlur={() => setVisible(false)}
+      tabIndex={0}
+    >
+      {children}
+      {visible && (
+        <span
+          style={{
+            position: 'absolute',
+            zIndex: 100,
+            left: '50%',
+            bottom: '100%',
+            transform: 'translateX(-50%)',
+            marginBottom: 12,
+            background: 'rgba(30,30,40,0.98)',
+            color: '#fff',
+            borderRadius: 8,
+            boxShadow: '0 4px 24px 0 rgba(0,0,0,0.18)',
+            padding: '13px 18px',
+            fontSize: 13,
+            fontWeight: 500,
+            minWidth: 210,
+            maxWidth: 320,
+            pointerEvents: 'none',
+            whiteSpace: 'pre-line',
+          }}
+        >
+          {content}
+        </span>
+      )}
+    </span>
+  )
+}
+
 export const Route = createFileRoute('/_app/overview')({
   component: OverviewPage,
 })
@@ -178,9 +223,9 @@ function OverviewPage() {
           </h1>
         </div>
 
-        {/* Date and live clock on right */}
-        <div className="md:text-right" style={{ minWidth: 220 }}>
-          <div className="flex items-center justify-end gap-4 mt-4" style={{ minHeight: 38 }}>
+        {/* Date, live clock, and notification on right */}
+        <div className="flex flex-col gap-3 md:items-end md:justify-end md:flex-row md:gap-4" style={{ minWidth: 340, flex: 1 }}>
+          <div className="flex items-center gap-4" style={{ minHeight: 38 }}>
             <p
               className="uppercase"
               style={{
@@ -219,13 +264,34 @@ function OverviewPage() {
               </span>
             </div>
           </div>
+          {/* Notification Placeholder */}
+          <div
+            style={{
+              minWidth: 36,
+              height: 36,
+              background: 'rgba(255,255,255,0.10)',
+              borderRadius: 10,
+              boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+            }}
+            title="No notifications"
+          >
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accentMid, flexShrink: 0 }}>
+              <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
         </div>
       </div>
+
       {/* Motivational Quote Card (moved below header) */}
       <div
         style={{
           maxWidth: 680,
-          margin: '0 auto 32px auto',
+          margin: '0 auto 24px auto',
           background: 'rgba(255,255,255,0.07)',
           borderRadius: 16,
           boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)',
@@ -241,6 +307,7 @@ function OverviewPage() {
           <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: 500, textAlign: 'right' }}>— {dailyQuote.author}</p>
         </div>
       </div>
+
       {/* ── Main Content (responsive 3 columns, flex grid, with border) ──────────────────────────── */}
       <div
         className="dashboard-columns"
@@ -260,25 +327,25 @@ function OverviewPage() {
           position: 'relative',
           overflow: 'hidden',
         }}>
-          {/* Accent bar */}
-          <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 7, background: colors.accentMid, opacity: 0.18, borderTopLeftRadius: 18, borderBottomLeftRadius: 18 }} />
-          <h3
-            style={{
-              fontSize: typography.h2.size,
-              fontWeight: typography.h2.weight,
-              color: colors.ink0,
-              letterSpacing: typography.h2.tracking,
-              lineHeight: typography.h2.lineHeight,
-              marginBottom: 0,
-              padding: '18px 28px 0 28px',
-            }}
-          >
-            {hasClockedOut
-              ? "You've completed your work today"
-              : hasClockedIn
-              ? "You're clocked in"
-              : 'Clock in to start your day'}
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 28px 0 28px' }}>
+            <Timer size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
+            <h3
+              style={{
+                fontSize: typography.h2.size,
+                fontWeight: typography.h2.weight,
+                color: colors.ink0,
+                letterSpacing: typography.h2.tracking,
+                lineHeight: typography.h2.lineHeight,
+                marginBottom: 0,
+              }}
+            >
+              {hasClockedOut
+                ? "You've completed your work today"
+                : hasClockedIn
+                ? "You're clocked in"
+                : 'Clock in to start your day'}
+            </h3>
+          </div>
           <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', padding: '0 28px 28px 28px' }}>
             <div style={{ flex: 1 }}>
               {!myEmployee ? (
@@ -461,9 +528,12 @@ function OverviewPage() {
           background: 'rgba(255,255,255,0.03)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
-            <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
-              Team attendance
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Users size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
+              <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
+                Team attendance
+              </h3>
+            </div>
             <Link
               to="/attendance"
               className="text-xs font-semibold transition-opacity hover:opacity-100"
@@ -496,9 +566,12 @@ function OverviewPage() {
           background: 'rgba(255,255,255,0.03)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
-            <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
-              Your team today
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <Building2 size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
+              <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
+                Your team today
+              </h3>
+            </div>
             <Link
               to="/people"
               className="text-xs font-semibold transition-opacity hover:opacity-100"
@@ -507,8 +580,8 @@ function OverviewPage() {
               View all
             </Link>
           </div>
-          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', padding: '0 28px 28px 28px' }}>
-            <div style={{ flex: 1 }}>
+          <div style={{ marginTop: 20, padding: '0 28px 28px 28px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
               {teamMembers.slice(0, 8).map((m) => {
                 const att = m.attendance
                 const isPresent = att?.status === 'present' || att?.status === 'late'
@@ -532,77 +605,110 @@ function OverviewPage() {
                 }
 
                 return (
-                  <Link
+                  <TeamTooltip
                     key={m.id}
-                    to="/people/$id"
-                    params={{ id: m.id }}
-                    className="flex items-center gap-3 px-4 py-3 transition-all duration-150 hover:-translate-y-0.5"
-                    style={{
-                      opacity: isAbsent || noRecord ? 0.55 : 1,
-                      borderRadius: 12,
-                      cursor: 'pointer',
-                      textDecoration: 'none',
-                      background: 'rgba(255,255,255,0.01)',
-                      boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
-                      transition: 'background 0.15s, box-shadow 0.15s, transform 0.15s',
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.06)'}
-                    onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.01)'}
+                    content={
+                      <>
+                        <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', marginBottom: 2 }}>{m.full_name}</div>
+                        <div style={{ fontSize: 12.5, color: '#bdbdc7', marginBottom: 7 }}>{m.job_title || m.employment_type.replace('_', ' ')}</div>
+                        <div style={{ fontSize: 12.5, color: '#e0e0e0', marginBottom: 2 }}>
+                          <span style={{ fontWeight: 600 }}>Status:</span> <span style={{ color: statusColor, fontWeight: 700 }}>{statusLabel}</span>
+                        </div>
+                        <div style={{ fontSize: 12.5, color: '#e0e0e0' }}>
+                          <span style={{ fontWeight: 600 }}>Working hours:</span> {isPresent && att?.clock_in_at ? workedHours : '—'}
+                        </div>
+                      </>
+                    }
                   >
-                    <div className="relative flex-shrink-0">
-                      <Avatar name={m.full_name} id={m.id} size={34} />
-                      <div
-                        className="absolute"
-                        style={{
-                          bottom: -1, right: -1,
-                          width: 9, height: 9,
-                          borderRadius: '50%',
-                          background: statusColor,
-                          border: '2px solid #141419',
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
-                        {m.full_name}
-                      </p>
-                      <p className="truncate" style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
-                        {m.job_title || m.employment_type.replace('_', ' ')}
-                      </p>
-                    </div>
-                    <div className="flex-shrink-0 flex items-center gap-2">
-                      {isPresent && att?.clock_in_at && (
-                        <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                          {workedHours}
+                    <Link
+                      to="/people/$id"
+                      params={{ id: m.id }}
+                      className="group"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '10px 14px',
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,0.045)',
+                        boxShadow: '0 1px 6px 0 rgba(0,0,0,0.06)',
+                        cursor: 'pointer',
+                        textDecoration: 'none',
+                        opacity: isAbsent || noRecord ? 0.55 : 1,
+                        border: 'none',
+                        transition: 'box-shadow 0.16s, background 0.16s, transform 0.16s',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.09)';
+                        e.currentTarget.style.boxShadow = '0 3px 14px 0 rgba(0,0,0,0.13)';
+                        e.currentTarget.style.transform = 'translateY(-1.5px) scale(1.012)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.045)';
+                        e.currentTarget.style.boxShadow = '0 1px 6px 0 rgba(0,0,0,0.06)';
+                        e.currentTarget.style.transform = 'none';
+                      }}
+                    >
+                      {/* Column 1: Avatar, name, job title */}
+                      <div style={{ flex: 2, display: 'flex', alignItems: 'center', minWidth: 0 }}>
+                        <div className="flex-shrink-0" style={{ marginRight: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <Avatar name={m.full_name} id={m.id} size={28} />
+                        </div>
+                        <div className="min-w-0" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <p className="truncate" style={{ fontSize: 14.5, fontWeight: 700, color: 'rgba(255,255,255,0.96)', letterSpacing: '-0.01em' }}>
+                            {m.full_name}
+                          </p>
+                          <p className="truncate" style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.38)', marginTop: 1, fontWeight: 500 }}>
+                            {m.job_title || m.employment_type.replace('_', ' ')}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Column 2: Working hours */}
+                      <div style={{ flex: 1, textAlign: 'center', fontFamily: typography.fontMono, fontSize: 12.5, color: 'rgba(255,255,255,0.60)', fontWeight: 600 }}>
+                        {isPresent && att?.clock_in_at ? workedHours : '—'}
+                      </div>
+                      {/* Column 3: Status badge */}
+                      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                        <span
+                          style={{
+                            display: 'inline-flex', alignItems: 'center',
+                            padding: '3px 13px 3px 8px',
+                            borderRadius: 999,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            letterSpacing: '0.02em',
+                            background: 'rgba(255,255,255,0.10)',
+                            color: statusColor,
+                            border: `1.2px solid ${statusColor}33`,
+                            boxShadow: `0 1px 2px 0 ${statusColor}11`,
+                            minWidth: 60,
+                            textAlign: 'center',
+                          }}
+                        >
+                          <span style={{
+                            display: 'inline-block',
+                            width: 8, height: 8,
+                            borderRadius: '50%',
+                            background: statusColor,
+                            marginRight: 7,
+                            boxShadow: `0 0 0 1.5px #18181f`,
+                          }} />
+                          {statusLabel}
                         </span>
-                      )}
-                      <span
-                        style={{
-                          padding: '3px 8px',
-                          borderRadius: 6,
-                          fontSize: 10,
-                          fontWeight: 700,
-                          letterSpacing: '0.03em',
-                          background: `${statusColor}18`,
-                          color: statusColor,
-                        }}
-                      >
-                        {statusLabel}
-                      </span>
-                    </div>
-                  </Link>
+                      </div>
+                    </Link>
+                  </TeamTooltip>
                 )
               })}
-              {totalEmployees > 8 && (
-                <Link
-                  to="/attendance"
-                  className="flex justify-center text-sm font-semibold mt-3 transition-opacity hover:opacity-100"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}
-                >
-                  +{totalEmployees - 8} more →
-                </Link>
-              )}
             </div>
+            {totalEmployees > 8 && (
+              <Link
+                to="/attendance"
+                className="flex justify-center text-sm font-semibold mt-4 transition-opacity hover:opacity-100"
+                style={{ color: 'rgba(255,255,255,0.35)' }}
+              >
+                +{totalEmployees - 8} more →
+              </Link>
+            )}
           </div>
         </div>
       </div>
