@@ -252,16 +252,24 @@ func (r *Repository) RevokeInvitation(ctx context.Context, orgID, invitationID u
 	return nil
 }
 
-// ListPendingInvitations returns all non-accepted, non-expired invitations for an org.
+// ListPendingInvitations returns all non-accepted, non-expired invitations for an org,
+// excluding invitations for users who are already active members.
 func (r *Repository) ListPendingInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, email, role, invited_by, invite_url, employee_id,
-		       expires_at, accepted_at, created_at
-		FROM invitations
-		WHERE organisation_id = $1
-		  AND accepted_at IS NULL
-		  AND expires_at > NOW()
-		ORDER BY created_at DESC
+		SELECT i.id, i.organisation_id, i.email, i.role, i.invited_by, i.invite_url, i.employee_id,
+		       i.expires_at, i.accepted_at, i.created_at
+		FROM invitations i
+		WHERE i.organisation_id = $1
+		  AND i.accepted_at IS NULL
+		  AND i.expires_at > NOW()
+		  AND NOT EXISTS (
+		      SELECT 1 FROM organisation_members om
+		      JOIN users u ON om.user_id = u.id
+		      WHERE om.organisation_id = i.organisation_id
+		        AND u.email = i.email
+		        AND om.is_active = TRUE
+		  )
+		ORDER BY i.created_at DESC
 	`, orgID)
 	if err != nil {
 		return nil, err
@@ -279,6 +287,7 @@ func (r *Repository) ListPendingInvitations(ctx context.Context, orgID uuid.UUID
 		}
 		invitations = append(invitations, inv)
 	}
+
 	return invitations, rows.Err()
 }
 

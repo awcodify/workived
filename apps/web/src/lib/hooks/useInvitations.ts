@@ -15,6 +15,9 @@ export function useInvitations() {
     queryKey: invitationKeys.list,
     queryFn: () => organisationsApi.listInvitations().then((r) => r.data.data),
     enabled: isAuthenticated,
+    staleTime: 30 * 1000, // 30 seconds - invitations can be accepted by others
+    refetchOnWindowFocus: true, // Auto-refetch when user returns to the page
+    refetchInterval: 60 * 1000, // Auto-refetch every minute while page is visible
   })
 }
 

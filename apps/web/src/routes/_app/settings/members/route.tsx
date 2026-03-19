@@ -42,7 +42,7 @@ type InviteForm = z.infer<typeof inviteSchema>
 
 function MembersPage() {
   const { data: org } = useOrganisation()
-  const { data: invitations, isLoading: loadingInvitations } = useInvitations()
+  const { data: invitations, isLoading: loadingInvitations, refetch: refetchInvitations } = useInvitations()
   const inviteMember = useInviteMember()
   const revokeInvitation = useRevokeInvitation()
   const canInvite = useCanInvite()
@@ -251,16 +251,28 @@ function MembersPage() {
           className="p-8 rounded-2xl"
           style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
         >
-          <h2
-            style={{
-              fontSize: 18,
-              fontWeight: 700,
-              color: '#FFFFFF',
-              marginBottom: 16,
-            }}
-          >
-            Pending invitations
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2
+              style={{
+                fontSize: 18,
+                fontWeight: 700,
+                color: '#FFFFFF',
+              }}
+            >
+              Pending invitations
+            </h2>
+            <button
+              onClick={() => refetchInvitations()}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:bg-white/10"
+              style={{
+                background: 'rgba(255,255,255,0.06)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: 'rgba(255,255,255,0.7)',
+              }}
+            >
+              ↻ Refresh
+            </button>
+          </div>
 
           {loadingInvitations ? (
             <div className="flex flex-col gap-3">
