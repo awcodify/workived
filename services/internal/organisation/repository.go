@@ -358,6 +358,19 @@ func (r *Repository) GetOrgCountryCode(ctx context.Context, orgID uuid.UUID) (st
 	return cc, nil
 }
 
+// GetOrgWorkDays returns the work_days array for an org — used by leave service.
+func (r *Repository) GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]int, error) {
+	var days []int
+	err := r.db.QueryRow(ctx, `SELECT work_days FROM organisations WHERE id = $1`, orgID).Scan(&days)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperr.NotFound("organisation")
+		}
+		return nil, err
+	}
+	return days, nil
+}
+
 // GetDetail returns org info enriched with employee count and owner name.
 func (r *Repository) GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail, error) {
 	d := &OrgDetail{}
