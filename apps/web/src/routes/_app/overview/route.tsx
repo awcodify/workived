@@ -416,9 +416,18 @@ function OverviewPage() {
 
         {/* Middle: Attendance Graph */}
         <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14 }}>
-          <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0, padding: '18px 28px 0 28px' }}>
-            Team attendance
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
+            <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
+              Team attendance
+            </h3>
+            <Link
+              to="/attendance"
+              className="text-xs font-semibold transition-opacity hover:opacity-100"
+              style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none', marginLeft: 12 }}
+            >
+              View all
+            </Link>
+          </div>
           <div style={{ marginTop: 20, padding: '0 28px 28px 28px' }}>
             <AttendanceCard
               present={present}
@@ -433,9 +442,18 @@ function OverviewPage() {
 
         {/* Right: Team Member List */}
         <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14 }}>
-          <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0, padding: '18px 28px 0 28px' }}>
-            Your team today
-          </h3>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
+            <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
+              Your team today
+            </h3>
+            <Link
+              to="/people"
+              className="text-xs font-semibold transition-opacity hover:opacity-100"
+              style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none', marginLeft: 12 }}
+            >
+              View all
+            </Link>
+          </div>
           <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', padding: '0 28px 28px 28px' }}>
             <div style={{ flex: 1 }}>
               {teamMembers.slice(0, 8).map((m) => {
