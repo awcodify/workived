@@ -71,16 +71,27 @@ export function Dock() {
               <div
                 className={cn(
                   'relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300',
-                  isActive ? 'scale-100' : 'scale-95 opacity-60 hover:opacity-100 hover:scale-100'
+                  isActive ? 'scale-100' : 'scale-95 opacity-60'
                 )}
                 style={{
                   background: isActive ? theme.active.bg : 'transparent',
                 }}
               >
+                {/* Hover glow effect */}
+                {!isActive && (
+                  <div
+                    className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"
+                    style={{
+                      background: theme.active.bg,
+                    }}
+                  />
+                )}
+
                 {/* Icon with notification badge */}
-                <div className="relative">
+                <div className="relative group-hover:scale-110 group-hover:-translate-y-0.5 transition-all duration-300">
                   <Icon
                     size={20}
+                    className="group-hover:rotate-6 transition-transform duration-300"
                     style={{ 
                       color: isActive ? theme.active.icon : theme.icon,
                       strokeWidth: isActive ? 2.5 : 2,
@@ -91,7 +102,7 @@ export function Dock() {
                   {/* Notification badge */}
                   {notificationCount > 0 && (
                     <div
-                      className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse"
+                      className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse group-hover:scale-125 transition-transform"
                       style={{
                         background: '#D44040',
                         color: '#FFFFFF',
@@ -105,7 +116,10 @@ export function Dock() {
                 </div>
                 
                 <span
-                  className="text-[9px] font-bold tracking-wider uppercase"
+                  className={cn(
+                    "text-[9px] font-bold tracking-wider uppercase transition-all duration-300",
+                    !isActive && "group-hover:scale-105 group-hover:tracking-widest"
+                  )}
                   style={{ 
                     color: isActive ? theme.active.label : theme.label,
                     transition: 'color 0.2s ease',
