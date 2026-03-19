@@ -33,6 +33,7 @@ type RepoInterface interface {
 	IsEmailAlreadyMember(ctx context.Context, orgID uuid.UUID, email string) (bool, error)
 	ListPendingInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
 	ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]UnlinkedMember, error)
+	ListMembers(ctx context.Context, orgID uuid.UUID) ([]MemberWithProfile, error)
 }
 
 // AuthTokenCreator is the narrow auth interface the org service needs.
@@ -252,6 +253,14 @@ func (s *Service) ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]U
 	members, err := s.repo.ListUnlinkedMembers(ctx, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("list unlinked members: %w", err)
+	}
+	return members, nil
+}
+
+func (s *Service) ListMembers(ctx context.Context, orgID uuid.UUID) ([]MemberWithProfile, error) {
+	members, err := s.repo.ListMembers(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("list members: %w", err)
 	}
 	return members, nil
 }

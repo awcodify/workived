@@ -451,6 +451,40 @@ func (r *Repository) TransferOwnership(ctx context.Context, orgID, currentOwnerI
 	return tx.Commit(ctx)
 }
 
+// ListMembers returns all active workspace members enriched with their HR profile link status.
+func (r *Repository) ListMembers(ctx context.Context, orgID uuid.UUID) ([]MemberWithProfile, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT om.id, om.user_id, om.organisation_id, om.employee_id, om.role, om.joined_at,
+		       u.full_name, u.email,
+		       (e.id IS NOT NULL)          AS has_hr_profile,
+		       COALESCE(e.is_active, FALSE) AS hr_profile_active
+		FROM organisation_members om
+		JOIN users u ON u.id = om.user_id
+		LEFT JOIN employees e ON e.organisation_id = om.organisation_id
+		                     AND e.user_id = om.user_id
+		WHERE om.organisation_id = $1
+		  AND om.is_active = TRUE
+		ORDER BY om.joined_at ASC
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var members []MemberWithProfile
+	for rows.Next() {
+		var m MemberWithProfile
+		if err := rows.Scan(
+			&m.ID, &m.UserID, &m.OrgID, &m.EmployeeID, &m.Role, &m.JoinedAt,
+			&m.FullName, &m.Email, &m.HasHRProfile, &m.HRProfileActive,
+		); err != nil {
+			return nil, err
+		}
+		members = append(members, m)
+	}
+	return members, rows.Err()
+}
+
 // ListUnlinkedMembers returns active members who have no linked employee HR record.
 // Used to populate the email combobox on the Add Employee form.
 func (r *Repository) ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]UnlinkedMember, error) {

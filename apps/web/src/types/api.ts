@@ -127,6 +127,19 @@ export interface UnlinkedMember {
   role: string
 }
 
+export interface MemberWithProfile {
+  id: string
+  user_id: string
+  organisation_id: string
+  employee_id?: string
+  role: MemberRole
+  joined_at: string
+  full_name: string
+  email: string
+  has_hr_profile: boolean
+  hr_profile_active: boolean
+}
+
 export interface Employee {
   id: string
   organisation_id: string

@@ -32,7 +32,10 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@tanstack/react-router')>()
   return {
     ...actual,
-    createFileRoute: () => (opts: Record<string, unknown>) => ({ options: opts }),
+    createFileRoute: () => (opts: Record<string, unknown>) => ({
+      options: opts,
+      useSearch: () => ({ user_id: undefined }),
+    }),
     useNavigate: () => vi.fn(),
     Link: ({ children, to }: { children: React.ReactNode; to: string }) => (
       <a href={to}>{children}</a>
@@ -133,9 +136,9 @@ describe('NewEmployeePage (email mode UI)', () => {
 
   it('shows three email mode options', () => {
     renderNewPage()
-    expect(screen.getByText('Link to a workspace member')).toBeTruthy()
-    expect(screen.getByText('Invite by email')).toBeTruthy()
-    expect(screen.getByText('No login access yet')).toBeTruthy()
+    expect(screen.getByText('Link existing member')).toBeTruthy()
+    expect(screen.getByText('Invite new person')).toBeTruthy()
+    expect(screen.getByText('HR record only')).toBeTruthy()
   })
 
   it('shows loading text when unlinked members are loading', () => {

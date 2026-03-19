@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useInvitations, useInviteMember, useRevokeInvitation } from '@/lib/hooks/useInvitations'
+import { useInvitations, useInviteMember, useRevokeInvitation, useMembers } from '@/lib/hooks/useInvitations'
 import { useCanInvite } from '@/lib/hooks/useRole'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 
@@ -18,7 +18,7 @@ const C = {
   accentDim: colors.accentDim,
 }
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
-import type { ApiError, MemberRole, PendingInvitation, InviteResponse } from '@/types/api'
+import type { ApiError, MemberRole, MemberWithProfile, PendingInvitation, InviteResponse } from '@/types/api'
 import { AxiosError } from 'axios'
 
 export const Route = createFileRoute('/_app/settings/members')({
@@ -43,11 +43,13 @@ type InviteForm = z.infer<typeof inviteSchema>
 function MembersPage() {
   const { data: org } = useOrganisation()
   const { data: invitations, isLoading: loadingInvitations, refetch: refetchInvitations } = useInvitations()
+  const { data: members = [], isLoading: loadingMembers } = useMembers()
   const inviteMember = useInviteMember()
   const revokeInvitation = useRevokeInvitation()
   const canInvite = useCanInvite()
   const [lastInvite, setLastInvite] = useState<InviteResponse | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [memberFilter, setMemberFilter] = useState<'all' | 'missing_hr'>('all')
 
   const form = useForm<InviteForm>({
     resolver: zodResolver(inviteSchema),
@@ -246,6 +248,14 @@ function MembersPage() {
         </div>
         )}
 
+        {/* Team Members */}
+        <TeamMembersSection
+          members={members}
+          isLoading={loadingMembers}
+          filter={memberFilter}
+          onFilterChange={setMemberFilter}
+        />
+
         {/* Pending Invitations */}
         <div
           className="p-8 rounded-2xl"
@@ -304,6 +314,155 @@ function MembersPage() {
           )}
         </div>
       </main>
+    </div>
+  )
+}
+
+function TeamMembersSection({
+  members,
+  isLoading,
+  filter,
+  onFilterChange,
+}: {
+  members: MemberWithProfile[]
+  isLoading: boolean
+  filter: 'all' | 'missing_hr'
+  onFilterChange: (f: 'all' | 'missing_hr') => void
+}) {
+  const missingCount = members.filter((m) => !m.has_hr_profile).length
+  const filtered = filter === 'missing_hr' ? members.filter((m) => !m.has_hr_profile) : members
+
+  return (
+    <div
+      className="p-8 rounded-2xl"
+      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#FFFFFF' }}>Team members</h2>
+
+        {/* Filter toggle */}
+        <div className="flex items-center gap-1.5 p-1 rounded-xl" style={{ background: 'rgba(255,255,255,0.06)' }}>
+          <button
+            onClick={() => onFilterChange('all')}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={
+              filter === 'all'
+                ? { background: 'rgba(255,255,255,0.14)', color: '#FFFFFF' }
+                : { color: 'rgba(255,255,255,0.45)' }
+            }
+          >
+            All members
+          </button>
+          <button
+            onClick={() => onFilterChange('missing_hr')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={
+              filter === 'missing_hr'
+                ? { background: 'rgba(255,255,255,0.14)', color: '#FFFFFF' }
+                : { color: 'rgba(255,255,255,0.45)' }
+            }
+          >
+            Missing HR profile
+            {missingCount > 0 && (
+              <span
+                className="px-1.5 py-0.5 rounded-md text-xs font-bold"
+                style={{ background: 'rgba(212,64,64,0.25)', color: '#F87171' }}
+              >
+                {missingCount}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex flex-col gap-3">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-14 rounded-xl animate-pulse"
+              style={{ background: 'rgba(255,255,255,0.04)' }}
+            />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
+          {filter === 'missing_hr'
+            ? 'All members have an HR profile — great!'
+            : 'No members yet.'}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {filtered.map((m) => (
+            <MemberRow key={m.id} member={m} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MemberRow({ member }: { member: MemberWithProfile }) {
+  const hrStatus = !member.has_hr_profile
+    ? null
+    : member.hr_profile_active
+      ? 'active'
+      : 'archived'
+
+  return (
+    <div
+      className="px-5 py-3.5 rounded-xl flex items-center justify-between gap-4"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}
+    >
+      <div className="flex-1 min-w-0">
+        <p style={{ fontSize: 14, fontWeight: 600, color: '#FFFFFF' }} className="truncate">
+          {member.full_name}
+        </p>
+        <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }} className="truncate">
+          {member.email}
+        </p>
+      </div>
+
+      <div className="flex items-center gap-2 shrink-0">
+        {/* Role badge */}
+        <span
+          className="text-xs font-medium px-2 py-0.5 rounded"
+          style={{ background: 'rgba(155,143,247,0.15)', color: '#9B8FF7' }}
+        >
+          {member.role}
+        </span>
+
+        {/* HR profile status */}
+        {hrStatus === 'active' && (
+          <span
+            className="flex items-center gap-1 text-xs font-semibold"
+            style={{ color: '#12A05C' }}
+          >
+            <span style={{ width: 7, height: 7, borderRadius: 2, background: '#12A05C', flexShrink: 0, display: 'inline-block' }} />
+            Linked
+          </span>
+        )}
+        {hrStatus === 'archived' && (
+          <span
+            className="flex items-center gap-1 text-xs font-semibold"
+            style={{ color: 'rgba(255,255,255,0.3)' }}
+          >
+            <span style={{ width: 7, height: 7, borderRadius: 2, background: 'rgba(255,255,255,0.2)', flexShrink: 0, display: 'inline-block' }} />
+            HR profile archived
+          </span>
+        )}
+        {hrStatus === null && (
+          <a
+            href={`/people/new?user_id=${member.user_id}`}
+            className="flex items-center gap-1 text-xs font-semibold transition-opacity hover:opacity-80"
+            style={{ color: 'rgba(155,143,247,0.8)' }}
+          >
+            <span style={{ width: 7, height: 7, borderRadius: 2, background: 'rgba(255,255,255,0.2)', flexShrink: 0, display: 'inline-block' }} />
+            No HR profile
+            <span style={{ marginLeft: 2 }}>→ Add</span>
+          </a>
+        )}
+      </div>
     </div>
   )
 }

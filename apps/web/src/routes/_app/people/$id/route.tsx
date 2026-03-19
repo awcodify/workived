@@ -13,6 +13,9 @@ import { Link } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_app/people/$id')({
   component: EmployeeDetailPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    user_id: typeof search.user_id === 'string' ? search.user_id : undefined,
+  }),
 })
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
@@ -54,6 +57,7 @@ function EmployeeDetailPage() {
 
 function NewEmployeePage() {
   const navigate = useNavigate()
+  const { user_id: preselectedUserId } = Route.useSearch()
   const createMutation = useCreateEmployee()
   const { data: unlinkedMembers = [], isLoading: loadingMembers } = useUnlinkedMembers()
 
@@ -66,8 +70,9 @@ function NewEmployeePage() {
       department_id: '',
       employment_type: 'full_time',
       start_date: '',
-      email_mode: 'member',
-      selected_user_id: '',
+      // If arriving from Members page with a user_id, pre-select member mode
+      email_mode: preselectedUserId ? 'member' : 'member',
+      selected_user_id: preselectedUserId ?? '',
       email: '',
     },
   })

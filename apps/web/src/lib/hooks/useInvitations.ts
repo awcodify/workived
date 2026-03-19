@@ -6,6 +6,7 @@ import { useAuthStore } from '@/lib/stores/auth'
 export const invitationKeys = {
   list: ['invitations'] as const,
   unlinkedMembers: ['unlinked-members'] as const,
+  members: ['org-members'] as const,
 }
 
 export function useInvitations() {
@@ -28,6 +29,8 @@ export function useInviteMember() {
       organisationsApi.invite(data).then((r) => r.data.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: invitationKeys.list })
+      // Invalidate member list too — a new invite may change unlinked state
+      queryClient.invalidateQueries({ queryKey: invitationKeys.members })
     },
   })
 }
@@ -52,3 +55,12 @@ export function useUnlinkedMembers() {
   })
 }
 
+export function useMembers() {
+  const isAuthenticated = useAuthStore((s) => !!s.accessToken)
+
+  return useQuery({
+    queryKey: invitationKeys.members,
+    queryFn: () => organisationsApi.listMembers().then((r) => r.data.data),
+    enabled: isAuthenticated,
+  })
+}

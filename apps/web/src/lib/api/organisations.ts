@@ -13,6 +13,7 @@ import type {
   AcceptInvitationResponse,
   PendingInvitation,
   UnlinkedMember,
+  MemberWithProfile,
 } from '@/types/api'
 
 export const organisationsApi = {
@@ -48,4 +49,8 @@ export const organisationsApi = {
   // Members without an HR employee record — used by the Add Employee form
   listUnlinkedMembers: () =>
     apiClient.get<ApiResponse<UnlinkedMember[]>>('/api/v1/organisations/members/unlinked'),
+
+  // All active members with HR profile link status — used by Settings → Members page
+  listMembers: () =>
+    apiClient.get<ApiResponse<MemberWithProfile[]>>('/api/v1/organisations/members'),
 }

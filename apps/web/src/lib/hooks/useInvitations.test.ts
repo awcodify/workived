@@ -17,4 +17,12 @@ describe('useInvitations', () => {
   it('unlinkedMembers key is referentially stable', () => {
     expect(invitationKeys.unlinkedMembers).toBe(invitationKeys.unlinkedMembers)
   })
+
+  it('exports members query key', () => {
+    expect(invitationKeys.members).toEqual(['org-members'])
+  })
+
+  it('members key is referentially stable', () => {
+    expect(invitationKeys.members).toBe(invitationKeys.members)
+  })
 })

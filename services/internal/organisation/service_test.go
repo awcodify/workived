@@ -269,6 +269,27 @@ func (f *fakeRepo) ListPendingInvitations(_ context.Context, orgID uuid.UUID) ([
 	return result, nil
 }
 
+func (f *fakeRepo) ListMembers(_ context.Context, orgID uuid.UUID) ([]organisation.MemberWithProfile, error) {
+	var result []organisation.MemberWithProfile
+	for _, m := range f.members {
+		if m.OrgID == orgID && m.IsActive {
+			result = append(result, organisation.MemberWithProfile{
+				ID:              m.ID,
+				UserID:          m.UserID,
+				OrgID:           m.OrgID,
+				EmployeeID:      m.EmployeeID,
+				Role:            m.Role,
+				JoinedAt:        m.JoinedAt,
+				FullName:        "Test User",
+				Email:           m.UserID.String() + "@example.com",
+				HasHRProfile:    m.EmployeeID != nil,
+				HRProfileActive: false, // simplified for tests
+			})
+		}
+	}
+	return result, nil
+}
+
 func (f *fakeRepo) ListUnlinkedMembers(_ context.Context, orgID uuid.UUID) ([]organisation.UnlinkedMember, error) {
 	var result []organisation.UnlinkedMember
 	for key, m := range f.members {
@@ -666,6 +687,101 @@ func TestOrgService_ListUnlinkedMembers(t *testing.T) {
 		for _, m := range members {
 			if m.UserID == linkedMemberID {
 				t.Error("linked member should not appear in unlinked list")
+			}
+		}
+	})
+}
+
+func TestOrgService_ListMembers(t *testing.T) {
+	t.Run("returns all active members with HR profile status", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Members Org", Slug: "membersorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+
+		// Add a member with no employee record
+		unlinkedID := uuid.New()
+		repo.members[memberKey(orgID, unlinkedID)] = &organisation.Member{
+			ID: uuid.New(), UserID: unlinkedID, OrgID: orgID,
+			Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
+		}
+
+		// Add a member linked to an employee
+		linkedID := uuid.New()
+		empID := uuid.New()
+		repo.members[memberKey(orgID, linkedID)] = &organisation.Member{
+			ID: uuid.New(), UserID: linkedID, OrgID: orgID,
+			Role: "admin", IsActive: true, JoinedAt: time.Now().UTC(),
+			EmployeeID: &empID,
+		}
+
+		members, err := svc.ListMembers(ctx, orgID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Should include owner + unlinked + linked = 3 total
+		if len(members) < 3 {
+			t.Errorf("got %d members, want at least 3", len(members))
+		}
+
+		linkedFound, unlinkedFound := false, false
+		for _, m := range members {
+			if m.UserID == linkedID {
+				linkedFound = true
+				if !m.HasHRProfile {
+					t.Error("linked member should have HasHRProfile = true")
+				}
+			}
+			if m.UserID == unlinkedID {
+				unlinkedFound = true
+				if m.HasHRProfile {
+					t.Error("unlinked member should have HasHRProfile = false")
+				}
+			}
+		}
+		if !linkedFound {
+			t.Error("linked member not found in result")
+		}
+		if !unlinkedFound {
+			t.Error("unlinked member not found in result")
+		}
+	})
+
+	t.Run("excludes inactive members", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Inactive Org", Slug: "inactiveorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+
+		// Add an inactive member
+		inactiveID := uuid.New()
+		repo.members[memberKey(orgID, inactiveID)] = &organisation.Member{
+			ID: uuid.New(), UserID: inactiveID, OrgID: orgID,
+			Role: "member", IsActive: false, JoinedAt: time.Now().UTC(),
+		}
+
+		members, err := svc.ListMembers(ctx, orgID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		for _, m := range members {
+			if m.UserID == inactiveID {
+				t.Error("inactive member should not appear in list")
 			}
 		}
 	})

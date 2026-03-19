@@ -29,6 +29,8 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	orgs.GET("/invitations", middleware.Require(middleware.PermInvitationWrite), h.ListPendingInvitations)
 	orgs.DELETE("/invitations/:id", middleware.Require(middleware.PermInvitationWrite), h.RevokeInvitation)
 
+	// All active members with their HR profile link status — used by Settings → Members page.
+	orgs.GET("/members", middleware.Require(middleware.PermOrgRead), h.ListMembers)
 	// Members without a linked employee record — used by the Add Employee form.
 	orgs.GET("/members/unlinked", middleware.Require(middleware.PermEmployeeWrite), h.ListUnlinkedMembers)
 }
@@ -196,6 +198,18 @@ func (h *Handler) RevokeInvitation(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "invitation revoked"}})
+}
+
+func (h *Handler) ListMembers(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	members, err := h.service.ListMembers(c.Request.Context(), orgID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": members})
 }
 
 func (h *Handler) ListUnlinkedMembers(c *gin.Context) {

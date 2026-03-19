@@ -124,3 +124,18 @@ type UnlinkedMember struct {
 	Email    string    `json:"email"`
 	Role     string    `json:"role"`
 }
+
+// MemberWithProfile enriches a workspace member record with their HR profile link status.
+// Returned by ListMembers for the Settings → Members page.
+type MemberWithProfile struct {
+	ID              uuid.UUID  `json:"id"`
+	UserID          uuid.UUID  `json:"user_id"`
+	OrgID           uuid.UUID  `json:"organisation_id"`
+	EmployeeID      *uuid.UUID `json:"employee_id,omitempty"`
+	Role            string     `json:"role"`
+	JoinedAt        time.Time  `json:"joined_at"`
+	FullName        string     `json:"full_name"`
+	Email           string     `json:"email"`
+	HasHRProfile    bool       `json:"has_hr_profile"`
+	HRProfileActive bool       `json:"hr_profile_active"`
+}
