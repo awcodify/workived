@@ -193,7 +193,8 @@ func (h *Handler) RevokeInvitation(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.RevokeInvitation(c.Request.Context(), orgID, invID); err != nil {
+	userID := middleware.UserIDFromCtx(c)
+	if err := h.service.RevokeInvitation(c.Request.Context(), orgID, invID, userID); err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
 	}

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/organisation"
 	"github.com/workived/services/pkg/apperr"
 )
@@ -337,6 +338,21 @@ func (f *fakeAuthTokenCreator) CreateToken(_ context.Context, _ uuid.UUID, _, _ 
 	return f.err
 }
 
+// ── Fake audit logger ────────────────────────────────────────────────────────
+
+type fakeAuditLogger struct {
+	entries []audit.LogEntry
+	err     error
+}
+
+func (f *fakeAuditLogger) Log(_ context.Context, entry audit.LogEntry) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.entries = append(f.entries, entry)
+	return nil
+}
+
 // ── Fake access token issuer ─────────────────────────────────────────────────
 
 type fakeTokenIssuer struct {
@@ -365,6 +381,14 @@ func newTestService(t *testing.T) (*organisation.Service, *fakeRepo) {
 	repo := newFakeRepo()
 	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, "https://app.workived.com")
 	return svc, repo
+}
+
+func newTestServiceWithAudit(t *testing.T) (*organisation.Service, *fakeRepo, *fakeAuditLogger) {
+	t.Helper()
+	repo := newFakeRepo()
+	al := &fakeAuditLogger{}
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, "https://app.workived.com", organisation.WithAuditLog(al))
+	return svc, repo, al
 }
 
 func newTestServiceWithIssuer(t *testing.T, issuer *fakeTokenIssuer) (*organisation.Service, *fakeRepo) {
@@ -607,9 +631,9 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 func TestOrgService_RevokeInvitation(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
 		svc, repo := newTestService(t)
-		orgID, _, inv := setupOrgAndInvitation(t, svc, repo)
+		orgID, ownerID, inv := setupOrgAndInvitation(t, svc, repo)
 
-		err := svc.RevokeInvitation(context.Background(), orgID, inv.ID)
+		err := svc.RevokeInvitation(context.Background(), orgID, inv.ID, ownerID)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -618,7 +642,7 @@ func TestOrgService_RevokeInvitation(t *testing.T) {
 	t.Run("not found", func(t *testing.T) {
 		svc, _ := newTestService(t)
 
-		err := svc.RevokeInvitation(context.Background(), uuid.New(), uuid.New())
+		err := svc.RevokeInvitation(context.Background(), uuid.New(), uuid.New(), uuid.New())
 		if err == nil {
 			t.Fatal("expected error for non-existent invitation")
 		}
@@ -1054,6 +1078,180 @@ func TestOrgService_TransferOwnership(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ── Audit logging tests ──────────────────────────────────────────────────────
+
+func TestOrgService_AuditLog_InviteMember(t *testing.T) {
+	svc, _, al := newTestServiceWithAudit(t)
+	ctx := context.Background()
+	ownerID := uuid.New()
+
+	resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+		Name: "Audit Org", Slug: "auditorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+	})
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+
+	_, err = svc.InviteMember(ctx, resp.Organisation.ID, ownerID, organisation.InviteMemberRequest{
+		Email: "audit-invite@example.com",
+		Role:  "member",
+	})
+	if err != nil {
+		t.Fatalf("invite member: %v", err)
+	}
+
+	found := false
+	for _, e := range al.entries {
+		if e.Action == "invitation.created" {
+			found = true
+			if e.OrgID != resp.Organisation.ID {
+				t.Errorf("audit org_id = %s, want %s", e.OrgID, resp.Organisation.ID)
+			}
+			if e.ActorUserID != ownerID {
+				t.Errorf("audit actor = %s, want %s", e.ActorUserID, ownerID)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected invitation.created audit entry")
+	}
+}
+
+func TestOrgService_AuditLog_AcceptInvitation(t *testing.T) {
+	svc, repo, al := newTestServiceWithAudit(t)
+	_, _, inv := setupOrgAndInvitationWithService(t, svc, repo)
+
+	rawToken := extractTokenFromURL(inv.InviteURL)
+	inviteeID := uuid.New()
+	_, err := svc.AcceptInvitation(context.Background(), inviteeID, organisation.AcceptInvitationRequest{
+		Token: rawToken,
+	})
+	if err != nil {
+		t.Fatalf("accept: %v", err)
+	}
+
+	found := false
+	for _, e := range al.entries {
+		if e.Action == "invitation.accepted" {
+			found = true
+			if e.ActorUserID != inviteeID {
+				t.Errorf("audit actor = %s, want %s", e.ActorUserID, inviteeID)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected invitation.accepted audit entry")
+	}
+}
+
+func TestOrgService_AuditLog_RevokeInvitation(t *testing.T) {
+	svc, repo, al := newTestServiceWithAudit(t)
+	orgID, ownerID, inv := setupOrgAndInvitationWithService(t, svc, repo)
+
+	err := svc.RevokeInvitation(context.Background(), orgID, inv.ID, ownerID)
+	if err != nil {
+		t.Fatalf("revoke: %v", err)
+	}
+
+	found := false
+	for _, e := range al.entries {
+		if e.Action == "invitation.revoked" {
+			found = true
+			if e.ResourceID != inv.ID {
+				t.Errorf("audit resource_id = %s, want %s", e.ResourceID, inv.ID)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected invitation.revoked audit entry")
+	}
+}
+
+func TestOrgService_AuditLog_TransferOwnership(t *testing.T) {
+	svc, repo, al := newTestServiceWithAudit(t)
+	ctx := context.Background()
+	ownerID := uuid.New()
+
+	resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+		Name: "Transfer Audit Org", Slug: "transferauditorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+	})
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	orgID := resp.Organisation.ID
+
+	newOwnerID := uuid.New()
+	repo.members[memberKey(orgID, newOwnerID)] = &organisation.Member{
+		ID: uuid.New(), UserID: newOwnerID, OrgID: orgID,
+		Role: "admin", IsActive: true, JoinedAt: time.Now().UTC(),
+	}
+
+	err = svc.TransferOwnership(ctx, orgID, ownerID, organisation.TransferOwnershipRequest{NewOwnerUserID: newOwnerID})
+	if err != nil {
+		t.Fatalf("transfer: %v", err)
+	}
+
+	found := false
+	for _, e := range al.entries {
+		if e.Action == "ownership.transferred" {
+			found = true
+			if e.ActorUserID != ownerID {
+				t.Errorf("audit actor = %s, want %s", e.ActorUserID, ownerID)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected ownership.transferred audit entry")
+	}
+}
+
+func TestOrgService_AuditLog_ErrorDoesNotBreakOperation(t *testing.T) {
+	repo := newFakeRepo()
+	al := &fakeAuditLogger{err: errors.New("audit db down")}
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, "https://app.workived.com", organisation.WithAuditLog(al))
+	ctx := context.Background()
+	ownerID := uuid.New()
+
+	resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+		Name: "Audit Error Org", Slug: "auditerrororg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+	})
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+
+	// InviteMember should succeed even though audit logging fails.
+	_, err = svc.InviteMember(ctx, resp.Organisation.ID, ownerID, organisation.InviteMemberRequest{
+		Email: "audit-fail@example.com",
+		Role:  "member",
+	})
+	if err != nil {
+		t.Fatalf("invite should succeed despite audit error: %v", err)
+	}
+}
+
+func setupOrgAndInvitationWithService(t *testing.T, svc *organisation.Service, repo *fakeRepo) (uuid.UUID, uuid.UUID, *organisation.InviteResponse) {
+	t.Helper()
+	ctx := context.Background()
+	ownerID := uuid.New()
+
+	resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+		Name: "Test Org", Slug: "testorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+	})
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+
+	inv, err := svc.InviteMember(ctx, resp.Organisation.ID, ownerID, organisation.InviteMemberRequest{
+		Email: "invite@example.com",
+		Role:  "member",
+	})
+	if err != nil {
+		t.Fatalf("invite member: %v", err)
+	}
+
+	return resp.Organisation.ID, ownerID, inv
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

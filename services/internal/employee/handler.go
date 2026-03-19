@@ -16,11 +16,11 @@ import (
 // ServiceInterface is the subset of Service that the handler depends on.
 type ServiceInterface interface {
 	List(ctx context.Context, orgID uuid.UUID, f ListFilters) (*ListResult, error)
-	Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest) (*Employee, error)
+	Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error)
 	Get(ctx context.Context, orgID, id uuid.UUID) (*Employee, error)
 	GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error)
-	Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest) (*Employee, error)
-	Deactivate(ctx context.Context, orgID, id uuid.UUID) error
+	Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error)
+	Deactivate(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
 }
 
 type Handler struct {
@@ -102,7 +102,8 @@ func (h *Handler) Create(c *gin.Context) {
 		return
 	}
 
-	emp, err := h.service.Create(c.Request.Context(), orgID, req)
+	userID := middleware.UserIDFromCtx(c)
+	emp, err := h.service.Create(c.Request.Context(), orgID, req, userID)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
@@ -146,7 +147,8 @@ func (h *Handler) Update(c *gin.Context) {
 		return
 	}
 
-	emp, err := h.service.Update(c.Request.Context(), orgID, id, req)
+	userID := middleware.UserIDFromCtx(c)
+	emp, err := h.service.Update(c.Request.Context(), orgID, id, req, userID)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
@@ -163,7 +165,8 @@ func (h *Handler) Deactivate(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Deactivate(c.Request.Context(), orgID, id); err != nil {
+	userID := middleware.UserIDFromCtx(c)
+	if err := h.service.Deactivate(c.Request.Context(), orgID, id, userID); err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
 	}

@@ -2,8 +2,10 @@ package employee
 
 import (
 	"context"
+	"log"
 
 	"github.com/google/uuid"
+	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/paginate"
 )
@@ -25,12 +27,38 @@ type OrgInfoProvider interface {
 }
 
 type Service struct {
-	repo    RepositoryInterface
-	orgRepo OrgInfoProvider
+	repo     RepositoryInterface
+	orgRepo  OrgInfoProvider
+	auditLog audit.Logger
 }
 
-func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider) *Service {
-	return &Service{repo: repo, orgRepo: orgRepo}
+func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, opts ...ServiceOption) *Service {
+	s := &Service{repo: repo, orgRepo: orgRepo}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
+
+// ServiceOption configures optional Service dependencies.
+type ServiceOption func(*Service)
+
+// WithAuditLog sets the audit logger for the service.
+func WithAuditLog(al audit.Logger) ServiceOption {
+	return func(s *Service) {
+		s.auditLog = al
+	}
+}
+
+// logAudit records an audit entry. If audit logging fails, it logs the error but does not
+// propagate it — audit failures must never break the main operation.
+func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
+	if s.auditLog == nil {
+		return
+	}
+	if err := s.auditLog.Log(ctx, entry); err != nil {
+		log.Printf("audit log error: %v", err)
+	}
 }
 
 type ListResult struct {
@@ -64,7 +92,7 @@ func (s *Service) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (*Li
 	}, nil
 }
 
-func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest) (*Employee, error) {
+func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error) {
 	_, limit, err := s.orgRepo.GetOrgPlanInfo(ctx, orgID)
 	if err != nil {
 		return nil, err
@@ -81,7 +109,23 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmploye
 		}
 	}
 
-	return s.repo.Create(ctx, orgID, req)
+	emp, err := s.repo.Create(ctx, orgID, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "employee.created",
+			ResourceType: "employee",
+			ResourceID:   emp.ID,
+			AfterState:   emp,
+		})
+	}
+
+	return emp, nil
 }
 
 func (s *Service) Get(ctx context.Context, orgID, id uuid.UUID) (*Employee, error) {
@@ -92,10 +136,40 @@ func (s *Service) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Em
 	return s.repo.GetByUserID(ctx, orgID, userID)
 }
 
-func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest) (*Employee, error) {
-	return s.repo.Update(ctx, orgID, id, req)
+func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error) {
+	emp, err := s.repo.Update(ctx, orgID, id, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "employee.updated",
+			ResourceType: "employee",
+			ResourceID:   id,
+			AfterState:   emp,
+		})
+	}
+
+	return emp, nil
 }
 
-func (s *Service) Deactivate(ctx context.Context, orgID, id uuid.UUID) error {
-	return s.repo.SoftDelete(ctx, orgID, id)
+func (s *Service) Deactivate(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error {
+	if err := s.repo.SoftDelete(ctx, orgID, id); err != nil {
+		return err
+	}
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "employee.deactivated",
+			ResourceType: "employee",
+			ResourceID:   id,
+		})
+	}
+
+	return nil
 }

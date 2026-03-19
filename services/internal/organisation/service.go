@@ -6,10 +6,12 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
 )
@@ -54,15 +56,41 @@ type Service struct {
 	repo        RepoInterface
 	authRepo    AuthTokenCreator
 	tokenIssuer AccessTokenIssuer
+	auditLog    audit.Logger
 	baseURL     string // e.g. "https://app.workived.com" — for building invite URLs
 }
 
-func NewService(repo RepoInterface, authRepo AuthTokenCreator, tokenIssuer AccessTokenIssuer, baseURL string) *Service {
-	return &Service{
+func NewService(repo RepoInterface, authRepo AuthTokenCreator, tokenIssuer AccessTokenIssuer, baseURL string, opts ...ServiceOption) *Service {
+	s := &Service{
 		repo:        repo,
 		authRepo:    authRepo,
 		tokenIssuer: tokenIssuer,
 		baseURL:     baseURL,
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
+}
+
+// ServiceOption configures optional Service dependencies.
+type ServiceOption func(*Service)
+
+// WithAuditLog sets the audit logger for the service.
+func WithAuditLog(al audit.Logger) ServiceOption {
+	return func(s *Service) {
+		s.auditLog = al
+	}
+}
+
+// logAudit records an audit entry. If audit logging fails, it logs the error but does not
+// propagate it — audit failures must never break the main operation.
+func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
+	if s.auditLog == nil {
+		return
+	}
+	if err := s.auditLog.Log(ctx, entry); err != nil {
+		log.Printf("audit log error: %v", err)
 	}
 }
 
@@ -125,6 +153,16 @@ func (s *Service) TransferOwnership(ctx context.Context, orgID, currentOwnerID u
 	if err := s.repo.TransferOwnership(ctx, orgID, currentOwnerID, req.NewOwnerUserID); err != nil {
 		return fmt.Errorf("transfer ownership: %w", err)
 	}
+
+	s.logAudit(ctx, audit.LogEntry{
+		OrgID:        orgID,
+		ActorUserID:  currentOwnerID,
+		Action:       "ownership.transferred",
+		ResourceType: "organisation",
+		ResourceID:   orgID,
+		AfterState:   map[string]interface{}{"new_owner_user_id": req.NewOwnerUserID},
+	})
+
 	return nil
 }
 
@@ -169,6 +207,15 @@ func (s *Service) InviteMember(ctx context.Context, orgID, inviterID uuid.UUID, 
 	if err != nil {
 		return nil, fmt.Errorf("create invitation: %w", err)
 	}
+
+	s.logAudit(ctx, audit.LogEntry{
+		OrgID:        orgID,
+		ActorUserID:  inviterID,
+		Action:       "invitation.created",
+		ResourceType: "invitation",
+		ResourceID:   inv.ID,
+		AfterState:   map[string]interface{}{"email": inv.Email, "role": inv.Role},
+	})
 
 	return &InviteResponse{
 		ID:        inv.ID,
@@ -239,6 +286,15 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 		return nil, fmt.Errorf("get org after acceptance: %w", err)
 	}
 
+	s.logAudit(ctx, audit.LogEntry{
+		OrgID:        inv.OrgID,
+		ActorUserID:  userID,
+		Action:       "invitation.accepted",
+		ResourceType: "invitation",
+		ResourceID:   inv.ID,
+		AfterState:   map[string]interface{}{"role": inv.Role, "member_id": member.ID},
+	})
+
 	return &AcceptInvitationResponse{
 		AccessToken:  accessToken,
 		Organisation: org,
@@ -246,10 +302,19 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 	}, nil
 }
 
-func (s *Service) RevokeInvitation(ctx context.Context, orgID, invitationID uuid.UUID) error {
+func (s *Service) RevokeInvitation(ctx context.Context, orgID, invitationID, revokerID uuid.UUID) error {
 	if err := s.repo.RevokeInvitation(ctx, orgID, invitationID); err != nil {
 		return fmt.Errorf("revoke invitation %s: %w", invitationID, err)
 	}
+
+	s.logAudit(ctx, audit.LogEntry{
+		OrgID:        orgID,
+		ActorUserID:  revokerID,
+		Action:       "invitation.revoked",
+		ResourceType: "invitation",
+		ResourceID:   invitationID,
+	})
+
 	return nil
 }
 

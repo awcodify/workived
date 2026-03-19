@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/employee"
 	"github.com/workived/services/pkg/apperr"
 )
@@ -105,6 +106,21 @@ func (f *fakeEmpRepo) SoftDelete(_ context.Context, orgID, id uuid.UUID) error {
 	}
 	e.IsActive = false
 	f.count--
+	return nil
+}
+
+// ── Fake audit logger ────────────────────────────────────────────────────────
+
+type fakeAuditLogger struct {
+	entries []audit.LogEntry
+	err     error
+}
+
+func (f *fakeAuditLogger) Log(_ context.Context, entry audit.LogEntry) error {
+	if f.err != nil {
+		return f.err
+	}
+	f.entries = append(f.entries, entry)
 	return nil
 }
 
@@ -384,5 +400,125 @@ func TestEmployeeService_List_RepoError(t *testing.T) {
 	_, err := svc.List(context.Background(), uuid.New(), employee.ListFilters{Limit: 20})
 	if err == nil {
 		t.Fatal("expected repo error, got nil")
+	}
+}
+
+// ── Audit logging tests ──────────────────────────────────────────────────────
+
+func TestEmployeeService_AuditLog_Create(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	al := &fakeAuditLogger{}
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)}, employee.WithAuditLog(al))
+	orgID := uuid.New()
+	actorID := uuid.New()
+
+	emp, err := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Ahmad", Email: strPtr("ahmad@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
+	}, actorID)
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	if len(al.entries) != 1 {
+		t.Fatalf("expected 1 audit entry, got %d", len(al.entries))
+	}
+	e := al.entries[0]
+	if e.Action != "employee.created" {
+		t.Errorf("action = %q, want %q", e.Action, "employee.created")
+	}
+	if e.ResourceID != emp.ID {
+		t.Errorf("resource_id = %s, want %s", e.ResourceID, emp.ID)
+	}
+	if e.ActorUserID != actorID {
+		t.Errorf("actor = %s, want %s", e.ActorUserID, actorID)
+	}
+}
+
+func TestEmployeeService_AuditLog_Update(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	al := &fakeAuditLogger{}
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)}, employee.WithAuditLog(al))
+	orgID := uuid.New()
+	actorID := uuid.New()
+
+	emp, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Ahmad", Email: strPtr("ahmad@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
+	}, actorID)
+
+	al.entries = nil // reset
+
+	_, err := svc.Update(context.Background(), orgID, emp.ID, employee.UpdateEmployeeRequest{
+		FullName: strPtr("Ahmad Rashid"),
+	}, actorID)
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+
+	if len(al.entries) != 1 {
+		t.Fatalf("expected 1 audit entry, got %d", len(al.entries))
+	}
+	if al.entries[0].Action != "employee.updated" {
+		t.Errorf("action = %q, want %q", al.entries[0].Action, "employee.updated")
+	}
+}
+
+func TestEmployeeService_AuditLog_Deactivate(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	al := &fakeAuditLogger{}
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)}, employee.WithAuditLog(al))
+	orgID := uuid.New()
+	actorID := uuid.New()
+
+	emp, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Ahmad", Email: strPtr("ahmad@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
+	}, actorID)
+
+	al.entries = nil // reset
+
+	err := svc.Deactivate(context.Background(), orgID, emp.ID, actorID)
+	if err != nil {
+		t.Fatalf("deactivate: %v", err)
+	}
+
+	if len(al.entries) != 1 {
+		t.Fatalf("expected 1 audit entry, got %d", len(al.entries))
+	}
+	if al.entries[0].Action != "employee.deactivated" {
+		t.Errorf("action = %q, want %q", al.entries[0].Action, "employee.deactivated")
+	}
+}
+
+func TestEmployeeService_AuditLog_NoActorSkipsAudit(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	al := &fakeAuditLogger{}
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)}, employee.WithAuditLog(al))
+	orgID := uuid.New()
+
+	// Create without actorUserID — should not produce audit entry
+	_, err := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "No Actor", Email: strPtr("noactor@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	if len(al.entries) != 0 {
+		t.Errorf("expected 0 audit entries when no actorUserID, got %d", len(al.entries))
+	}
+}
+
+func TestEmployeeService_AuditLog_ErrorDoesNotBreakOperation(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	al := &fakeAuditLogger{err: errors.New("audit db down")}
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)}, employee.WithAuditLog(al))
+	orgID := uuid.New()
+	actorID := uuid.New()
+
+	// Create should succeed even though audit logging fails.
+	_, err := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Audit Fail", Email: strPtr("auditfail@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
+	}, actorID)
+	if err != nil {
+		t.Fatalf("create should succeed despite audit error: %v", err)
 	}
 }

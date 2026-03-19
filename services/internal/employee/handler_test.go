@@ -34,7 +34,7 @@ type mockEmpService struct {
 func (m *mockEmpService) List(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error) {
 	return m.listFn(ctx, orgID, f)
 }
-func (m *mockEmpService) Create(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest) (*employee.Employee, error) {
+func (m *mockEmpService) Create(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest, _ ...uuid.UUID) (*employee.Employee, error) {
 	return m.createFn(ctx, orgID, req)
 }
 func (m *mockEmpService) Get(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error) {
@@ -46,10 +46,10 @@ func (m *mockEmpService) GetByUserID(ctx context.Context, orgID, userID uuid.UUI
 	}
 	return nil, apperr.NotFound("employee")
 }
-func (m *mockEmpService) Update(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error) {
+func (m *mockEmpService) Update(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest, _ ...uuid.UUID) (*employee.Employee, error) {
 	return m.updateFn(ctx, orgID, id, req)
 }
-func (m *mockEmpService) Deactivate(ctx context.Context, orgID, id uuid.UUID) error {
+func (m *mockEmpService) Deactivate(ctx context.Context, orgID, id uuid.UUID, _ ...uuid.UUID) error {
 	return m.deactivateFn(ctx, orgID, id)
 }
 

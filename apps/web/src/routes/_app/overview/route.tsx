@@ -256,8 +256,8 @@ function OverviewPage() {
           ) : hasClockedOut ? (
             /* Done for the day */
             <div>
-              <p style={{ fontSize: typography.h1.size, fontWeight: typography.h1.weight, color: colors.ok, letterSpacing: typography.h1.tracking, lineHeight: typography.h1.lineHeight }}>
-                All done for today
+              <p style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: colors.ok, letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight }}>
+                All done today
               </p>
 
               {/* Calculated hours worked */}
