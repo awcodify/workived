@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 
+	"github.com/workived/services/internal/admin"
 	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/internal/auth"
 	"github.com/workived/services/internal/department"
@@ -52,6 +53,7 @@ func main() {
 	empRepo := employee.NewRepository(db)
 	deptRepo := department.NewRepository(db)
 	attRepo := attendance.NewRepository(db)
+	adminRepo := admin.NewRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
@@ -59,12 +61,14 @@ func main() {
 	empSvc := employee.NewService(empRepo, orgRepo)
 	deptSvc := department.NewService(deptRepo)
 	attSvc := attendance.NewService(attRepo, orgRepo)
+	adminSvc := admin.NewService(adminRepo)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	authHandler := auth.NewHandler(authSvc)
 	orgHandler := organisation.NewHandler(orgSvc)
 	empHandler := employee.NewHandler(empSvc)
 	deptHandler := department.NewHandler(deptSvc)
+	adminHandler := admin.NewHandler(adminSvc)
 	attHandler := attendance.NewHandler(attSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
 		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
 		if err != nil {
@@ -110,6 +114,9 @@ func main() {
 	empHandler.RegisterRoutes(authed)
 	deptHandler.RegisterRoutes(authed)
 	attHandler.RegisterRoutes(authed)
+
+	// Admin routes (super_admin only — Workived internal team)
+	adminHandler.RegisterRoutes(authOnly)
 
 	// ── Server ────────────────────────────────────────────────────────────────
 	srv := &http.Server{

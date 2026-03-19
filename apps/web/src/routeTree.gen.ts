@@ -22,8 +22,13 @@ import { Route as AppReportsRouteRouteImport } from './routes/_app/reports/route
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
+import { Route as AppAdminRouteRouteImport } from './routes/_app/admin/route'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
+import { Route as AppAdminIndexRouteImport } from './routes/_app/admin/index'
+import { Route as AppAdminLicensesRouteImport } from './routes/_app/admin/licenses'
+import { Route as AppAdminFeaturesRouteImport } from './routes/_app/admin/features'
+import { Route as AppAdminConfigRouteImport } from './routes/_app/admin/config'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
@@ -92,6 +97,11 @@ const AppAttendanceRouteRoute = AppAttendanceRouteRouteImport.update({
   path: '/attendance',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppAdminRouteRoute = AppAdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -101,6 +111,26 @@ const AppAttendanceIndexRoute = AppAttendanceIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppAttendanceRouteRoute,
+} as any)
+const AppAdminIndexRoute = AppAdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppAdminRouteRoute,
+} as any)
+const AppAdminLicensesRoute = AppAdminLicensesRouteImport.update({
+  id: '/licenses',
+  path: '/licenses',
+  getParentRoute: () => AppAdminRouteRoute,
+} as any)
+const AppAdminFeaturesRoute = AppAdminFeaturesRouteImport.update({
+  id: '/features',
+  path: '/features',
+  getParentRoute: () => AppAdminRouteRoute,
+} as any)
+const AppAdminConfigRoute = AppAdminConfigRouteImport.update({
+  id: '/config',
+  path: '/config',
+  getParentRoute: () => AppAdminRouteRoute,
 } as any)
 const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
   id: '/members',
@@ -126,6 +156,7 @@ const AppAttendanceMonthlyRouteRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AppAdminRouteRouteWithChildren
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
   '/overview': typeof AppOverviewRouteRoute
   '/people': typeof AppPeopleRouteRouteWithChildren
@@ -140,6 +171,10 @@ export interface FileRoutesByFullPath {
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/admin/config': typeof AppAdminConfigRoute
+  '/admin/features': typeof AppAdminFeaturesRoute
+  '/admin/licenses': typeof AppAdminLicensesRoute
+  '/admin/': typeof AppAdminIndexRoute
   '/attendance/': typeof AppAttendanceIndexRoute
   '/people/': typeof AppPeopleIndexRoute
 }
@@ -157,6 +192,10 @@ export interface FileRoutesByTo {
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/admin/config': typeof AppAdminConfigRoute
+  '/admin/features': typeof AppAdminFeaturesRoute
+  '/admin/licenses': typeof AppAdminLicensesRoute
+  '/admin': typeof AppAdminIndexRoute
   '/attendance': typeof AppAttendanceIndexRoute
   '/people': typeof AppPeopleIndexRoute
 }
@@ -165,6 +204,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteRouteWithChildren
   '/_auth': typeof AuthRouteRouteWithChildren
+  '/_app/admin': typeof AppAdminRouteRouteWithChildren
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
   '/_app/overview': typeof AppOverviewRouteRoute
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
@@ -179,6 +219,10 @@ export interface FileRoutesById {
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
+  '/_app/admin/config': typeof AppAdminConfigRoute
+  '/_app/admin/features': typeof AppAdminFeaturesRoute
+  '/_app/admin/licenses': typeof AppAdminLicensesRoute
+  '/_app/admin/': typeof AppAdminIndexRoute
   '/_app/attendance/': typeof AppAttendanceIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
 }
@@ -186,6 +230,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/attendance'
     | '/overview'
     | '/people'
@@ -200,6 +245,10 @@ export interface FileRouteTypes {
     | '/people/$id'
     | '/settings/company'
     | '/settings/members'
+    | '/admin/config'
+    | '/admin/features'
+    | '/admin/licenses'
+    | '/admin/'
     | '/attendance/'
     | '/people/'
   fileRoutesByTo: FileRoutesByTo
@@ -217,6 +266,10 @@ export interface FileRouteTypes {
     | '/people/$id'
     | '/settings/company'
     | '/settings/members'
+    | '/admin/config'
+    | '/admin/features'
+    | '/admin/licenses'
+    | '/admin'
     | '/attendance'
     | '/people'
   id:
@@ -224,6 +277,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/_auth'
+    | '/_app/admin'
     | '/_app/attendance'
     | '/_app/overview'
     | '/_app/people'
@@ -238,6 +292,10 @@ export interface FileRouteTypes {
     | '/_app/people/$id'
     | '/_app/settings/company'
     | '/_app/settings/members'
+    | '/_app/admin/config'
+    | '/_app/admin/features'
+    | '/_app/admin/licenses'
+    | '/_app/admin/'
     | '/_app/attendance/'
     | '/_app/people/'
   fileRoutesById: FileRoutesById
@@ -341,6 +399,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAttendanceRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/people/': {
       id: '/_app/people/'
       path: '/'
@@ -354,6 +419,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/attendance/'
       preLoaderRoute: typeof AppAttendanceIndexRouteImport
       parentRoute: typeof AppAttendanceRouteRoute
+    }
+    '/_app/admin/': {
+      id: '/_app/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AppAdminIndexRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/licenses': {
+      id: '/_app/admin/licenses'
+      path: '/licenses'
+      fullPath: '/admin/licenses'
+      preLoaderRoute: typeof AppAdminLicensesRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/features': {
+      id: '/_app/admin/features'
+      path: '/features'
+      fullPath: '/admin/features'
+      preLoaderRoute: typeof AppAdminFeaturesRouteImport
+      parentRoute: typeof AppAdminRouteRoute
+    }
+    '/_app/admin/config': {
+      id: '/_app/admin/config'
+      path: '/config'
+      fullPath: '/admin/config'
+      preLoaderRoute: typeof AppAdminConfigRouteImport
+      parentRoute: typeof AppAdminRouteRoute
     }
     '/_app/settings/members': {
       id: '/_app/settings/members'
@@ -385,6 +478,24 @@ declare module '@tanstack/react-router' {
     }
   }
 }
+
+interface AppAdminRouteRouteChildren {
+  AppAdminConfigRoute: typeof AppAdminConfigRoute
+  AppAdminFeaturesRoute: typeof AppAdminFeaturesRoute
+  AppAdminLicensesRoute: typeof AppAdminLicensesRoute
+  AppAdminIndexRoute: typeof AppAdminIndexRoute
+}
+
+const AppAdminRouteRouteChildren: AppAdminRouteRouteChildren = {
+  AppAdminConfigRoute: AppAdminConfigRoute,
+  AppAdminFeaturesRoute: AppAdminFeaturesRoute,
+  AppAdminLicensesRoute: AppAdminLicensesRoute,
+  AppAdminIndexRoute: AppAdminIndexRoute,
+}
+
+const AppAdminRouteRouteWithChildren = AppAdminRouteRoute._addFileChildren(
+  AppAdminRouteRouteChildren,
+)
 
 interface AppAttendanceRouteRouteChildren {
   AppAttendanceMonthlyRouteRoute: typeof AppAttendanceMonthlyRouteRoute
@@ -427,6 +538,7 @@ const AppSettingsRouteRouteWithChildren =
   AppSettingsRouteRoute._addFileChildren(AppSettingsRouteRouteChildren)
 
 interface AppRouteRouteChildren {
+  AppAdminRouteRoute: typeof AppAdminRouteRouteWithChildren
   AppAttendanceRouteRoute: typeof AppAttendanceRouteRouteWithChildren
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
   AppPeopleRouteRoute: typeof AppPeopleRouteRouteWithChildren
@@ -436,6 +548,7 @@ interface AppRouteRouteChildren {
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppAdminRouteRoute: AppAdminRouteRouteWithChildren,
   AppAttendanceRouteRoute: AppAttendanceRouteRouteWithChildren,
   AppOverviewRouteRoute: AppOverviewRouteRoute,
   AppPeopleRouteRoute: AppPeopleRouteRouteWithChildren,

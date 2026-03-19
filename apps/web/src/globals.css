@@ -41,5 +41,5 @@ body {
          focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent 
          bg-white transition-colors
          placeholder:text-ink-300
-         disabled:bg-ink-50 disabled:text-ink-400 disabled:cursor-not-allowed;
+         disabled:bg-ink-50 disabled:text-ink-300 disabled:cursor-not-allowed;
 }

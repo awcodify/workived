@@ -20,6 +20,9 @@ const (
 	RoleHRAdmin = "hr_admin"
 	RoleManager = "manager"
 	RoleFinance = "finance"
+
+	// Internal role (Workived team only)
+	RoleSuperAdmin = "super_admin"
 )
 
 // ProRoles are roles that require a Pro (or higher) plan.
@@ -141,6 +144,9 @@ var RolePermissions = map[string][]string{
 		PermReportsRead,
 		PermOrgRead,
 	},
+
+	// ── Internal (Workived team) ──
+	RoleSuperAdmin: {PermAll}, // Full system access for Workived team
 }
 
 // ── Permission checking ──────────────────────────────────────────────────────
@@ -194,6 +200,19 @@ func RequireAny(permissions ...string) gin.HandlerFunc {
 			}
 		}
 		c.AbortWithStatusJSON(http.StatusForbidden, apperr.Response(apperr.Forbidden()))
+	}
+}
+
+// RequireSuperAdmin returns a Gin middleware that ensures the user has super_admin role.
+// Only for Workived internal team — grants full system access.
+func RequireSuperAdmin() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role := RoleFromCtx(c)
+		if role != RoleSuperAdmin {
+			c.AbortWithStatusJSON(http.StatusForbidden, apperr.Response(apperr.Forbidden()))
+			return
+		}
+		c.Next()
 	}
 }
 
