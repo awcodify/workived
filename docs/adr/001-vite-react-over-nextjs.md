@@ -1,4 +1,4 @@
-# ADR-003: Vite + React over Next.js for Dashboard Frontend
+# ADR-001: Vite + React over Next.js for Dashboard Frontend
 
 **Status:** Accepted
 **Date:** 2026-03-18

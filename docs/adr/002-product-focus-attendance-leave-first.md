@@ -1,4 +1,4 @@
-# ADR-004: Product Focus — Attendance + Leave First, Tasks Later
+# ADR-002: Product Focus — Attendance + Leave First, Tasks Later
 
 **Status:** Accepted  
 **Date:** 2026-03-20  
