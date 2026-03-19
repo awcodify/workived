@@ -1,4 +1,6 @@
 import { render, screen } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import React from 'react'
 
 vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, to, ...props }: Record<string, unknown>) => (
@@ -15,11 +17,20 @@ vi.mock('./SettingsMenu', () => ({
   ),
 }))
 
+vi.mock('@/lib/hooks/useAdmin', () => ({
+  useEnabledFeatures: vi.fn(() => ({ data: { reports: true, tasks: true }, isLoading: false })),
+}))
+
 import { Dock } from '@/components/workived/dock/Dock'
+
+function renderWithProviders(ui: React.ReactElement) {
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  return render(<QueryClientProvider client={qc}>{ui}</QueryClientProvider>)
+}
 
 describe('Dock', () => {
   it('renders all 5 nav items', () => {
-    render(<Dock />)
+    renderWithProviders(<Dock />)
     expect(screen.getByText('Overview')).toBeInTheDocument()
     expect(screen.getByText('People')).toBeInTheDocument()
     expect(screen.getByText('Attendance')).toBeInTheDocument()
@@ -28,13 +39,13 @@ describe('Dock', () => {
   })
 
   it('renders as a nav element', () => {
-    const { container } = render(<Dock />)
+    const { container } = renderWithProviders(<Dock />)
     const nav = container.querySelector('nav')
     expect(nav).toBeInTheDocument()
   })
 
   it('renders SettingsMenu', () => {
-    render(<Dock />)
+    renderWithProviders(<Dock />)
     expect(screen.getByTestId('settings-menu')).toBeInTheDocument()
   })
 })

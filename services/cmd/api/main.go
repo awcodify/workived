@@ -15,6 +15,7 @@ import (
 
 	"github.com/workived/services/internal/admin"
 	"github.com/workived/services/internal/attendance"
+	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/auth"
 	"github.com/workived/services/internal/department"
 	"github.com/workived/services/internal/employee"
@@ -54,11 +55,12 @@ func main() {
 	deptRepo := department.NewRepository(db)
 	attRepo := attendance.NewRepository(db)
 	adminRepo := admin.NewRepository(db)
+	auditRepo := audit.NewRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
-	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, cfg.AppURL)
-	empSvc := employee.NewService(empRepo, orgRepo)
+	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, cfg.AppURL, organisation.WithAuditLog(auditRepo))
+	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo))
 	deptSvc := department.NewService(deptRepo)
 	attSvc := attendance.NewService(attRepo, orgRepo)
 	adminSvc := admin.NewService(adminRepo)
