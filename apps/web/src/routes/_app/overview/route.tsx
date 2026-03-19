@@ -226,12 +226,12 @@ function OverviewPage() {
         style={{ display: 'flex', gap: 32, marginTop: 40 }}
       >
         {/* Left: My Attendance Card */}
-        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14 }}>
+        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14, background: colors.accentText, color: colors.ink0 }}>
           <h3
             style={{
               fontSize: typography.h2.size,
               fontWeight: typography.h2.weight,
-              color: hasClockedOut ? colors.ok : hasClockedIn ? colors.ok : 'rgba(255,255,255,0.7)',
+              color: colors.ink0,
               letterSpacing: typography.h2.tracking,
               lineHeight: typography.h2.lineHeight,
               marginBottom: 0,
@@ -296,8 +296,8 @@ function OverviewPage() {
               ) : hasClockedIn ? (
                 <>
                   <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
-                    <Timer size={16} style={{ color: colors.ok }} />
-                    <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight) }}>
+                    <Timer size={16} style={{ color: colors.ink0 }} />
+                    <p style={{ fontSize: typography.tiny.size, color: colors.ink0, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight) }}>
                       Working hours
                     </p>
                     {myEntry?.status === 'late' && (
@@ -311,8 +311,8 @@ function OverviewPage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: 'rgba(18,160,92,0.15)' }}>
                       <LogIn size={11} style={{ color: colors.ok }} />
                     </div>
-                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-                      Clocked in at <span style={{ fontFamily: typography.fontMono, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{myEntry?.clock_in_at ? formatDate(myEntry.clock_in_at, tz, 'time') : ''}</span>
+                    <p style={{ fontSize: 13, color: colors.ink0 }}>
+                      Clocked in at <span style={{ fontFamily: typography.fontMono, fontWeight: 700, color: colors.ink0 }}>{myEntry?.clock_in_at ? formatDate(myEntry.clock_in_at, tz, 'time') : ''}</span>
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -450,10 +450,17 @@ function OverviewPage() {
                 const statusLabel = isOnLeave ? 'On Leave' : isAbsent ? 'Absent' : isLate ? 'Late' : isPresent ? 'On time' : 'Not clocked in'
 
                 return (
-                  <div
+                  <Link
                     key={m.id}
-                    className="flex items-center gap-3 px-4 py-3"
-                    style={{ borderColor: 'rgba(255,255,255,0.05)', opacity: isAbsent || noRecord ? 0.55 : 1 }}
+                    to="/people/$id"
+                    params={{ id: m.id }}
+                    className="flex items-center gap-3 px-4 py-3 transition-all duration-150 hover:-translate-y-px"
+                    style={{
+                      opacity: isAbsent || noRecord ? 0.55 : 1,
+                      borderRadius: 10,
+                      cursor: 'pointer',
+                      textDecoration: 'none',
+                    }}
                   >
                     <div className="relative flex-shrink-0">
                       <Avatar name={m.full_name} id={m.id} size={34} />
@@ -496,7 +503,7 @@ function OverviewPage() {
                         {statusLabel}
                       </span>
                     </div>
-                  </div>
+                  </Link>
                 )
               })}
               {totalEmployees > 8 && (
