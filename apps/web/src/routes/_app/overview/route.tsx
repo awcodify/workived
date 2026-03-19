@@ -467,6 +467,17 @@ function OverviewPage() {
                 const statusColor = isOnLeave ? colors.accentMid : isAbsent ? colors.err : isLate ? colors.warn : isPresent ? colors.ok : 'rgba(255,255,255,0.15)'
                 const statusLabel = isOnLeave ? 'On Leave' : isAbsent ? 'Absent' : isLate ? 'Late' : isPresent ? 'On time' : 'Not clocked in'
 
+                // Calculate worked hours for present employees
+                let workedHours = ''
+                if (isPresent && att?.clock_in_at) {
+                  const clockIn = new Date(att.clock_in_at)
+                  const clockOut = att.clock_out_at ? new Date(att.clock_out_at) : new Date()
+                  const diffMs = clockOut.getTime() - clockIn.getTime()
+                  const hours = Math.floor(diffMs / (1000 * 60 * 60))
+                  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+                  workedHours = `${hours}h ${minutes}m`
+                }
+
                 return (
                   <Link
                     key={m.id}
@@ -502,9 +513,9 @@ function OverviewPage() {
                       </p>
                     </div>
                     <div className="flex-shrink-0 flex items-center gap-2">
-                      {att?.clock_in_at && isPresent && (
+                      {isPresent && att?.clock_in_at && (
                         <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                          {formatDate(att.clock_in_at, tz, 'time')}
+                          {workedHours}
                         </span>
                       )}
                       <span
