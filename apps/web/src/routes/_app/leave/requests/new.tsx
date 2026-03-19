@@ -79,9 +79,21 @@ function NewRequestPage() {
 
   const onSubmit = async (data: SubmitRequestFormData) => {
     try {
-      await submitMutation.mutateAsync(data)
+      // Clean up empty optional fields - remove undefined to omit from JSON
+      const payload: any = {
+        leave_policy_id: data.leave_policy_id,
+        start_date: data.start_date,
+        end_date: data.end_date,
+      }
+      if (data.reason?.trim()) {
+        payload.reason = data.reason.trim()
+      }
+      console.log('Submitting leave request:', payload)
+      await submitMutation.mutateAsync(payload)
       navigate({ to: '/leave/requests' })
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Leave request error:', error)
+      console.error('Error response:', error?.response?.data)
       // Error handled by mutation
     }
   }
@@ -114,6 +126,27 @@ function NewRequestPage() {
         </h1>
       </div>
 
+      {/* API Error Display */}
+      {submitMutation.error && (
+        <div
+          className="mb-6 p-4"
+          style={{
+            background: '#FDF2E3',
+            border: '1px solid #C97B2A',
+            borderRadius: 14,
+          }}
+        >
+          <p className="text-sm font-semibold" style={{ color: '#A0601A' }}>
+            Failed to submit request
+          </p>
+          <p className="text-xs mt-1" style={{ color: '#72708A' }}>
+            {(submitMutation.error as any)?.response?.data?.error?.message || 
+              submitMutation.error.message || 
+              'Please check your input and try again'}
+          </p>
+        </div>
+      )}
+
       {/* Form */}
       <form onSubmit={handleSubmit(onSubmit)} className="max-w-2xl">
         <div
@@ -140,6 +173,7 @@ function NewRequestPage() {
             <select
               id="leave_policy_id"
               {...register('leave_policy_id')}
+              required
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -181,6 +215,7 @@ function NewRequestPage() {
               id="start_date"
               type="date"
               {...register('start_date')}
+              required
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -213,6 +248,7 @@ function NewRequestPage() {
               id="end_date"
               type="date"
               {...register('end_date')}
+              required
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -248,6 +284,24 @@ function NewRequestPage() {
                   {hasInsufficientBalance && ' (insufficient)'}
                 </p>
               )}
+            </div>
+          )}
+          {workingDays === 0 && startDate && endDate && (
+            <div
+              className="mb-5 p-3"
+              style={{
+                background: '#FDF2E3',
+                border: '1px solid #C97B2A',
+                borderRadius: 10,
+              }}
+            >
+              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#A0601A' }}>
+                <span>⚠</span>
+                <span>No working days in selected range</span>
+              </div>
+              <p className="text-xs mt-1" style={{ color: '#72708A' }}>
+                The selected dates fall on weekends or public holidays. Please choose different dates.
+              </p>
             </div>
           )}
 
@@ -288,7 +342,7 @@ function NewRequestPage() {
           <div className="flex items-center gap-3">
             <button
               type="submit"
-              disabled={submitMutation.isPending || hasInsufficientBalance}
+              disabled={submitMutation.isPending || hasInsufficientBalance || workingDays === 0}
               className="font-semibold px-5 py-3 transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: t.accent,
