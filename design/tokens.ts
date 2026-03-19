@@ -77,7 +77,7 @@ export const dockThemes = {
 // All dark modules share the same structure so pages never hardcode rgba().
 export const moduleThemes = {
   overview: {
-    text:         'rgba(255,255,255,0.92)',
+    text:         '#FFE6F0', // soft warm white-pink for unique people module
     textMuted:    'rgba(200,190,255,0.45)',
     surface:      'rgba(255,255,255,0.05)',
     surfaceHover: 'rgba(255,255,255,0.10)',
@@ -88,15 +88,15 @@ export const moduleThemes = {
     inputBorder:  'rgba(255,255,255,0.12)',
   },
   people: {
-    text:         'rgba(255,255,255,0.92)',
-    textMuted:    'rgba(255,160,190,0.55)',
-    surface:      'rgba(255,160,190,0.06)',
-    surfaceHover: 'rgba(255,160,190,0.11)',
-    accent:       'rgba(255,160,190,0.14)',
-    accentText:   '#FFD0E0',
-    border:       'rgba(255,160,190,0.14)',
-    input:        'rgba(255,255,255,0.07)',
-    inputBorder:  'rgba(255,160,190,0.18)',
+    text:         '#FFFFFF',
+    textMuted:    '#B0AEBE', // gentle violet/neutral
+    surface:      '#080A12', // deep navy, matches people background
+    surfaceHover: '#18141A', // slightly lighter navy
+    accent:       '#75293c', // soft, friendly pink for highlights
+    accentText:   '#FFFFFF',
+    border:       '#2A2230', // deep muted border
+    input:        '#18141A',
+    inputBorder:  '#2A2230',
   },
   attendance: {
     text:         'rgba(255,255,255,0.92)',
