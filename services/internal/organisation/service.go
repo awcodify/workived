@@ -29,6 +29,8 @@ type RepoInterface interface {
 	GetInvitationByToken(ctx context.Context, tokenHash string) (*Invitation, error)
 	AcceptInvitation(ctx context.Context, p AcceptParams) (*Member, error)
 	RevokeInvitation(ctx context.Context, orgID, invitationID uuid.UUID) error
+	RevokePendingInvitationsByEmail(ctx context.Context, orgID uuid.UUID, email string) error
+	IsEmailAlreadyMember(ctx context.Context, orgID uuid.UUID, email string) (bool, error)
 	ListPendingInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error)
 	ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]UnlinkedMember, error)
 }
@@ -126,7 +128,16 @@ func (s *Service) TransferOwnership(ctx context.Context, orgID, currentOwnerID u
 // ── Invitation flow ──────────────────────────────────────────────────────────
 
 func (s *Service) InviteMember(ctx context.Context, orgID, inviterID uuid.UUID, req InviteMemberRequest) (*InviteResponse, error) {
-	// Validate pro roles are only assignable on pro orgs.
+	// 1. Check if email is already an active member.
+	isMember, err := s.repo.IsEmailAlreadyMember(ctx, orgID, req.Email)
+	if err != nil {
+		return nil, fmt.Errorf("check member status: %w", err)
+	}
+	if isMember {
+		return nil, apperr.Conflict("this user is already a member of your organisation")
+	}
+
+	// 2. Validate pro roles are only assignable on pro orgs.
 	if middleware.IsProRole(req.Role) {
 		plan, _, err := s.repo.GetOrgPlanInfo(ctx, orgID)
 		if err != nil {
@@ -138,6 +149,13 @@ func (s *Service) InviteMember(ctx context.Context, orgID, inviterID uuid.UUID, 
 		}
 	}
 
+	// 3. Revoke any existing pending invitations for this email.
+	//    This prevents duplicate invitation errors when re-inviting.
+	if err := s.repo.RevokePendingInvitationsByEmail(ctx, orgID, req.Email); err != nil {
+		return nil, fmt.Errorf("revoke existing invitations: %w", err)
+	}
+
+	// 4. Create new invitation.
 	rawToken, tokenHash := generateToken()
 	expiresAt := time.Now().UTC().Add(72 * time.Hour)
 	inviteURL := fmt.Sprintf("%s/invite?token=%s", s.baseURL, rawToken)

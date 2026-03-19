@@ -17,7 +17,7 @@ import (
 
 type fakeRepo struct {
 	orgs        map[uuid.UUID]*organisation.Organisation
-	members     map[string]*organisation.Member // key: orgID+userID
+	members     map[string]*organisation.Member     // key: orgID+userID
 	invitations map[string]*organisation.Invitation // key: tokenHash
 
 	// Error injection
@@ -43,16 +43,16 @@ func memberKey(orgID, userID uuid.UUID) string {
 
 func (f *fakeRepo) Create(_ context.Context, req organisation.CreateOrgRequest, ownerID uuid.UUID) (*organisation.Organisation, error) {
 	org := &organisation.Organisation{
-		ID:          uuid.New(),
-		Name:        req.Name,
-		Slug:        req.Slug,
-		CountryCode: req.CountryCode,
-		Timezone:    req.Timezone,
+		ID:           uuid.New(),
+		Name:         req.Name,
+		Slug:         req.Slug,
+		CountryCode:  req.CountryCode,
+		Timezone:     req.Timezone,
 		CurrencyCode: req.CurrencyCode,
-		WorkDays:    []int{1, 2, 3, 4, 5},
-		Plan:        "free",
-		IsActive:    true,
-		CreatedAt:   time.Now().UTC(),
+		WorkDays:     []int{1, 2, 3, 4, 5},
+		Plan:         "free",
+		IsActive:     true,
+		CreatedAt:    time.Now().UTC(),
 	}
 	limit := 25
 	org.PlanEmployeeLimit = &limit
@@ -236,6 +236,26 @@ func (f *fakeRepo) RevokeInvitation(_ context.Context, orgID, invitationID uuid.
 		}
 	}
 	return apperr.NotFound("invitation")
+}
+
+func (f *fakeRepo) RevokePendingInvitationsByEmail(_ context.Context, orgID uuid.UUID, email string) error {
+	for hash, inv := range f.invitations {
+		if inv.OrgID == orgID && inv.Email == email && inv.AcceptedAt == nil {
+			delete(f.invitations, hash)
+		}
+	}
+	return nil
+}
+
+func (f *fakeRepo) IsEmailAlreadyMember(_ context.Context, orgID uuid.UUID, email string) (bool, error) {
+	for _, m := range f.members {
+		if m.OrgID == orgID && m.IsActive {
+			// In real code, we'd JOIN with users table to check email
+			// For tests, we'll just return false
+			return false, nil
+		}
+	}
+	return false, nil
 }
 
 func (f *fakeRepo) ListPendingInvitations(_ context.Context, orgID uuid.UUID) ([]organisation.Invitation, error) {

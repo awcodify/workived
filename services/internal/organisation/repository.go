@@ -252,6 +252,31 @@ func (r *Repository) RevokeInvitation(ctx context.Context, orgID, invitationID u
 	return nil
 }
 
+// RevokePendingInvitationsByEmail revokes all pending invitations for a specific email.
+// This is used when re-inviting the same email to prevent duplicates.
+func (r *Repository) RevokePendingInvitationsByEmail(ctx context.Context, orgID uuid.UUID, email string) error {
+	_, err := r.db.Exec(ctx, `
+		DELETE FROM invitations
+		WHERE organisation_id = $1 AND email = $2 AND accepted_at IS NULL
+	`, orgID, email)
+	return err
+}
+
+// IsEmailAlreadyMember checks if an email is already associated with an active member.
+func (r *Repository) IsEmailAlreadyMember(ctx context.Context, orgID uuid.UUID, email string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM organisation_members om
+			JOIN users u ON om.user_id = u.id
+			WHERE om.organisation_id = $1 
+			  AND u.email = $2 
+			  AND om.is_active = TRUE
+		)
+	`, orgID, email).Scan(&exists)
+	return exists, err
+}
+
 // ListPendingInvitations returns all non-accepted, non-expired invitations for an org,
 // excluding invitations for users who are already active members.
 func (r *Repository) ListPendingInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error) {
