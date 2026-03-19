@@ -133,6 +133,10 @@ func (f *fakeRepo) IsOnApprovedLeave(ctx context.Context, orgID, employeeID uuid
 func (f *fakeRepo) ListHolidays(ctx context.Context, countryCode, startDate, endDate string) ([]leave.PublicHoliday, error) {
 	return f.listHolidaysFn(ctx, countryCode, startDate, endDate)
 }
+func (f *fakeRepo) CreateBalanceWithCarryOver(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int, entitledDays, carriedOverDays float64) error {
+	// Not used in current service tests
+	return nil
+}
 func (f *fakeRepo) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return f.beginTxFn(ctx)
 }

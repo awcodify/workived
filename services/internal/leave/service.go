@@ -44,6 +44,9 @@ type RepositoryInterface interface {
 	// Holidays
 	ListHolidays(ctx context.Context, countryCode, startDate, endDate string) ([]PublicHoliday, error)
 
+	// Rollover
+	CreateBalanceWithCarryOver(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int, entitledDays, carriedOverDays float64) error
+
 	// Transactions
 	BeginTx(ctx context.Context) (pgx.Tx, error)
 }

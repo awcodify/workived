@@ -371,6 +371,34 @@ func (r *Repository) GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]int
 	return days, nil
 }
 
+// ListAll returns all active organisations — used by rollover job and system-level operations.
+func (r *Repository) ListAll(ctx context.Context) ([]Organisation, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, name, slug, country_code, timezone, currency_code,
+		       work_days, plan, plan_employee_limit, logo_url, is_active, created_at
+		FROM organisations
+		WHERE is_active = TRUE
+		ORDER BY created_at ASC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orgs []Organisation
+	for rows.Next() {
+		var org Organisation
+		if err := rows.Scan(
+			&org.ID, &org.Name, &org.Slug, &org.CountryCode, &org.Timezone, &org.CurrencyCode,
+			&org.WorkDays, &org.Plan, &org.PlanEmployeeLimit, &org.LogoURL, &org.IsActive, &org.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		orgs = append(orgs, org)
+	}
+	return orgs, rows.Err()
+}
+
 // GetDetail returns org info enriched with employee count and owner name.
 func (r *Repository) GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail, error) {
 	d := &OrgDetail{}

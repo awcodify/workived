@@ -530,6 +530,21 @@ func (r *Repository) ListHolidays(ctx context.Context, countryCode, startDate, e
 	return holidays, nil
 }
 
+// ── Year-end Rollover ─────────────────────────────────────────────────────────
+
+// CreateBalanceWithCarryOver creates a new balance for the given year with entitled and carried-over days.
+// If a balance already exists for this employee/policy/year, it does nothing (idempotent).
+func (r *Repository) CreateBalanceWithCarryOver(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int, entitledDays, carriedOverDays float64) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO leave_balances (
+			organisation_id, employee_id, leave_policy_id, year,
+			entitled_days, carried_over_days, used_days, pending_days
+		) VALUES ($1, $2, $3, $4, $5, $6, 0, 0)
+		ON CONFLICT (employee_id, leave_policy_id, year) DO NOTHING
+	`, orgID, employeeID, policyID, year, entitledDays, carriedOverDays)
+	return err
+}
+
 // BeginTx starts a new database transaction.
 func (r *Repository) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return r.db.Begin(ctx)

@@ -69,6 +69,40 @@ func (r *Repository) CountActive(ctx context.Context, orgID uuid.UUID) (int, err
 	return count, err
 }
 
+// ListAllActive returns all active employees for an org (no pagination) — used by rollover job.
+func (r *Repository) ListAllActive(ctx context.Context, orgID uuid.UUID) ([]Employee, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, organisation_id, user_id, employee_code,
+		       full_name, email, phone, department_id, job_title,
+		       employment_type, status, start_date, end_date,
+		       base_salary, salary_currency, custom_fields,
+		       is_active, created_at, updated_at
+		FROM employees
+		WHERE organisation_id = $1 AND is_active = TRUE
+		ORDER BY full_name ASC
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var emps []Employee
+	for rows.Next() {
+		var e Employee
+		if err := rows.Scan(
+			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
+			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
+			&e.EmploymentType, &e.Status, &e.StartDate, &e.EndDate,
+			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
+			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		emps = append(emps, e)
+	}
+	return emps, rows.Err()
+}
+
 func (r *Repository) Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest) (*Employee, error) {
 	e := &Employee{}
 	err := r.db.QueryRow(ctx, `
