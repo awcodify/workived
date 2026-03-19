@@ -32,14 +32,10 @@ describe('BalanceCard', () => {
 
   it('shows breakdown of days', () => {
     render(<BalanceCard balance={mockBalance} />)
-    expect(screen.getByText(/Entitled:/)).toBeInTheDocument()
-    expect(screen.getByText(/12/)).toBeInTheDocument()
-    expect(screen.getByText(/Carried:/)).toBeInTheDocument()
-    expect(screen.getByText(/3/)).toBeInTheDocument()
-    expect(screen.getByText(/Used:/)).toBeInTheDocument()
-    expect(screen.getByText(/5/)).toBeInTheDocument()
-    expect(screen.getByText(/Pending:/)).toBeInTheDocument()
-    expect(screen.getByText(/2/)).toBeInTheDocument()
+    expect(screen.getByText(/12 days granted/)).toBeInTheDocument()
+    expect(screen.getByText(/3 carried over/)).toBeInTheDocument()
+    expect(screen.getByText(/5.*15 used/)).toBeInTheDocument()
+    expect(screen.getByText(/2 pending/)).toBeInTheDocument()
   })
 
   it('renders progress bar', () => {
@@ -85,8 +81,7 @@ describe('BalanceCard', () => {
 
   it('shows pending indicator when pending days > 0', () => {
     render(<BalanceCard balance={mockBalance} />)
-    expect(screen.getByText(/Pending:/)).toBeInTheDocument()
-    expect(screen.getByText(/2/)).toBeInTheDocument()
+    expect(screen.getByText(/2 pending/)).toBeInTheDocument()
   })
 
   it('does not break with very long policy names', () => {
