@@ -7,7 +7,7 @@ import { useDailyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendan
 import { todayISO, formatDate } from '@/lib/utils/date'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
-import { LogIn, LogOut } from 'lucide-react'
+import { LogIn, LogOut, Clock, Timer } from 'lucide-react'
 
 export const Route = createFileRoute('/_app/overview')({
   component: OverviewPage,
@@ -222,7 +222,7 @@ function OverviewPage() {
       </div>
 
       {/* ── Main Content (2 columns) ──────────────────────────── */}
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-2 gap-8 mt-10">
         {/* Left: Clock In/Out */}
         <div>
           {!myEmployee ? (
@@ -303,6 +303,15 @@ function OverviewPage() {
           ) : hasClockedIn ? (
             /* Clocked in — show elapsed timer */
             <div>
+              <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
+                <Timer size={16} style={{ color: colors.ok }} />
+                <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight) }}>
+                  Working hours
+                </p>
+                {myEntry?.status === 'late' && (
+                  <span style={{ padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 700, background: `${colors.warn}18`, color: colors.warn, letterSpacing: '0.03em' }}>Late</span>
+                )}
+              </div>
               <p
                 style={{
                   fontFamily: typography.fontMono,
@@ -315,10 +324,14 @@ function OverviewPage() {
               >
                 {elapsed}
               </p>
-              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>
-                Started at {myEntry?.clock_in_at ? formatDate(myEntry.clock_in_at, tz, 'time') : ''}
-                {myEntry?.status === 'late' && <span style={{ color: colors.warn, fontWeight: 600 }}> · Late</span>}
-              </p>
+              <div className="flex items-center gap-2 mt-3">
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: 'rgba(18,160,92,0.15)' }}>
+                  <LogIn size={11} style={{ color: colors.ok }} />
+                </div>
+                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+                  Clocked in at <span style={{ fontFamily: typography.fontMono, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{myEntry?.clock_in_at ? formatDate(myEntry.clock_in_at, tz, 'time') : ''}</span>
+                </p>
+              </div>
               <div className="flex gap-2 mt-6">
                 <input
                   type="text"
@@ -353,41 +366,68 @@ function OverviewPage() {
           ) : (
             /* Not clocked in yet */
             <div>
-              <p style={{ fontSize: typography.h1.size, fontWeight: typography.h1.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h1.tracking, lineHeight: typography.h1.lineHeight }}>
-                Ready to start?
-              </p>
-
-              <div className="flex gap-2 mt-6">
-                <input
-                  type="text"
-                  placeholder="Note (optional)"
-                  aria-label="Clock in note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className="flex-1 text-sm px-4 py-3 focus:outline-none"
+              <div
+                style={{
+                  padding: '32px',
+                  background: 'linear-gradient(135deg, rgba(18,160,92,0.08) 0%, rgba(18,160,92,0.02) 100%)',
+                  border: '2px solid rgba(18,160,92,0.25)',
+                  borderRadius: 20,
+                }}
+              >
+                <div className="flex items-center gap-2" style={{ marginBottom: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(18,160,92,0.15)' }}>
+                    <Clock size={15} style={{ color: colors.ok }} />
+                  </div>
+                  <p style={{ fontSize: typography.tiny.size, color: colors.ok, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+                    Attendance Clock
+                  </p>
+                </div>
+                <p
                   style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12,
+                    fontFamily: typography.fontMono,
+                    fontSize: 64,
+                    fontWeight: 800,
                     color: colors.ink0,
-                  }}
-                />
-                <button
-                  onClick={handleClockIn}
-                  disabled={clockIn.isPending}
-                  className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-                  style={{
-                    background: colors.ok,
-                    color: colors.ink0,
-                    borderRadius: 12,
-                    fontSize: 15,
-                    letterSpacing: '-0.01em',
+                    letterSpacing: '-0.03em',
+                    lineHeight: 1,
                   }}
                 >
-                  {clockIn.isPending ? 'Clocking in...' : 'Clock In'}
-                </button>
+                  {clock}
+                </p>
+                <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', marginTop: 14, fontWeight: 500 }}>
+                  Ready to start your day?
+                </p>
+                <div className="flex gap-2 mt-6">
+                  <input
+                    type="text"
+                    placeholder="Note (optional)"
+                    aria-label="Clock in note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    className="flex-1 text-sm px-4 py-3 focus:outline-none"
+                    style={{
+                      background: 'rgba(255,255,255,0.06)',
+                      border: '1px solid rgba(255,255,255,0.12)',
+                      borderRadius: 12,
+                      color: colors.ink0,
+                    }}
+                  />
+                  <button
+                    onClick={handleClockIn}
+                    disabled={clockIn.isPending}
+                    className="font-bold px-6 py-3 transition-all disabled:opacity-50"
+                    style={{
+                      background: colors.ok,
+                      color: colors.ink0,
+                      borderRadius: 12,
+                      fontSize: 15,
+                      letterSpacing: '-0.01em',
+                    }}
+                  >
+                    {clockIn.isPending ? 'Clocking in...' : 'Clock In'}
+                  </button>
+                </div>
               </div>
-
             </div>
           )}
 
