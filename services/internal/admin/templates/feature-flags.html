@@ -1,0 +1,58 @@
+{{define "title"}}Feature Flags — Workived Admin{{end}}
+
+{{define "content"}}
+<div class="px-4 sm:px-0">
+    <h1 class="text-3xl font-bold text-gray-900">Feature Flags</h1>
+    <p class="mt-2 text-sm text-gray-600">Manage system-wide feature flags</p>
+</div>
+
+<div class="mt-8">
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+        <ul role="list" class="divide-y divide-gray-200">
+            {{range .Flags}}
+            <li>
+                <div class="px-4 py-4 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-indigo-600 truncate">
+                                {{.FeatureKey}}
+                            </p>
+                            {{if .Name}}
+                            <p class="mt-1 text-sm font-semibold text-gray-700">
+                                {{.Name}}
+                            </p>
+                            {{end}}
+                            {{if .Description}}
+                            <p class="mt-1 text-sm text-gray-500">
+                                {{.Description}}
+                            </p>
+                            {{end}}
+                            <p class="mt-1 text-xs text-gray-400">
+                                Scope: {{.Scope}}
+                            </p>
+                        </div>
+                        <div class="ml-4 flex-shrink-0">
+                            <form action="/admin/feature-flags/{{.FeatureKey}}/toggle" method="POST" class="inline">
+                                <input type="hidden" name="enabled" value="{{not .IsEnabled}}">
+                                <button type="submit" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 {{if .IsEnabled}}bg-indigo-600{{else}}bg-gray-200{{end}}">
+                                    <span class="sr-only">Toggle feature flag</span>
+                                    <span class="pointer-events-none relative inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{if .IsEnabled}}translate-x-5{{else}}translate-x-0{{end}}"></span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="mt-2 text-xs text-gray-400">
+                        Updated: {{.UpdatedAt.Format "2006-01-02 15:04"}}
+                    </div>
+                </div>
+            </li>
+            {{else}}
+            <li class="px-4 py-4 sm:px-6 text-gray-500 text-center">
+                No feature flags found
+            </li>
+            {{end}}
+        </ul>
+    </div>
+</div>
+{{end}}
+

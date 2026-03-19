@@ -95,7 +95,7 @@ describe('SettingsMenu', () => {
     // Wait for async logout to complete
     await vi.waitFor(() => {
       expect(mockLogout).toHaveBeenCalledTimes(1)
-      expect(mockNavigate).toHaveBeenCalledWith({ to: '/login' })
+      expect(mockNavigate).toHaveBeenCalledWith({ to: '/login', search: { redirect: undefined } })
     })
   })
 

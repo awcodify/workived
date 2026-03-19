@@ -3,7 +3,7 @@ import { LayoutDashboard, Users, Clock, BarChart3, CheckSquare } from 'lucide-re
 import { dockThemes } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 import { SettingsMenu } from './SettingsMenu'
-import { useEnabledFeatures } from '@/lib/hooks/useAdmin'
+import { useEnabledFeatures } from '@/lib/hooks/useFeatures'
 
 type ModuleKey = keyof typeof dockThemes
 
