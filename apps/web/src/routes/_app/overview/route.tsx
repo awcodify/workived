@@ -174,23 +174,9 @@ function OverviewPage() {
       className="min-h-screen px-6 py-6 md:px-11 md:py-8 pb-24"
       style={{ background: moduleBackgrounds.overview }}
     >
-      {/* Header: Greeting left, Quote right */}
+      {/* Header: Greeting left, Date/clock right */}
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
         <div>
-          {/* Date label */}
-          <p
-            className="uppercase"
-            style={{
-              fontSize: typography.tiny.size,
-              fontWeight: Number(typography.tiny.weight),
-              color: 'rgba(255,255,255,0.3)',
-              letterSpacing: '0.12em',
-              lineHeight: typography.tiny.lineHeight,
-            }}
-          >
-            {formatDateLabel(tz)}
-          </p>
-
           {/* Greeting */}
           <h1
             className="mt-2"
@@ -206,381 +192,330 @@ function OverviewPage() {
             <br />
             <span style={{ color: colors.accentMid }}>{firstName}</span>
           </h1>
+        </div>
 
-          {/* Live clock */}
-          <div className="mt-3 flex items-baseline gap-2">
+        {/* Date and live clock on right */}
+        <div className="md:text-right" style={{ minWidth: 220 }}>
+          <div className="flex items-center justify-end gap-4 mt-4" style={{ minHeight: 38 }}>
             <p
+              className="uppercase"
               style={{
-                fontFamily: typography.fontMono,
-                fontSize: 32,
-                fontWeight: 700,
-                color: 'rgba(255,255,255,0.6)',
-                letterSpacing: '-0.02em',
-                lineHeight: 1,
+                fontSize: 15,
+                fontWeight: 600,
+                color: 'rgba(255,255,255,0.32)',
+                letterSpacing: '0.10em',
+                lineHeight: 1.2,
               }}
             >
-              {clock.time}
+              {formatDateLabel(tz)}
             </p>
-            <span
-              style={{
-                fontSize: 14,
-                fontWeight: 700,
-                color: 'rgba(255,255,255,0.3)',
-                letterSpacing: '0.04em',
-              }}
-            >
-              {clock.period}
-            </span>
-          </div>
-        </div>
-
-        {/* Daily quote */}
-        <div className="md:text-right" style={{ maxWidth: 420 }}>
-          <p style={{ fontSize: typography.h2.size, fontStyle: 'italic', color: colors.ink0, lineHeight: typography.h2.lineHeight, fontWeight: typography.h2.weight, letterSpacing: typography.h2.tracking }}>
-            "{quote.text}"
-          </p>
-          <p className="mt-2" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.3)' }}>
-            — {quote.author}
-          </p>
-        </div>
-      </div>
-
-      {/* ── Main Content (2 columns) ──────────────────────────── */}
-      <div className="grid md:grid-cols-2 gap-8 mt-10">
-        {/* Left: Clock In/Out */}
-        <div>
-          {!myEmployee ? (
-            <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>
-              No employee record linked to your account.
-            </p>
-          ) : hasClockedOut ? (
-            /* Done for the day */
-            <div>
-              <p style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: colors.ok, letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight }}>
-                All done today
-              </p>
-
-              {/* Calculated hours worked */}
-              {myEntry?.clock_in_at && myEntry?.clock_out_at && (() => {
-                const inTime = new Date(myEntry.clock_in_at)
-                const outTime = new Date(myEntry.clock_out_at)
-                const diffMs = outTime.getTime() - inTime.getTime()
-                const hours = Math.floor(diffMs / (1000 * 60 * 60))
-                const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-
-                return (
-                  <div
-                    className="mt-6"
-                    style={{
-                      padding: '20px 24px',
-                      background: `linear-gradient(135deg, rgba(18,160,92,0.12) 0%, rgba(18,160,92,0.06) 100%)`,
-                      border: `2px solid rgba(18,160,92,0.2)`,
-                      borderRadius: 16,
-                    }}
-                  >
-                    <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight) }}>
-                      You worked today
-                    </p>
-                    <p
-                      className="mt-2"
-                      style={{
-                        fontFamily: typography.fontMono,
-                        fontSize: 48,
-                        fontWeight: 800,
-                        color: colors.ok,
-                        letterSpacing: '-0.02em',
-                        lineHeight: 1,
-                      }}
-                    >
-                      {hours}h {minutes}m
-                    </p>
-                    <div className="flex items-center gap-5 mt-4">
-                      <div className="flex items-center gap-2">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(18,160,92,0.15)' }}>
-                          <LogIn size={14} style={{ color: colors.ok }} />
-                        </div>
-                        <div>
-                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clock In</p>
-                          <p style={{ fontFamily: typography.fontMono, fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
-                            {formatDate(myEntry.clock_in_at, tz, 'time')}
-                          </p>
-                        </div>
-                      </div>
-                      <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.1)' }} />
-                      <div className="flex items-center gap-2">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(201,123,42,0.15)' }}>
-                          <LogOut size={14} style={{ color: colors.warn }} />
-                        </div>
-                        <div>
-                          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clock Out</p>
-                          <p style={{ fontFamily: typography.fontMono, fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
-                            {formatDate(myEntry.clock_out_at, tz, 'time')}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })()}
-
-            </div>
-          ) : hasClockedIn ? (
-            /* Clocked in — show elapsed timer */
-            <div>
-              <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
-                <Timer size={16} style={{ color: colors.ok }} />
-                <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight) }}>
-                  Working hours
-                </p>
-                {myEntry?.status === 'late' && (
-                  <span style={{ padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 700, background: `${colors.warn}18`, color: colors.warn, letterSpacing: '0.03em' }}>Late</span>
-                )}
-              </div>
+            <span style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.10)', borderRadius: 2 }} />
+            <div className="flex items-baseline gap-2">
               <p
                 style={{
                   fontFamily: typography.fontMono,
-                  fontSize: 56,
-                  fontWeight: 800,
-                  color: colors.ink0,
-                  letterSpacing: '-0.03em',
+                  fontSize: 22,
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.6)',
+                  letterSpacing: '-0.02em',
                   lineHeight: 1,
                 }}
               >
-                {elapsed}
+                {clock.time}
               </p>
-              <div className="flex items-center gap-2 mt-3">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: 'rgba(18,160,92,0.15)' }}>
-                  <LogIn size={11} style={{ color: colors.ok }} />
-                </div>
-                <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
-                  Clocked in at <span style={{ fontFamily: typography.fontMono, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{myEntry?.clock_in_at ? formatDate(myEntry.clock_in_at, tz, 'time') : ''}</span>
-                </p>
-              </div>
-              <div className="flex gap-2 mt-6">
-                <input
-                  type="text"
-                  placeholder="Note (optional)"
-                  aria-label="Clock out note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className="flex-1 text-sm px-4 py-3 focus:outline-none"
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12,
-                    color: colors.ink0,
-                  }}
-                />
-                <button
-                  onClick={handleClockOut}
-                  disabled={clockOut.isPending}
-                  className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-                  style={{
-                    background: colors.warn,
-                    color: colors.ink0,
-                    borderRadius: 12,
-                    fontSize: 15,
-                    letterSpacing: '-0.01em',
-                  }}
-                >
-                  {clockOut.isPending ? 'Clocking out...' : 'Clock Out'}
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* Not clocked in yet */
-            <div>
-              <div
+              <span
                 style={{
-                  padding: '32px',
-                  background: 'linear-gradient(135deg, rgba(18,160,92,0.08) 0%, rgba(18,160,92,0.02) 100%)',
-                  border: '2px solid rgba(18,160,92,0.25)',
-                  borderRadius: 20,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  color: 'rgba(255,255,255,0.3)',
+                  letterSpacing: '0.04em',
                 }}
               >
-                <div className="flex items-center gap-2" style={{ marginBottom: 20 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(18,160,92,0.15)' }}>
-                    <Clock size={15} style={{ color: colors.ok }} />
-                  </div>
-                  <p style={{ fontSize: typography.tiny.size, color: colors.ok, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-                    Attendance Clock
-                  </p>
-                </div>
-                <div className="flex items-baseline gap-3">
-                  <p
-                    style={{
-                      fontFamily: typography.fontMono,
-                      fontSize: 64,
-                      fontWeight: 800,
-                      color: colors.ink0,
-                      letterSpacing: '-0.03em',
-                      lineHeight: 1,
-                    }}
-                  >
-                    {clock.time}
-                  </p>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>
-                    {clock.period}
-                  </span>
-                </div>
-                <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', marginTop: 14, fontWeight: 500 }}>
-                  Ready to start your day?
-                </p>
-                <div className="flex gap-2 mt-6">
-                  <input
-                    type="text"
-                    placeholder="Note (optional)"
-                    aria-label="Clock in note"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    className="flex-1 text-sm px-4 py-3 focus:outline-none"
-                    style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      borderRadius: 12,
-                      color: colors.ink0,
-                    }}
-                  />
-                  <button
-                    onClick={handleClockIn}
-                    disabled={clockIn.isPending}
-                    className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-                    style={{
-                      background: colors.ok,
-                      color: colors.ink0,
-                      borderRadius: 12,
-                      fontSize: 15,
-                      letterSpacing: '-0.01em',
-                    }}
-                  >
-                    {clockIn.isPending ? 'Clocking in...' : 'Clock In'}
-                  </button>
-                </div>
-              </div>
+                {clock.period}
+              </span>
             </div>
-          )}
-
+          </div>
+        </div>
+      </div>
+      {/* ── Main Content (responsive 3 columns, flex grid, with border) ──────────────────────────── */}
+      <div
+        className="dashboard-columns"
+        style={{ display: 'flex', gap: 32, marginTop: 40 }}
+      >
+        {/* Left: My Attendance Card */}
+        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14 }}>
+          <h3
+            style={{
+              fontSize: typography.h2.size,
+              fontWeight: typography.h2.weight,
+              color: hasClockedOut ? colors.ok : hasClockedIn ? colors.ok : 'rgba(255,255,255,0.7)',
+              letterSpacing: typography.h2.tracking,
+              lineHeight: typography.h2.lineHeight,
+              marginBottom: 0,
+              padding: '18px 28px 0 28px',
+            }}
+          >
+            {hasClockedOut
+              ? "You've completed your work today"
+              : hasClockedIn
+              ? "You're clocked in"
+              : 'Clock in to start your day'}
+          </h3>
+          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', padding: '0 28px 28px 28px' }}>
+            <div style={{ flex: 1 }}>
+              {!myEmployee ? (
+                <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>
+                  No employee record linked to your account.
+                </p>
+              ) : hasClockedOut ? (
+                myEntry?.clock_in_at && myEntry?.clock_out_at && (() => {
+                  const inTime = new Date(myEntry.clock_in_at)
+                  const outTime = new Date(myEntry.clock_out_at)
+                  const diffMs = outTime.getTime() - inTime.getTime()
+                  const hours = Math.floor(diffMs / (1000 * 60 * 60))
+                  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+                  return (
+                    <>
+                      <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight), marginBottom: 10 }}>
+                        You worked today
+                      </p>
+                      <p style={{ fontFamily: typography.fontMono, fontSize: 48, fontWeight: 800, color: colors.ok, letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 18 }}>
+                        {hours}h {minutes}m
+                      </p>
+                      <div className="flex items-center gap-5">
+                        <div className="flex items-center gap-2">
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(18,160,92,0.15)' }}>
+                            <LogIn size={14} style={{ color: colors.ok }} />
+                          </div>
+                          <div>
+                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clock In</p>
+                            <p style={{ fontFamily: typography.fontMono, fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+                              {formatDate(myEntry.clock_in_at, tz, 'time')}
+                            </p>
+                          </div>
+                        </div>
+                        <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.1)' }} />
+                        <div className="flex items-center gap-2">
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(201,123,42,0.15)' }}>
+                            <LogOut size={14} style={{ color: colors.warn }} />
+                          </div>
+                          <div>
+                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clock Out</p>
+                            <p style={{ fontFamily: typography.fontMono, fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+                              {formatDate(myEntry.clock_out_at, tz, 'time')}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )
+                })()
+              ) : hasClockedIn ? (
+                <>
+                  <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
+                    <Timer size={16} style={{ color: colors.ok }} />
+                    <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight) }}>
+                      Working hours
+                    </p>
+                    {myEntry?.status === 'late' && (
+                      <span style={{ padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 700, background: `${colors.warn}18`, color: colors.warn, letterSpacing: '0.03em' }}>Late</span>
+                    )}
+                  </div>
+                  <p style={{ fontFamily: typography.fontMono, fontSize: 56, fontWeight: 800, color: colors.ink0, letterSpacing: '-0.03em', lineHeight: 1, marginBottom: 18 }}>
+                    {elapsed}
+                  </p>
+                  <div className="flex items-center gap-2 mb-6">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: 'rgba(18,160,92,0.15)' }}>
+                      <LogIn size={11} style={{ color: colors.ok }} />
+                    </div>
+                    <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+                      Clocked in at <span style={{ fontFamily: typography.fontMono, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{myEntry?.clock_in_at ? formatDate(myEntry.clock_in_at, tz, 'time') : ''}</span>
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Note (optional)"
+                      aria-label="Clock out note"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      className="flex-1 text-sm px-4 py-3 focus:outline-none"
+                      style={{
+                        background: 'rgba(255,255,255,0.04)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 12,
+                        color: colors.ink0,
+                      }}
+                    />
+                    <button
+                      onClick={handleClockOut}
+                      disabled={clockOut.isPending}
+                      className="font-bold px-6 py-3 transition-all disabled:opacity-50"
+                      style={{
+                        background: colors.warn,
+                        color: colors.ink0,
+                        borderRadius: 12,
+                        fontSize: 15,
+                        letterSpacing: '-0.01em',
+                      }}
+                    >
+                      {clockOut.isPending ? 'Clocking out...' : 'Clock Out'}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ marginTop: 10 }}>
+                    <div className="flex items-center gap-2" style={{ marginBottom: 20 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(18,160,92,0.15)' }}>
+                        <Clock size={15} style={{ color: colors.ok }} />
+                      </div>
+                      <p style={{ fontSize: typography.tiny.size, color: colors.ok, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
+                        Attendance Clock
+                      </p>
+                    </div>
+                    <div className="flex items-baseline gap-3">
+                      <p
+                        style={{
+                          fontFamily: typography.fontMono,
+                          fontSize: 64,
+                          fontWeight: 800,
+                          color: colors.ink0,
+                          letterSpacing: '-0.03em',
+                          lineHeight: 1,
+                        }}
+                      >
+                        {clock.time}
+                      </p>
+                      <span style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>
+                        {clock.period}
+                      </span>
+                    </div>
+                    <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', marginTop: 14, fontWeight: 500 }}>
+                      Ready to start your day?
+                    </p>
+                    <div className="flex gap-2 mt-6">
+                      <input
+                        type="text"
+                        placeholder="Note (optional)"
+                        aria-label="Clock in note"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        className="flex-1 text-sm px-4 py-3 focus:outline-none"
+                        style={{
+                          background: 'rgba(255,255,255,0.06)',
+                          border: '1px solid rgba(255,255,255,0.12)',
+                          borderRadius: 12,
+                          color: colors.ink0,
+                        }}
+                      />
+                      <button
+                        onClick={handleClockIn}
+                        disabled={clockIn.isPending}
+                        className="font-bold px-6 py-3 transition-all disabled:opacity-50"
+                        style={{
+                          background: colors.ok,
+                          color: colors.ink0,
+                          borderRadius: 12,
+                          fontSize: 15,
+                          letterSpacing: '-0.01em',
+                        }}
+                      >
+                        {clockIn.isPending ? 'Clocking in...' : 'Clock In'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Right: Team Status */}
-        <div>
-          <div className="flex items-end justify-between">
-            <p style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight }}>
-              Your team today
-            </p>
-            <Link
-              to="/attendance"
-              className="text-sm font-semibold transition-opacity hover:opacity-100"
-              style={{ color: 'rgba(255,255,255,0.4)', opacity: 0.7 }}
-            >
-              View all →
-            </Link>
+        {/* Middle: Attendance Graph */}
+        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14 }}>
+          <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0, padding: '18px 28px 0 28px' }}>
+            Team attendance
+          </h3>
+          <div style={{ marginTop: 20, padding: '0 28px 28px 28px' }}>
+            <AttendanceCard
+              present={present}
+              late={late}
+              onLeaveCount={onLeaveCount}
+              trueAbsent={trueAbsent}
+              totalEmployees={totalEmployees}
+              noBackground // Add prop to AttendanceCard to disable its internal background
+            />
           </div>
+        </div>
 
-          {isLoading ? (
-            <div className="mt-5 space-y-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3 animate-pulse">
-                  <div className="rounded-full" style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.05)' }} />
-                  <div className="flex-1 space-y-2">
-                    <div className="rounded" style={{ width: '60%', height: 10, background: 'rgba(255,255,255,0.05)' }} />
-                    <div className="rounded" style={{ width: '40%', height: 8, background: 'rgba(255,255,255,0.04)' }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : totalEmployees === 0 ? (
-            <div className="mt-5 text-center py-8" style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 14, border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>No employees yet</p>
-              <Link to="/people" className="text-sm font-semibold mt-2 inline-block" style={{ color: colors.accentMid }}>
-                Add your first employee →
-              </Link>
-            </div>
-          ) : (
-            <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-5">
-              {/* Left: Attendance chart */}
-              <AttendanceCard
-                present={present}
-                late={late}
-                onLeaveCount={onLeaveCount}
-                trueAbsent={trueAbsent}
-                totalEmployees={totalEmployees}
-              />
+        {/* Right: Team Member List */}
+        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 14 }}>
+          <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0, padding: '18px 28px 0 28px' }}>
+            Your team today
+          </h3>
+          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', padding: '0 28px 28px 28px' }}>
+            <div style={{ flex: 1 }}>
+              {teamMembers.slice(0, 8).map((m) => {
+                const att = m.attendance
+                const isPresent = att?.status === 'present' || att?.status === 'late'
+                const isLate = att?.status === 'late'
+                const isOnLeave = att?.onLeave
+                const isAbsent = att?.status === 'absent' && !isOnLeave
+                const noRecord = !att
 
-              {/* Right: Team member list */}
-              <div>
-                <div
-                  className="flex flex-col divide-y"
-                  style={{
-                    background: 'rgba(255,255,255,0.03)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    borderRadius: 14,
-                    overflow: 'hidden',
-                  }}
-                >
-                {teamMembers.slice(0, 8).map((m) => {
-                  const att = m.attendance
-                  const isPresent = att?.status === 'present' || att?.status === 'late'
-                  const isLate = att?.status === 'late'
-                  const isOnLeave = att?.onLeave
-                  const isAbsent = att?.status === 'absent' && !isOnLeave
-                  const noRecord = !att
+                const statusColor = isOnLeave ? colors.accentMid : isAbsent ? colors.err : isLate ? colors.warn : isPresent ? colors.ok : 'rgba(255,255,255,0.15)'
+                const statusLabel = isOnLeave ? 'On Leave' : isAbsent ? 'Absent' : isLate ? 'Late' : isPresent ? 'On time' : 'Not clocked in'
 
-                  const statusColor = isOnLeave ? colors.accentMid : isAbsent ? colors.err : isLate ? colors.warn : isPresent ? colors.ok : 'rgba(255,255,255,0.15)'
-                  const statusLabel = isOnLeave ? 'On Leave' : isAbsent ? 'Absent' : isLate ? 'Late' : isPresent ? 'On time' : 'Not clocked in'
-
-                  return (
-                    <div
-                      key={m.id}
-                      className="flex items-center gap-3 px-4 py-3"
-                      style={{ borderColor: 'rgba(255,255,255,0.05)', opacity: isAbsent || noRecord ? 0.55 : 1 }}
-                    >
-                      <div className="relative flex-shrink-0">
-                        <Avatar name={m.full_name} id={m.id} size={34} />
-                        <div
-                          className="absolute"
-                          style={{
-                            bottom: -1, right: -1,
-                            width: 9, height: 9,
-                            borderRadius: '50%',
-                            background: statusColor,
-                            border: '2px solid #141419',
-                          }}
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="truncate" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
-                          {m.full_name}
-                        </p>
-                        <p className="truncate" style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
-                          {m.job_title || m.employment_type.replace('_', ' ')}
-                        </p>
-                      </div>
-                      <div className="flex-shrink-0 flex items-center gap-2">
-                        {att?.clock_in_at && isPresent && (
-                          <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-                            {formatDate(att.clock_in_at, tz, 'time')}
-                          </span>
-                        )}
-                        <span
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: 6,
-                            fontSize: 10,
-                            fontWeight: 700,
-                            letterSpacing: '0.03em',
-                            background: `${statusColor}18`,
-                            color: statusColor,
-                          }}
-                        >
-                          {statusLabel}
-                        </span>
-                      </div>
+                return (
+                  <div
+                    key={m.id}
+                    className="flex items-center gap-3 px-4 py-3"
+                    style={{ borderColor: 'rgba(255,255,255,0.05)', opacity: isAbsent || noRecord ? 0.55 : 1 }}
+                  >
+                    <div className="relative flex-shrink-0">
+                      <Avatar name={m.full_name} id={m.id} size={34} />
+                      <div
+                        className="absolute"
+                        style={{
+                          bottom: -1, right: -1,
+                          width: 9, height: 9,
+                          borderRadius: '50%',
+                          background: statusColor,
+                          border: '2px solid #141419',
+                        }}
+                      />
                     </div>
-                  )
-                })}
-              </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="truncate" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)' }}>
+                        {m.full_name}
+                      </p>
+                      <p className="truncate" style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 1 }}>
+                        {m.job_title || m.employment_type.replace('_', ' ')}
+                      </p>
+                    </div>
+                    <div className="flex-shrink-0 flex items-center gap-2">
+                      {att?.clock_in_at && isPresent && (
+                        <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                          {formatDate(att.clock_in_at, tz, 'time')}
+                        </span>
+                      )}
+                      <span
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          fontSize: 10,
+                          fontWeight: 700,
+                          letterSpacing: '0.03em',
+                          background: `${statusColor}18`,
+                          color: statusColor,
+                        }}
+                      >
+                        {statusLabel}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
               {totalEmployees > 8 && (
                 <Link
                   to="/attendance"
@@ -590,13 +525,24 @@ function OverviewPage() {
                   +{totalEmployees - 8} more →
                 </Link>
               )}
-              </div>
             </div>
-            </>
-          )}
+          </div>
         </div>
       </div>
 
+      {/* Responsive styles for dashboard columns */}
+      <style>{`
+        @media (max-width: 900px) {
+          .dashboard-columns {
+            flex-direction: column !important;
+            gap: 0 !important;
+          }
+          .dashboard-col {
+            width: 100% !important;
+            margin-bottom: 32px;
+          }
+        }
+      `}</style>
     </div>
   )
 }
@@ -618,15 +564,7 @@ function AttendanceCard({ present, late, onLeaveCount, trueAbsent, totalEmployee
   ]
 
   return (
-    <div style={{
-      background: 'rgba(255,255,255,0.04)',
-      border: '1px solid rgba(255,255,255,0.1)',
-      borderRadius: 14,
-      padding: '18px 20px',
-    }}>
-      <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.45)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: Number(typography.tiny.weight), marginBottom: 14 }}>
-        Attendance
-      </p>
+    <div>
       <div className="flex flex-col items-center">
         <DonutChart
           size={130}
