@@ -354,8 +354,8 @@ func (r *Repository) UpdateRequestStatus(ctx context.Context, tx pgx.Tx, orgID, 
 	err := tx.QueryRow(ctx, `
 		UPDATE leave_requests SET
 			status      = $3,
-			reviewed_by = $4,
-			reviewed_at = CASE WHEN $4 IS NOT NULL THEN NOW() ELSE reviewed_at END,
+			reviewed_by = $4::uuid,
+			reviewed_at = CASE WHEN $4::uuid IS NOT NULL THEN NOW() ELSE reviewed_at END,
 			review_note = COALESCE($5, review_note)
 		WHERE organisation_id = $1
 		  AND id = $2
