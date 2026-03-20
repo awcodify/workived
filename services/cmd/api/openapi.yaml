@@ -414,6 +414,414 @@ paths:
         "404":
           $ref: "#/components/responses/NotFoundError"
 
+  # ── Leave ─────────────────────────────────────────────────────────────────
+  /leave/policies:
+    get:
+      operationId: listLeavePolicies
+      summary: List all leave policies
+      tags: [Leave]
+      responses:
+        "200":
+          description: List of leave policies
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LeavePolicy"
+    
+    post:
+      operationId: createLeavePolicy
+      summary: Create a new leave policy
+      tags: [Leave]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLeavePolicyRequest"
+      responses:
+        "201":
+          description: Policy created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LeavePolicy"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /leave/policies/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    
+    put:
+      operationId: updateLeavePolicy
+      summary: Update a leave policy
+      tags: [Leave]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLeavePolicyRequest"
+      responses:
+        "200":
+          description: Policy updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LeavePolicy"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+    
+    delete:
+      operationId: deactivateLeavePolicy
+      summary: Deactivate a leave policy
+      tags: [Leave]
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /leave/templates:
+    get:
+      operationId: listLeaveTemplates
+      summary: List leave policy templates for a country
+      tags: [Leave]
+      parameters:
+        - name: country_code
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [ID, AE, MY, SG]
+          description: Filter by country code (defaults to org country)
+      responses:
+        "200":
+          description: List of leave policy templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LeavePolicyTemplate"
+
+  /leave/policies/import:
+    post:
+      operationId: importLeavePolicies
+      summary: Import policies from templates
+      description: Creates policies and balances for all active employees atomically
+      tags: [Leave]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportPoliciesRequest"
+      responses:
+        "201":
+          description: Policies imported successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      created_count:
+                        type: integer
+                      policies:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/LeavePolicy"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /leave/balances:
+    get:
+      operationId: listLeaveBalances
+      summary: List all leave balances (admin)
+      tags: [Leave]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of leave balances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LeaveBalanceWithPolicy"
+
+  /leave/balances/me:
+    get:
+      operationId: listMyLeaveBalances
+      summary: Get my leave balances
+      tags: [Leave]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: My leave balances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LeaveBalanceWithPolicy"
+
+  /leave/requests:
+    get:
+      operationId: listLeaveRequests
+      summary: List leave requests (admin)
+      tags: [Leave]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, cancelled]
+        - name: employee_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: year
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of leave requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LeaveRequestWithDetails"
+    
+    post:
+      operationId: submitLeaveRequest
+      summary: Submit a leave request
+      tags: [Leave]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitLeaveRequestInput"
+      responses:
+        "201":
+          description: Request submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LeaveRequest"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /leave/requests/me:
+    get:
+      operationId: listMyLeaveRequests
+      summary: Get my leave requests
+      tags: [Leave]
+      responses:
+        "200":
+          description: My leave requests
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LeaveRequestWithDetails"
+
+  /leave/requests/{id}/approve:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    post:
+      operationId: approveLeaveRequest
+      summary: Approve a leave request
+      tags: [Leave]
+      responses:
+        "200":
+          description: Request approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LeaveRequest"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /leave/requests/{id}/reject:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    post:
+      operationId: rejectLeaveRequest
+      summary: Reject a leave request
+      tags: [Leave]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        "200":
+          description: Request rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LeaveRequest"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /leave/requests/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    post:
+      operationId: cancelLeaveRequest
+      summary: Cancel own leave request
+      tags: [Leave]
+      responses:
+        "200":
+          description: Request cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/LeaveRequest"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /leave/calendar:
+    get:
+      operationId: getLeaveCalendar
+      summary: Get leave calendar for a month
+      tags: [Leave]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        "200":
+          description: Leave calendar entries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/LeaveCalendarEntry"
+
+  /leave/holidays:
+    get:
+      operationId: listPublicHolidays
+      summary: List public holidays for date range
+      tags: [Leave]
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: List of public holidays
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PublicHoliday"
+
+  /leave/notifications/count:
+    get:
+      operationId: getLeaveNotificationCount
+      summary: Get pending leave requests count
+      tags: [Leave]
+      responses:
+        "200":
+          description: Notification count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+
 # ── Components ────────────────────────────────────────────────────────────────
 
 components:
