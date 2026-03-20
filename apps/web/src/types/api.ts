@@ -298,6 +298,25 @@ export interface LeaveRequestWithDetails extends LeaveRequest {
   policy_name: string
 }
 
+export interface PolicyTemplate {
+  id: string
+  country_code: string
+  name: string
+  description?: string
+  entitled_days_per_year: number
+  is_carry_over_allowed: boolean
+  max_carry_over_days?: number
+  is_accrued: boolean
+  requires_approval: boolean
+  sort_order: number
+  created_at: string
+}
+
+export interface ImportPoliciesResult {
+  created_count: number
+  policies: LeavePolicy[]
+}
+
 export interface CalendarEntry {
   employee_id: string
   employee_name: string

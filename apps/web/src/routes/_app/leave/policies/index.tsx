@@ -1,8 +1,9 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { Plus, Pencil, Trash2, Download } from 'lucide-react'
 import { usePolicies, useDeactivatePolicy } from '@/lib/hooks/useLeave'
 import { useState } from 'react'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
+import { ImportTemplatesModal } from '@/components/workived/leave/ImportTemplatesModal'
 
 const t = moduleThemes.leave
 
@@ -14,6 +15,7 @@ function PoliciesPage() {
   const { data: policies, isLoading } = usePolicies()
   const deactivateMutation = useDeactivatePolicy()
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [showImportModal, setShowImportModal] = useState(false)
 
   const handleDeactivate = async (id: string) => {
     if (deletingId === id) {
@@ -53,25 +55,40 @@ function PoliciesPage() {
             {activePolicies.length} active polic{activePolicies.length === 1 ? 'y' : 'ies'}
           </p>
         </div>
-        <Link
-          to="/leave/policies/new"
-          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
-          style={{
-            background: t.accent,
-            color: t.accentText,
-            borderRadius: 12,
-          }}
-        >
-          <Plus size={16} />
-          Add policy
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowImportModal(true)}
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-70"
+            style={{
+              background: t.surface,
+              color: t.accent,
+              borderRadius: 12,
+              border: `1px solid ${t.border}`,
+            }}
+          >
+            <Download size={16} />
+            Import Templates
+          </button>
+          <Link
+            to="/leave/policies/new"
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
+            style={{
+              background: t.accent,
+              color: t.accentText,
+              borderRadius: 12,
+            }}
+          >
+            <Plus size={16} />
+            Add policy
+          </Link>
+        </div>
       </div>
 
       {/* Policies List */}
       {isLoading ? (
         <PoliciesSkeleton />
       ) : !activePolicies || activePolicies.length === 0 ? (
-        <EmptyPolicies />
+        <EmptyPolicies onImport={() => setShowImportModal(true)} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {activePolicies.map((policy) => (
@@ -152,6 +169,11 @@ function PoliciesPage() {
           ))}
         </div>
       )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <ImportTemplatesModal onClose={() => setShowImportModal(false)} />
+      )}
     </div>
   )
 }
@@ -179,7 +201,11 @@ function PoliciesSkeleton() {
   )
 }
 
-function EmptyPolicies() {
+interface EmptyPoliciesProps {
+  onImport: () => void
+}
+
+function EmptyPolicies({ onImport }: EmptyPoliciesProps) {
   return (
     <div
       className="flex flex-col items-center justify-center text-center"
@@ -213,9 +239,36 @@ function EmptyPolicies() {
       >
         No leave policies yet
       </p>
-      <p className="text-sm mt-1" style={{ color: t.textMuted }}>
-        Create your first leave policy to get started.
+      <p className="text-sm mt-1 mb-4" style={{ color: t.textMuted }}>
+        Get started quickly by importing templates or create your own.
       </p>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={onImport}
+          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-90"
+          style={{
+            background: t.accent,
+            color: t.accentText,
+            borderRadius: 12,
+          }}
+        >
+          <Download size={16} />
+          Import Templates
+        </button>
+        <Link
+          to="/leave/policies/new"
+          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-70"
+          style={{
+            background: t.surface,
+            color: t.accent,
+            borderRadius: 12,
+            border: `1px solid ${t.border}`,
+          }}
+        >
+          <Plus size={16} />
+          Create Manually
+        </Link>
+      </div>
     </div>
   )
 }

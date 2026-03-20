@@ -12,6 +12,8 @@ import type {
   PublicHoliday,
   ApiResponse,
   CursorMeta,
+  PolicyTemplate,
+  ImportPoliciesResult,
 } from '@/types/api'
 
 // ── Response Types ───────────────────────────────────────────
@@ -107,4 +109,16 @@ export const leaveApi = {
   // ── Notifications ──────────────────────────────────────────
   getNotificationCount: () =>
     apiClient.get<ApiResponse<{ count: number }>>('/api/v1/leave/notifications/count'),
+
+  // ── Templates ──────────────────────────────────────────────
+  listTemplates: (countryCode?: string) =>
+    apiClient.get<ApiResponse<PolicyTemplate[]>>('/api/v1/leave/templates', {
+      params: countryCode ? { country_code: countryCode } : undefined,
+    }),
+
+  importPolicies: (templateIds: string[]) =>
+    apiClient.post<ApiResponse<ImportPoliciesResult>>(
+      '/api/v1/leave/policies/import',
+      { template_ids: templateIds },
+    ),
 }

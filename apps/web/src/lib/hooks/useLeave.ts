@@ -27,6 +27,8 @@ export const leaveKeys = {
   holidays: (startDate: string, endDate: string) =>
     [...leaveKeys.all, 'holidays', startDate, endDate] as const,
 
+  templates: (countryCode?: string) => [...leaveKeys.all, 'templates', countryCode] as const,
+
   notificationCount: () => [...leaveKeys.all, 'notificationCount'] as const,
 }
 
@@ -279,5 +281,27 @@ export function useLeaveNotificationCount() {
     staleTime: 60 * 1000, // 1 min — refetch frequently to stay current
     refetchInterval: 60 * 1000, // Auto-refetch every minute
     enabled: canManage, // Only fetch for users with permission
+  })
+}
+
+// ── Template Hooks ───────────────────────────────────────────
+
+export function useTemplates(countryCode?: string) {
+  return useQuery({
+    queryKey: leaveKeys.templates(countryCode),
+    queryFn: () => leaveApi.listTemplates(countryCode).then((r) => r.data.data),
+    staleTime: 5 * 60 * 1000, // 5 min — templates rarely change
+  })
+}
+
+export function useImportPolicies() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (templateIds: string[]) => leaveApi.importPolicies(templateIds),
+    onSuccess: () => {
+      // Invalidate policies list to refetch
+      queryClient.invalidateQueries({ queryKey: leaveKeys.policies() })
+    },
   })
 }
