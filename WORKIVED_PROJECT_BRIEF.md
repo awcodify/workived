@@ -757,11 +757,24 @@ FOR EACH active employee × active leave_policy:
 - [ ] Claims list page (admin: all claims, employee: my claims)
 - [ ] Claims frontend pages (submit, view, approve/reject)
 - [ ] Basic reporting (monthly totals per employee)
+- [ ] **Empty states with CTAs** — Add to all list pages (employees, attendance, claims)
+  - Clear call-to-action when no data exists
+  - Example: "No claims yet. Submit your first expense claim"
+  - Design: Icon + heading + description + primary button
 
-### Sprint 7 — Landing page + PWA
+### Sprint 7 — Landing page + PWA + Onboarding
 - [ ] Astro marketing site (apps/landing)
 - [ ] PWA manifest + service worker for dashboard
 - [ ] SEO optimization, blog setup
+- [ ] **Onboarding checklist** — Progress tracker for first-time admins
+  - 5-step setup: Create org → Add employees → Import leave policies → Set work schedule → First attendance
+  - Persistent card on dashboard (dismissible after completion)
+  - Visual progress indicator (3/5 steps complete)
+  - Links directly to action pages
+- [ ] **Contextual help tooltips** — Inline guidance on complex fields
+  - Work schedule explanation, leave accrual rules, claim approval flow
+  - Hover trigger, small info icon, non-intrusive
+  - Links to docs where relevant
 
 ### Sprint 8 — Pro features (monetization)
 - [ ] Feature gating middleware
@@ -779,6 +792,11 @@ FOR EACH active employee × active leave_policy:
 - [ ] **Tasks module (CONDITIONAL — build only if customers request it)**
   - Task lists, CRUD, comments
   - Does NOT include: subtasks, dependencies, time tracking, Gantt (avoid feature parity with Trello/Asana)
+- [ ] **App tour (OPTIONAL — data-driven decision)**
+  - Only build if support tickets or analytics show confusion at specific steps
+  - Max 3-4 steps, fully skippable, feature-flagged for A/B testing
+  - Must measure impact on activation metrics before keeping
+  - Alternative: Record screen walkthroughs (Loom) and link from help menu
 
 ### Future — Payroll (Phase 2)
 - [ ] TBD — design separately when core is proven
@@ -839,4 +857,4 @@ API_URL=http://localhost:8080
 ---
 
 *Last updated: March 20, 2026*
-*Status: Sprint 5 ✅ COMPLETE → Sprint 5.5 (Leave Templates) 🟢 NEXT — Country-based policy import for faster onboarding*
+*Status: Sprint 5.5 ✅ COMPLETE (Leave Templates) → Sprint 6 🟢 CURRENT — Claims + Empty states*
