@@ -23,11 +23,14 @@ import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
 import { Route as AppLeaveRouteRouteImport } from './routes/_app/leave/route'
 import { Route as AppFeatureDisabledRouteRouteImport } from './routes/_app/feature-disabled/route'
+import { Route as AppClaimsRouteRouteImport } from './routes/_app/claims/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppLeaveIndexRouteImport } from './routes/_app/leave/index'
+import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims/index'
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
 import { Route as AppLeaveCalendarRouteImport } from './routes/_app/leave/calendar'
+import { Route as AppClaimsNewRouteImport } from './routes/_app/claims/new'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
@@ -107,6 +110,11 @@ const AppFeatureDisabledRouteRoute = AppFeatureDisabledRouteRouteImport.update({
   path: '/feature-disabled',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppClaimsRouteRoute = AppClaimsRouteRouteImport.update({
+  id: '/claims',
+  path: '/claims',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppAttendanceRouteRoute = AppAttendanceRouteRouteImport.update({
   id: '/attendance',
   path: '/attendance',
@@ -122,6 +130,11 @@ const AppLeaveIndexRoute = AppLeaveIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppLeaveRouteRoute,
 } as any)
+const AppClaimsIndexRoute = AppClaimsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppClaimsRouteRoute,
+} as any)
 const AppAttendanceIndexRoute = AppAttendanceIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -131,6 +144,11 @@ const AppLeaveCalendarRoute = AppLeaveCalendarRouteImport.update({
   id: '/calendar',
   path: '/calendar',
   getParentRoute: () => AppLeaveRouteRoute,
+} as any)
+const AppClaimsNewRoute = AppClaimsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => AppClaimsRouteRoute,
 } as any)
 const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
   id: '/members',
@@ -187,6 +205,7 @@ const AppLeavePoliciesIdRoute = AppLeavePoliciesIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
+  '/claims': typeof AppClaimsRouteRouteWithChildren
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/leave': typeof AppLeaveRouteRouteWithChildren
   '/overview': typeof AppOverviewRouteRoute
@@ -202,8 +221,10 @@ export interface FileRoutesByFullPath {
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/claims/new': typeof AppClaimsNewRoute
   '/leave/calendar': typeof AppLeaveCalendarRoute
   '/attendance/': typeof AppAttendanceIndexRoute
+  '/claims/': typeof AppClaimsIndexRoute
   '/leave/': typeof AppLeaveIndexRoute
   '/people/': typeof AppPeopleIndexRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
@@ -228,8 +249,10 @@ export interface FileRoutesByTo {
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/claims/new': typeof AppClaimsNewRoute
   '/leave/calendar': typeof AppLeaveCalendarRoute
   '/attendance': typeof AppAttendanceIndexRoute
+  '/claims': typeof AppClaimsIndexRoute
   '/leave': typeof AppLeaveIndexRoute
   '/people': typeof AppPeopleIndexRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
@@ -245,6 +268,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteRouteWithChildren
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
+  '/_app/claims': typeof AppClaimsRouteRouteWithChildren
   '/_app/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/_app/leave': typeof AppLeaveRouteRouteWithChildren
   '/_app/overview': typeof AppOverviewRouteRoute
@@ -260,8 +284,10 @@ export interface FileRoutesById {
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
+  '/_app/claims/new': typeof AppClaimsNewRoute
   '/_app/leave/calendar': typeof AppLeaveCalendarRoute
   '/_app/attendance/': typeof AppAttendanceIndexRoute
+  '/_app/claims/': typeof AppClaimsIndexRoute
   '/_app/leave/': typeof AppLeaveIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
   '/_app/leave/policies/$id': typeof AppLeavePoliciesIdRoute
@@ -276,6 +302,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/attendance'
+    | '/claims'
     | '/feature-disabled'
     | '/leave'
     | '/overview'
@@ -291,8 +318,10 @@ export interface FileRouteTypes {
     | '/people/$id'
     | '/settings/company'
     | '/settings/members'
+    | '/claims/new'
     | '/leave/calendar'
     | '/attendance/'
+    | '/claims/'
     | '/leave/'
     | '/people/'
     | '/leave/policies/$id'
@@ -317,8 +346,10 @@ export interface FileRouteTypes {
     | '/people/$id'
     | '/settings/company'
     | '/settings/members'
+    | '/claims/new'
     | '/leave/calendar'
     | '/attendance'
+    | '/claims'
     | '/leave'
     | '/people'
     | '/leave/policies/$id'
@@ -333,6 +364,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_auth'
     | '/_app/attendance'
+    | '/_app/claims'
     | '/_app/feature-disabled'
     | '/_app/leave'
     | '/_app/overview'
@@ -348,8 +380,10 @@ export interface FileRouteTypes {
     | '/_app/people/$id'
     | '/_app/settings/company'
     | '/_app/settings/members'
+    | '/_app/claims/new'
     | '/_app/leave/calendar'
     | '/_app/attendance/'
+    | '/_app/claims/'
     | '/_app/leave/'
     | '/_app/people/'
     | '/_app/leave/policies/$id'
@@ -466,6 +500,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFeatureDisabledRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/claims': {
+      id: '/_app/claims'
+      path: '/claims'
+      fullPath: '/claims'
+      preLoaderRoute: typeof AppClaimsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/attendance': {
       id: '/_app/attendance'
       path: '/attendance'
@@ -487,6 +528,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeaveIndexRouteImport
       parentRoute: typeof AppLeaveRouteRoute
     }
+    '/_app/claims/': {
+      id: '/_app/claims/'
+      path: '/'
+      fullPath: '/claims/'
+      preLoaderRoute: typeof AppClaimsIndexRouteImport
+      parentRoute: typeof AppClaimsRouteRoute
+    }
     '/_app/attendance/': {
       id: '/_app/attendance/'
       path: '/'
@@ -500,6 +548,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/leave/calendar'
       preLoaderRoute: typeof AppLeaveCalendarRouteImport
       parentRoute: typeof AppLeaveRouteRoute
+    }
+    '/_app/claims/new': {
+      id: '/_app/claims/new'
+      path: '/new'
+      fullPath: '/claims/new'
+      preLoaderRoute: typeof AppClaimsNewRouteImport
+      parentRoute: typeof AppClaimsRouteRoute
     }
     '/_app/settings/members': {
       id: '/_app/settings/members'
@@ -587,6 +642,20 @@ const AppAttendanceRouteRouteChildren: AppAttendanceRouteRouteChildren = {
 const AppAttendanceRouteRouteWithChildren =
   AppAttendanceRouteRoute._addFileChildren(AppAttendanceRouteRouteChildren)
 
+interface AppClaimsRouteRouteChildren {
+  AppClaimsNewRoute: typeof AppClaimsNewRoute
+  AppClaimsIndexRoute: typeof AppClaimsIndexRoute
+}
+
+const AppClaimsRouteRouteChildren: AppClaimsRouteRouteChildren = {
+  AppClaimsNewRoute: AppClaimsNewRoute,
+  AppClaimsIndexRoute: AppClaimsIndexRoute,
+}
+
+const AppClaimsRouteRouteWithChildren = AppClaimsRouteRoute._addFileChildren(
+  AppClaimsRouteRouteChildren,
+)
+
 interface AppLeaveRouteRouteChildren {
   AppLeaveCalendarRoute: typeof AppLeaveCalendarRoute
   AppLeaveIndexRoute: typeof AppLeaveIndexRoute
@@ -642,6 +711,7 @@ const AppSettingsRouteRouteWithChildren =
 
 interface AppRouteRouteChildren {
   AppAttendanceRouteRoute: typeof AppAttendanceRouteRouteWithChildren
+  AppClaimsRouteRoute: typeof AppClaimsRouteRouteWithChildren
   AppFeatureDisabledRouteRoute: typeof AppFeatureDisabledRouteRoute
   AppLeaveRouteRoute: typeof AppLeaveRouteRouteWithChildren
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
@@ -653,6 +723,7 @@ interface AppRouteRouteChildren {
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAttendanceRouteRoute: AppAttendanceRouteRouteWithChildren,
+  AppClaimsRouteRoute: AppClaimsRouteRouteWithChildren,
   AppFeatureDisabledRouteRoute: AppFeatureDisabledRouteRoute,
   AppLeaveRouteRoute: AppLeaveRouteRouteWithChildren,
   AppOverviewRouteRoute: AppOverviewRouteRoute,

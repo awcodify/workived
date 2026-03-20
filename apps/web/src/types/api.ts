@@ -363,6 +363,86 @@ export interface ReviewInput {
   note?: string
 }
 
+// ── Claims ───────────────────────────────────────────────────
+export interface ClaimCategory {
+  id: string
+  organisation_id: string
+  name: string
+  monthly_limit?: number  // Smallest currency unit
+  currency_code?: string
+  requires_receipt: boolean
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Claim {
+  id: string
+  organisation_id: string
+  employee_id: string
+  category_id: string
+  amount: number  // Smallest currency unit
+  currency_code: string
+  description: string
+  claim_date: string  // YYYY-MM-DD
+  receipt_url?: string  // Presigned URL (15min expiry)
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  reviewed_by?: string
+  reviewed_at?: string
+  review_note?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface ClaimWithDetails extends Claim {
+  employee_name: string
+  category_name: string
+}
+
+export interface ClaimMonthlySummary {
+  employee_id: string
+  employee_name: string
+  total_amount: number
+  claim_count: number
+  currency_code: string
+}
+
+export interface CreateCategoryInput {
+  name: string
+  monthly_limit?: number
+  currency_code?: string
+  requires_receipt: boolean
+}
+
+export interface UpdateCategoryInput {
+  name?: string
+  monthly_limit?: number
+  currency_code?: string
+  requires_receipt?: boolean
+}
+
+export interface SubmitClaimInput {
+  category_id: string
+  amount: number
+  currency_code: string
+  description: string
+  claim_date: string  // YYYY-MM-DD
+}
+
+export interface ReviewClaimInput {
+  review_note?: string
+}
+
+export interface ClaimFilters {
+  status?: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  employee_id?: string
+  category_id?: string
+  start_date?: string  // YYYY-MM-DD
+  end_date?: string    // YYYY-MM-DD
+  cursor?: string
+  limit?: number
+}
+
 // ── API wrapper ──────────────────────────────────────────────
 // All API responses are wrapped in {"data": ...}
 export interface ApiResponse<T> {
