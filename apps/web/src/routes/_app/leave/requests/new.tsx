@@ -8,15 +8,22 @@ import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { submitRequestSchema, type SubmitRequestFormData } from '@/lib/validations/leave'
 import { calculateWorkingDays, calculateAvailableDays } from '@/lib/utils/leave'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
+import { z } from 'zod'
 
 const t = moduleThemes.leave
 
+const newRequestSearchSchema = z.object({
+  policyId: z.string().optional(),
+})
+
 export const Route = createFileRoute('/_app/leave/requests/new')({
   component: NewRequestPage,
+  validateSearch: newRequestSearchSchema,
 })
 
 function NewRequestPage() {
   const navigate = useNavigate()
+  const { policyId: preselectedPolicyId } = Route.useSearch()
   const { data: org } = useOrganisation()
   const { data: policies } = usePolicies()
   const currentYear = new Date().getFullYear()
@@ -31,10 +38,18 @@ function NewRequestPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<SubmitRequestFormData>({
     resolver: zodResolver(submitRequestSchema),
   })
+
+  // Pre-select policy if provided via search params
+  useEffect(() => {
+    if (preselectedPolicyId && policies) {
+      setValue('leave_policy_id', preselectedPolicyId)
+    }
+  }, [preselectedPolicyId, policies, setValue])
 
   const policyId = watch('leave_policy_id')
   const startDate = watch('start_date')

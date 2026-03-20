@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { Plus } from 'lucide-react'
-import { useMyBalances } from '@/lib/hooks/useLeave'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { Clock, Calendar, FileText, Settings } from 'lucide-react'
+import { useMyBalances, useAllRequests } from '@/lib/hooks/useLeave'
 import { useCanManageLeave } from '@/lib/hooks/useRole'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 
@@ -11,9 +11,13 @@ export const Route = createFileRoute('/_app/leave/')({
 })
 
 function LeaveDashboard() {
+  const navigate = useNavigate()
   const currentYear = new Date().getFullYear()
   const { data: balances, isLoading } = useMyBalances(currentYear)
+  const { data: pendingRequests } = useAllRequests({ status: 'pending' })
   const canManageLeave = useCanManageLeave()
+  
+  const pendingCount = pendingRequests?.length ?? 0
 
   const totalAvailable = balances?.reduce((sum, b) => {
     const available = b.entitled_days + b.carried_over_days - b.used_days - b.pending_days
@@ -26,49 +30,148 @@ function LeaveDashboard() {
       style={{ background: moduleBackgrounds.leave }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1
-            className="font-extrabold"
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1
+              className="font-extrabold"
+              style={{
+                fontSize: typography.display.size,
+                letterSpacing: typography.display.tracking,
+                color: t.text,
+                lineHeight: typography.display.lineHeight,
+              }}
+            >
+              Leave
+            </h1>
+            <p className="text-sm mt-2" style={{ color: t.textMuted }}>
+              {totalAvailable} day{totalAvailable === 1 ? '' : 's'} available
+            </p>
+          </div>
+        </div>
+
+        {/* Action Toolbar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <Link
+            to="/leave/requests/pending"
+            className="relative flex items-center gap-2 px-4 py-3 transition-all hover:scale-[1.02]"
             style={{
-              fontSize: typography.display.size,
-              letterSpacing: typography.display.tracking,
-              color: t.text,
-              lineHeight: typography.display.lineHeight,
+              background: t.surface,
+              borderRadius: 12,
+              border: `1px solid ${t.border}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = t.surfaceHover
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = t.surface
             }}
           >
-            Leave
-          </h1>
-          <p className="text-sm mt-2" style={{ color: t.textMuted }}>
-            {totalAvailable} day{totalAvailable === 1 ? '' : 's'} available
-          </p>
+            <Clock size={18} style={{ color: t.accent }} />
+            <span className="text-sm font-semibold" style={{ color: t.text }}>
+              Pending
+            </span>
+            {pendingCount > 0 && (
+              <span
+                className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold animate-pulse"
+                style={{
+                  background: '#D44040',
+                  color: '#FFFFFF',
+                  borderRadius: 10,
+                  border: `2px solid ${moduleBackgrounds.leave}`,
+                  boxShadow: '0 2px 8px rgba(212, 64, 64, 0.4)',
+                  animationDuration: '2s',
+                }}
+              >
+                {pendingCount > 99 ? '99+' : pendingCount}
+              </span>
+            )}
+          </Link>
+
+          <Link
+            to="/leave/requests"
+            className="flex items-center gap-2 px-4 py-3 transition-all hover:scale-[1.02]"
+            style={{
+              background: t.surface,
+              borderRadius: 12,
+              border: `1px solid ${t.border}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = t.surfaceHover
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = t.surface
+            }}
+          >
+            <FileText size={18} style={{ color: t.accent }} />
+            <span className="text-sm font-semibold" style={{ color: t.text }}>
+              My Requests
+            </span>
+          </Link>
+
+          <Link
+            to="/leave/calendar"
+            className="flex items-center gap-2 px-4 py-3 transition-all hover:scale-[1.02]"
+            style={{
+              background: t.surface,
+              borderRadius: 12,
+              border: `1px solid ${t.border}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = t.surfaceHover
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = t.surface
+            }}
+          >
+            <Calendar size={18} style={{ color: t.accent }} />
+            <span className="text-sm font-semibold" style={{ color: t.text }}>
+              Calendar
+            </span>
+          </Link>
+
+          {canManageLeave && (
+            <Link
+              to="/leave/policies"
+              className="flex items-center gap-2 px-4 py-3 transition-all hover:scale-[1.02]"
+              style={{
+                background: t.surface,
+                borderRadius: 12,
+                border: `1px solid ${t.border}`,
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = t.surfaceHover
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = t.surface
+              }}
+            >
+              <Settings size={18} style={{ color: t.accent }} />
+              <span className="text-sm font-semibold" style={{ color: t.text }}>
+                Policies
+              </span>
+            </Link>
+          )}
         </div>
-        <Link
-          to="/leave/requests/new"
-          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
-          style={{
-            background: t.accent,
-            color: t.accentText,
-            borderRadius: 12,
-          }}
-        >
-          <Plus size={16} />
-          Request leave
-        </Link>
       </div>
 
       {/* Balance Cards */}
       <div>
-        <h2
-          className="font-bold mb-4"
-          style={{
-            fontSize: typography.h2.size,
-            letterSpacing: typography.h2.tracking,
-            color: t.text,
-          }}
-        >
-          Your Leave Balances
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2
+            className="font-bold"
+            style={{
+              fontSize: typography.h2.size,
+              letterSpacing: typography.h2.tracking,
+              color: t.text,
+            }}
+          >
+            Your Leave Balances
+          </h2>
+          <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
+            Click a balance to create a request
+          </p>
+        </div>
 
         {isLoading ? (
           <BalancesSkeleton />
@@ -148,6 +251,12 @@ function LeaveDashboard() {
               return (
                 <div
                   key={balance.id}
+                  onClick={() => {
+                    navigate({
+                      to: '/leave/requests/new',
+                      search: { policyId: balance.leave_policy_id },
+                    })
+                  }}
                   style={{
                     display: 'grid',
                     gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.2fr',
@@ -155,13 +264,16 @@ function LeaveDashboard() {
                     padding: '18px 20px',
                     borderBottom:
                       idx < balances.length - 1 ? `1px solid ${t.border}` : 'none',
-                    transition: 'background 0.15s',
+                    transition: 'background 0.15s, transform 0.15s',
+                    cursor: 'pointer',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.background = t.surfaceHover
+                    e.currentTarget.style.transform = 'translateX(4px)'
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.transform = 'translateX(0)'
                   }}
                 >
                   {/* Policy Name + Progress Bar */}
@@ -336,115 +448,6 @@ function LeaveDashboard() {
               )
             })}
           </div>
-        )}
-      </div>
-
-      {/* Quick Links */}
-      <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        <Link
-          to="/leave/requests"
-          className="p-4 transition-colors"
-          style={{
-            background: t.surface,
-            borderRadius: 14,
-            border: `1px solid ${t.border}`,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = t.surfaceHover
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = t.surface
-          }}
-        >
-          <p
-            className="font-bold"
-            style={{ fontSize: typography.h3.size, color: t.text }}
-          >
-            My Requests
-          </p>
-          <p className="text-sm mt-1" style={{ color: t.textMuted }}>
-            View your leave request history
-          </p>
-        </Link>
-
-        <Link
-          to="/leave/requests/pending"
-          className="p-4 transition-colors"
-          style={{
-            background: t.surface,
-            borderRadius: 14,
-            border: `1px solid ${t.border}`,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = t.surfaceHover
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = t.surface
-          }}
-        >
-          <p
-            className="font-bold"
-            style={{ fontSize: typography.h3.size, color: t.text }}
-          >
-            Pending Approvals
-          </p>
-          <p className="text-sm mt-1" style={{ color: t.textMuted }}>
-            Review team leave requests
-          </p>
-        </Link>
-
-        <Link
-          to="/leave/calendar"
-          className="p-4 transition-colors"
-          style={{
-            background: t.surface,
-            borderRadius: 14,
-            border: `1px solid ${t.border}`,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = t.surfaceHover
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = t.surface
-          }}
-        >
-          <p
-            className="font-bold"
-            style={{ fontSize: typography.h3.size, color: t.text }}
-          >
-            Calendar View
-          </p>
-          <p className="text-sm mt-1" style={{ color: t.textMuted }}>
-            See team leave schedule
-          </p>
-        </Link>
-
-        {canManageLeave && (
-          <Link
-            to="/leave/policies"
-            className="p-4 transition-colors"
-            style={{
-              background: t.surface,
-              borderRadius: 14,
-              border: `1px solid ${t.border}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = t.surfaceHover
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = t.surface
-            }}
-          >
-            <p
-              className="font-bold"
-              style={{ fontSize: typography.h3.size, color: t.text }}
-            >
-              Leave Settings
-            </p>
-            <p className="text-sm mt-1" style={{ color: t.textMuted }}>
-              Manage leave policies
-            </p>
-          </Link>
         )}
       </div>
     </div>
