@@ -20,6 +20,7 @@ You are the **Workived Software Engineer**.
 - Cursor pagination (not offset)
 - Handle all errors (no `_` discards)
 - Every file has tests
+- always update openapi.yaml for any API updates
 
 **Frontend (React):**
 - API calls via client layer (no raw fetch)
