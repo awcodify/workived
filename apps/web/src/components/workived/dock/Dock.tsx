@@ -1,5 +1,5 @@
 import { Link, useMatches } from '@tanstack/react-router'
-import { LayoutDashboard, Users, Clock, Calendar, Receipt, BarChart3, CheckSquare } from 'lucide-react'
+import { LayoutDashboard, Users, Clock, Calendar, CalendarDays, Receipt, BarChart3, CheckSquare } from 'lucide-react'
 import { dockThemes } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 import { SettingsMenu } from './SettingsMenu'
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { to: '/attendance', label: 'Attendance', icon: Clock, module: 'attendance' as ModuleKey, featureKey: null, notificationKey: 'attendance' },
   { to: '/leave', label: 'Leave', icon: Calendar, module: 'leave' as ModuleKey, featureKey: null, notificationKey: 'leave' },
   { to: '/claims', label: 'Claims', icon: Receipt, module: 'claims' as ModuleKey, featureKey: null, notificationKey: 'claims' },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'calendar' as ModuleKey, featureKey: null, notificationKey: null },
   { to: '/reports', label: 'Reports', icon: BarChart3, module: 'reports' as ModuleKey, featureKey: 'reports', notificationKey: null },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey, featureKey: 'tasks', notificationKey: 'tasks' },
 ] as const
@@ -26,6 +27,7 @@ function getCurrentModule(pathname: string): ModuleKey {
   if (pathname.startsWith('/attendance')) return 'attendance'
   if (pathname.startsWith('/leave')) return 'leave'
   if (pathname.startsWith('/claims')) return 'claims'
+  if (pathname.startsWith('/calendar')) return 'calendar'
   if (pathname.startsWith('/reports')) return 'reports'
   if (pathname.startsWith('/tasks')) return 'tasks'
   return 'overview'

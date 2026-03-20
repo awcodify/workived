@@ -1,12 +1,29 @@
 # ADR-004: Defer Unified Calendar to Sprint 9+
 
-**Status:** Accepted  
+**Status:** Superseded (Sprint 8.0, March 21, 2026)  
 **Date:** 2026-03-20  
+**Updated:** 2026-03-21  
 **Decision makers:** Product Owner, Architect
 
 ---
 
-## Context
+## Update (March 21, 2026)
+
+**This ADR has been superseded.** Calendar was promoted to a top-level route (`/calendar`) in Sprint 8.0.
+
+**What changed:**
+- `/leave/calendar` → top-level `/calendar` with its own warm amber theme
+- Old route redirects to new location
+- Calendar added to Dock navigation (between Claims and Reports)
+- Zero backend changes — reuses existing leave calendar + holidays APIs
+
+**Why the change:** Calendar is a cross-cutting view needed for daily operational planning ("who's out today?"). Burying it under `/leave` reduced discoverability. Promoting it now — with leave data only — was low effort (1 hour) and high impact.
+
+**Future:** When Tasks backend is built (Sprint 8.1), task due dates can be added as a second data source on the same `/calendar` page.
+
+---
+
+## Original Context
 
 During Sprint 5 (Leave frontend), we built `/leave/calendar` showing:
 - Public holidays for org's country

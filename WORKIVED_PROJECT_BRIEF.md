@@ -604,6 +604,7 @@ FOR EACH active employee × active leave_policy:
 --bg-people:    #F5F0E8  /* warm cream — People module */
 --bg-attendance:#E8F5EE  /* fresh green — Attendance module */
 --bg-tasks:     #FDF4E3  /* warm amber — Tasks module */
+--bg-calendar:  #FFF8F3  /* warm cream amber — Calendar module */
 
 --accent:       #6357E8  /* violet-indigo */
 --accent-dim:   #EFEDFD
@@ -704,7 +705,7 @@ FOR EACH active employee × active leave_policy:
 
 **Year-end rollover:** Automated CLI tool available at `services/cmd/rollover` (see README for cron setup)
 
-**Architectural Decision:** Leave calendar remains at `/leave/calendar` (scoped to leave module). General-purpose calendar (for tasks, claims, events) deferred to Sprint 9+ when multi-module aggregation is needed. See `docs/adr/004-defer-unified-calendar-to-sprint-9.md`.
+**Architectural Decision:** Leave calendar originally at `/leave/calendar` (scoped to leave module). Promoted to top-level `/calendar` in Sprint 8.0 — see ADR-004 (superseded). Old route redirects to `/calendar`.
 
 ### Sprint 5.5 — Leave Policy Templates + UI Polish — DONE ✅
 **Problem:** New admins must manually create 4-6 leave policies (Annual, Sick, Maternity, etc.). This is tedious and error-prone.
@@ -989,61 +990,93 @@ FOR EACH active employee × active leave_policy:
 
 **Sprint Duration:** 10 days (2 weeks)
 
-### Sprint 8 — Policy Segmentation + Employee Documents — READY ✅
+### Sprint 8 — Calendar + Free Tier Completion — IN PROGRESS
 
 **Start Date:** March 21, 2026
 
+**Goal:** Complete free tier MVP for beta launch. Every promised free feature must work end-to-end.
+
+#### Sprint 8.0 — Calendar Promotion — DONE ✅
+
+**Status:** SHIPPED March 21, 2026
+
+**Problem:** Calendar was buried at `/leave/calendar` — low discoverability. Users need a top-level view of "who's out" for daily planning.
+
+**Decision:** Supersede ADR-004 — promote calendar to top-level route now (not Sprint 9+). Leave data is sufficient for MVP calendar; multi-module aggregation deferred until Tasks has backend.
+
+**Deliverables:**
+- ✅ **New `/calendar` route:** Top-level page with warm amber theme
+- ✅ **Design tokens:** Added `calendar` module to `moduleBackgrounds`, `moduleThemes`, `dockThemes`, `logoMarkColors`
+- ✅ **Dock integration:** Calendar icon (CalendarDays) between Claims and Reports
+- ✅ **"On leave today" badge:** Header shows count of employees currently on leave
+- ✅ **Redirect:** Old `/leave/calendar` redirects to `/calendar`
+- ✅ **Leave link updated:** `/leave` index page links directly to `/calendar`
+- ✅ **Tests:** 3 tests (tokens, Dock integration, redirect)
+
+**Technical Highlights:**
+- Zero backend changes — reuses `GET /api/v1/leave/calendar` and `GET /api/v1/leave/holidays`
+- `useMemo` for holiday map, entries expansion, and weeks grid (performance)
+- Warm amber identity distinct from violet-leave module
+- Mobile-responsive with horizontal scroll
+
+**Sprint Duration:** 1 hour
+
+#### Sprint 8.1 — Tasks Backend — NOT STARTED
+
+**Problem:** Beautiful frontend UI exists with dummy data. Backend needed to make it functional.
+
+**Scope:**
+- [ ] Tasks service (handler, service, repository, types) following existing 4-file pattern
+- [ ] Wire to existing migrations (task_lists, tasks, task_comments)
+- [ ] CRUD endpoints: `GET/POST /api/v1/tasks`, `PUT/DELETE /api/v1/tasks/:id`
+- [ ] Task list management: `GET/POST /api/v1/task-lists`
+- [ ] Task comments: `GET/POST /api/v1/tasks/:id/comments`
+- [ ] Position ordering within lists (kanban column support)
+- [ ] Assignment + due dates
+- [ ] Tests (98%+ coverage)
+
+#### Sprint 8.2 — Announcements — NOT STARTED
+
+**Problem:** No company-wide communication channel. Migration exists but no backend/frontend.
+
+**Scope:**
+- [ ] Announcements service (handler, service, repository, types)
+- [ ] Wire to existing migration (announcements table)
+- [ ] CRUD endpoints: `GET/POST /api/v1/announcements`
+- [ ] Pin/unpin functionality
+- [ ] Frontend: announcement list + create/edit form
+- [ ] Show on overview dashboard
+- [ ] Tests
+
+#### Sprint 8.3 — Reports with Real Data — NOT STARTED
+
+**Problem:** Reports page uses dummy data. Need real queries.
+
+**Scope:**
+- [ ] Attendance report: on-time %, late %, absent by month
+- [ ] Leave report: days taken vs balance by type
+- [ ] Claims report: spend by category, approval rate
+- [ ] Backend aggregate endpoints
+- [ ] Wire frontend charts to real data
+
+**Sprint 8 Success Criteria:**
+- ✅ All free tier features functional (not placeholder)
+- ✅ Calendar, Tasks, Announcements, Reports all working
+- ✅ Ready for beta user testing
+
+**Sprint 8 Duration:** 1-2 weeks
+
+### Sprint 9 — Policy Segmentation + Employee Documents
+
 **Priority:** Enable mid-size companies (26-75 employees) to use Workived.
 
-**Pre-Sprint Requirements:** ✅ COMPLETED March 20, 2026
-- ✅ **Test Suite Fixed:** 17 compilation errors resolved (leave, attendance, organisation modules)
-- ✅ **Linting Clean:** All golangci-lint issues resolved (0 issues)
-- ✅ **Test Coverage:** 98%+ maintained across all modules
-- ✅ **Ready to Start:** All blockers cleared
+**Scope (moved from original Sprint 8):**
+- [ ] Policy assignment system (org → department → employee cascade)
+- [ ] Employee documents module (upload, expiry tracking, access control)
+- [ ] Policy assignment UI (department + employee level)
+- [ ] Document management UI
 
-**Week 1: Policy Assignment System (5 days)**
-- [ ] Design policy assignment architecture:
-  - Policy applies to: organisation (default) → department → employee (most specific wins)
-  - Cascade rules: employee override > department > organisation default
-  - Migration path for existing policies (all become org-level defaults)
-- [ ] Database schema changes:
-  - Add `policy_assignments` table (policy_id, assignee_type, assignee_id)
-  - Assignee types: 'organisation', 'department', 'employee', 'job_title'
-- [ ] Backend logic:
-  - Policy resolution service (find applicable policy for employee)
-  - Assignment API endpoints (create, list, delete assignments)
-  - Validation (prevent policy conflicts, ensure at least one policy)
-- [ ] Balance initialization updates (use applicable policy for employee)
-
-**Examples:**
-- "Managers get 20 annual leave days, staff get 15"
-- "Sales team has travel allowance category, engineers don't"
-- "Senior employees get gym reimbursement"
-
-**Week 2: Employee Documents + UI (5 days)**
-- [ ] Employee documents module:
-  - Document types: Contract, ID Copy, Certificates, Performance Reviews
-  - Upload to S3/MinIO (same pattern as receipts)
-  - Document expiry tracking (e.g., visa expires in 30 days)
-  - Access control (only employee + admin can view)
-- [ ] Policy assignment UI:
-  - Department-level: Assign policies in department settings
-  - Employee-level: Assign policies in employee detail page
-  - Bulk assignment: Select multiple employees → assign policy
-  - Visual indicator showing which policy applies (org/dept/employee level)
-- [ ] Document management UI:
-  - Upload documents in employee detail page
-  - Document list with preview/download
-  - Expiry warnings (visual badge for expiring soon)
-
-**Success Criteria:**
-- ✅ Companies can segment leave policies by role/department
-- ✅ Sensitive documents stored securely with access control
-- ✅ Compliance requirement met (store contracts, IDs, certificates)
-
-**Sprint Duration:** 10 days (2 weeks)
-
-### Sprint 9 — System Transparency + UX Polish
+### Sprint 10 — System Transparency + UX Polish
 
 **Priority:** Build trust through transparency and improve usability based on feedback.
 
@@ -1082,7 +1115,7 @@ FOR EACH active employee × active leave_policy:
 
 **Sprint Duration:** 5-10 days (1-2 weeks, depends on dashboard scope)
 
-### Sprint 10+ — Landing Page + PWA + Pro Features
+### Sprint 11+ — Landing Page + PWA + Pro Features
 - [ ] Astro marketing site (apps/landing)
 - [ ] PWA manifest + service worker for dashboard
 - [ ] SEO optimization, blog setup
@@ -1096,8 +1129,8 @@ FOR EACH active employee × active leave_policy:
 ### Future — Analytics + Tasks (Phase 2)
 - [ ] HR analytics dashboard (Pro feature)
 - [ ] Custom reports
-- [ ] Unified calendar (aggregate leave, tasks, claims, events)
-- [ ] Tasks module (CONDITIONAL — only if customers request)
+- [ ] Calendar multi-module aggregation (add tasks, events to existing `/calendar`)
+- [ ] Tasks module backend (CONDITIONAL — only if customers request)
 - [ ] Payroll integration (Phase 2 — separate design)
 
 ---

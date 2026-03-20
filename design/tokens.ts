@@ -46,6 +46,7 @@ export const moduleBackgrounds = {
   claims:      '#F0FDF9',  // soft mint green
   tasks:       '#0E0E1A',  // deep dark (dark Kanban board)
   reports:     '#0F0F1A',  // deep indigo night
+  calendar:    '#FFF8F3',  // warm amber cream
 } as const
 
 // ── DOCK THEMES ───────────────────────────────────────────────
@@ -83,6 +84,7 @@ export const dockThemes = {
   claims:     _dockLight,
   tasks:      _dock,
   reports:    _dock,
+  calendar:   _dockLight,
 } as const
 
 // ── MODULE THEMES ─────────────────────────────────────────────
@@ -166,6 +168,17 @@ export const moduleThemes = {
     input:        'rgba(255,255,255,0.07)',
     inputBorder:  'rgba(255,255,255,0.12)',
   },
+  calendar: {
+    text:         '#1A1207',
+    textMuted:    '#8C7A5A',
+    surface:      '#FFFFFF',
+    surfaceHover: '#FFF8F3',
+    accent:       '#D97706',
+    accentText:   '#FFFFFF',
+    border:       'rgba(217,119,6,0.12)',
+    input:        '#FFFFFF',
+    inputBorder:  'rgba(217,119,6,0.15)',
+  },
 } as const
 
 // ── LOGO MARK COLOURS PER MODULE ─────────────────────────────
@@ -177,6 +190,7 @@ export const logoMarkColors = {
   claims:      { bg: '#D1FAE5', primary: '#10B981', textPrimary: '#0F0E13', textAccent: '#10B981' },
   tasks:       { bg: '#1E1A3A', primary: '#818CF8', textPrimary: '#FFFFFF', textAccent: '#818CF8' },
   reports:     { bg: '#1A1A2E', primary: '#60A5FA', textPrimary: '#FFFFFF', textAccent: '#60A5FA' },
+  calendar:    { bg: '#FEF3C7', primary: '#D97706', textPrimary: '#1A1207', textAccent: '#D97706' },
 } as const
 
 // ── TYPOGRAPHY ────────────────────────────────────────────────

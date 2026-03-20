@@ -25,6 +25,7 @@ import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/rou
 import { Route as AppLeaveRouteRouteImport } from './routes/_app/leave/route'
 import { Route as AppFeatureDisabledRouteRouteImport } from './routes/_app/feature-disabled/route'
 import { Route as AppClaimsRouteRouteImport } from './routes/_app/claims/route'
+import { Route as AppCalendarRouteRouteImport } from './routes/_app/calendar/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppLeaveIndexRouteImport } from './routes/_app/leave/index'
@@ -123,6 +124,11 @@ const AppFeatureDisabledRouteRoute = AppFeatureDisabledRouteRouteImport.update({
 const AppClaimsRouteRoute = AppClaimsRouteRouteImport.update({
   id: '/claims',
   path: '/claims',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppCalendarRouteRoute = AppCalendarRouteRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppAttendanceRouteRoute = AppAttendanceRouteRouteImport.update({
@@ -237,6 +243,7 @@ const AppClaimsRequestsPendingRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
+  '/calendar': typeof AppCalendarRouteRoute
   '/claims': typeof AppClaimsRouteRouteWithChildren
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/leave': typeof AppLeaveRouteRouteWithChildren
@@ -273,6 +280,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/calendar': typeof AppCalendarRouteRoute
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/overview': typeof AppOverviewRouteRoute
   '/reports': typeof AppReportsRouteRoute
@@ -310,6 +318,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteRouteWithChildren
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
+  '/_app/calendar': typeof AppCalendarRouteRoute
   '/_app/claims': typeof AppClaimsRouteRouteWithChildren
   '/_app/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/_app/leave': typeof AppLeaveRouteRouteWithChildren
@@ -349,6 +358,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/attendance'
+    | '/calendar'
     | '/claims'
     | '/feature-disabled'
     | '/leave'
@@ -385,6 +395,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/calendar'
     | '/feature-disabled'
     | '/overview'
     | '/reports'
@@ -421,6 +432,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/_auth'
     | '/_app/attendance'
+    | '/_app/calendar'
     | '/_app/claims'
     | '/_app/feature-disabled'
     | '/_app/leave'
@@ -574,6 +586,13 @@ declare module '@tanstack/react-router' {
       path: '/claims'
       fullPath: '/claims'
       preLoaderRoute: typeof AppClaimsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/calendar': {
+      id: '/_app/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof AppCalendarRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/attendance': {
@@ -816,6 +835,7 @@ const AppSettingsRouteRouteWithChildren =
 
 interface AppRouteRouteChildren {
   AppAttendanceRouteRoute: typeof AppAttendanceRouteRouteWithChildren
+  AppCalendarRouteRoute: typeof AppCalendarRouteRoute
   AppClaimsRouteRoute: typeof AppClaimsRouteRouteWithChildren
   AppFeatureDisabledRouteRoute: typeof AppFeatureDisabledRouteRoute
   AppLeaveRouteRoute: typeof AppLeaveRouteRouteWithChildren
@@ -829,6 +849,7 @@ interface AppRouteRouteChildren {
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAttendanceRouteRoute: AppAttendanceRouteRouteWithChildren,
+  AppCalendarRouteRoute: AppCalendarRouteRoute,
   AppClaimsRouteRoute: AppClaimsRouteRouteWithChildren,
   AppFeatureDisabledRouteRoute: AppFeatureDisabledRouteRoute,
   AppLeaveRouteRoute: AppLeaveRouteRouteWithChildren,

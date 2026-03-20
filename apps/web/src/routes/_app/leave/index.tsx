@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Clock, Calendar, FileText, Settings } from 'lucide-react'
+import { Clock, FileText, Settings } from 'lucide-react'
 import { useMyBalances, useAllRequests } from '@/lib/hooks/useLeave'
 import { useCanManageLeave } from '@/lib/hooks/useRole'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
@@ -106,27 +106,6 @@ function LeaveDashboard() {
             <FileText size={18} style={{ color: t.accent }} />
             <span className="text-sm font-semibold" style={{ color: t.text }}>
               My Requests
-            </span>
-          </Link>
-
-          <Link
-            to="/leave/calendar"
-            className="flex items-center gap-2 px-4 py-3 transition-all hover:scale-[1.02]"
-            style={{
-              background: t.surface,
-              borderRadius: 12,
-              border: `1px solid ${t.border}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = t.surfaceHover
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = t.surface
-            }}
-          >
-            <Calendar size={18} style={{ color: t.accent }} />
-            <span className="text-sm font-semibold" style={{ color: t.text }}>
-              Calendar
             </span>
           </Link>
 
