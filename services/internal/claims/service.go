@@ -382,8 +382,6 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 }
 
 func (s *Service) ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, claimID uuid.UUID, req *ApproveClaimRequest, actorUserID ...uuid.UUID) (*Claim, error) {
-	log.Printf("[ApproveClaim] START - orgID=%s, reviewerEmployeeID=%s, claimID=%s", orgID, reviewerEmployeeID, claimID)
-
 	var reviewNote *string
 	if req != nil {
 		reviewNote = req.ReviewNote
@@ -392,10 +390,8 @@ func (s *Service) ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, c
 	// Update status to approved
 	approvedClaim, err := s.repo.UpdateStatus(ctx, orgID, claimID, approval.StatusPending, approval.StatusApproved, &reviewerEmployeeID, reviewNote)
 	if err != nil {
-		log.Printf("[ApproveClaim] ERROR - UpdateStatus failed: %v", err)
 		return nil, err
 	}
-	log.Printf("[ApproveClaim] SUCCESS - Claim %s approved by employee %s", claimID, reviewerEmployeeID)
 
 	// Update balance - ensure balance exists and increment spent amount
 	year := approvedClaim.ClaimDate.Year()

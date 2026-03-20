@@ -473,11 +473,9 @@ func (h *Handler) ApproveClaim(c *gin.Context) {
 
 	reviewerEmployeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		log.Printf("[ApproveClaim] ERROR - empLookup failed: orgID=%s, userID=%s, error=%v", orgID, userID, err)
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
 	}
-	log.Printf("[ApproveClaim] Found reviewer: employeeID=%s for userID=%s in org=%s", reviewerEmployeeID, userID, orgID)
 
 	var req ApproveClaimRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

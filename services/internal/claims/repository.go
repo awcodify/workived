@@ -276,12 +276,9 @@ func (r *Repository) UpdateStatus(ctx context.Context, orgID, claimID uuid.UUID,
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.New(apperr.CodeConflict, fmt.Sprintf("claim is not in %s status", fromStatus))
 		}
-		// Log detailed error for debugging
-		log.Printf("[UpdateStatus] ERROR - orgID=%s, claimID=%s, fromStatus=%s, toStatus=%s, reviewerEmployeeID=%v",
-			orgID, claimID, fromStatus, toStatus, reviewerEmployeeID)
-		log.Printf("[UpdateStatus] SQL Error: %v", err)
 		// Check if it's a foreign key violation
 		if strings.Contains(err.Error(), "foreign key") || strings.Contains(err.Error(), "violates") {
+			log.Printf("[UpdateStatus] Foreign key violation for reviewer: %v", reviewerEmployeeID)
 			return nil, apperr.New(apperr.CodeValidation, "reviewer employee not found or inactive")
 		}
 		return nil, err

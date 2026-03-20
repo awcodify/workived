@@ -3,7 +3,6 @@ package employee
 import (
 	"context"
 	"errors"
-	"log"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -201,7 +200,6 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 
 // GetByUserID returns the employee record linked to the given user account.
 func (r *Repository) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error) {
-	log.Printf("[GetByUserID] Looking up employee: orgID=%s, userID=%s", orgID, userID)
 	e := &Employee{}
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, user_id, employee_code,
@@ -220,13 +218,10 @@ func (r *Repository) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			log.Printf("[GetByUserID] NOT FOUND: No active employee for orgID=%s, userID=%s", orgID, userID)
 			return nil, apperr.NotFound("employee")
 		}
-		log.Printf("[GetByUserID] ERROR: orgID=%s, userID=%s, error=%v", orgID, userID, err)
 		return nil, err
 	}
-	log.Printf("[GetByUserID] FOUND: employeeID=%s for userID=%s", e.ID, userID)
 	return e, nil
 }
 

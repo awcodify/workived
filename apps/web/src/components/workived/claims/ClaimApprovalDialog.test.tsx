@@ -46,7 +46,8 @@ describe('ClaimApprovalDialog', () => {
     
     expect(screen.getByText('John Doe')).toBeInTheDocument()
     expect(screen.getByText('Meals & Entertainment')).toBeInTheDocument()  
-    expect(screen.getByText(/IDR.*50,000/)).toBeInTheDocument()
+    // Indonesian locale uses periods as thousand separators
+    expect(screen.getByText(/IDR.*50\.000/)).toBeInTheDocument()
     expect(screen.getByText('Team lunch')).toBeInTheDocument()
   })
 
@@ -129,6 +130,7 @@ describe('ClaimApprovalDialog', () => {
     const largeAmountClaim = { ...mockClaim, amount: 1500000 }
     render(<ClaimApprovalDialog claim={largeAmountClaim} onClose={mockOnClose} />)
     
-    expect(screen.getByText(/IDR.*1,500,000/)).toBeInTheDocument()
+    // Indonesian locale uses periods as thousand separators
+    expect(screen.getByText(/IDR.*1\.500\.000/)).toBeInTheDocument()
   })
 })
