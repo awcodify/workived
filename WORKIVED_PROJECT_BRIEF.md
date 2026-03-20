@@ -704,39 +704,59 @@ FOR EACH active employee × active leave_policy:
 
 **Architectural Decision:** Leave calendar remains at `/leave/calendar` (scoped to leave module). General-purpose calendar (for tasks, claims, events) deferred to Sprint 9+ when multi-module aggregation is needed. See `docs/adr/004-defer-unified-calendar-to-sprint-9.md`.
 
-### Sprint 5.5 — Leave Policy Templates (Country-Based Import) — NEXT 🟢
+### Sprint 5.5 — Leave Policy Templates + UI Polish — DONE ✅
 **Problem:** New admins must manually create 4-6 leave policies (Annual, Sick, Maternity, etc.). This is tedious and error-prone.
 
 **Solution:** One-click import of country-specific leave policy templates based on local labor laws.
 
 **Scope:**
-- [ ] Backend: `leave_policy_templates` table with seeded data for ID + UAE
-- [ ] Backend: `GET /api/v1/leave/templates?country_code=ID` endpoint
-- [ ] Backend: `POST /api/v1/leave/policies/import` bulk create from template IDs
-- [ ] Frontend: "Import Country Templates" button on policies page
-- [ ] Frontend: Template preview modal with country selector
-- [ ] Seed templates for Indonesia (Annual, Sick, Maternity, Paternity, Compassionate, Hajj)
-- [ ] Seed templates for UAE (Annual, Sick, Maternity, Paternity, Compassionate, Hajj/Umrah)
+- [x] Backend: `leave_policy_templates` table with seeded data for ID + UAE + MY + SG
+- [x] Backend: `GET /api/v1/leave/templates?country_code=ID` endpoint
+- [x] Backend: `POST /api/v1/leave/policies/import` bulk create from template IDs
+- [x] Frontend: "Import Templates" button on policies page
+- [x] Frontend: Template preview modal with country selector
+- [x] Seed templates for Indonesia (Annual, Sick, Maternity, Paternity, Compassionate, Hajj)
+- [x] Seed templates for UAE (Annual, Sick, Maternity, Paternity, Compassionate, Hajj/Umrah)
+- [x] Seed templates for Malaysia (Annual, Sick, Maternity, Paternity, Compassionate)
+- [x] Seed templates for Singapore (Annual, Sick, Maternity, Paternity, Childcare, Compassionate)
 
-**Out of Scope:**
-- Template customization before import (just use defaults, edit after)
-- Template versioning (manual update when laws change)
-- MY/SG templates (Phase 2)
-- Admin-created custom templates
+**Bonus Deliverables (UI Polish):**
+- [x] Redesigned leave balance cards with 3 variants (default, compact, overview)
+- [x] Table layout for leave balances page (replaced card grid)
+- [x] Progress bars show available days (green) instead of used days
+- [x] Infinity icon (∞) for unlimited leave policies
+- [x] Pending days visualization (yellow striped overlay on progress bars)
+- [x] Split overview cards: separate attendance and annual leave cards
+- [x] Glassmorphism styling with backdrop blur for overview cards
+- [x] Enhanced BalanceCard component with icon system and status badges
+
+**Technical Highlights:**
+- Country-aware: Modal auto-detects org's country, defaults to that country's templates
+- Smart filtering: Only shows templates not already imported
+- Batch import: Create multiple policies in single transaction
+- Multi-select UI: Checkboxes with "Select All" option
+- Success/error states: Clear feedback with auto-close on success
 
 **Value Proposition:**
-- Reduces time-to-first-value from 30 minutes → 2 minutes
-- Compliance-first: Legal defaults built-in
-- Competitive moat: Localized knowledge for each market
-- Pro upsell trigger: Free tier uses templates, Pro customizes them
+- Reduces time-to-first-value from 30 minutes → 30 seconds
+- Compliance-first: Legal defaults built-in per country
+- Competitive moat: Localized knowledge for 4 markets (ID, UAE, MY, SG)
+- Conversion trigger: Easy onboarding → faster activation → higher retention
 
-**Sprint Duration:** 3-4 days (small scope, high impact)
+**Out of Scope:**
+- Template customization before import (edit after import if needed)
+- Template versioning (manual update when laws change)
+- Admin-created custom templates (may add in Pro tier later)
 
-### Sprint 6 — Claims (basic flow only)
-- [ ] Claim categories configuration
-- [ ] Claim submission + receipt upload (S3)
-- [ ] Approval flow (single-level only)
-- [ ] Claims frontend pages
+**Sprint Duration:** 4 days (delivered ahead of estimate)
+
+### Sprint 6 — Claims (basic flow only) — NEXT 🟢
+- [ ] Claim categories configuration (CRUD)
+- [ ] Claim submission + receipt upload (S3 or local for MVP)
+- [ ] Approval flow (single-level only, multi-level in Pro)
+- [ ] Claims list page (admin: all claims, employee: my claims)
+- [ ] Claims frontend pages (submit, view, approve/reject)
+- [ ] Basic reporting (monthly totals per employee)
 
 ### Sprint 7 — Landing page + PWA
 - [ ] Astro marketing site (apps/landing)
