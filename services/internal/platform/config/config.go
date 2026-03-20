@@ -27,11 +27,12 @@ type Config struct {
 	AWSAccessKeyID     string `mapstructure:"AWS_ACCESS_KEY_ID"`
 	AWSSecretAccessKey string `mapstructure:"AWS_SECRET_ACCESS_KEY"`
 
-	SMTPHost  string `mapstructure:"SMTP_HOST"`
-	SMTPPort  int    `mapstructure:"SMTP_PORT"`
-	SMTPUser  string `mapstructure:"SMTP_USER"`
-	SMTPPass  string `mapstructure:"SMTP_PASS"`
-	EmailFrom string `mapstructure:"EMAIL_FROM"`
+	SMTPHost     string `mapstructure:"SMTP_HOST"`
+	SMTPPort     int    `mapstructure:"SMTP_PORT"`
+	SMTPUser     string `mapstructure:"SMTP_USER"`
+	SMTPPass     string `mapstructure:"SMTP_PASS"`
+	EmailFrom    string `mapstructure:"EMAIL_FROM"`
+	EmailEnabled bool   `mapstructure:"EMAIL_ENABLED"` // Set to true to actually send emails
 
 	AppURL string `mapstructure:"APP_URL"`
 	APIURL string `mapstructure:"API_URL"`

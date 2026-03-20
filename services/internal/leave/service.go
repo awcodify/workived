@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/email"
 )
 
 // ── Interfaces ──────────────────────────────────────────────────────────────
@@ -68,19 +69,32 @@ type OrgInfoProvider interface {
 	GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]int, error)
 }
 
+// EmployeeInfoProvider provides employee profile data for email notifications.
+type EmployeeInfoProvider interface {
+	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+}
+
 // ── Service ─────────────────────────────────────────────────────────────────
 
 type ServiceOption func(*Service)
 
 type Service struct {
-	repo     RepositoryInterface
-	orgRepo  OrgInfoProvider
-	auditLog audit.Logger
-	log      zerolog.Logger
+	repo         RepositoryInterface
+	orgRepo      OrgInfoProvider
+	employeeRepo EmployeeInfoProvider
+	auditLog     audit.Logger
+	log          zerolog.Logger
+	email        email.Sender
+	appURL       string // e.g. "http://localhost:3000" for email links
 }
 
-func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, opts ...ServiceOption) *Service {
-	s := &Service{repo: repo, orgRepo: orgRepo}
+func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, employeeRepo EmployeeInfoProvider, appURL string, opts ...ServiceOption) *Service {
+	s := &Service{
+		repo:         repo,
+		orgRepo:      orgRepo,
+		employeeRepo: employeeRepo,
+		appURL:       appURL,
+	}
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -98,6 +112,13 @@ func WithAuditLog(al audit.Logger) ServiceOption {
 func WithLogger(log zerolog.Logger) ServiceOption {
 	return func(s *Service) {
 		s.log = log
+	}
+}
+
+// WithEmailSender sets the email sender for the service.
+func WithEmailSender(e email.Sender) ServiceOption {
+	return func(s *Service) {
+		s.email = e
 	}
 }
 
@@ -309,6 +330,11 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 		Float64("total_days", req.TotalDays).
 		Msg("leave.request.submitted")
 
+	// Send email notification to manager (best effort - don't fail if email fails)
+	if s.email != nil {
+		go s.sendLeavePendingEmail(context.Background(), orgID, employeeID, req.ID, policy.Name, req.StartDate, req.EndDate, req.TotalDays, input.Reason)
+	}
+
 	return req, nil
 }
 
@@ -362,6 +388,11 @@ func (s *Service) ApproveRequest(ctx context.Context, orgID, reviewerEmployeeID,
 		Str("reviewer_employee_id", reviewerEmployeeID.String()).
 		Float64("total_days", req.TotalDays).
 		Msg("leave.request.approved")
+
+	// Send email notification to employee (best effort - don't fail if email fails)
+	if s.email != nil {
+		go s.sendLeaveApprovedEmail(context.Background(), orgID, req.EmployeeID, reviewerEmployeeID, requestID, nil)
+	}
 
 	return req, nil
 }
@@ -417,6 +448,11 @@ func (s *Service) RejectRequest(ctx context.Context, orgID, reviewerEmployeeID, 
 		Str("reviewer_employee_id", reviewerEmployeeID.String()).
 		Str("reason", noteStr).
 		Msg("leave.request.rejected")
+
+	// Send email notification to employee (best effort - don't fail if email fails)
+	if s.email != nil {
+		go s.sendLeaveRejectedEmail(context.Background(), orgID, req.EmployeeID, reviewerEmployeeID, requestID, note)
+	}
 
 	return req, nil
 }
@@ -662,4 +698,193 @@ func (s *Service) ImportPolicies(ctx context.Context, orgID uuid.UUID, input Imp
 	})
 
 	return policies, nil
+}
+
+// ── Email Notification Helpers ────────────────────────────────────────────────
+
+func (s *Service) sendLeavePendingEmail(ctx context.Context, orgID, employeeID, requestID uuid.UUID, policyName, startDate, endDate string, totalDays float64, reason *string) {
+	// Get employee info
+	empName, _, managerID, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("failed to get employee profile for email")
+		return
+	}
+
+	// If no manager, skip email
+	if managerID == nil {
+		s.log.Debug().Str("employee_id", employeeID.String()).Msg("employee has no manager, skipping leave pending email")
+		return
+	}
+
+	// Get manager info
+	managerName, managerEmail, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, *managerID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("manager_id", managerID.String()).Msg("failed to get manager profile for email")
+		return
+	}
+
+	// Skip if manager has no email
+	if managerEmail == nil || *managerEmail == "" {
+		s.log.Debug().Str("manager_id", managerID.String()).Msg("manager has no email, skipping leave pending notification")
+		return
+	}
+
+	// Render template
+	subject, bodyHTML, _, err := email.LeavePendingApprovalTemplate.Render(map[string]any{
+		"ReviewerName": managerName,
+		"EmployeeName": empName,
+		"PolicyName":   policyName,
+		"StartDate":    startDate,
+		"EndDate":      endDate,
+		"TotalDays":    fmt.Sprintf("%.1f", totalDays),
+		"Reason":       reason,
+		"AppURL":       s.appURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to render leave pending email template")
+		return
+	}
+
+	// Send email
+	if err := s.email.Send(email.Message{
+		To:      []string{*managerEmail},
+		Subject: subject,
+		Body:    bodyHTML,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("manager_email", *managerEmail).Msg("failed to send leave pending email")
+		return
+	}
+
+	s.log.Info().Str("request_id", requestID.String()).Str("manager_email", *managerEmail).Msg("leave pending email sent")
+}
+
+func (s *Service) sendLeaveApprovedEmail(ctx context.Context, orgID, employeeID, reviewerEmployeeID, requestID uuid.UUID, reviewNote *string) {
+	// Get leave request details
+	req, err := s.repo.GetRequest(ctx, orgID, requestID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("request_id", requestID.String()).Msg("failed to get request for approved email")
+		return
+	}
+
+	// Get policy name
+	policy, err := s.repo.GetPolicy(ctx, orgID, req.LeavePolicyID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("policy_id", req.LeavePolicyID.String()).Msg("failed to get policy for approved email")
+		return
+	}
+
+	// Get employee info
+	empName, empEmail, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("failed to get employee profile for approved email")
+		return
+	}
+
+	// Skip if employee has no email
+	if empEmail == nil || *empEmail == "" {
+		s.log.Debug().Str("employee_id", employeeID.String()).Msg("employee has no email, skipping leave approved notification")
+		return
+	}
+
+	// Get reviewer name
+	reviewerName, _, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, reviewerEmployeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("reviewer_id", reviewerEmployeeID.String()).Msg("failed to get reviewer profile for approved email")
+		reviewerName = "Manager" // fallback
+	}
+
+	// Render template
+	subject, bodyHTML, _, err := email.LeaveApprovedTemplate.Render(map[string]any{
+		"EmployeeName": empName,
+		"ReviewerName": reviewerName,
+		"PolicyName":   policy.Name,
+		"StartDate":    req.StartDate,
+		"EndDate":      req.EndDate,
+		"TotalDays":    fmt.Sprintf("%.1f", req.TotalDays),
+		"ReviewNote":   reviewNote,
+		"AppURL":       s.appURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to render leave approved email template")
+		return
+	}
+
+	// Send email
+	if err := s.email.Send(email.Message{
+		To:      []string{*empEmail},
+		Subject: subject,
+		Body:    bodyHTML,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("employee_email", *empEmail).Msg("failed to send leave approved email")
+		return
+	}
+
+	s.log.Info().Str("request_id", requestID.String()).Str("employee_email", *empEmail).Msg("leave approved email sent")
+}
+
+func (s *Service) sendLeaveRejectedEmail(ctx context.Context, orgID, employeeID, reviewerEmployeeID, requestID uuid.UUID, reviewNote *string) {
+	// Get leave request details
+	req, err := s.repo.GetRequest(ctx, orgID, requestID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("request_id", requestID.String()).Msg("failed to get request for rejected email")
+		return
+	}
+
+	// Get policy name
+	policy, err := s.repo.GetPolicy(ctx, orgID, req.LeavePolicyID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("policy_id", req.LeavePolicyID.String()).Msg("failed to get policy for rejected email")
+		return
+	}
+
+	// Get employee info
+	empName, empEmail, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("failed to get employee profile for rejected email")
+		return
+	}
+
+	// Skip if employee has no email
+	if empEmail == nil || *empEmail == "" {
+		s.log.Debug().Str("employee_id", employeeID.String()).Msg("employee has no email, skipping leave rejected notification")
+		return
+	}
+
+	// Get reviewer name
+	reviewerName, _, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, reviewerEmployeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("reviewer_id", reviewerEmployeeID.String()).Msg("failed to get reviewer profile for rejected email")
+		reviewerName = "Manager" // fallback
+	}
+
+	// Render template
+	subject, bodyHTML, _, err := email.LeaveRejectedTemplate.Render(map[string]any{
+		"EmployeeName": empName,
+		"ReviewerName": reviewerName,
+		"PolicyName":   policy.Name,
+		"StartDate":    req.StartDate,
+		"EndDate":      req.EndDate,
+		"TotalDays":    fmt.Sprintf("%.1f", req.TotalDays),
+		"ReviewNote":   reviewNote,
+		"AppURL":       s.appURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to render leave rejected email template")
+		return
+	}
+
+	// Send email
+	if err := s.email.Send(email.Message{
+		To:      []string{*empEmail},
+		Subject: subject,
+		Body:    bodyHTML,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("employee_email", *empEmail).Msg("failed to send leave rejected email")
+		return
+	}
+
+	s.log.Info().Str("request_id", requestID.String()).Str("employee_email", *empEmail).Msg("leave rejected email sent")
 }

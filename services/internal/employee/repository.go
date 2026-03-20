@@ -161,6 +161,23 @@ func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employe
 	return e, nil
 }
 
+// GetEmployeeProfile returns basic profile info for email notifications.
+// This is a lightweight query that only fetches what's needed for emails.
+func (r *Repository) GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error) {
+	err = r.db.QueryRow(ctx, `
+		SELECT full_name, email, reporting_to
+		FROM employees
+		WHERE organisation_id = $1 AND id = $2 AND is_active = true
+	`, orgID, employeeID).Scan(&name, &email, &managerID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", nil, nil, apperr.NotFound("employee")
+		}
+		return "", nil, nil, err
+	}
+	return name, email, managerID, nil
+}
+
 func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest) (*Employee, error) {
 	e := &Employee{}
 	err := r.db.QueryRow(ctx, `

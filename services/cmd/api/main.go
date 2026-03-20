@@ -26,6 +26,7 @@ import (
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/internal/platform/storage"
+	"github.com/workived/services/pkg/email"
 	"github.com/workived/services/pkg/logger"
 )
 
@@ -66,6 +67,26 @@ func main() {
 		log.Fatal().Err(err).Msg("connect storage")
 	}
 
+	// Email sender
+	var emailSender email.Sender
+	if cfg.EmailEnabled {
+		emailSender = email.NewSMTPSender(email.SMTPConfig{
+			Host:     cfg.SMTPHost,
+			Port:     cfg.SMTPPort,
+			Username: cfg.SMTPUser,
+			Password: cfg.SMTPPass,
+			From:     cfg.EmailFrom,
+		}, log)
+		log.Info().
+			Str("smtp_host", cfg.SMTPHost).
+			Int("smtp_port", cfg.SMTPPort).
+			Str("email_from", cfg.EmailFrom).
+			Msg("email notifications enabled")
+	} else {
+		emailSender = &email.NoOpSender{}
+		log.Info().Msg("email notifications disabled (using NoOpSender)")
+	}
+
 	// ── Repositories ─────────────────────────────────────────────────────────
 	authRepo := auth.NewRepository(db)
 	orgRepo := organisation.NewRepository(db)
@@ -79,12 +100,12 @@ func main() {
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
-	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log))
+	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender))
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithLogger(log))
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log))
 	attSvc := attendance.NewService(attRepo, orgRepo, log)
-	claimsSvc := claims.NewService(claimsRepo, orgRepo, claims.WithAuditLog(auditRepo), claims.WithLogger(log))
-	leaveSvc := leave.NewService(leaveRepo, orgRepo, leave.WithLogger(log))
+	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender))
+	leaveSvc := leave.NewService(leaveRepo, orgRepo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender))
 	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log))
 
 	// ── Handlers ─────────────────────────────────────────────────────────────

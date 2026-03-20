@@ -14,6 +14,7 @@ import (
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/email"
 )
 
 // ── Interfaces ───────────────────────────────────────────────────────────────
@@ -50,23 +51,31 @@ type AccessTokenIssuer interface {
 	IssueAccessToken(userID, orgID uuid.UUID, role string) (string, error)
 }
 
+// EmployeeInfoProvider provides employee profile data for email notifications.
+type EmployeeInfoProvider interface {
+	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+}
+
 // ── Service ──────────────────────────────────────────────────────────────────
 
 type Service struct {
-	repo        RepoInterface
-	authRepo    AuthTokenCreator
-	tokenIssuer AccessTokenIssuer
-	auditLog    audit.Logger
-	log         zerolog.Logger
-	baseURL     string // e.g. "https://app.workived.com" — for building invite URLs
+	repo         RepoInterface
+	authRepo     AuthTokenCreator
+	tokenIssuer  AccessTokenIssuer
+	employeeRepo EmployeeInfoProvider
+	auditLog     audit.Logger
+	log          zerolog.Logger
+	email        email.Sender
+	appURL       string // e.g. "https://app.workived.com" — for building invite URLs
 }
 
-func NewService(repo RepoInterface, authRepo AuthTokenCreator, tokenIssuer AccessTokenIssuer, baseURL string, opts ...ServiceOption) *Service {
+func NewService(repo RepoInterface, authRepo AuthTokenCreator, tokenIssuer AccessTokenIssuer, employeeRepo EmployeeInfoProvider, appURL string, opts ...ServiceOption) *Service {
 	s := &Service{
-		repo:        repo,
-		authRepo:    authRepo,
-		tokenIssuer: tokenIssuer,
-		baseURL:     baseURL,
+		repo:         repo,
+		authRepo:     authRepo,
+		tokenIssuer:  tokenIssuer,
+		employeeRepo: employeeRepo,
+		appURL:       appURL,
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -88,6 +97,13 @@ func WithAuditLog(al audit.Logger) ServiceOption {
 func WithLogger(log zerolog.Logger) ServiceOption {
 	return func(s *Service) {
 		s.log = log
+	}
+}
+
+// WithEmailSender sets the email sender for the service.
+func WithEmailSender(e email.Sender) ServiceOption {
+	return func(s *Service) {
+		s.email = e
 	}
 }
 
@@ -209,7 +225,7 @@ func (s *Service) InviteMember(ctx context.Context, orgID, inviterID uuid.UUID, 
 	// 4. Create new invitation.
 	rawToken, tokenHash := generateToken()
 	expiresAt := time.Now().UTC().Add(72 * time.Hour)
-	inviteURL := fmt.Sprintf("%s/invite?token=%s", s.baseURL, rawToken)
+	inviteURL := fmt.Sprintf("%s/invite?token=%s", s.appURL, rawToken)
 
 	inv, err := s.repo.CreateInvitation(ctx, orgID, req.Email, req.Role, inviterID, tokenHash, inviteURL, req.EmployeeID, expiresAt)
 	if err != nil {
@@ -224,6 +240,11 @@ func (s *Service) InviteMember(ctx context.Context, orgID, inviterID uuid.UUID, 
 		ResourceID:   inv.ID,
 		AfterState:   map[string]interface{}{"email": inv.Email, "role": inv.Role},
 	})
+
+	// Send invitation email (best effort - don't fail if email fails)
+	if s.email != nil {
+		go s.sendInvitationEmail(context.Background(), orgID, inviterID, req.Email, inviteURL)
+	}
 
 	return &InviteResponse{
 		ID:        inv.ID,
@@ -371,4 +392,54 @@ func generateToken() (raw, hash string) {
 func hashToken(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+// ── Email Notification Helpers ────────────────────────────────────────────────
+
+func (s *Service) sendInvitationEmail(ctx context.Context, orgID, inviterUserID uuid.UUID, inviteeEmail, inviteURL string) {
+	// Get organisation name
+	org, err := s.repo.GetByID(ctx, orgID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("org_id", orgID.String()).Msg("failed to get organisation for invitation email")
+		return
+	}
+
+	// Get inviter's name from employee record (user_id → employee)
+	// Note: Using employee repo's GetByUserID, but it expects orgID + userID
+	inviterName := "Your teammate" // fallback if we can't find employee
+
+	// Try to get employee record from user ID
+	// We need to get the employee first before we can call GetEmployeeProfile
+	// Since GetEmployeeProfile expects employee_id, not user_id
+	// For now, use a fallback name - in real implementation we'd add a helper
+	// or query employees table directly via user_id
+
+	s.log.Debug().
+		Str("org_id", orgID.String()).
+		Str("inviter_user_id", inviterUserID.String()).
+		Msg("invitation email: using fallback inviter name (user_id to employee_id mapping needed)")
+
+	// Render template
+	subject, bodyHTML, _, err := email.InvitationTemplate.Render(map[string]any{
+		"InviterName": inviterName,
+		"OrgName":     org.Name,
+		"InviteURL":   inviteURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to render invitation email template")
+		return
+	}
+
+	// Send email
+	if err := s.email.Send(email.Message{
+		To:      []string{inviteeEmail},
+		Subject: subject,
+		Body:    bodyHTML,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("invitee_email", inviteeEmail).Msg("failed to send invitation email")
+		return
+	}
+
+	s.log.Info().Str("invitee_email", inviteeEmail).Str("org_name", org.Name).Msg("invitation email sent")
 }

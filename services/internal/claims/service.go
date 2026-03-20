@@ -10,6 +10,7 @@ import (
 	"github.com/workived/services/internal/approval"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/email"
 	"github.com/workived/services/pkg/paginate"
 )
 
@@ -48,15 +49,28 @@ type OrgInfoProvider interface {
 	GetOrgPlanInfo(ctx context.Context, orgID uuid.UUID) (plan string, limit *int, err error)
 }
 
-type Service struct {
-	repo     RepositoryInterface
-	orgRepo  OrgInfoProvider
-	auditLog audit.Logger
-	log      zerolog.Logger
+// EmployeeInfoProvider provides employee profile data for email notifications.
+type EmployeeInfoProvider interface {
+	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
 }
 
-func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, opts ...ServiceOption) *Service {
-	s := &Service{repo: repo, orgRepo: orgRepo}
+type Service struct {
+	repo         RepositoryInterface
+	orgRepo      OrgInfoProvider
+	employeeRepo EmployeeInfoProvider
+	auditLog     audit.Logger
+	log          zerolog.Logger
+	email        email.Sender
+	appURL       string // e.g. "http://localhost:3000" for email links
+}
+
+func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, employeeRepo EmployeeInfoProvider, appURL string, opts ...ServiceOption) *Service {
+	s := &Service{
+		repo:         repo,
+		orgRepo:      orgRepo,
+		employeeRepo: employeeRepo,
+		appURL:       appURL,
+	}
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -74,6 +88,12 @@ func WithAuditLog(al audit.Logger) ServiceOption {
 func WithLogger(log zerolog.Logger) ServiceOption {
 	return func(s *Service) {
 		s.log = log
+	}
+}
+
+func WithEmailSender(e email.Sender) ServiceOption {
+	return func(s *Service) {
+		s.email = e
 	}
 }
 
@@ -396,6 +416,11 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 		Bool("has_receipt", receiptURL != nil).
 		Msg("claim.submitted")
 
+	// 10. Send email notification to manager (best effort - don't fail if email fails)
+	if s.email != nil {
+		go s.sendClaimPendingEmail(context.Background(), orgID, employeeID, claim.ID, category.Name, claim.Amount, claim.CurrencyCode, claim.ClaimDate, &claim.Description)
+	}
+
 	return claim, nil
 }
 
@@ -446,6 +471,11 @@ func (s *Service) ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, c
 		Str("currency", approvedClaim.CurrencyCode).
 		Msg("claim.approved")
 
+	// Send email notification to employee (best effort - don't fail if email fails)
+	if s.email != nil {
+		go s.sendClaimApprovedEmail(context.Background(), orgID, approvedClaim.EmployeeID, reviewerEmployeeID, approvedClaim.ID, reviewNote)
+	}
+
 	return approvedClaim, nil
 }
 
@@ -473,6 +503,11 @@ func (s *Service) RejectClaim(ctx context.Context, orgID, reviewerEmployeeID, cl
 		Str("reviewer_employee_id", reviewerEmployeeID.String()).
 		Str("reason", req.ReviewNote).
 		Msg("claim.rejected")
+
+	// Send email notification to employee (best effort - don't fail if email fails)
+	if s.email != nil {
+		go s.sendClaimRejectedEmail(context.Background(), orgID, claim.EmployeeID, reviewerEmployeeID, claim.ID, &req.ReviewNote)
+	}
 
 	return claim, nil
 }
@@ -508,6 +543,201 @@ func (s *Service) CancelClaim(ctx context.Context, orgID, employeeID, claimID uu
 
 func (s *Service) GetMonthlySummary(ctx context.Context, orgID uuid.UUID, year, month int) ([]MonthlySummary, error) {
 	return s.repo.GetMonthlySummary(ctx, orgID, year, month)
+}
+
+// ── Email Notification Helpers ────────────────────────────────────────────────
+
+func (s *Service) sendClaimPendingEmail(ctx context.Context, orgID, employeeID, claimID uuid.UUID, categoryName string, amount int64, currencyCode string, claimDate time.Time, description *string) {
+	// Get employee info
+	empName, _, managerID, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("failed to get employee profile for email")
+		return
+	}
+
+	// If no manager, skip email
+	if managerID == nil {
+		s.log.Debug().Str("employee_id", employeeID.String()).Msg("employee has no manager, skipping claim pending email")
+		return
+	}
+
+	// Get manager info
+	managerName, managerEmail, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, *managerID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("manager_id", managerID.String()).Msg("failed to get manager profile for email")
+		return
+	}
+
+	// Skip if manager has no email
+	if managerEmail == nil || *managerEmail == "" {
+		s.log.Debug().Str("manager_id", managerID.String()).Msg("manager has no email, skipping claim pending notification")
+		return
+	}
+
+	// Format amount for display
+	amountFormatted := fmt.Sprintf("%s %.2f", currencyCode, float64(amount)/100.0)
+
+	// Render template
+	subject, bodyHTML, _, err := email.ClaimPendingApprovalTemplate.Render(map[string]any{
+		"ReviewerName":    managerName,
+		"EmployeeName":    empName,
+		"CategoryName":    categoryName,
+		"AmountFormatted": amountFormatted,
+		"ClaimDate":       claimDate.Format("2006-01-02"),
+		"Description":     description,
+		"AppURL":          s.appURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to render claim pending email template")
+		return
+	}
+
+	// Send email
+	if err := s.email.Send(email.Message{
+		To:      []string{*managerEmail},
+		Subject: subject,
+		Body:    bodyHTML,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("manager_email", *managerEmail).Msg("failed to send claim pending email")
+		return
+	}
+
+	s.log.Info().Str("claim_id", claimID.String()).Str("manager_email", *managerEmail).Msg("claim pending email sent")
+}
+
+func (s *Service) sendClaimApprovedEmail(ctx context.Context, orgID, employeeID, reviewerEmployeeID, claimID uuid.UUID, reviewNote *string) {
+	// Get claim details
+	claim, err := s.repo.GetClaim(ctx, orgID, claimID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("claim_id", claimID.String()).Msg("failed to get claim for approved email")
+		return
+	}
+
+	// Get category name
+	category, err := s.repo.GetCategory(ctx, orgID, claim.CategoryID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("category_id", claim.CategoryID.String()).Msg("failed to get category for approved email")
+		return
+	}
+
+	// Get employee info
+	empName, empEmail, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("failed to get employee profile for approved email")
+		return
+	}
+
+	// Skip if employee has no email
+	if empEmail == nil || *empEmail == "" {
+		s.log.Debug().Str("employee_id", employeeID.String()).Msg("employee has no email, skipping claim approved notification")
+		return
+	}
+
+	// Get reviewer name
+	reviewerName, _, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, reviewerEmployeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("reviewer_id", reviewerEmployeeID.String()).Msg("failed to get reviewer profile for approved email")
+		reviewerName = "Manager" // fallback
+	}
+
+	// Format amount for display
+	amountFormatted := fmt.Sprintf("%s %.2f", claim.CurrencyCode, float64(claim.Amount)/100.0)
+
+	// Render template
+	subject, bodyHTML, _, err := email.ClaimApprovedTemplate.Render(map[string]any{
+		"EmployeeName":    empName,
+		"ReviewerName":    reviewerName,
+		"CategoryName":    category.Name,
+		"AmountFormatted": amountFormatted,
+		"ClaimDate":       claim.ClaimDate.Format("2006-01-02"),
+		"ReviewNote":      reviewNote,
+		"AppURL":          s.appURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to render claim approved email template")
+		return
+	}
+
+	// Send email
+	if err := s.email.Send(email.Message{
+		To:      []string{*empEmail},
+		Subject: subject,
+		Body:    bodyHTML,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("employee_email", *empEmail).Msg("failed to send claim approved email")
+		return
+	}
+
+	s.log.Info().Str("claim_id", claimID.String()).Str("employee_email", *empEmail).Msg("claim approved email sent")
+}
+
+func (s *Service) sendClaimRejectedEmail(ctx context.Context, orgID, employeeID, reviewerEmployeeID, claimID uuid.UUID, reviewNote *string) {
+	// Get claim details
+	claim, err := s.repo.GetClaim(ctx, orgID, claimID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("claim_id", claimID.String()).Msg("failed to get claim for rejected email")
+		return
+	}
+
+	// Get category name
+	category, err := s.repo.GetCategory(ctx, orgID, claim.CategoryID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("category_id", claim.CategoryID.String()).Msg("failed to get category for rejected email")
+		return
+	}
+
+	// Get employee info
+	empName, empEmail, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("failed to get employee profile for rejected email")
+		return
+	}
+
+	// Skip if employee has no email
+	if empEmail == nil || *empEmail == "" {
+		s.log.Debug().Str("employee_id", employeeID.String()).Msg("employee has no email, skipping claim rejected notification")
+		return
+	}
+
+	// Get reviewer name
+	reviewerName, _, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, reviewerEmployeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("reviewer_id", reviewerEmployeeID.String()).Msg("failed to get reviewer profile for rejected email")
+		reviewerName = "Manager" // fallback
+	}
+
+	// Format amount for display
+	amountFormatted := fmt.Sprintf("%s %.2f", claim.CurrencyCode, float64(claim.Amount)/100.0)
+
+	// Render template
+	subject, bodyHTML, _, err := email.ClaimRejectedTemplate.Render(map[string]any{
+		"EmployeeName":    empName,
+		"ReviewerName":    reviewerName,
+		"CategoryName":    category.Name,
+		"AmountFormatted": amountFormatted,
+		"ClaimDate":       claim.ClaimDate.Format("2006-01-02"),
+		"ReviewNote":      reviewNote,
+		"AppURL":          s.appURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to render claim rejected email template")
+		return
+	}
+
+	// Send email
+	if err := s.email.Send(email.Message{
+		To:      []string{*empEmail},
+		Subject: subject,
+		Body:    bodyHTML,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("employee_email", *empEmail).Msg("failed to send claim rejected email")
+		return
+	}
+
+	s.log.Info().Str("claim_id", claimID.String()).Str("employee_email", *empEmail).Msg("claim rejected email sent")
 }
 
 // ── Balance Methods ───────────────────────────────────────────────────────────
