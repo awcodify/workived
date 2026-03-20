@@ -4,13 +4,13 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/workived/services/internal/employee"
 	"github.com/workived/services/internal/leave"
@@ -25,26 +25,29 @@ func main() {
 	dryRun := flag.Bool("dry-run", false, "Simulate rollover without making changes")
 	flag.Parse()
 
-	logger, _ := zap.NewProduction()
-	defer func() { _ = logger.Sync() }()
+	log.Logger = zerolog.New(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: "15:04:05"}).With().Timestamp().Logger()
 
-	log.Printf("Leave Balance Rollover: %d → %d (dry-run: %v)", *fromYear, *toYear, *dryRun)
+	log.Info().
+		Int("from_year", *fromYear).
+		Int("to_year", *toYear).
+		Bool("dry_run", *dryRun).
+		Msg("Leave Balance Rollover")
 
 	if *dryRun {
-		log.Println("DRY RUN MODE: No database changes will be made")
+		log.Warn().Msg("DRY RUN MODE: No database changes will be made")
 	}
 
 	// Load config
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
+		log.Fatal().Err(err).Msg("Failed to load config")
 	}
 
 	// Connect to database
 	ctx := context.Background()
 	db, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
 	defer db.Close()
 
@@ -79,9 +82,9 @@ func main() {
 	}
 
 	// Perform rollover
-	result, err := leave.RolloverBalances(ctx, leaveRepo, orgListAll, empListAllActive, *fromYear, *toYear)
+	result, err := leave.RolloverBalances(ctx, leaveRepo, orgListAll, empListAllActive, *fromYear, *toYear, log.Logger)
 	if err != nil {
-		log.Fatalf("Rollover failed: %v", err)
+		log.Fatal().Err(err).Msg("Rollover failed")
 	}
 
 	// Print summary
@@ -112,5 +115,5 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Println("Rollover completed successfully")
+	log.Info().Msg("Rollover completed successfully")
 }

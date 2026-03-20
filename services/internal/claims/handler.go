@@ -3,7 +3,6 @@ package claims
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -12,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/internal/platform/storage"
 	"github.com/workived/services/pkg/apperr"
@@ -51,13 +51,15 @@ type Handler struct {
 	service       ServiceInterface
 	empLookup     EmployeeLookupFunc
 	storageClient *storage.Client
+	log           zerolog.Logger
 }
 
-func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc, storageClient *storage.Client) *Handler {
+func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc, storageClient *storage.Client, log zerolog.Logger) *Handler {
 	return &Handler{
 		service:       service,
 		empLookup:     empLookup,
 		storageClient: storageClient,
+		log:           log,
 	}
 }
 
@@ -328,7 +330,7 @@ func (h *Handler) SubmitClaim(c *gin.Context) {
 		// Upload to S3/MinIO
 		contentType := header.Header.Get("Content-Type")
 		if err := h.storageClient.Upload(c.Request.Context(), key, file, contentType); err != nil {
-			log.Printf("ERROR uploading receipt to storage: %v", err)
+			h.log.Error().Err(err).Str("key", key).Msg("failed to upload receipt to storage")
 			c.JSON(http.StatusInternalServerError, apperr.Response(apperr.New(apperr.CodeInternal, "file upload failed - please try again or contact support")))
 			return
 		}

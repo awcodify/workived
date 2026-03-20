@@ -4,23 +4,23 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
 )
 
-func Logger(log *zap.Logger) gin.HandlerFunc {
+func Logger(log zerolog.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		start := time.Now()
 		path := c.Request.URL.Path
 
 		c.Next()
 
-		log.Info("request",
-			zap.String("method", c.Request.Method),
-			zap.String("path", path),
-			zap.Int("status", c.Writer.Status()),
-			zap.Duration("latency", time.Since(start)),
-			zap.String("request_id", RequestIDFromCtx(c)),
-			zap.String("client_ip", c.ClientIP()),
-		)
+		log.Info().
+			Str("method", c.Request.Method).
+			Str("path", path).
+			Int("status", c.Writer.Status()).
+			Dur("latency", time.Since(start)).
+			Str("request_id", RequestIDFromCtx(c)).
+			Str("client_ip", c.ClientIP()).
+			Msg("request")
 	}
 }

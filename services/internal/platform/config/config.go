@@ -9,8 +9,9 @@ import (
 )
 
 type Config struct {
-	Env  string `mapstructure:"ENV"`
-	Port int    `mapstructure:"PORT"`
+	Env      string `mapstructure:"ENV"`
+	Port     int    `mapstructure:"PORT"`
+	LogLevel string `mapstructure:"LOG_LEVEL"`
 
 	DatabaseURL string `mapstructure:"DATABASE_URL"`
 	RedisURL    string `mapstructure:"REDIS_URL"`
@@ -41,6 +42,7 @@ func Load() (*Config, error) {
 
 	v.SetDefault("ENV", "development")
 	v.SetDefault("PORT", 8080)
+	v.SetDefault("LOG_LEVEL", "info")
 	v.SetDefault("JWT_ACCESS_TTL", "15m")
 	v.SetDefault("JWT_REFRESH_TTL", "720h")
 	v.SetDefault("EMAIL_FROM", "noreply@workived.com")

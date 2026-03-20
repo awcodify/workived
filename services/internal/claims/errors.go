@@ -52,14 +52,21 @@ func ErrReceiptRequired(categoryName string) *apperr.AppError {
 // ErrInsufficientBudget returns an error when monthly budget is exceeded
 // Uses CodeUpgradeRequired (402) to signal payment/budget limitation
 func ErrInsufficientBudget(categoryName string, limit, spent, remaining, requested int64, currency string) *apperr.AppError {
-	return apperr.New(apperr.CodeUpgradeRequired, fmt.Sprintf(
+	return apperr.NewWithDetails(apperr.CodeUpgradeRequired, fmt.Sprintf(
 		"Insufficient budget for '%s'. Monthly limit: %s %s, Already spent: %s %s, Remaining: %s %s, Requested: %s %s",
 		categoryName,
 		formatAmount(limit), currency,
 		formatAmount(spent), currency,
 		formatAmount(remaining), currency,
 		formatAmount(requested), currency,
-	))
+	), map[string]any{
+		"category_name": categoryName,
+		"limit":         limit,
+		"spent":         spent,
+		"remaining":     remaining,
+		"requested":     requested,
+		"currency":      currency,
+	})
 }
 
 // ErrCategoryHasPendingClaims returns an error when trying to delete/deactivate category with pending claims

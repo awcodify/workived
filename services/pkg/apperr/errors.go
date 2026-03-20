@@ -16,9 +16,10 @@ const (
 )
 
 type AppError struct {
-	Code    string `json:"code"`
-	Message string `json:"message"`
-	Field   string `json:"field,omitempty"`
+	Code    string         `json:"code"`
+	Message string         `json:"message"`
+	Field   string         `json:"field,omitempty"`
+	Details map[string]any `json:"details,omitempty"`
 }
 
 func (e *AppError) Error() string {
@@ -31,6 +32,10 @@ func New(code, message string) *AppError {
 
 func NewField(code, message, field string) *AppError {
 	return &AppError{Code: code, Message: message, Field: field}
+}
+
+func NewWithDetails(code, message string, details map[string]any) *AppError {
+	return &AppError{Code: code, Message: message, Details: details}
 }
 
 func NotFound(resource string) *AppError {

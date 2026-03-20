@@ -3,9 +3,9 @@ package leave
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 // OrgProvider provides organization data for rollover.
@@ -60,6 +60,7 @@ func RolloverBalances(
 	orgListAll func(ctx context.Context) ([]Org, error),
 	empListAllActive func(ctx context.Context, orgID uuid.UUID) ([]Emp, error),
 	fromYear, toYear int,
+	log zerolog.Logger,
 ) (*RolloverResult, error) {
 	result := &RolloverResult{}
 
@@ -70,13 +71,13 @@ func RolloverBalances(
 	}
 	result.TotalOrganisations = len(orgs)
 
-	log.Printf("[Rollover] Processing %d organisations (from %d to %d)", len(orgs), fromYear, toYear)
+	log.Info().Int("org_count", len(orgs)).Int("from_year", fromYear).Int("to_year", toYear).Msg("processing organisations for rollover")
 
 	for _, org := range orgs {
 		// Get active employees
 		employees, err := empListAllActive(ctx, org.ID)
 		if err != nil {
-			log.Printf("[Rollover] Error listing employees for org %s: %v", org.Name, err)
+			log.Error().Err(err).Str("org_name", org.Name).Msg("error listing employees")
 			result.Errors = append(result.Errors, RolloverError{
 				OrgID:   org.ID,
 				OrgName: org.Name,
@@ -89,7 +90,7 @@ func RolloverBalances(
 		//Get active leave policies
 		policies, err := repo.ListPolicies(ctx, org.ID)
 		if err != nil {
-			log.Printf("[Rollover] Error listing policies for org %s: %v", org.Name, err)
+			log.Error().Err(err).Str("org_name", org.Name).Msg("error listing policies")
 			result.Errors = append(result.Errors, RolloverError{
 				OrgID:   org.ID,
 				OrgName: org.Name,
@@ -99,7 +100,7 @@ func RolloverBalances(
 		}
 		result.TotalPolicies += len(policies)
 
-		log.Printf("[Rollover] Org %s: %d employees × %d policies", org.Name, len(employees), len(policies))
+		log.Info().Str("org_name", org.Name).Int("employees", len(employees)).Int("policies", len(policies)).Msg("processing org")
 
 		// For each employee × policy combination
 		for _, emp := range employees {
@@ -123,7 +124,7 @@ func RolloverBalances(
 				// Create new balance for toYear (idempotent)
 				err = repo.CreateBalanceWithCarryOver(ctx, org.ID, emp.ID, policy.ID, toYear, policy.DaysPerYear, carriedOver)
 				if err != nil {
-					log.Printf("[Rollover] Error creating balance for %s (%s) / %s: %v", emp.FullName, org.Name, policy.Name, err)
+					log.Error().Err(err).Str("employee_name", emp.FullName).Str("org_name", org.Name).Str("policy_name", policy.Name).Msg("error creating balance")
 					result.Errors = append(result.Errors, RolloverError{
 						OrgID:        org.ID,
 						OrgName:      org.Name,
@@ -143,8 +144,12 @@ func RolloverBalances(
 		}
 	}
 
-	log.Printf("[Rollover] Complete: %d orgs, %d employees, %d balances created, %d errors",
-		result.TotalOrganisations, result.TotalEmployees, result.BalancesCreated, len(result.Errors))
+	log.Info().
+		Int("orgs", result.TotalOrganisations).
+		Int("employees", result.TotalEmployees).
+		Int("balances_created", result.BalancesCreated).
+		Int("errors", len(result.Errors)).
+		Msg("rollover complete")
 
 	return result, nil
 }

@@ -6,11 +6,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
@@ -57,6 +57,7 @@ type Service struct {
 	authRepo    AuthTokenCreator
 	tokenIssuer AccessTokenIssuer
 	auditLog    audit.Logger
+	log         zerolog.Logger
 	baseURL     string // e.g. "https://app.workived.com" — for building invite URLs
 }
 
@@ -83,6 +84,13 @@ func WithAuditLog(al audit.Logger) ServiceOption {
 	}
 }
 
+// WithLogger sets the zerolog logger for the service.
+func WithLogger(log zerolog.Logger) ServiceOption {
+	return func(s *Service) {
+		s.log = log
+	}
+}
+
 // logAudit records an audit entry. If audit logging fails, it logs the error but does not
 // propagate it — audit failures must never break the main operation.
 func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
@@ -90,7 +98,7 @@ func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
 		return
 	}
 	if err := s.auditLog.Log(ctx, entry); err != nil {
-		log.Printf("audit log error: %v", err)
+		s.log.Error().Err(err).Msg("audit log error")
 	}
 }
 

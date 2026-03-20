@@ -4,22 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/paginate"
 )
 
 type Repository struct {
-	db *pgxpool.Pool
+	db  *pgxpool.Pool
+	log zerolog.Logger
 }
 
-func NewRepository(db *pgxpool.Pool) *Repository {
-	return &Repository{db: db}
+func NewRepository(db *pgxpool.Pool, log zerolog.Logger) *Repository {
+	return &Repository{db: db, log: log}
 }
 
 // ── Category Methods ──────────────────────────────────────────────────────────
@@ -278,7 +279,7 @@ func (r *Repository) UpdateStatus(ctx context.Context, orgID, claimID uuid.UUID,
 		}
 		// Check if it's a foreign key violation
 		if strings.Contains(err.Error(), "foreign key") || strings.Contains(err.Error(), "violates") {
-			log.Printf("[UpdateStatus] Foreign key violation for reviewer: %v", reviewerEmployeeID)
+			r.log.Warn().Interface("reviewer_employee_id", reviewerEmployeeID).Msg("foreign key violation for reviewer")
 			return nil, apperr.New(apperr.CodeValidation, "reviewer employee not found or inactive")
 		}
 		return nil, err

@@ -14,10 +14,14 @@ import (
 // ErrInsufficientBalance returns an error when leave balance is insufficient
 // Uses CodeUpgradeRequired (402) to signal balance/quota limitation
 func ErrInsufficientBalance(policyName string, available, requested float64) *apperr.AppError {
-	return apperr.New(apperr.CodeUpgradeRequired, fmt.Sprintf(
+	return apperr.NewWithDetails(apperr.CodeUpgradeRequired, fmt.Sprintf(
 		"Insufficient leave balance for '%s'. Available: %.1f days, Requested: %.1f days",
 		policyName, available, requested,
-	))
+	), map[string]any{
+		"policy_name": policyName,
+		"available":   available,
+		"requested":   requested,
+	})
 }
 
 // ErrNegativeBalance returns an error when balance calculation results in negative
@@ -42,11 +46,14 @@ func ErrPastDateNotAllowed() *apperr.AppError {
 
 // ErrOverlappingRequest returns an error when leave dates overlap with existing request
 func ErrOverlappingRequest(startDate, endDate time.Time) *apperr.AppError {
-	return apperr.New(apperr.CodeConflict, fmt.Sprintf(
+	return apperr.NewWithDetails(apperr.CodeConflict, fmt.Sprintf(
 		"you already have a pending or approved leave request between %s and %s",
 		startDate.Format("2006-01-02"),
 		endDate.Format("2006-01-02"),
-	))
+	), map[string]any{
+		"start_date": startDate.Format("2006-01-02"),
+		"end_date":   endDate.Format("2006-01-02"),
+	})
 }
 
 // ── Policy Errors ─────────────────────────────────────────────────────────────

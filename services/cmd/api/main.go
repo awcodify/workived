@@ -11,7 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"go.uber.org/zap"
+	"github.com/rs/zerolog"
 
 	"github.com/workived/services/internal/admin"
 	"github.com/workived/services/internal/attendance"
@@ -26,28 +26,30 @@ import (
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/internal/platform/storage"
+	"github.com/workived/services/pkg/logger"
 )
 
 func main() {
-	log, _ := zap.NewProduction()
-	defer func() { _ = log.Sync() }()
-
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatal("load config", zap.Error(err))
+		log := zerolog.New(os.Stderr).With().Timestamp().Logger()
+		log.Fatal().Err(err).Msg("load config")
 	}
+
+	log := logger.New(cfg.Env)
+	zerolog.SetGlobalLevel(logger.FromLevel(cfg.LogLevel))
 
 	ctx := context.Background()
 
 	db, err := database.Connect(ctx, cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal("connect database", zap.Error(err))
+		log.Fatal().Err(err).Msg("connect database")
 	}
 	defer db.Close()
 
 	rdb, err := database.ConnectRedis(ctx, cfg.RedisURL)
 	if err != nil {
-		log.Fatal("connect redis", zap.Error(err))
+		log.Fatal().Err(err).Msg("connect redis")
 	}
 	defer func() { _ = rdb.Close() }()
 
@@ -61,7 +63,7 @@ func main() {
 		UseSSL:          cfg.S3UseSSL,
 	})
 	if err != nil {
-		log.Fatal("connect storage", zap.Error(err))
+		log.Fatal().Err(err).Msg("connect storage")
 	}
 
 	// ── Repositories ─────────────────────────────────────────────────────────
@@ -71,17 +73,17 @@ func main() {
 	deptRepo := department.NewRepository(db)
 	attRepo := attendance.NewRepository(db)
 	leaveRepo := leave.NewRepository(db)
-	claimsRepo := claims.NewRepository(db)
+	claimsRepo := claims.NewRepository(db, log)
 	adminRepo := admin.NewRepository(db)
 	auditRepo := audit.NewRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
-	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, cfg.AppURL, organisation.WithAuditLog(auditRepo))
-	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo))
+	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log))
+	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithLogger(log))
 	deptSvc := department.NewService(deptRepo)
 	attSvc := attendance.NewService(attRepo, orgRepo)
-	claimsSvc := claims.NewService(claimsRepo, orgRepo, claims.WithAuditLog(auditRepo))
+	claimsSvc := claims.NewService(claimsRepo, orgRepo, claims.WithAuditLog(auditRepo), claims.WithLogger(log))
 	leaveSvc := leave.NewService(leaveRepo, orgRepo)
 	adminSvc := admin.NewService(adminRepo)
 
@@ -93,7 +95,7 @@ func main() {
 	adminHandler := admin.NewHandler(adminSvc)
 	adminUIHandler, err := admin.NewUIHandler(adminSvc, authSvc)
 	if err != nil {
-		log.Fatal("create admin UI handler", zap.Error(err))
+		log.Fatal().Err(err).Msg("create admin UI handler")
 	}
 	attHandler := attendance.NewHandler(attSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
 		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
@@ -116,7 +118,7 @@ func main() {
 			return uuid.Nil, err
 		}
 		return emp.ID, nil
-	}, storageClient)
+	}, storageClient, log)
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -130,6 +132,24 @@ func main() {
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
+	r.GET("/readyz", func(c *gin.Context) {
+		// Check database connectivity
+		if err := db.Ping(c.Request.Context()); err != nil {
+			log.Error().Err(err).Msg("database health check failed")
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "database unreachable"})
+			return
+		}
+
+		// Check Redis connectivity
+		if err := rdb.Ping(c.Request.Context()).Err(); err != nil {
+			log.Error().Err(err).Msg("redis health check failed")
+			c.JSON(http.StatusServiceUnavailable, gin.H{"status": "unavailable", "error": "redis unreachable"})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{"status": "ready"})
 	})
 
 	// API docs — Scalar UI at /docs, spec at /docs/openapi.yaml
@@ -177,20 +197,20 @@ func main() {
 	}
 
 	go func() {
-		log.Info("starting server", zap.Int("port", cfg.Port))
+		log.Info().Int("port", cfg.Port).Msg("starting server")
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal("listen", zap.Error(err))
+			log.Fatal().Err(err).Msg("listen")
 		}
 	}()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Info("shutting down server")
+	log.Info().Msg("shutting down server")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Error("server forced to shutdown", zap.Error(err))
+		log.Error().Err(err).Msg("server forced to shutdown")
 	}
 }

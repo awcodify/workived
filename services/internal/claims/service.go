@@ -3,10 +3,10 @@ package claims
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/approval"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/pkg/apperr"
@@ -52,6 +52,7 @@ type Service struct {
 	repo     RepositoryInterface
 	orgRepo  OrgInfoProvider
 	auditLog audit.Logger
+	log      zerolog.Logger
 }
 
 func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, opts ...ServiceOption) *Service {
@@ -70,12 +71,18 @@ func WithAuditLog(al audit.Logger) ServiceOption {
 	}
 }
 
+func WithLogger(log zerolog.Logger) ServiceOption {
+	return func(s *Service) {
+		s.log = log
+	}
+}
+
 func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
 	if s.auditLog == nil {
 		return
 	}
 	if err := s.auditLog.Log(ctx, entry); err != nil {
-		log.Printf("audit log error: %v", err)
+		s.log.Error().Err(err).Msg("audit log error")
 	}
 }
 
@@ -94,7 +101,7 @@ func (s *Service) CreateCategory(ctx context.Context, orgID uuid.UUID, req Creat
 	// Initialize balances for all active employees for current month
 	now := time.Now()
 	if err := s.repo.CreateBalancesForAllEmployees(ctx, orgID, cat.ID, now.Year(), int(now.Month())); err != nil {
-		log.Printf("warning: failed to initialize balances for category %s: %v", cat.ID, err)
+		s.log.Warn().Err(err).Str("category_id", cat.ID.String()).Msg("failed to initialize claim balances")
 		// Don't fail category creation if balance initialization fails
 	}
 
@@ -245,7 +252,7 @@ func (s *Service) ImportCategories(ctx context.Context, orgID uuid.UUID, req Imp
 	now := time.Now()
 	for _, cat := range created {
 		if err := s.repo.CreateBalancesForAllEmployees(ctx, orgID, cat.ID, now.Year(), int(now.Month())); err != nil {
-			log.Printf("warning: failed to initialize balances for category %s: %v", cat.ID, err)
+			s.log.Warn().Err(err).Str("category_id", cat.ID.String()).Msg("failed to initialize claim balances")
 			// Continue with other categories even if one fails
 		}
 	}
@@ -362,7 +369,7 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 	// 7. Create the claim
 	claim, err := s.repo.CreateClaim(ctx, orgID, req, employeeID, receiptURL)
 	if err != nil {
-		log.Printf("ERROR creating claim: %v", err)
+		s.log.Error().Err(err).Str("org_id", orgID.String()).Str("employee_id", employeeID.String()).Msg("failed to create claim")
 		return nil, fmt.Errorf("failed to create claim: %w", err)
 	}
 
@@ -400,11 +407,11 @@ func (s *Service) ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, c
 	_, err = s.repo.GetOrCreateBalance(ctx, orgID, approvedClaim.EmployeeID, approvedClaim.CategoryID, year, month)
 	if err != nil {
 		// Log error but don't fail the approval
-		log.Printf("failed to get/create balance for approved claim %s: %v", claimID, err)
+		s.log.Error().Err(err).Str("claim_id", claimID.String()).Msg("failed to get/create balance for approved claim")
 	} else {
 		err = s.repo.UpdateBalanceOnApproval(ctx, orgID, approvedClaim.EmployeeID, approvedClaim.CategoryID, year, month, approvedClaim.Amount)
 		if err != nil {
-			log.Printf("failed to update balance for approved claim %s: %v", claimID, err)
+			s.log.Error().Err(err).Str("claim_id", claimID.String()).Msg("failed to update balance for approved claim")
 		}
 	}
 
