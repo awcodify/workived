@@ -385,6 +385,17 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 		})
 	}
 
+	// 9. Log business event
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("claim_id", claim.ID.String()).
+		Str("employee_id", employeeID.String()).
+		Str("category_id", claim.CategoryID.String()).
+		Int64("amount", claim.Amount).
+		Str("currency", claim.CurrencyCode).
+		Bool("has_receipt", receiptURL != nil).
+		Msg("claim.submitted")
+
 	return claim, nil
 }
 
@@ -426,6 +437,15 @@ func (s *Service) ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, c
 		})
 	}
 
+	// Log business event
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("claim_id", claimID.String()).
+		Str("reviewer_employee_id", reviewerEmployeeID.String()).
+		Int64("amount", approvedClaim.Amount).
+		Str("currency", approvedClaim.CurrencyCode).
+		Msg("claim.approved")
+
 	return approvedClaim, nil
 }
 
@@ -445,6 +465,14 @@ func (s *Service) RejectClaim(ctx context.Context, orgID, reviewerEmployeeID, cl
 			AfterState:   claim,
 		})
 	}
+
+	// Log business event
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("claim_id", claimID.String()).
+		Str("reviewer_employee_id", reviewerEmployeeID.String()).
+		Str("reason", req.ReviewNote).
+		Msg("claim.rejected")
 
 	return claim, nil
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/pkg/apperr"
 )
 
@@ -36,13 +37,15 @@ type Service struct {
 	repo    RepositoryInterface
 	orgRepo OrgInfoProvider
 	now     NowFunc
+	log     zerolog.Logger
 }
 
-func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider) *Service {
+func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, log zerolog.Logger) *Service {
 	return &Service{
 		repo:    repo,
 		orgRepo: orgRepo,
 		now:     func() time.Time { return time.Now().UTC() },
+		log:     log,
 	}
 }
 
@@ -90,7 +93,21 @@ func (s *Service) ClockIn(ctx context.Context, orgID uuid.UUID, req ClockInReque
 		isLate = s.checkLate(localNow, schedule)
 	}
 
-	return s.repo.Create(ctx, orgID, req.EmployeeID, today, now, isLate, req.Note)
+	rec, err := s.repo.Create(ctx, orgID, req.EmployeeID, today, now, isLate, req.Note)
+	if err != nil {
+		return nil, err
+	}
+
+	// Log business event
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("employee_id", req.EmployeeID.String()).
+		Str("date", today).
+		Time("clock_in_at", now).
+		Bool("is_late", isLate).
+		Msg("attendance.clock_in")
+
+	return rec, nil
 }
 
 // ClockOut updates today's attendance record with the clock-out time.
@@ -118,7 +135,22 @@ func (s *Service) ClockOut(ctx context.Context, orgID uuid.UUID, req ClockOutReq
 		return nil, apperr.Conflict("already clocked out today")
 	}
 
-	return s.repo.UpdateClockOut(ctx, orgID, req.EmployeeID, today, now, req.Note)
+	rec, err := s.repo.UpdateClockOut(ctx, orgID, req.EmployeeID, today, now, req.Note)
+	if err != nil {
+		return nil, err
+	}
+
+	// Log business event
+	duration := now.Sub(existing.ClockInAt)
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("employee_id", req.EmployeeID.String()).
+		Str("date", today).
+		Time("clock_out_at", now).
+		Dur("duration", duration).
+		Msg("attendance.clock_out")
+
+	return rec, nil
 }
 
 // GetToday returns the current user's attendance record for today.

@@ -15,7 +15,7 @@ github.com/golang-jwt/jwt/v5
 github.com/jackc/pgx/v5 (NOT database/sql, no ORM)
 github.com/redis/go-redis/v9
 github.com/google/uuid
-go.uber.org/zap
+github.com/rs/zerolog (structured logging)
 github.com/go-playground/validator/v10
 ```
 
@@ -54,6 +54,82 @@ func (r *Repo) List(
     // ...
 }
 ```
+
+## Logging (MANDATORY)
+
+**EVERY service and handler MUST have zerolog.Logger injected.**
+
+### Service pattern:
+```go
+type Service struct {
+    repo     RepositoryInterface
+    auditLog audit.Logger
+    log      zerolog.Logger  // MANDATORY
+}
+
+func NewService(repo RepositoryInterface, opts ...ServiceOption) *Service {
+    s := &Service{repo: repo}
+    for _, opt := range opts { opt(s) }
+    return s
+}
+
+func WithLogger(log zerolog.Logger) ServiceOption {
+    return func(s *Service) { s.log = log }
+}
+```
+
+### Handler pattern:
+```go
+type Handler struct {
+    service ServiceInterface
+    log     zerolog.Logger  // MANDATORY
+}
+
+func NewHandler(service ServiceInterface, log zerolog.Logger) *Handler {
+    return &Handler{service: service, log: log}
+}
+
+// Helper method for error logging
+func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fields map[string]string) {
+    event := h.log.Error().Err(err)
+    for k, v := range fields {
+        event = event.Str(k, v)
+    }
+    event.Msg(msg)
+    c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+}
+```
+
+### Error logging (MANDATORY):
+Every error returned to the client MUST be logged with context:
+```go
+if err != nil {
+    h.logAndRespondError(c, err, "failed to create claim", map[string]string{
+        "org_id":      orgID.String(),
+        "employee_id": employeeID.String(),
+    })
+    return
+}
+```
+
+### Business event logging (MANDATORY):
+Log all state-changing operations (create, approve, reject, etc.):
+```go
+// After successful operation:
+s.log.Info().
+    Str("org_id", orgID.String()).
+    Str("claim_id", claim.ID.String()).
+    Str("employee_id", employeeID.String()).
+    Int64("amount", claim.Amount).
+    Str("currency", claim.CurrencyCode).
+    Msg("claim.submitted")
+```
+
+**Event naming:** `{module}.{action}` (e.g., `claim.submitted`, `leave.request.approved`, `attendance.clock_in`)
+
+**Include in events:**
+- Always: `org_id`, `user_id` (if available), resource IDs
+- When relevant: amounts, dates, status changes, rejection reasons
 
 ## Middleware chain (in order)
 ```go
@@ -118,6 +194,15 @@ Structured zap with `org_id` and `request_id` on every log. No `fmt.Println`.
 
 ## Lint gates
 `golangci-lint run ./...` (includes gosec — catches SQL injection, hardcoded creds, SSRF), `go test -race ./...`, `go vet ./...`, coverage check
+
+## Logging verification checklist
+Before committing:
+- [ ] Service has `log zerolog.Logger` field
+- [ ] Handler has `log zerolog.Logger` field  
+- [ ] All errors returned to client are logged with context
+- [ ] All state-changing operations log business events
+- [ ] No `fmt.Println` or `log.Printf` calls remain
+- [ ] Logger injected in main.go wiring
 
 ## DON'Ts
 - No ORM (use pgx/v5 directly)

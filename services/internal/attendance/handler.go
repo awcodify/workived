@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
 )
@@ -28,10 +29,21 @@ type EmployeeLookupFunc func(ctx context.Context, orgID, userID uuid.UUID) (uuid
 type Handler struct {
 	service   ServiceInterface
 	empLookup EmployeeLookupFunc
+	log       zerolog.Logger
 }
 
-func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc) *Handler {
-	return &Handler{service: service, empLookup: empLookup}
+func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc, log zerolog.Logger) *Handler {
+	return &Handler{service: service, empLookup: empLookup, log: log}
+}
+
+// logAndRespondError logs the error with context and sends JSON response to client
+func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fields map[string]string) {
+	event := h.log.Error().Err(err)
+	for k, v := range fields {
+		event = event.Str(k, v)
+	}
+	event.Msg(msg)
+	c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
@@ -50,7 +62,10 @@ func (h *Handler) ClockIn(c *gin.Context) {
 
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		h.logAndRespondError(c, err, "failed to lookup employee for clock-in", map[string]string{
+			"org_id":  orgID.String(),
+			"user_id": userID.String(),
+		})
 		return
 	}
 
@@ -63,7 +78,10 @@ func (h *Handler) ClockIn(c *gin.Context) {
 		Note:       httpReq.Note,
 	})
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		h.logAndRespondError(c, err, "failed to clock in", map[string]string{
+			"org_id":      orgID.String(),
+			"employee_id": employeeID.String(),
+		})
 		return
 	}
 
@@ -76,7 +94,10 @@ func (h *Handler) ClockOut(c *gin.Context) {
 
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		h.logAndRespondError(c, err, "failed to lookup employee for clock-out", map[string]string{
+			"org_id":  orgID.String(),
+			"user_id": userID.String(),
+		})
 		return
 	}
 
@@ -88,7 +109,10 @@ func (h *Handler) ClockOut(c *gin.Context) {
 		Note:       httpReq.Note,
 	})
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		h.logAndRespondError(c, err, "failed to clock out", map[string]string{
+			"org_id":      orgID.String(),
+			"employee_id": employeeID.String(),
+		})
 		return
 	}
 

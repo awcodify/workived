@@ -5,14 +5,28 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 )
 
 type Service struct {
 	repo *Repository
+	log  zerolog.Logger
 }
 
-func NewService(repo *Repository) *Service {
-	return &Service{repo: repo}
+type ServiceOption func(*Service)
+
+func WithLogger(log zerolog.Logger) ServiceOption {
+	return func(s *Service) {
+		s.log = log
+	}
+}
+
+func NewService(repo *Repository, opts ...ServiceOption) *Service {
+	s := &Service{repo: repo}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 // ── Feature Flags ───────────────────────────────────────────────────────────
@@ -30,6 +44,14 @@ func (s *Service) UpdateFeatureFlag(ctx context.Context, key string, req UpdateF
 	if err != nil {
 		return nil, fmt.Errorf("update feature flag: %w", err)
 	}
+
+	s.log.Info().
+		Str("feature_key", key).
+		Bool("is_enabled", flag.IsEnabled).
+		Str("scope", flag.Scope).
+		Str("updated_by", updatedBy.String()).
+		Msg("admin.feature_flag.updated")
+
 	return flag, nil
 }
 
@@ -112,6 +134,14 @@ func (s *Service) CreateProLicense(ctx context.Context, req CreateProLicenseRequ
 	if err != nil {
 		return nil, fmt.Errorf("create pro license: %w", err)
 	}
+
+	s.log.Info().
+		Str("license_id", license.ID.String()).
+		Str("org_id", license.OrganisationID.String()).
+		Str("status", license.Status).
+		Str("created_by", createdBy.String()).
+		Msg("admin.pro_license.created")
+
 	return license, nil
 }
 
@@ -120,6 +150,13 @@ func (s *Service) UpdateProLicense(ctx context.Context, licenseID uuid.UUID, req
 	if err != nil {
 		return nil, fmt.Errorf("update pro license: %w", err)
 	}
+
+	s.log.Info().
+		Str("license_id", licenseID.String()).
+		Str("org_id", license.OrganisationID.String()).
+		Str("status", license.Status).
+		Msg("admin.pro_license.updated")
+
 	return license, nil
 }
 
@@ -134,6 +171,12 @@ func (s *Service) UpdateAdminConfig(ctx context.Context, key string, req UpdateA
 	if err != nil {
 		return nil, fmt.Errorf("update admin config: %w", err)
 	}
+
+	s.log.Info().
+		Str("config_key", key).
+		Str("updated_by", updatedBy.String()).
+		Msg("admin.config.updated")
+
 	return config, nil
 }
 

@@ -81,18 +81,18 @@ func main() {
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
 	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log))
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithLogger(log))
-	deptSvc := department.NewService(deptRepo)
-	attSvc := attendance.NewService(attRepo, orgRepo)
+	deptSvc := department.NewService(deptRepo, department.WithLogger(log))
+	attSvc := attendance.NewService(attRepo, orgRepo, log)
 	claimsSvc := claims.NewService(claimsRepo, orgRepo, claims.WithAuditLog(auditRepo), claims.WithLogger(log))
-	leaveSvc := leave.NewService(leaveRepo, orgRepo)
-	adminSvc := admin.NewService(adminRepo)
+	leaveSvc := leave.NewService(leaveRepo, orgRepo, leave.WithLogger(log))
+	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log))
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	authHandler := auth.NewHandler(authSvc)
 	orgHandler := organisation.NewHandler(orgSvc)
 	empHandler := employee.NewHandler(empSvc)
-	deptHandler := department.NewHandler(deptSvc)
-	adminHandler := admin.NewHandler(adminSvc)
+	deptHandler := department.NewHandler(deptSvc, log)
+	adminHandler := admin.NewHandler(adminSvc, log)
 	adminUIHandler, err := admin.NewUIHandler(adminSvc, authSvc)
 	if err != nil {
 		log.Fatal().Err(err).Msg("create admin UI handler")
@@ -103,14 +103,14 @@ func main() {
 			return uuid.Nil, err
 		}
 		return emp.ID, nil
-	})
+	}, log)
 	leaveHandler := leave.NewHandler(leaveSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
 		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
 		if err != nil {
 			return uuid.Nil, err
 		}
 		return emp.ID, nil
-	})
+	}, log)
 
 	claimsHandler := claims.NewHandler(claimsSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
 		emp, err := empRepo.GetByUserID(ctx, orgID, userID)

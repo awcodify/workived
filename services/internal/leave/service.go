@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/pkg/apperr"
 )
@@ -75,6 +76,7 @@ type Service struct {
 	repo     RepositoryInterface
 	orgRepo  OrgInfoProvider
 	auditLog audit.Logger
+	log      zerolog.Logger
 }
 
 func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, opts ...ServiceOption) *Service {
@@ -89,6 +91,13 @@ func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, opts ...Servi
 func WithAuditLog(al audit.Logger) ServiceOption {
 	return func(s *Service) {
 		s.auditLog = al
+	}
+}
+
+// WithLogger sets the zerolog logger for the service.
+func WithLogger(log zerolog.Logger) ServiceOption {
+	return func(s *Service) {
+		s.log = log
 	}
 }
 
@@ -288,6 +297,18 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 		OrgID: orgID, ActorUserID: uuid.Nil, Action: "leave_request.submitted",
 		ResourceType: "leave_request", ResourceID: req.ID, AfterState: req,
 	})
+
+	// Log business event
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("request_id", req.ID.String()).
+		Str("employee_id", employeeID.String()).
+		Str("policy_id", req.LeavePolicyID.String()).
+		Str("start_date", req.StartDate).
+		Str("end_date", req.EndDate).
+		Float64("total_days", req.TotalDays).
+		Msg("leave.request.submitted")
+
 	return req, nil
 }
 
@@ -333,6 +354,15 @@ func (s *Service) ApproveRequest(ctx context.Context, orgID, reviewerEmployeeID,
 		OrgID: orgID, ActorUserID: uuid.Nil, Action: "leave_request.approved",
 		ResourceType: "leave_request", ResourceID: requestID, AfterState: req,
 	})
+
+	// Log business event
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("request_id", requestID.String()).
+		Str("reviewer_employee_id", reviewerEmployeeID.String()).
+		Float64("total_days", req.TotalDays).
+		Msg("leave.request.approved")
+
 	return req, nil
 }
 
@@ -375,6 +405,19 @@ func (s *Service) RejectRequest(ctx context.Context, orgID, reviewerEmployeeID, 
 		OrgID: orgID, ActorUserID: uuid.Nil, Action: "leave_request.rejected",
 		ResourceType: "leave_request", ResourceID: requestID, AfterState: req,
 	})
+
+	// Log business event
+	noteStr := ""
+	if note != nil {
+		noteStr = *note
+	}
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("request_id", requestID.String()).
+		Str("reviewer_employee_id", reviewerEmployeeID.String()).
+		Str("reason", noteStr).
+		Msg("leave.request.rejected")
+
 	return req, nil
 }
 

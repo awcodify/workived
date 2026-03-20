@@ -63,6 +63,16 @@ func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc, storageC
 	}
 }
 
+// logAndRespondError logs the error with context and sends JSON response to client
+func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fields map[string]string) {
+	event := h.log.Error().Err(err)
+	for k, v := range fields {
+		event = event.Str(k, v)
+	}
+	event.Msg(msg)
+	c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+}
+
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	claims := rg.Group("/claims")
 
@@ -340,7 +350,10 @@ func (h *Handler) SubmitClaim(c *gin.Context) {
 
 	claim, err := h.service.SubmitClaim(c.Request.Context(), orgID, employeeID, req, receiptURL, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		h.logAndRespondError(c, err, "failed to submit claim", map[string]string{
+			"org_id":      orgID.String(),
+			"employee_id": employeeID.String(),
+		})
 		return
 	}
 
@@ -475,7 +488,11 @@ func (h *Handler) ApproveClaim(c *gin.Context) {
 
 	reviewerEmployeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		h.logAndRespondError(c, err, "failed to lookup reviewer employee for approval", map[string]string{
+			"org_id":   orgID.String(),
+			"user_id":  userID.String(),
+			"claim_id": claimID.String(),
+		})
 		return
 	}
 
@@ -487,7 +504,10 @@ func (h *Handler) ApproveClaim(c *gin.Context) {
 
 	claim, err := h.service.ApproveClaim(c.Request.Context(), orgID, reviewerEmployeeID, claimID, &req, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		h.logAndRespondError(c, err, "failed to approve claim", map[string]string{
+			"org_id":   orgID.String(),
+			"claim_id": claimID.String(),
+		})
 		return
 	}
 
@@ -505,7 +525,11 @@ func (h *Handler) RejectClaim(c *gin.Context) {
 
 	reviewerEmployeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		h.logAndRespondError(c, err, "failed to lookup reviewer employee for rejection", map[string]string{
+			"org_id":   orgID.String(),
+			"user_id":  userID.String(),
+			"claim_id": claimID.String(),
+		})
 		return
 	}
 
@@ -521,7 +545,10 @@ func (h *Handler) RejectClaim(c *gin.Context) {
 
 	claim, err := h.service.RejectClaim(c.Request.Context(), orgID, reviewerEmployeeID, claimID, req, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		h.logAndRespondError(c, err, "failed to reject claim", map[string]string{
+			"org_id":   orgID.String(),
+			"claim_id": claimID.String(),
+		})
 		return
 	}
 
