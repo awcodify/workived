@@ -38,6 +38,19 @@ type EmployeeWithManager struct {
 	ManagerName *string `json:"manager_name,omitempty"` // Full name of reporting_to employee
 }
 
+// OrgChartNode represents an employee in the organizational hierarchy with their direct reports.
+type OrgChartNode struct {
+	ID             uuid.UUID       `json:"id"`
+	FullName       string          `json:"full_name"`
+	Email          *string         `json:"email,omitempty"`
+	JobTitle       *string         `json:"job_title,omitempty"`
+	DepartmentID   *uuid.UUID      `json:"department_id,omitempty"`
+	EmploymentType string          `json:"employment_type"`
+	Status         string          `json:"status"`
+	ReportingTo    *uuid.UUID      `json:"reporting_to,omitempty"`
+	DirectReports  []*OrgChartNode `json:"direct_reports,omitempty"`
+}
+
 // ── Request / Response types ──────────────────────────────────────────────────
 
 type CreateEmployeeRequest struct {

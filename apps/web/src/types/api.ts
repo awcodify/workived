@@ -180,6 +180,8 @@ export interface CreateEmployeeInput {
 
 export type UpdateEmployeeInput = Partial<CreateEmployeeInput> & {
   status?: string
+  end_date?: string
+  reporting_to?: string
 }
 
 // ── Departments ──────────────────────────────────────────────
@@ -443,6 +445,19 @@ export interface ClaimFilters {
   end_date?: string    // YYYY-MM-DD
   cursor?: string
   limit?: number
+}
+
+// ── Org Chart ────────────────────────────────────────────────
+export interface OrgChartNode {
+  id: string
+  full_name: string
+  email?: string
+  job_title?: string
+  department_id?: string
+  employment_type: string
+  status: string
+  reporting_to?: string
+  direct_reports?: OrgChartNode[]
 }
 
 // ── API wrapper ──────────────────────────────────────────────

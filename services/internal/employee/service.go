@@ -14,6 +14,7 @@ import (
 type RepositoryInterface interface {
 	List(ctx context.Context, orgID uuid.UUID, f ListFilters) ([]EmployeeWithManager, error)
 	CountActive(ctx context.Context, orgID uuid.UUID) (int, error)
+	ListAllActive(ctx context.Context, orgID uuid.UUID) ([]Employee, error)
 	Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest) (*Employee, error)
 	GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employee, error)
 	GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error)
@@ -198,6 +199,57 @@ func (s *Service) GetDirectReports(ctx context.Context, orgID, managerID uuid.UU
 // GetWithManagerName returns an employee with their manager's name populated.
 func (s *Service) GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error) {
 	return s.repo.GetWithManagerName(ctx, orgID, id)
+}
+
+// GetOrgChart returns the organizational hierarchy tree starting from top-level employees (no manager).
+func (s *Service) GetOrgChart(ctx context.Context, orgID uuid.UUID) ([]*OrgChartNode, error) {
+	// Fetch all active employees
+	employees, err := s.repo.ListAllActive(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build a map for quick lookup
+	empMap := make(map[uuid.UUID]*Employee)
+	for i := range employees {
+		empMap[employees[i].ID] = &employees[i]
+	}
+
+	// Build the tree: create nodes and organize by parent
+	nodes := make(map[uuid.UUID]*OrgChartNode)
+	var roots []*OrgChartNode
+
+	// First pass: create all nodes
+	for _, emp := range employees {
+		node := &OrgChartNode{
+			ID:             emp.ID,
+			FullName:       emp.FullName,
+			Email:          emp.Email,
+			JobTitle:       emp.JobTitle,
+			DepartmentID:   emp.DepartmentID,
+			EmploymentType: emp.EmploymentType,
+			Status:         emp.Status,
+			ReportingTo:    emp.ReportingTo,
+			DirectReports:  []*OrgChartNode{},
+		}
+		nodes[emp.ID] = node
+	}
+
+	// Second pass: build parent-child relationships
+	for _, node := range nodes {
+		if node.ReportingTo == nil {
+			// No manager = top-level (CEO/Founders)
+			roots = append(roots, node)
+		} else if parent, exists := nodes[*node.ReportingTo]; exists {
+			// Add as direct report to manager
+			parent.DirectReports = append(parent.DirectReports, node)
+		} else {
+			// Manager not found or inactive, treat as root
+			roots = append(roots, node)
+		}
+	}
+
+	return roots, nil
 }
 
 // validateReportingTo ensures:

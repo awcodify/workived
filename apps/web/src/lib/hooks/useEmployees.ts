@@ -53,3 +53,11 @@ export function useUpdateEmployee(id: string) {
     },
   })
 }
+
+export function useOrgChart() {
+  return useQuery({
+    queryKey: ['employees', 'org-chart'],
+    queryFn: () => employeesApi.orgChart().then((r) => r.data.data),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+}

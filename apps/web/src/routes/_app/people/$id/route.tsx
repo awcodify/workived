@@ -32,8 +32,11 @@ const baseSchema = z.object({
   start_date: z.string().min(1, 'Start date is required'),
 })
 
-// Edit form keeps the original email field (display only, not editable)
-const editSchema = baseSchema
+// Edit form adds status and end_date fields
+const editSchema = baseSchema.extend({
+  status: z.enum(['active', 'probation', 'on_leave', 'inactive']),
+  end_date: z.string().optional().or(z.literal('')),
+})
 
 // New employee form — email is optional; user_id links to an existing member
 const newSchema = baseSchema.extend({
@@ -439,7 +442,9 @@ function EditEmployeePage({ id }: { id: string }) {
       department_id: '',
       reporting_to: '',
       employment_type: 'full_time',
+      status: 'active',
       start_date: '',
+      end_date: '',
     },
   })
 
@@ -452,7 +457,9 @@ function EditEmployeePage({ id }: { id: string }) {
         department_id: employee.department_id ?? '',
         reporting_to: employee.reporting_to ?? '',
         employment_type: employee.employment_type,
+        status: employee.status ?? 'active',
         start_date: employee.start_date,
+        end_date: employee.end_date ?? '',
       })
     }
   }, [employee, form])
@@ -464,6 +471,7 @@ function EditEmployeePage({ id }: { id: string }) {
       job_title: data.job_title || undefined,
       department_id: data.department_id || undefined,
       reporting_to: data.reporting_to || undefined,
+      end_date: data.end_date || undefined,
     }
     updateMutation.mutate(clean, {
       onSuccess: () => navigate({ to: '/people' }),
@@ -592,6 +600,19 @@ function EditEmployeePage({ id }: { id: string }) {
                 </select>
               </Field>
 
+              <Field label="Employment status" error={form.formState.errors.status?.message}>
+                <select
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('status')}
+                >
+                  <option value="active">Active — Currently employed</option>
+                  <option value="probation">Probation — Trial period</option>
+                  <option value="on_leave">On Leave — Temporary absence</option>
+                  <option value="inactive">Inactive — Employment ended</option>
+                </select>
+              </Field>
+
               <Field label="Start date" error={form.formState.errors.start_date?.message}>
                 <input
                   type="date"
@@ -599,6 +620,18 @@ function EditEmployeePage({ id }: { id: string }) {
                   style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                   {...form.register('start_date')}
                 />
+              </Field>
+
+              <Field label="End date (optional)" error={form.formState.errors.end_date?.message}>
+                <input
+                  type="date"
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('end_date')}
+                />
+                <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+                  Set this when changing status to Inactive
+                </p>
               </Field>
             </div>
           </div>

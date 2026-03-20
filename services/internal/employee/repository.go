@@ -33,7 +33,6 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 		FROM employees e
 		LEFT JOIN employees m ON e.reporting_to = m.id AND m.is_active = TRUE
 		WHERE e.organisation_id = $1
-		  AND e.is_active = TRUE
 		  AND ($2::varchar IS NULL OR e.status = $2)
 		  AND ($3::varchar IS NULL OR e.department_id::text = $3)
 		  AND ($4::varchar IS NULL OR e.full_name > $4)

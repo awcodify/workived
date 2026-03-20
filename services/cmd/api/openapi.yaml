@@ -500,6 +500,25 @@ paths:
         "404":
           $ref: "#/components/responses/NotFoundError"
 
+  /employees/org-chart:
+    get:
+      operationId: getOrgChart
+      summary: Get organizational chart
+      description: Returns hierarchical org structure with all active employees
+      tags: [Employees]
+      responses:
+        "200":
+          description: Organizational chart tree (roots are employees without managers)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/OrgChartNode"
+
   # ── Departments ───────────────────────────────────────────────────────────
   /departments:
     get:
@@ -2176,6 +2195,42 @@ components:
         end_date:
           type: string
           format: date
+
+    OrgChartNode:
+      type: object
+      description: Hierarchical node for organizational chart with recursive direct reports
+      properties:
+        id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+        job_title:
+          type: string
+          nullable: true
+        department_id:
+          type: string
+          format: uuid
+          nullable: true
+        employment_type:
+          type: string
+          enum: [full_time, part_time, contract, intern]
+        status:
+          type: string
+          enum: [active, on_leave, probation, inactive]
+        reporting_to:
+          type: string
+          format: uuid
+          nullable: true
+          description: Manager's employee ID (null for top-level executives)
+        direct_reports:
+          type: array
+          description: Employees who report directly to this person
+          items:
+            $ref: "#/components/schemas/OrgChartNode"
 
     # ── Department ────────────────────────────────────────────────────────
     Department:

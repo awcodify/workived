@@ -23,6 +23,7 @@ type ServiceInterface interface {
 	Deactivate(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
 	GetDirectReports(ctx context.Context, orgID, managerID uuid.UUID) ([]Employee, error)
 	GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error)
+	GetOrgChart(ctx context.Context, orgID uuid.UUID) ([]*OrgChartNode, error)
 }
 
 type Handler struct {
@@ -37,6 +38,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	emps := rg.Group("/employees")
 	emps.GET("", middleware.Require(middleware.PermEmployeeRead), h.List)
 	emps.POST("", middleware.Require(middleware.PermEmployeeWrite), h.Create)
+	emps.GET("/org-chart", middleware.Require(middleware.PermEmployeeRead), h.GetOrgChart)
 	emps.GET("/:id", middleware.RequireAny(middleware.PermEmployeeRead, middleware.PermSelfRead), h.getOrMe)
 	emps.GET("/:id/directs", middleware.Require(middleware.PermEmployeeRead), h.GetDirectReports)
 	emps.PUT("/:id", middleware.Require(middleware.PermEmployeeWrite), h.Update)
@@ -193,4 +195,17 @@ func (h *Handler) GetDirectReports(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": employees})
+}
+
+// GetOrgChart returns the full organizational hierarchy tree.
+func (h *Handler) GetOrgChart(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	tree, err := h.service.GetOrgChart(c.Request.Context(), orgID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": tree})
 }

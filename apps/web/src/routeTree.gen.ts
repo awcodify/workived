@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppOrgChartRouteImport } from './routes/_app/org-chart'
 import { Route as AuthSetupOrgRouteRouteImport } from './routes/_auth/setup-org/route'
 import { Route as AuthRegisterRouteRouteImport } from './routes/_auth/register/route'
 import { Route as AuthLoginRouteRouteImport } from './routes/_auth/login/route'
@@ -54,6 +55,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppOrgChartRoute = AppOrgChartRouteImport.update({
+  id: '/org-chart',
+  path: '/org-chart',
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const AuthSetupOrgRouteRoute = AuthSetupOrgRouteRouteImport.update({
   id: '/setup-org',
@@ -217,6 +223,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRouteRoute
   '/register': typeof AuthRegisterRouteRoute
   '/setup-org': typeof AuthSetupOrgRouteRoute
+  '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
@@ -245,6 +252,7 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRouteRoute
   '/register': typeof AuthRegisterRouteRoute
   '/setup-org': typeof AuthSetupOrgRouteRoute
+  '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
@@ -280,6 +288,7 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRouteRoute
   '/_auth/register': typeof AuthRegisterRouteRoute
   '/_auth/setup-org': typeof AuthSetupOrgRouteRoute
+  '/_app/org-chart': typeof AppOrgChartRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
@@ -314,6 +323,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/setup-org'
+    | '/org-chart'
     | '/attendance/monthly'
     | '/people/$id'
     | '/settings/company'
@@ -342,6 +352,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/register'
     | '/setup-org'
+    | '/org-chart'
     | '/attendance/monthly'
     | '/people/$id'
     | '/settings/company'
@@ -376,6 +387,7 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/register'
     | '/_auth/setup-org'
+    | '/_app/org-chart'
     | '/_app/attendance/monthly'
     | '/_app/people/$id'
     | '/_app/settings/company'
@@ -422,6 +434,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/_app/org-chart': {
+      id: '/_app/org-chart'
+      path: '/org-chart'
+      fullPath: '/org-chart'
+      preLoaderRoute: typeof AppOrgChartRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/_auth/setup-org': {
       id: '/_auth/setup-org'
@@ -719,6 +738,7 @@ interface AppRouteRouteChildren {
   AppReportsRouteRoute: typeof AppReportsRouteRoute
   AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
   AppTasksRouteRoute: typeof AppTasksRouteRoute
+  AppOrgChartRoute: typeof AppOrgChartRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -731,6 +751,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppReportsRouteRoute: AppReportsRouteRoute,
   AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
   AppTasksRouteRoute: AppTasksRouteRoute,
+  AppOrgChartRoute: AppOrgChartRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Search, Plus, Users } from 'lucide-react'
+import { Search, Plus, Network, Users } from 'lucide-react'
 import { useEmployees } from '@/lib/hooks/useEmployees'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
@@ -21,7 +21,7 @@ const STATUS_TABS = [
 
 function PeoplePage() {
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string | undefined>(undefined)
+  const [statusFilter, setStatusFilter] = useState<string | undefined>('active')
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [history, setHistory] = useState<(string | undefined)[]>([undefined])
 
@@ -79,19 +79,33 @@ function PeoplePage() {
             {employees.length} employee{employees.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link
-          to="/people/$id"
-          params={{ id: 'new' }}
-          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
-          style={{
-            background: t.accent,
-            color: t.accentText,
-            borderRadius: 12,
-          }}
-        >
-          <Plus size={16} />
-          Add employee
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/org-chart"
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
+            style={{
+              background: t.surface,
+              color: t.text,
+              borderRadius: 12,
+            }}
+          >
+            <Network size={16} />
+            Org Chart
+          </Link>
+          <Link
+            to="/people/$id"
+            params={{ id: 'new' }}
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
+            style={{
+              background: t.accent,
+              color: t.accentText,
+              borderRadius: 12,
+            }}
+          >
+            <Plus size={16} />
+            Add employee
+          </Link>
+        </div>
       </div>
 
       {/* Search */}
@@ -161,26 +175,29 @@ function PeoplePage() {
           </div>
 
           {/* Table rows */}
-          {employees.map((emp) => (
-            <Link
-              key={emp.id}
-              to="/people/$id"
-              params={{ id: emp.id }}
-              className="grid items-center gap-4 transition-all duration-150 hover:-translate-y-px"
-              style={{
-                gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
-                background: t.surface,
-                borderRadius: 12,
-                padding: '14px 20px',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = t.surfaceHover
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = t.surface
-              }}
-            >
-              <Avatar name={emp.full_name} id={emp.id} size={32} />
+          {employees.map((emp) => {
+            const isInactive = emp.status === 'inactive'
+            return (
+              <Link
+                key={emp.id}
+                to="/people/$id"
+                params={{ id: emp.id }}
+                className="grid items-center gap-4 transition-all duration-150 hover:-translate-y-px"
+                style={{
+                  gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
+                  background: t.surface,
+                  borderRadius: 12,
+                  padding: '14px 20px',
+                  opacity: isInactive ? 0.5 : 1,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = t.surfaceHover
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = t.surface
+                }}
+              >
+                <Avatar name={emp.full_name} id={emp.id} size={32} />
 
               <div className="min-w-0">
                 <p
@@ -213,7 +230,8 @@ function PeoplePage() {
 
               <StatusSquare status={emp.status} />
             </Link>
-          ))}
+            )
+          })}
         </div>
       )}
 
