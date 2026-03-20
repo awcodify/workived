@@ -35,12 +35,13 @@ type ServiceInterface interface {
 	ListBalances(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error)
 
 	// Claims
-	ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFilters) (*ListResult, error)
+	ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFilters, role string, managerEmployeeID *uuid.UUID) (*ListResult, error)
 	GetClaim(ctx context.Context, orgID, id uuid.UUID) (*Claim, error)
 	SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, req SubmitClaimRequest, receiptURL *string, actorUserID ...uuid.UUID) (*Claim, error)
 	ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, claimID uuid.UUID, req *ApproveClaimRequest, actorUserID ...uuid.UUID) (*Claim, error)
 	RejectClaim(ctx context.Context, orgID, reviewerEmployeeID, claimID uuid.UUID, req RejectClaimRequest, actorUserID ...uuid.UUID) (*Claim, error)
 	CancelClaim(ctx context.Context, orgID, employeeID, claimID uuid.UUID, actorUserID ...uuid.UUID) (*Claim, error)
+	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 	GetMonthlySummary(ctx context.Context, orgID uuid.UUID, year, month int) ([]MonthlySummary, error)
 }
 
@@ -91,17 +92,17 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 
 	// Claims — submit & view own
 	claims.POST("", middleware.Require(middleware.PermSelfClaims), h.SubmitClaim)
-	claims.GET("", middleware.Require(middleware.PermClaimsRead), h.ListClaims)
+	claims.GET("", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermClaimsWrite, middleware.PermTeamClaimsApprove), h.ListClaims)
 	claims.GET("/me", middleware.Require(middleware.PermSelfClaims), h.ListMyClaims)
 	claims.GET("/:id", middleware.RequireAny(middleware.PermClaimsRead, middleware.PermSelfClaims), h.GetClaim)
 	claims.POST("/:id/cancel", middleware.Require(middleware.PermSelfClaims), h.CancelClaim)
 
-	// Approval — admin or manager
-	claims.POST("/:id/approve", middleware.Require(middleware.PermClaimsApprove), h.ApproveClaim)
-	claims.POST("/:id/reject", middleware.Require(middleware.PermClaimsApprove), h.RejectClaim)
+	// Approval — admin, manager, or direct report manager
+	claims.POST("/:id/approve", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermTeamClaimsApprove, middleware.PermClaimsWrite), h.ApproveClaim)
+	claims.POST("/:id/reject", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermTeamClaimsApprove, middleware.PermClaimsWrite), h.RejectClaim)
 
-	// Reporting
-	claims.GET("/summary", middleware.Require(middleware.PermClaimsRead), h.GetMonthlySummary)
+	// Reporting — approvers + admins
+	claims.GET("/summary", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermClaimsWrite, middleware.PermTeamClaimsApprove), h.GetMonthlySummary)
 }
 
 // ── Category Handlers ─────────────────────────────────────────────────────────
@@ -362,6 +363,26 @@ func (h *Handler) SubmitClaim(c *gin.Context) {
 
 func (h *Handler) ListClaims(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
+
+	// For non-admin roles, filter by direct reports (reporting_to relationship)
+	// Admins (owner, admin, hr_admin) can see all claims
+	var managerEmployeeID *uuid.UUID
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+
+	if !hasFullApprovalRights {
+		// Lookup current user's employee_id to filter by their direct reports
+		empID, err := h.empLookup(c.Request.Context(), orgID, userID)
+		if err != nil {
+			h.logAndRespondError(c, err, "failed to lookup employee for claims filtering", map[string]string{
+				"user_id": userID.String(),
+				"org_id":  orgID.String(),
+			})
+			return
+		}
+		managerEmployeeID = &empID
+	}
 
 	f := ClaimFilters{
 		Cursor: c.Query("cursor"),
@@ -387,7 +408,7 @@ func (h *Handler) ListClaims(c *gin.Context) {
 		f.Limit = paginate.DefaultLimit
 	}
 
-	result, err := h.service.ListClaims(c.Request.Context(), orgID, f)
+	result, err := h.service.ListClaims(c.Request.Context(), orgID, f, role, managerEmployeeID)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
@@ -430,7 +451,7 @@ func (h *Handler) ListMyClaims(c *gin.Context) {
 		f.Limit = paginate.DefaultLimit
 	}
 
-	result, err := h.service.ListClaims(c.Request.Context(), orgID, f)
+	result, err := h.service.ListClaims(c.Request.Context(), orgID, f, "", nil)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
@@ -480,6 +501,8 @@ func (h *Handler) GetClaim(c *gin.Context) {
 func (h *Handler) ApproveClaim(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
+
 	claimID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
@@ -494,6 +517,26 @@ func (h *Handler) ApproveClaim(c *gin.Context) {
 			"claim_id": claimID.String(),
 		})
 		return
+	}
+
+	// If not an admin, verify they are the actual manager of the claimant
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	if !hasFullApprovalRights {
+		// Get the claim to check the reporting relationship
+		claim, err := h.service.GetClaim(c.Request.Context(), orgID, claimID)
+		if err != nil {
+			h.logAndRespondError(c, err, "failed to get claim for verification", map[string]string{
+				"org_id":   orgID.String(),
+				"claim_id": claimID.String(),
+			})
+			return
+		}
+
+		// Verify the reviewer is the claimant's manager
+		if err := h.service.VerifyManagerRelationship(c.Request.Context(), orgID, claim.EmployeeID, reviewerEmployeeID); err != nil {
+			c.JSON(http.StatusForbidden, apperr.Response(apperr.New(apperr.CodeForbidden, "you can only approve claims from your direct reports")))
+			return
+		}
 	}
 
 	var req ApproveClaimRequest
@@ -517,6 +560,8 @@ func (h *Handler) ApproveClaim(c *gin.Context) {
 func (h *Handler) RejectClaim(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
+
 	claimID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
@@ -531,6 +576,26 @@ func (h *Handler) RejectClaim(c *gin.Context) {
 			"claim_id": claimID.String(),
 		})
 		return
+	}
+
+	// If not an admin, verify they are the actual manager of the claimant
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	if !hasFullApprovalRights {
+		// Get the claim to check the reporting relationship
+		claim, err := h.service.GetClaim(c.Request.Context(), orgID, claimID)
+		if err != nil {
+			h.logAndRespondError(c, err, "failed to get claim for verification", map[string]string{
+				"org_id":   orgID.String(),
+				"claim_id": claimID.String(),
+			})
+			return
+		}
+
+		// Verify the reviewer is the claimant's manager
+		if err := h.service.VerifyManagerRelationship(c.Request.Context(), orgID, claim.EmployeeID, reviewerEmployeeID); err != nil {
+			c.JSON(http.StatusForbidden, apperr.Response(apperr.New(apperr.CodeForbidden, "you can only reject claims from your direct reports")))
+			return
+		}
 	}
 
 	var req RejectClaimRequest

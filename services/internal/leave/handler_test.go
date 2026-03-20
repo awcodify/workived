@@ -29,7 +29,7 @@ type fakeService struct {
 	listBalancesFn     func(ctx context.Context, orgID uuid.UUID, year int) ([]leave.BalanceWithPolicy, error)
 	listMyBalancesFn   func(ctx context.Context, orgID, employeeID uuid.UUID, year int) ([]leave.BalanceWithPolicy, error)
 	submitRequestFn    func(ctx context.Context, orgID, employeeID uuid.UUID, input leave.SubmitRequestInput) (*leave.Request, error)
-	listRequestsFn     func(ctx context.Context, orgID uuid.UUID, filter leave.ListRequestsFilter) ([]leave.RequestWithDetails, error)
+	listRequestsFn     func(ctx context.Context, orgID uuid.UUID, filter leave.ListRequestsFilter, role string, managerEmployeeID *uuid.UUID) ([]leave.RequestWithDetails, error)
 	listMyRequestsFn   func(ctx context.Context, orgID, employeeID uuid.UUID) ([]leave.RequestWithDetails, error)
 	approveRequestFn   func(ctx context.Context, orgID, reviewerEmployeeID, requestID uuid.UUID) (*leave.Request, error)
 	rejectRequestFn    func(ctx context.Context, orgID, reviewerEmployeeID, requestID uuid.UUID, note *string) (*leave.Request, error)
@@ -86,9 +86,9 @@ func (f *fakeService) SubmitRequest(ctx context.Context, orgID, employeeID uuid.
 	return &leave.Request{ID: testReqID}, nil
 }
 
-func (f *fakeService) ListRequests(ctx context.Context, orgID uuid.UUID, filter leave.ListRequestsFilter) ([]leave.RequestWithDetails, error) {
+func (f *fakeService) ListRequests(ctx context.Context, orgID uuid.UUID, filter leave.ListRequestsFilter, role string, managerEmployeeID *uuid.UUID) ([]leave.RequestWithDetails, error) {
 	if f.listRequestsFn != nil {
-		return f.listRequestsFn(ctx, orgID, filter)
+		return f.listRequestsFn(ctx, orgID, filter, role, managerEmployeeID)
 	}
 	return []leave.RequestWithDetails{}, nil
 }
@@ -132,7 +132,7 @@ func (f *fakeService) ListHolidays(ctx context.Context, orgID uuid.UUID, startDa
 	return []leave.PublicHoliday{}, nil
 }
 
-func (f *fakeService) GetNotificationCount(ctx context.Context, orgID uuid.UUID) (int, error) {
+func (f *fakeService) GetNotificationCount(ctx context.Context, orgID uuid.UUID, role string, managerEmployeeID *uuid.UUID) (int, error) {
 	return 0, nil
 }
 

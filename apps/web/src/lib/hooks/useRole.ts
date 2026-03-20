@@ -20,14 +20,22 @@ export function useCanInvite(): boolean {
   return role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin'
 }
 
-// leave.write permission: owner, admin, hr_admin
+// leave.write permission: owner, admin, hr_admin, member, manager, finance
+// Members/managers/finance can view team approvals if they have direct reports
 export function useCanManageLeave(): boolean {
   const role = useRole()
-  return role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin'
+  return role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin' || role === 'member' || role === 'manager' || role === 'finance'
 }
 
-// claims.write permission: owner, admin, hr_admin
+// claims.write permission: owner, admin, hr_admin, member, manager, finance
+// Members/managers/finance can view team approvals if they have direct reports
 export function useCanManageClaims(): boolean {
+  const role = useRole()
+  return role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin' || role === 'member' || role === 'manager' || role === 'finance'
+}
+
+// employee.write permission: owner, admin, hr_admin
+export function useCanManageEmployees(): boolean {
   const role = useRole()
   return role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin'
 }

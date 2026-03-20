@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Search, Plus, Network, Users } from 'lucide-react'
 import { useEmployees } from '@/lib/hooks/useEmployees'
+import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { moduleBackgrounds, moduleThemes } from '@/design/tokens'
@@ -20,6 +21,7 @@ const STATUS_TABS = [
 ] as const
 
 function PeoplePage() {
+  const canManageEmployees = useCanManageEmployees()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | undefined>('active')
   const [cursor, setCursor] = useState<string | undefined>(undefined)
@@ -92,19 +94,21 @@ function PeoplePage() {
             <Network size={16} />
             Org Chart
           </Link>
-          <Link
-            to="/people/$id"
-            params={{ id: 'new' }}
-            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
-            style={{
-              background: t.accent,
-              color: t.accentText,
-              borderRadius: 12,
-            }}
-          >
-            <Plus size={16} />
-            Add employee
-          </Link>
+          {canManageEmployees && (
+            <Link
+              to="/people/$id"
+              params={{ id: 'new' }}
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
+              style={{
+                background: t.accent,
+                color: t.accentText,
+                borderRadius: 12,
+              }}
+            >
+              <Plus size={16} />
+              Add employee
+            </Link>
+          )}
         </div>
       </div>
 
@@ -347,7 +351,7 @@ function PeopleEmptyState({
           ? 'Try a different search or clear the filter.'
           : 'Add your first team member to get started.'}
       </p>
-      {!hasFiltering && (
+      {!hasFiltering && canManageEmployees && (
         <Link
           to="/people/$id"
           params={{ id: 'new' }}

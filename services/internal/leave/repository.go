@@ -448,8 +448,9 @@ func (r *Repository) ListRequests(ctx context.Context, orgID uuid.UUID, filter L
 		  AND ($2::varchar IS NULL OR lr.status = $2)
 		  AND ($3::uuid IS NULL OR lr.employee_id = $3)
 		  AND ($4::int IS NULL OR EXTRACT(YEAR FROM lr.start_date) = $4)
+		  AND ($5::uuid IS NULL OR e.reporting_to = $5)
 		ORDER BY lr.created_at DESC
-	`, orgID, filter.Status, filter.EmployeeID, filter.Year)
+	`, orgID, filter.Status, filter.EmployeeID, filter.Year, filter.ManagerEmployeeID)
 	if err != nil {
 		return nil, fmt.Errorf("list leave requests: %w", err)
 	}
@@ -492,17 +493,35 @@ func (r *Repository) HasOverlap(ctx context.Context, orgID, employeeID uuid.UUID
 }
 
 // CountPendingRequests returns the number of pending leave requests for the organization.
-func (r *Repository) CountPendingRequests(ctx context.Context, orgID uuid.UUID) (int, error) {
+func (r *Repository) CountPendingRequests(ctx context.Context, orgID uuid.UUID, managerEmployeeID *uuid.UUID) (int, error) {
 	var count int
-	err := r.db.QueryRow(ctx, `
+	query := `
 		SELECT COUNT(*)
-		FROM leave_requests
-		WHERE organisation_id = $1
-		  AND status = 'pending'
-	`, orgID).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("count pending leave requests: %w", err)
+		FROM leave_requests lr`
+
+	if managerEmployeeID != nil {
+		query += `
+		JOIN employees e ON e.id = lr.employee_id`
 	}
+
+	query += `
+		WHERE lr.organisation_id = $1
+		  AND lr.status = 'pending'`
+
+	if managerEmployeeID != nil {
+		query += `
+		  AND e.reporting_to = $2`
+		err := r.db.QueryRow(ctx, query, orgID, managerEmployeeID).Scan(&count)
+		if err != nil {
+			return 0, fmt.Errorf("count pending leave requests: %w", err)
+		}
+	} else {
+		err := r.db.QueryRow(ctx, query, orgID).Scan(&count)
+		if err != nil {
+			return 0, fmt.Errorf("count pending leave requests: %w", err)
+		}
+	}
+
 	return count, nil
 }
 

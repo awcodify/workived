@@ -2,6 +2,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { ChevronDown, ChevronRight, Users, ArrowLeft } from 'lucide-react'
 import { useOrgChart } from '@/lib/hooks/useEmployees'
+import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { moduleBackgrounds, moduleThemes } from '@/design/tokens'
@@ -197,6 +198,8 @@ function OrgNode({ node }: { node: OrgChartNode }) {
 
 // ── Empty State ──────────────────────────────────────────────────────
 function EmptyState() {
+  const canManageEmployees = useCanManageEmployees()
+
   return (
     <div className="flex flex-col items-center justify-center py-16 gap-3">
       <div
@@ -211,18 +214,20 @@ function EmptyState() {
       <p style={{ fontSize: 13, color: t.textMuted }}>
         Add employees and assign managers to build your org chart.
       </p>
-      <Link
-        to="/people/$id"
-        params={{ id: 'new' }}
-        className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 mt-2 transition-colors hover:opacity-90"
-        style={{
-          background: t.accent,
-          color: t.accentText,
-          borderRadius: 12,
-        }}
-      >
-        Add employee
-      </Link>
+      {canManageEmployees && (
+        <Link
+          to="/people/$id"
+          params={{ id: 'new' }}
+          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 mt-2 transition-colors hover:opacity-90"
+          style={{
+            background: t.accent,
+            color: t.accentText,
+            borderRadius: 12,
+          }}
+        >
+          Add employee
+        </Link>
+      )}
     </div>
   )
 }

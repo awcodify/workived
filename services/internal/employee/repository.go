@@ -178,6 +178,25 @@ func (r *Repository) GetEmployeeProfile(ctx context.Context, orgID, employeeID u
 	return name, email, managerID, nil
 }
 
+func (r *Repository) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
+	var reportingTo *uuid.UUID
+	err := r.db.QueryRow(ctx, `
+		SELECT reporting_to
+		FROM employees
+		WHERE organisation_id = $1 AND id = $2 AND is_active = true
+	`, orgID, employeeID).Scan(&reportingTo)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return apperr.NotFound("employee")
+		}
+		return err
+	}
+	if reportingTo == nil || *reportingTo != managerEmployeeID {
+		return apperr.New(apperr.CodeForbidden, "employee does not report to you")
+	}
+	return nil
+}
+
 func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest) (*Employee, error) {
 	e := &Employee{}
 	err := r.db.QueryRow(ctx, `

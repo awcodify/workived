@@ -166,7 +166,7 @@ func (f *fakeRepo) ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx, o
 func (f *fakeRepo) CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error {
 	return nil
 }
-func (f *fakeRepo) CountPendingRequests(ctx context.Context, orgID uuid.UUID) (int, error) {
+func (f *fakeRepo) CountPendingRequests(ctx context.Context, orgID uuid.UUID, managerEmployeeID *uuid.UUID) (int, error) {
 	return 0, nil
 }
 

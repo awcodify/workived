@@ -111,8 +111,8 @@ var RolePermissions = map[string][]string{
 		PermEmployeeRead,
 		PermDepartmentRead,
 		PermOrgRead,
-		PermLeaveRead,  // Need to view policies to create leave requests
-		PermClaimsRead, // Need to view categories to create claims
+		PermLeaveRead, PermLeaveWrite, // Need read to view policies, write to see team requests
+		PermClaimsRead, PermClaimsWrite, // Need read to view categories, write to see team claims
 	},
 
 	// ── Pro-tier ──

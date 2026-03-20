@@ -120,13 +120,14 @@ type ImportCategoriesRequest struct {
 // ── Filter types ──────────────────────────────────────────────────────────────
 
 type ClaimFilters struct {
-	Status     *string `form:"status"`
-	EmployeeID *string `form:"employee_id"`
-	CategoryID *string `form:"category_id"`
-	StartDate  *string `form:"start_date"` // YYYY-MM-DD
-	EndDate    *string `form:"end_date"`   // YYYY-MM-DD
-	Cursor     string  `form:"cursor"`     // ISO timestamp
-	Limit      int     `form:"limit"`
+	Status            *string `form:"status"`
+	EmployeeID        *string `form:"employee_id"`
+	CategoryID        *string `form:"category_id"`
+	StartDate         *string `form:"start_date"` // YYYY-MM-DD
+	EndDate           *string `form:"end_date"`   // YYYY-MM-DD
+	Cursor            string  `form:"cursor"`     // ISO timestamp
+	Limit             int     `form:"limit"`
+	ManagerEmployeeID *uuid.UUID
 }
 
 // ── Summary types ─────────────────────────────────────────────────────────────

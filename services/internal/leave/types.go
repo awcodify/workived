@@ -145,9 +145,10 @@ type ImportPoliciesInput struct {
 }
 
 type ListRequestsFilter struct {
-	Status     *string
-	EmployeeID *uuid.UUID
-	Year       *int
+	Status            *string
+	EmployeeID        *uuid.UUID
+	Year              *int
+	ManagerEmployeeID *uuid.UUID
 }
 
 type CalendarFilter struct {

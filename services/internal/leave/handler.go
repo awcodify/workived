@@ -27,14 +27,16 @@ type ServiceInterface interface {
 
 	// Requests
 	SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID, input SubmitRequestInput) (*Request, error)
-	ListRequests(ctx context.Context, orgID uuid.UUID, filter ListRequestsFilter) ([]RequestWithDetails, error)
+	ListRequests(ctx context.Context, orgID uuid.UUID, filter ListRequestsFilter, role string, managerEmployeeID *uuid.UUID) ([]RequestWithDetails, error)
 	ListMyRequests(ctx context.Context, orgID, employeeID uuid.UUID) ([]RequestWithDetails, error)
+	GetRequest(ctx context.Context, orgID, requestID uuid.UUID) (*Request, error)
 	ApproveRequest(ctx context.Context, orgID, reviewerEmployeeID, requestID uuid.UUID) (*Request, error)
 	RejectRequest(ctx context.Context, orgID, reviewerEmployeeID, requestID uuid.UUID, note *string) (*Request, error)
 	CancelRequest(ctx context.Context, orgID, employeeID, requestID uuid.UUID) (*Request, error)
+	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 
 	// Notifications
-	GetNotificationCount(ctx context.Context, orgID uuid.UUID) (int, error)
+	GetNotificationCount(ctx context.Context, orgID uuid.UUID, role string, managerEmployeeID *uuid.UUID) (int, error)
 
 	// Calendar
 	GetCalendar(ctx context.Context, orgID uuid.UUID, year, month int) ([]CalendarEntry, error)
@@ -81,22 +83,22 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Templates — admin can list and import
 	leave.GET("/templates", middleware.Require(middleware.PermLeaveRead), h.ListTemplates)
 
-	// Balances — admin sees all, employee sees own
-	leave.GET("/balances", middleware.Require(middleware.PermLeaveRead), h.ListBalances)
+	// Balances — approvers + admins see all, employees see own
+	leave.GET("/balances", middleware.RequireAny(middleware.PermLeaveApprove, middleware.PermLeaveWrite, middleware.PermTeamLeaveApprove), h.ListBalances)
 	leave.GET("/balances/me", middleware.Require(middleware.PermSelfLeave), h.ListMyBalances)
 
 	// Requests — submit & view own
 	leave.POST("/requests", middleware.Require(middleware.PermSelfLeave), h.SubmitRequest)
-	leave.GET("/requests", middleware.Require(middleware.PermLeaveRead), h.ListRequests)
+	leave.GET("/requests", middleware.RequireAny(middleware.PermLeaveApprove, middleware.PermLeaveWrite, middleware.PermTeamLeaveApprove), h.ListRequests)
 	leave.GET("/requests/me", middleware.Require(middleware.PermSelfLeave), h.ListMyRequests)
 	leave.POST("/requests/:id/cancel", middleware.Require(middleware.PermSelfLeave), h.CancelRequest)
 
-	// Notifications — pending approvals count
-	leave.GET("/notifications/count", middleware.Require(middleware.PermLeaveRead), h.GetNotificationCount)
+	// Notifications — pending approvals count (approvers + admins)
+	leave.GET("/notifications/count", middleware.RequireAny(middleware.PermLeaveApprove, middleware.PermLeaveWrite, middleware.PermTeamLeaveApprove), h.GetNotificationCount)
 
-	// Approve / reject — admin or manager
-	leave.POST("/requests/:id/approve", middleware.RequireAny(middleware.PermLeaveApprove, middleware.PermTeamLeaveApprove), h.ApproveRequest)
-	leave.POST("/requests/:id/reject", middleware.RequireAny(middleware.PermLeaveApprove, middleware.PermTeamLeaveApprove), h.RejectRequest)
+	// Approve / reject — admin, manager, or direct report manager
+	leave.POST("/requests/:id/approve", middleware.RequireAny(middleware.PermLeaveApprove, middleware.PermTeamLeaveApprove, middleware.PermLeaveWrite), h.ApproveRequest)
+	leave.POST("/requests/:id/reject", middleware.RequireAny(middleware.PermLeaveApprove, middleware.PermTeamLeaveApprove, middleware.PermLeaveWrite), h.RejectRequest)
 
 	// Calendar
 	leave.GET("/calendar", middleware.Require(middleware.PermLeaveRead), h.GetCalendar)
@@ -262,6 +264,8 @@ func (h *Handler) SubmitRequest(c *gin.Context) {
 
 func (h *Handler) ListRequests(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
 
 	var filter ListRequestsFilter
 	if s := c.Query("status"); s != "" {
@@ -284,7 +288,22 @@ func (h *Handler) ListRequests(c *gin.Context) {
 		filter.Year = &year
 	}
 
-	requests, err := h.service.ListRequests(c.Request.Context(), orgID, filter)
+	// For non-admin roles, filter by direct reports (reporting_to relationship)
+	// Admins (owner, admin, hr_admin) can see all requests
+	var managerEmployeeID *uuid.UUID
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+
+	if !hasFullApprovalRights {
+		// Lookup current user's employee_id to filter by their direct reports
+		empID, err := h.empLookup(c.Request.Context(), orgID, userID)
+		if err != nil {
+			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			return
+		}
+		managerEmployeeID = &empID
+	}
+
+	requests, err := h.service.ListRequests(c.Request.Context(), orgID, filter, role, managerEmployeeID)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
@@ -315,6 +334,7 @@ func (h *Handler) ListMyRequests(c *gin.Context) {
 func (h *Handler) ApproveRequest(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
 
 	requestID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -326,6 +346,23 @@ func (h *Handler) ApproveRequest(c *gin.Context) {
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
+	}
+
+	// If not an admin, verify they are the actual manager of the requester
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	if !hasFullApprovalRights {
+		// Get the request to check the reporting relationship
+		request, err := h.service.GetRequest(c.Request.Context(), orgID, requestID)
+		if err != nil {
+			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			return
+		}
+
+		// Verify the reviewer is the requester's manager
+		if err := h.service.VerifyManagerRelationship(c.Request.Context(), orgID, request.EmployeeID, reviewerEmployeeID); err != nil {
+			c.JSON(http.StatusForbidden, apperr.Response(apperr.New(apperr.CodeForbidden, "you can only approve requests from your direct reports")))
+			return
+		}
 	}
 
 	req, err := h.service.ApproveRequest(c.Request.Context(), orgID, reviewerEmployeeID, requestID)
@@ -340,6 +377,7 @@ func (h *Handler) ApproveRequest(c *gin.Context) {
 func (h *Handler) RejectRequest(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
 
 	requestID, err := uuid.Parse(c.Param("id"))
 	if err != nil {
@@ -351,6 +389,23 @@ func (h *Handler) RejectRequest(c *gin.Context) {
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
+	}
+
+	// If not an admin, verify they are the actual manager of the requester
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	if !hasFullApprovalRights {
+		// Get the request to check the reporting relationship
+		request, err := h.service.GetRequest(c.Request.Context(), orgID, requestID)
+		if err != nil {
+			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			return
+		}
+
+		// Verify the reviewer is the requester's manager
+		if err := h.service.VerifyManagerRelationship(c.Request.Context(), orgID, request.EmployeeID, reviewerEmployeeID); err != nil {
+			c.JSON(http.StatusForbidden, apperr.Response(apperr.New(apperr.CodeForbidden, "you can only reject requests from your direct reports")))
+			return
+		}
 	}
 
 	var input ReviewInput
@@ -443,8 +498,23 @@ func (h *Handler) ListHolidays(c *gin.Context) {
 
 func (h *Handler) GetNotificationCount(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
 
-	count, err := h.service.GetNotificationCount(c.Request.Context(), orgID)
+	// For non-admin roles, filter by direct reports
+	var managerEmployeeID *uuid.UUID
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+
+	if !hasFullApprovalRights {
+		empID, err := h.empLookup(c.Request.Context(), orgID, userID)
+		if err != nil {
+			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			return
+		}
+		managerEmployeeID = &empID
+	}
+
+	count, err := h.service.GetNotificationCount(c.Request.Context(), orgID, role, managerEmployeeID)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return

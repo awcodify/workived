@@ -52,6 +52,7 @@ type OrgInfoProvider interface {
 // EmployeeInfoProvider provides employee profile data for email notifications.
 type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
 type Service struct {
@@ -297,7 +298,12 @@ type ListResult struct {
 	Meta   paginate.Meta
 }
 
-func (s *Service) ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFilters) (*ListResult, error) {
+func (s *Service) ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFilters, role string, managerEmployeeID *uuid.UUID) (*ListResult, error) {
+	// If managerEmployeeID is provided, filter to only show direct reports
+	if managerEmployeeID != nil {
+		f.ManagerEmployeeID = managerEmployeeID
+	}
+
 	limit := paginate.ClampLimit(f.Limit)
 	f.Limit = limit + 1
 
@@ -325,6 +331,10 @@ func (s *Service) ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFilter
 
 func (s *Service) GetClaim(ctx context.Context, orgID, id uuid.UUID) (*Claim, error) {
 	return s.repo.GetClaim(ctx, orgID, id)
+}
+
+func (s *Service) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
+	return s.employeeRepo.VerifyManagerRelationship(ctx, orgID, employeeID, managerEmployeeID)
 }
 
 func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, req SubmitClaimRequest, receiptURL *string, actorUserID ...uuid.UUID) (*Claim, error) {

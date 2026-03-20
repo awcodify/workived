@@ -39,7 +39,7 @@ type RepositoryInterface interface {
 	GetRequest(ctx context.Context, orgID, requestID uuid.UUID) (*Request, error)
 	UpdateRequestStatus(ctx context.Context, tx pgx.Tx, orgID, requestID uuid.UUID, expectedCurrentStatus, newStatus string, reviewedBy *uuid.UUID, reviewNote *string) (*Request, error)
 	ListRequests(ctx context.Context, orgID uuid.UUID, filter ListRequestsFilter) ([]RequestWithDetails, error)
-	CountPendingRequests(ctx context.Context, orgID uuid.UUID) (int, error)
+	CountPendingRequests(ctx context.Context, orgID uuid.UUID, managerEmployeeID *uuid.UUID) (int, error)
 	HasOverlap(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (bool, error)
 
 	// Calendar & attendance integration
@@ -72,6 +72,7 @@ type OrgInfoProvider interface {
 // EmployeeInfoProvider provides employee profile data for email notifications.
 type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
 // ── Service ─────────────────────────────────────────────────────────────────
@@ -515,9 +516,10 @@ func (s *Service) CancelRequest(ctx context.Context, orgID, employeeID, requestI
 
 // ── Notifications ───────────────────────────────────────────────────────────
 
-// GetNotificationCount returns the number of pending leave requests for the organization.
-func (s *Service) GetNotificationCount(ctx context.Context, orgID uuid.UUID) (int, error) {
-	return s.repo.CountPendingRequests(ctx, orgID)
+// GetNotificationCount returns the number of pending leave requests.
+// For non-admins, only counts requests from direct reports.
+func (s *Service) GetNotificationCount(ctx context.Context, orgID uuid.UUID, role string, managerEmployeeID *uuid.UUID) (int, error) {
+	return s.repo.CountPendingRequests(ctx, orgID, managerEmployeeID)
 }
 
 // ── Calendar ────────────────────────────────────────────────────────────────
@@ -528,12 +530,24 @@ func (s *Service) GetCalendar(ctx context.Context, orgID uuid.UUID, year, month 
 
 // ── List requests ───────────────────────────────────────────────────────────
 
-func (s *Service) ListRequests(ctx context.Context, orgID uuid.UUID, filter ListRequestsFilter) ([]RequestWithDetails, error) {
+func (s *Service) ListRequests(ctx context.Context, orgID uuid.UUID, filter ListRequestsFilter, role string, managerEmployeeID *uuid.UUID) ([]RequestWithDetails, error) {
+	// If managerEmployeeID is provided, filter to only show direct reports
+	if managerEmployeeID != nil {
+		filter.ManagerEmployeeID = managerEmployeeID
+	}
 	return s.repo.ListRequests(ctx, orgID, filter)
 }
 
 func (s *Service) ListMyRequests(ctx context.Context, orgID, employeeID uuid.UUID) ([]RequestWithDetails, error) {
 	return s.repo.ListRequests(ctx, orgID, ListRequestsFilter{EmployeeID: &employeeID})
+}
+
+func (s *Service) GetRequest(ctx context.Context, orgID, requestID uuid.UUID) (*Request, error) {
+	return s.repo.GetRequest(ctx, orgID, requestID)
+}
+
+func (s *Service) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
+	return s.employeeRepo.VerifyManagerRelationship(ctx, orgID, employeeID, managerEmployeeID)
 }
 
 // ── Attendance integration ──────────────────────────────────────────────────

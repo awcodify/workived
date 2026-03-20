@@ -218,8 +218,9 @@ func (r *Repository) ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFil
 		  AND ($5::date IS NULL OR c.claim_date >= $5::date)
 		  AND ($6::date IS NULL OR c.claim_date <= $6::date)
 		  AND ($7::timestamptz IS NULL OR c.created_at < $7::timestamptz)
+		  AND ($8::uuid IS NULL OR e.reporting_to = $8)
 		ORDER BY c.created_at DESC
-		LIMIT $8
+		LIMIT $9
 	`
 
 	rows, err := r.db.Query(ctx, query,
@@ -230,6 +231,7 @@ func (r *Repository) ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFil
 		f.StartDate,
 		f.EndDate,
 		nilIfEmpty(cursor.Value),
+		f.ManagerEmployeeID,
 		limit+1,
 	)
 	if err != nil {
