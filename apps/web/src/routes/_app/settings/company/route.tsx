@@ -11,7 +11,7 @@ import { organisationsApi } from '@/lib/api/organisations'
 import { useAuthStore } from '@/lib/stores/auth'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
-import { extractApiError } from '@/lib/utils/errors'
+import { extractApiError, extractApiErrorDetails } from '@/lib/utils/errors'
 import { extractInviteToken } from '@/lib/utils/url'
 import type { MyInvitation } from '@/types/api'
 
