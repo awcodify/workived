@@ -7,6 +7,7 @@ import type { CalendarEntry } from '@/types/api'
 
 const t = moduleThemes.leave
 
+// @ts-expect-error - Route will be registered after route tree regenerates
 export const Route = createFileRoute('/_app/leave/calendar')({
   component: CalendarPage,
 })

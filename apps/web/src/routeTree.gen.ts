@@ -27,6 +27,7 @@ import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppLeaveIndexRouteImport } from './routes/_app/leave/index'
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
+import { Route as AppLeaveCalendarRouteImport } from './routes/_app/leave/calendar'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
@@ -36,6 +37,7 @@ import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/p
 import { Route as AppLeaveRequestsPendingRouteImport } from './routes/_app/leave/requests/pending'
 import { Route as AppLeaveRequestsNewRouteImport } from './routes/_app/leave/requests/new'
 import { Route as AppLeavePoliciesNewRouteImport } from './routes/_app/leave/policies/new'
+import { Route as AppLeavePoliciesIdRouteImport } from './routes/_app/leave/policies/$id'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
@@ -125,6 +127,11 @@ const AppAttendanceIndexRoute = AppAttendanceIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppAttendanceRouteRoute,
 } as any)
+const AppLeaveCalendarRoute = AppLeaveCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => AppLeaveRouteRoute,
+} as any)
 const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
   id: '/members',
   path: '/members',
@@ -171,6 +178,11 @@ const AppLeavePoliciesNewRoute = AppLeavePoliciesNewRouteImport.update({
   path: '/policies/new',
   getParentRoute: () => AppLeaveRouteRoute,
 } as any)
+const AppLeavePoliciesIdRoute = AppLeavePoliciesIdRouteImport.update({
+  id: '/policies/$id',
+  path: '/policies/$id',
+  getParentRoute: () => AppLeaveRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -190,9 +202,11 @@ export interface FileRoutesByFullPath {
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/leave/calendar': typeof AppLeaveCalendarRoute
   '/attendance/': typeof AppAttendanceIndexRoute
   '/leave/': typeof AppLeaveIndexRoute
   '/people/': typeof AppPeopleIndexRoute
+  '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/leave/requests/new': typeof AppLeaveRequestsNewRoute
   '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
@@ -214,9 +228,11 @@ export interface FileRoutesByTo {
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/leave/calendar': typeof AppLeaveCalendarRoute
   '/attendance': typeof AppAttendanceIndexRoute
   '/leave': typeof AppLeaveIndexRoute
   '/people': typeof AppPeopleIndexRoute
+  '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/leave/requests/new': typeof AppLeaveRequestsNewRoute
   '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
@@ -244,9 +260,11 @@ export interface FileRoutesById {
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
+  '/_app/leave/calendar': typeof AppLeaveCalendarRoute
   '/_app/attendance/': typeof AppAttendanceIndexRoute
   '/_app/leave/': typeof AppLeaveIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
+  '/_app/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/_app/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/_app/leave/requests/new': typeof AppLeaveRequestsNewRoute
   '/_app/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
@@ -273,9 +291,11 @@ export interface FileRouteTypes {
     | '/people/$id'
     | '/settings/company'
     | '/settings/members'
+    | '/leave/calendar'
     | '/attendance/'
     | '/leave/'
     | '/people/'
+    | '/leave/policies/$id'
     | '/leave/policies/new'
     | '/leave/requests/new'
     | '/leave/requests/pending'
@@ -297,9 +317,11 @@ export interface FileRouteTypes {
     | '/people/$id'
     | '/settings/company'
     | '/settings/members'
+    | '/leave/calendar'
     | '/attendance'
     | '/leave'
     | '/people'
+    | '/leave/policies/$id'
     | '/leave/policies/new'
     | '/leave/requests/new'
     | '/leave/requests/pending'
@@ -326,9 +348,11 @@ export interface FileRouteTypes {
     | '/_app/people/$id'
     | '/_app/settings/company'
     | '/_app/settings/members'
+    | '/_app/leave/calendar'
     | '/_app/attendance/'
     | '/_app/leave/'
     | '/_app/people/'
+    | '/_app/leave/policies/$id'
     | '/_app/leave/policies/new'
     | '/_app/leave/requests/new'
     | '/_app/leave/requests/pending'
@@ -470,6 +494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAttendanceIndexRouteImport
       parentRoute: typeof AppAttendanceRouteRoute
     }
+    '/_app/leave/calendar': {
+      id: '/_app/leave/calendar'
+      path: '/calendar'
+      fullPath: '/leave/calendar'
+      preLoaderRoute: typeof AppLeaveCalendarRouteImport
+      parentRoute: typeof AppLeaveRouteRoute
+    }
     '/_app/settings/members': {
       id: '/_app/settings/members'
       path: '/members'
@@ -533,6 +564,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeavePoliciesNewRouteImport
       parentRoute: typeof AppLeaveRouteRoute
     }
+    '/_app/leave/policies/$id': {
+      id: '/_app/leave/policies/$id'
+      path: '/policies/$id'
+      fullPath: '/leave/policies/$id'
+      preLoaderRoute: typeof AppLeavePoliciesIdRouteImport
+      parentRoute: typeof AppLeaveRouteRoute
+    }
   }
 }
 
@@ -550,7 +588,9 @@ const AppAttendanceRouteRouteWithChildren =
   AppAttendanceRouteRoute._addFileChildren(AppAttendanceRouteRouteChildren)
 
 interface AppLeaveRouteRouteChildren {
+  AppLeaveCalendarRoute: typeof AppLeaveCalendarRoute
   AppLeaveIndexRoute: typeof AppLeaveIndexRoute
+  AppLeavePoliciesIdRoute: typeof AppLeavePoliciesIdRoute
   AppLeavePoliciesNewRoute: typeof AppLeavePoliciesNewRoute
   AppLeaveRequestsNewRoute: typeof AppLeaveRequestsNewRoute
   AppLeaveRequestsPendingRoute: typeof AppLeaveRequestsPendingRoute
@@ -559,7 +599,9 @@ interface AppLeaveRouteRouteChildren {
 }
 
 const AppLeaveRouteRouteChildren: AppLeaveRouteRouteChildren = {
+  AppLeaveCalendarRoute: AppLeaveCalendarRoute,
   AppLeaveIndexRoute: AppLeaveIndexRoute,
+  AppLeavePoliciesIdRoute: AppLeavePoliciesIdRoute,
   AppLeavePoliciesNewRoute: AppLeavePoliciesNewRoute,
   AppLeaveRequestsNewRoute: AppLeaveRequestsNewRoute,
   AppLeaveRequestsPendingRoute: AppLeaveRequestsPendingRoute,
