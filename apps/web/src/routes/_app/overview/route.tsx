@@ -8,7 +8,7 @@ import { useMyBalances } from '@/lib/hooks/useLeave'
 import { todayISO, formatDate } from '@/lib/utils/date'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
-import { LogIn, LogOut, Clock, Timer, Users, CalendarDays, TrendingUp, Building2, ChevronRight } from 'lucide-react'
+import { LogIn, LogOut, Clock, Timer, Users, CalendarDays, Building2 } from 'lucide-react'
 
 // ── Tooltip ──────────────────────────────────────────────────────
 import { useRef, useState as useTooltipState } from 'react'
@@ -318,20 +318,20 @@ function OverviewPage() {
         className="dashboard-columns"
         style={{ display: 'flex', gap: 32, marginTop: 32 }}
       >
-        {/* Left: My Attendance Card */}
-        <div className="dashboard-col" style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          border: '1px solid rgba(255,255,255,0.10)',
-          borderRadius: 18,
-          background: colors.accentText,
-          color: colors.ink0,
-          boxShadow: '0 2px 16px 0 rgba(0,0,0,0.10)',
-          position: 'relative',
-          overflow: 'hidden',
-        }}>
+        {/* Left Column: My Attendance + Annual Leave (stacked) */}
+        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* My Attendance Card */}
+          <div style={{
+            border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 18,
+            background: 'rgba(74, 63, 191, 0.50)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            color: colors.ink0,
+            boxShadow: '0 2px 16px 0 rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05) inset',
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 28px 0 28px' }}>
             <Timer size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
             <h3
@@ -519,6 +519,127 @@ function OverviewPage() {
               )}
             </div>
           </div>
+        </div>
+
+          {/* Annual Leave Balance Card */}
+          {leaveBalances && leaveBalances.length > 0 && (() => {
+            const annualLeave = leaveBalances.find(b => 
+              b.policy_name.toLowerCase().includes('annual') || 
+              b.policy_name.toLowerCase().includes('vacation')
+            )
+            
+            if (!annualLeave) return null
+            
+            const available = annualLeave.entitled_days + annualLeave.carried_over_days - annualLeave.used_days - annualLeave.pending_days
+            const total = annualLeave.entitled_days + annualLeave.carried_over_days
+            const availablePercentage = total > 0 ? (available / total) * 100 : 0
+            const pendingPercentage = total > 0 ? (annualLeave.pending_days / total) * 100 : 0
+            
+            return (
+              <div style={{
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 18,
+                background: 'rgba(26, 32, 44, 0.85)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                boxShadow: '0 2px 16px 0 rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05) inset',
+                padding: '28px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <CalendarDays size={18} style={{ color: colors.accentMid }} />
+                    <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: colors.ink0, letterSpacing: typography.h2.tracking, marginBottom: 0 }}>
+                      Annual Leave ({currentYear})
+                    </h3>
+                  </div>
+                  <Link
+                    to="/leave"
+                    className="text-xs font-semibold transition-opacity hover:opacity-100"
+                    style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
+                  >
+                    View all
+                  </Link>
+                </div>
+                
+                {/* Available Days */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 14 }}>
+                  <span style={{ 
+                    fontFamily: typography.fontMono, 
+                    fontSize: 44, 
+                    fontWeight: 800, 
+                    color: available > 0 ? colors.ok : 'rgba(255,255,255,0.3)',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1,
+                  }}>
+                    {available === 999 ? '∞' : available.toFixed(1)}
+                  </span>
+                  <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+                    {available === 999 ? 'days' : `/ ${total} days`}
+                  </span>
+                </div>
+                
+                {/* Progress Bar - Available (green) + Pending (yellow striped) */}
+                <div style={{ marginBottom: 12 }}>
+                  <div style={{ 
+                    height: 8, 
+                    background: 'rgba(255,255,255,0.1)', 
+                    borderRadius: 4,
+                    overflow: 'hidden',
+                    position: 'relative',
+                  }}>
+                    {/* Available - green fill */}
+                    <div style={{
+                      position: 'absolute',
+                      left: 0,
+                      top: 0,
+                      bottom: 0,
+                      width: `${Math.min(availablePercentage, 100)}%`,
+                      background: 'rgba(18, 160, 92, 0.9)',
+                      borderTopLeftRadius: 4,
+                      borderBottomLeftRadius: 4,
+                      transition: 'width 0.3s ease',
+                    }} />
+                    {/* Pending - striped yellow overlay */}
+                    {pendingPercentage > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        left: `${availablePercentage}%`,
+                        top: 0,
+                        bottom: 0,
+                        width: `${Math.min(pendingPercentage, 100 - availablePercentage)}%`,
+                        background: `repeating-linear-gradient(
+                          45deg,
+                          rgba(201, 123, 42, 0.7),
+                          rgba(201, 123, 42, 0.7) 3px,
+                          rgba(201, 123, 42, 0.4) 3px,
+                          rgba(201, 123, 42, 0.4) 6px
+                        )`,
+                        transition: 'width 0.3s ease, left 0.3s ease',
+                      }} />
+                    )}
+                  </div>
+                </div>
+                
+                {/* Stats */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Entitled: </span>
+                    <span style={{ color: colors.ink0, fontWeight: 700 }}>{annualLeave.entitled_days === 999 ? '∞' : annualLeave.entitled_days}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Used: </span>
+                    <span style={{ color: colors.ink0, fontWeight: 700 }}>{annualLeave.used_days}</span>
+                  </div>
+                  {annualLeave.pending_days > 0 && (
+                    <div>
+                      <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Pending: </span>
+                      <span style={{ color: colors.warn, fontWeight: 700 }}>{annualLeave.pending_days}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Middle: Attendance Graph */}
@@ -715,99 +836,6 @@ function OverviewPage() {
           </div>
         </div>
       </div>
-
-      {/* Leave Balance Summary */}
-      {leaveBalances && leaveBalances.length > 0 && (
-        <div style={{ marginTop: 32, maxWidth: 900, margin: '32px auto 0 auto' }}>
-          <div 
-            style={{
-              border: '1px solid rgba(255,255,255,0.10)',
-              borderRadius: 18,
-              boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
-              background: colors.accentText,
-              padding: '28px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <CalendarDays size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
-                <h3 style={{ 
-                  fontSize: typography.h2.size, 
-                  fontWeight: typography.h2.weight, 
-                  color: 'rgba(255,255,255,0.7)', 
-                  letterSpacing: typography.h2.tracking, 
-                  lineHeight: typography.h2.lineHeight, 
-                  marginBottom: 0 
-                }}>
-                  Your leave balance ({currentYear})
-                </h3>
-              </div>
-              <Link
-                to="/leave"
-                className="flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-100"
-                style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
-              >
-                View details <ChevronRight size={16} />
-              </Link>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
-              {leaveBalances.map((balance) => {
-                const available = balance.entitled_days + balance.carried_over_days - balance.used_days - balance.pending_days
-                const totalEntitled = balance.entitled_days + balance.carried_over_days
-                const usagePercent = totalEntitled > 0 ? ((balance.used_days + balance.pending_days) / totalEntitled) * 100 : 0
-
-                return (
-                  <div
-                    key={balance.policy_name}
-                    style={{
-                      flex: '1 1 calc(33.333% - 11px)',
-                      minWidth: 200,
-                      background: 'rgba(255,255,255,0.05)',
-                      borderRadius: 12,
-                      padding: '18px 20px',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                    }}
-                  >
-                    <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                      {balance.policy_name}
-                    </p>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
-                      <p style={{ fontSize: 32, fontWeight: 800, color: available > 0 ? colors.ok : 'rgba(255,255,255,0.3)', fontFamily: typography.fontMono, letterSpacing: '-0.02em', lineHeight: 1 }}>
-                        {available.toFixed(1)}
-                      </p>
-                      <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
-                        / {totalEntitled.toFixed(1)} days
-                      </span>
-                    </div>
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.10)', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ 
-                          width: `${Math.min(100, usagePercent)}%`, 
-                          height: '100%', 
-                          background: usagePercent > 90 ? colors.err : usagePercent > 70 ? colors.warn : colors.ok,
-                          transition: 'width 0.3s ease',
-                        }} />
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
-                      <div>
-                        <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Used: </span>
-                        <span style={{ color: colors.ink0, fontWeight: 700 }}>{balance.used_days.toFixed(1)}</span>
-                      </div>
-                      {balance.pending_days > 0 && (
-                        <div>
-                          <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Pending: </span>
-                          <span style={{ color: colors.warn, fontWeight: 700 }}>{balance.pending_days.toFixed(1)}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Responsive styles for dashboard columns */}
       <style>{`

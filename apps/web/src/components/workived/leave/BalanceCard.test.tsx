@@ -1,7 +1,12 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { BalanceCard } from '@/components/workived/leave/BalanceCard'
 import type { LeaveBalanceWithPolicy } from '@/types/api'
+
+// Mock Link component to avoid router setup
+vi.mock('@tanstack/react-router', () => ({
+  Link: ({ children, ...props }: any) => <a {...props}>{children}</a>,
+}))
 
 describe('BalanceCard', () => {
   const mockBalance: LeaveBalanceWithPolicy = {
@@ -26,22 +31,41 @@ describe('BalanceCard', () => {
 
   it('displays correct available days (entitled + carried - used - pending)', () => {
     render(<BalanceCard balance={mockBalance} />)
-    // 12 + 3 - 5 - 2 = 8
-    expect(screen.getByText('8')).toBeInTheDocument()
+    // 12 + 3 - 5 - 2 = 8.0
+    expect(screen.getByText('8.0')).toBeInTheDocument()
+    expect(screen.getByText('days available')).toBeInTheDocument()
   })
 
-  it('shows breakdown of days', () => {
+  it('shows stats breakdown', () => {
     render(<BalanceCard balance={mockBalance} />)
-    expect(screen.getByText(/12 days granted/)).toBeInTheDocument()
-    expect(screen.getByText(/3 carried over/)).toBeInTheDocument()
-    expect(screen.getByText(/5.*15 used/)).toBeInTheDocument()
-    expect(screen.getByText(/2 pending/)).toBeInTheDocument()
+    // Entitled section
+    expect(screen.getByText('Entitled')).toBeInTheDocument()
+    expect(screen.getByText('12')).toBeInTheDocument()
+    // Used section
+    expect(screen.getByText('Used')).toBeInTheDocument()
+    expect(screen.getByText('5')).toBeInTheDocument()
+    // Should show carried over (3) in the third column since carried_over_days > 0
+    expect(screen.getByText('Carried')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
   })
 
-  it('renders progress bar', () => {
-    const { container } = render(<BalanceCard balance={mockBalance} />)
-    const progressBars = container.querySelectorAll('[style*="width"]')
-    expect(progressBars.length).toBeGreaterThan(0)
+  it('shows pending badge when pending days > 0', () => {
+    render(<BalanceCard balance={mockBalance} />)
+    expect(screen.getByText('2 pending')).toBeInTheDocument()
+  })
+
+  it('shows year info', () => {
+    render(<BalanceCard balance={mockBalance} />)
+    expect(screen.getByText('2025')).toBeInTheDocument()
+  })
+
+  it('renders progress bar with legend', () => {
+    render(<BalanceCard balance={mockBalance} />)
+    expect(screen.getByText('Usage')).toBeInTheDocument()
+    // Legend items
+    expect(screen.getByText('Used')).toBeInTheDocument()
+    expect(screen.getByText('Pending')).toBeInTheDocument()
+    expect(screen.getByText('Available')).toBeInTheDocument()
   })
 
   it('handles zero carried over days', () => {
@@ -50,8 +74,10 @@ describe('BalanceCard', () => {
       carried_over_days: 0,
     }
     render(<BalanceCard balance={balanceNoCarry} />)
-    // 12 + 0 - 5 - 2 = 5
-    expect(screen.getByText('5')).toBeInTheDocument()
+    // 12 + 0 - 5 - 2 = 5.0
+    expect(screen.getByText('5.0')).toBeInTheDocument()
+    // Should show pending in third column when no carried over
+    expect(screen.getByText('Pending')).toBeInTheDocument()
   })
 
   it('handles fully used balance', () => {
@@ -63,7 +89,8 @@ describe('BalanceCard', () => {
       pending_days: 0,
     }
     render(<BalanceCard balance={fullyUsed} />)
-    expect(screen.getByText('0')).toBeInTheDocument()
+    expect(screen.getByText('0.0')).toBeInTheDocument()
+    expect(screen.getByText('Exhausted')).toBeInTheDocument()
   })
 
   it('handles negative available (overused)', () => {
@@ -75,13 +102,55 @@ describe('BalanceCard', () => {
       pending_days: 0,
     }
     render(<BalanceCard balance={overused} />)
-    // 10 - 12 = -2
-    expect(screen.getByText('-2')).toBeInTheDocument()
+    // 10 - 12 = -2.0
+    expect(screen.getByText('-2.0')).toBeInTheDocument()
+    expect(screen.getByText('Exhausted')).toBeInTheDocument()
   })
 
-  it('shows pending indicator when pending days > 0', () => {
+  it('shows low balance badge when available < 20% of total', () => {
+    const lowBalance: LeaveBalanceWithPolicy = {
+      ...mockBalance,
+      entitled_days: 10,
+      carried_over_days: 0,
+      used_days: 9,
+      pending_days: 0,
+    }
+    render(<BalanceCard balance={lowBalance} />)
+    // 1 / 10 = 10% < 20%
+    expect(screen.getByText('Low')).toBeInTheDocument()
+  })
+
+  it('renders quick action button when showActions=true', () => {
+    render(<BalanceCard balance={mockBalance} showActions={true} />)
+    expect(screen.getByText('Request Leave')).toBeInTheDocument()
+  })
+
+  it('does not render quick action button by default', () => {
     render(<BalanceCard balance={mockBalance} />)
-    expect(screen.getByText(/2 pending/)).toBeInTheDocument()
+    expect(screen.queryByText('Request Leave')).not.toBeInTheDocument()
+  })
+
+  it('applies overview variant styles', () => {
+    const { container } = render(<BalanceCard balance={mockBalance} variant="overview" />)
+    // Just verify it renders without error - visual styles are harder to test
+    expect(container).toBeInTheDocument()
+  })
+
+  it('applies compact variant - hides year and legend', () => {
+    render(<BalanceCard balance={mockBalance} variant="compact" />)
+    // Year should not be shown in compact
+    expect(screen.queryByText('2025')).not.toBeInTheDocument()
+    // Legend items should not be shown
+    const usedLabels = screen.queryAllByText('Used')
+    // Only one 'Used' from the inline stats, not from legend
+    expect(usedLabels).toHaveLength(1)
+  })
+
+  it('compact variant shows inline stats', () => {
+    render(<BalanceCard balance={mockBalance} variant="compact" />)
+    // Should have inline stats text
+    expect(screen.getByText(/Entitled:/)).toBeInTheDocument()
+    expect(screen.getByText(/Used:/)).toBeInTheDocument()
   })
 
   it('does not break with very long policy names', () => {
