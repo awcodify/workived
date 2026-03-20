@@ -34,6 +34,16 @@ migrate-down: ## Roll back the last migration
 migrate-create: ## Create a new migration pair  e.g. make migrate-create name=add_foo
 	migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(name)
 
+seed: ## Seed test data (run after migrate-up)
+	@echo "Seeding test data..."
+	@docker exec -i workived-postgres psql -U workived -d workived < scripts/seed_test_data.sql
+
+reset-db: infra-down infra-up ## Reset database (WARNING: destroys all data)
+	@echo "Waiting for postgres to be ready..."
+	@sleep 3
+	@$(MAKE) migrate-up
+	@$(MAKE) seed
+
 # ── API ───────────────────────────────────────────────────────────────────────
 
 run: ## Run the API server (infra must already be up)

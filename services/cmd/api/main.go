@@ -181,6 +181,9 @@ func main() {
 	// Public auth routes
 	authHandler.RegisterRoutes(v1)
 
+	// Unauthenticated invitation routes (for verifying tokens before registration)
+	orgHandler.RegisterUnauthenticatedRoutes(v1)
+
 	// Auth-only routes (no tenant context — user may not belong to an org yet).
 	authOnly := v1.Group("")
 	authOnly.Use(middleware.Auth(cfg.JWTSecret))

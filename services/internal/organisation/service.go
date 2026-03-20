@@ -255,6 +255,51 @@ func (s *Service) InviteMember(ctx context.Context, orgID, inviterID uuid.UUID, 
 	}, nil
 }
 
+func (s *Service) VerifyInvitation(ctx context.Context, token string) (*VerifyInvitationResponse, error) {
+	tokenHash := hashToken(token)
+
+	// Get invitation by token
+	inv, err := s.repo.GetInvitationByToken(ctx, tokenHash)
+	if err != nil {
+		return &VerifyInvitationResponse{
+			IsValid:      false,
+			ErrorMessage: "Invalid invitation link",
+		}, nil
+	}
+
+	// Check if already accepted
+	if inv.AcceptedAt != nil {
+		return &VerifyInvitationResponse{
+			IsValid:      false,
+			ErrorMessage: "This invitation has already been accepted",
+		}, nil
+	}
+
+	// Check if expired
+	if time.Now().UTC().After(inv.ExpiresAt) {
+		return &VerifyInvitationResponse{
+			IsValid:      false,
+			ErrorMessage: "This invitation has expired",
+		}, nil
+	}
+
+	// Get organisation name
+	org, err := s.repo.GetByID(ctx, inv.OrgID)
+	if err != nil {
+		return &VerifyInvitationResponse{
+			IsValid:      false,
+			ErrorMessage: "Organisation not found",
+		}, nil
+	}
+
+	return &VerifyInvitationResponse{
+		Email:   inv.Email,
+		Role:    inv.Role,
+		OrgName: org.Name,
+		IsValid: true,
+	}, nil
+}
+
 func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req AcceptInvitationRequest) (*AcceptInvitationResponse, error) {
 	tokenHash := hashToken(req.Token)
 

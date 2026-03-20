@@ -42,14 +42,26 @@ function NewRequestPage() {
     formState: { errors },
   } = useForm<SubmitRequestFormData>({
     resolver: zodResolver(submitRequestSchema),
+    defaultValues: {
+      leave_policy_id: '',
+      start_date: '',
+      end_date: '',
+      reason: '',
+    },
   })
 
-  // Pre-select policy if provided via search params
+  // Pre-select policy if provided via search params, or auto-select first policy
   useEffect(() => {
     if (preselectedPolicyId && policies) {
       setValue('leave_policy_id', preselectedPolicyId)
+    } else if (policies && policies.length > 0 && !watch('leave_policy_id')) {
+      // Auto-select first active policy if none selected
+      const firstActivePolicy = policies.find((p) => p.is_active)
+      if (firstActivePolicy) {
+        setValue('leave_policy_id', firstActivePolicy.id)
+      }
     }
-  }, [preselectedPolicyId, policies, setValue])
+  }, [preselectedPolicyId, policies, setValue, watch])
 
   const policyId = watch('leave_policy_id')
   const startDate = watch('start_date')

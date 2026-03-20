@@ -81,6 +81,14 @@ type AcceptInvitationResponse struct {
 	Member       *Member       `json:"member"`
 }
 
+type VerifyInvitationResponse struct {
+	Email        string `json:"email"`
+	Role         string `json:"role"`
+	OrgName      string `json:"org_name"`
+	IsValid      bool   `json:"is_valid"`
+	ErrorMessage string `json:"error_message,omitempty"`
+}
+
 // CreateOrgResponse includes the new org and a fresh JWT scoped to that org.
 type CreateOrgResponse struct {
 	AccessToken  string        `json:"access_token"`

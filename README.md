@@ -42,16 +42,19 @@ workived/
 ## Getting Started
 
 ```bash
-# 1. Start infrastructure (Postgres, Redis, MinIO)
+# 1. Start infrastructure (Postgres, Redis, MinIO, Mailcatcher)
 make infra-up
 
 # 2. Apply database migrations
 make migrate-up
 
-# 3. Run the API server (port 8080)
+# 3. (Optional) Seed test data
+make seed
+
+# 4. Run the API server (port 8080)
 make run
 
-# 4. In a separate terminal — install frontend deps and start dev server (port 3000)
+# 5. In a separate terminal — install frontend deps and start dev server (port 3000)
 make web-install
 make web-dev
 ```
@@ -62,15 +65,41 @@ Or use the all-in-one command:
 make dev          # starts infra, migrates, runs API
 ```
 
+### Test Data
+
+After seeding (`make seed`), you'll have:
+
+**Test Organization:** Rizki Tech
+- **Login:** `ahmad@workived.com` / `12345678`
+- **Role:** super_admin (owner)
+
+**Employees:**
+1. Ahmad Rizki (CEO, linked to user account)
+2. New Employee (Engineer, email: `new@rizkitech.com`, needs invitation)
+   - Reports to Ahmad
+   - Can be invited from `/people/new` to create user account
+
+**Configured:**
+- 3 Leave policies (Annual: 12 days, Sick: 7 days, Unpaid: 0 days)
+- 5 Claim categories (Transport, Meal, Medical, Internet, Phone)
+- Leave balances for both employees (current year)
+- Claim balances for both employees (current month)
+
+**Email Testing:**
+- Mailcatcher running on http://localhost:1080
+- All emails are trapped locally (no real delivery)
+
 ## Available Commands
 
 ```
 make help              Show available commands
-make infra-up          Start postgres, redis, and minio (detached)
+make infra-up          Start postgres, redis, minio, and mailcatcher (detached)
 make infra-down        Stop and remove all infra containers
 make migrate-up        Apply all pending migrations
 make migrate-down      Roll back the last migration
 make migrate-create    Create a new migration pair (name=...)
+make seed              Seed test data (creates Rizki Tech org with test users)
+make reset-db          Reset database (WARNING: destroys all data, then migrates & seeds)
 make run               Run the API server
 make dev               Start infra + migrate + run API
 make build             Build API binary to bin/api

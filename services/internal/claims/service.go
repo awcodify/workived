@@ -742,7 +742,26 @@ func (s *Service) sendClaimRejectedEmail(ctx context.Context, orgID, employeeID,
 
 // ── Balance Methods ───────────────────────────────────────────────────────────
 
+// ensureEmployeeBalances creates balance rows for an employee if they don't exist yet
+// for the given year/month. This is called lazily on first access.
+func (s *Service) ensureEmployeeBalances(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) error {
+	categories, err := s.repo.ListCategories(ctx, orgID)
+	if err != nil {
+		return fmt.Errorf("list categories for balance init: %w", err)
+	}
+	for _, cat := range categories {
+		if _, err := s.repo.GetOrCreateBalance(ctx, orgID, employeeID, cat.ID, year, month); err != nil {
+			return fmt.Errorf("ensure balance for category %s: %w", cat.Name, err)
+		}
+	}
+	return nil
+}
+
 // ListBalances returns claim balances for an employee in a specific month.
 func (s *Service) ListBalances(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error) {
+	// Ensure balances exist for this employee for the requested year/month
+	if err := s.ensureEmployeeBalances(ctx, orgID, employeeID, year, month); err != nil {
+		return nil, fmt.Errorf("ensure balances: %w", err)
+	}
 	return s.repo.ListBalancesByEmployee(ctx, orgID, employeeID, year, month)
 }

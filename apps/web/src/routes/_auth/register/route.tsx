@@ -2,12 +2,14 @@ import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { authApi } from '@/lib/api/auth'
+import { organisationsApi } from '@/lib/api/organisations'
 import { useAuthStore } from '@/lib/stores/auth'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
 import { colors, moduleBackgrounds } from '@/design/tokens'
 import { extractApiError } from '@/lib/utils/errors'
+import { useEffect } from 'react'
 
 export const Route = createFileRoute('/_auth/register')({
   validateSearch: (search: Record<string, unknown>) => ({
@@ -33,6 +35,20 @@ function RegisterPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: { full_name: '', email: '', password: '' },
   })
+
+  // Verify invitation token and pre-fill email if valid
+  const { data: invitationData } = useQuery({
+    queryKey: ['verify-invitation', invite_token],
+    queryFn: () => organisationsApi.verifyInvitation(invite_token!).then((r) => r.data.data),
+    enabled: !!invite_token,
+  })
+
+  // Pre-fill email when invitation is verified
+  useEffect(() => {
+    if (invitationData?.is_valid && invitationData.email) {
+      form.setValue('email', invitationData.email)
+    }
+  }, [invitationData, form])
 
   const register = useMutation({
     mutationFn: async (data: RegisterForm) => {
@@ -149,11 +165,27 @@ function RegisterPage() {
                 Create your account
               </h2>
               <p style={{ fontSize: 15, color: colors.ink500, marginTop: 6 }}>
-                {invite_token
-                  ? "You've been invited — create an account to join your workspace."
-                  : 'Get started with Workived — free for teams up to 25'}
+                {invite_token && invitationData?.is_valid
+                  ? `Join ${invitationData.org_name} — create your account below`
+                  : invite_token
+                    ? "You've been invited — create an account to join your workspace."
+                    : 'Get started with Workived — free for teams up to 25'}
               </p>
             </div>
+
+            {invitationData && !invitationData.is_valid && (
+              <div
+                className="px-4 py-3 rounded-xl mb-5"
+                style={{
+                  background: 'rgba(239,68,68,0.05)',
+                  border: '1px solid rgba(239,68,68,0.2)',
+                }}
+              >
+                <p style={{ fontSize: 14, color: '#dc2626', fontWeight: 500 }}>
+                  {invitationData.error_message || 'Invalid invitation'}
+                </p>
+              </div>
+            )}
 
             <form
               onSubmit={form.handleSubmit((data) => register.mutate(data))}
@@ -199,14 +231,25 @@ function RegisterPage() {
                   style={{ display: 'block', fontSize: 14, fontWeight: 600, color: colors.ink700, marginBottom: 8 }}
                 >
                   Work email
+                  {invitationData?.is_valid && (
+                    <span style={{ fontSize: 12, fontWeight: 400, color: colors.ink500, marginLeft: 8 }}>
+                      (from invitation)
+                    </span>
+                  )}
                 </label>
                 <input
                   id="email"
                   type="email"
                   autoComplete="email"
                   placeholder="you@company.com"
+                  disabled={invitationData?.is_valid}
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
-                  style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
+                  style={{
+                    background: invitationData?.is_valid ? colors.ink100 : colors.ink50,
+                    border: `1.5px solid ${colors.ink100}`,
+                    color: colors.ink900,
+                    cursor: invitationData?.is_valid ? 'not-allowed' : 'text',
+                  }}
                   {...form.register('email')}
                 />
                 {form.formState.errors.email && (

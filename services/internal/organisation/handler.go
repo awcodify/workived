@@ -35,6 +35,11 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	orgs.GET("/members/unlinked", middleware.Require(middleware.PermEmployeeWrite), h.ListUnlinkedMembers)
 }
 
+// RegisterUnauthenticatedRoutes registers routes that don't require authentication at all.
+func (h *Handler) RegisterUnauthenticatedRoutes(rg *gin.RouterGroup) {
+	rg.GET("/invitations/verify", h.VerifyInvitation)
+}
+
 // RegisterPublicRoutes registers routes that require authentication but NOT tenant context.
 // These are called by users who may not yet belong to any org.
 func (h *Handler) RegisterPublicRoutes(rg *gin.RouterGroup) {
@@ -149,6 +154,22 @@ func (h *Handler) InviteMember(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"data": resp})
+}
+
+func (h *Handler) VerifyInvitation(c *gin.Context) {
+	token := c.Query("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, apperr.Response(apperr.New(apperr.CodeValidation, "token parameter is required")))
+		return
+	}
+
+	resp, err := h.service.VerifyInvitation(c.Request.Context(), token)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": resp})
 }
 
 func (h *Handler) AcceptInvitation(c *gin.Context) {

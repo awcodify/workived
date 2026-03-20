@@ -52,7 +52,7 @@ function NewClaimPage() {
   const categoryId = watch('category_id')
   const selectedCategory = categories?.find((c) => c.id === categoryId)
 
-  // Set category when prefilled and categories are loaded
+  // Set category when prefilled and categories are loaded, or auto-select first category
   useEffect(() => {
     if (prefilledCategoryId && categories && categories.length > 0) {
       // Only set if the category exists and is active
@@ -62,8 +62,14 @@ function NewClaimPage() {
       if (categoryExists) {
         setValue('category_id', prefilledCategoryId)
       }
+    } else if (categories && categories.length > 0 && !watch('category_id')) {
+      // Auto-select first active category if none prefilled
+      const firstActiveCategory = categories.find((c) => c.is_active)
+      if (firstActiveCategory) {
+        setValue('category_id', firstActiveCategory.id)
+      }
     }
-  }, [prefilledCategoryId, categories, setValue])
+  }, [prefilledCategoryId, categories, setValue, watch])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

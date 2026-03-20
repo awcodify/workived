@@ -11,6 +11,7 @@ import type {
   InviteResponse,
   AcceptInvitationRequest,
   AcceptInvitationResponse,
+  VerifyInvitationResponse,
   PendingInvitation,
   UnlinkedMember,
   MemberWithProfile,
@@ -42,6 +43,12 @@ export const organisationsApi = {
 
   revokeInvitation: (id: string) =>
     apiClient.delete<ApiResponse<{ message: string }>>(`/api/v1/organisations/invitations/${id}`),
+
+  // Verify invitation token — public endpoint (no auth required)
+  verifyInvitation: (token: string) =>
+    apiClient.get<ApiResponse<VerifyInvitationResponse>>('/api/v1/invitations/verify', {
+      params: { token },
+    }),
 
   // Accept invitation — called by invitee (auth-only, no tenant context needed)
   acceptInvitation: (data: AcceptInvitationRequest) =>

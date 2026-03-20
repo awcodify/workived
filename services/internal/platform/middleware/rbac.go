@@ -111,6 +111,8 @@ var RolePermissions = map[string][]string{
 		PermEmployeeRead,
 		PermDepartmentRead,
 		PermOrgRead,
+		PermLeaveRead,  // Need to view policies to create leave requests
+		PermClaimsRead, // Need to view categories to create claims
 	},
 
 	// ── Pro-tier ──
@@ -134,15 +136,18 @@ var RolePermissions = map[string][]string{
 		PermEmployeeRead,
 		PermDepartmentRead,
 		PermOrgRead,
+		PermLeaveRead,  // Need to view policies to create own leave requests
+		PermClaimsRead, // Need to view categories to create own claims
 	},
 	RoleFinance: {
 		PermSelfRead, PermSelfWrite,
 		PermSelfAttendance, PermSelfLeave, PermSelfClaims,
 		PermEmployeeRead,
 		PermSalaryRead,
-		PermClaimsRead,
+		PermClaimsRead, // Already has claims read for reports
 		PermReportsRead,
 		PermOrgRead,
+		PermLeaveRead, // Need to view policies to create own leave requests
 	},
 
 	// ── Internal (Workived team) ──

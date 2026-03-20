@@ -107,6 +107,14 @@ export interface AcceptInvitationResponse {
   }
 }
 
+export interface VerifyInvitationResponse {
+  email: string
+  role: string
+  org_name: string
+  is_valid: boolean
+  error_message?: string
+}
+
 export interface PendingInvitation {
   id: string
   organisation_id: string
