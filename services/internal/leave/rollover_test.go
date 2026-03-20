@@ -272,3 +272,9 @@ func (m *mockRepo) CreateBalancesForAllEmployees(context.Context, pgx.Tx, uuid.U
 func (m *mockRepo) CountPendingRequests(context.Context, uuid.UUID) (int, error) {
 	return 0, nil
 }
+func (m *mockRepo) CountPendingRequestsByPolicy(context.Context, uuid.UUID, uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (m *mockRepo) CountFutureApprovedRequestsByPolicy(context.Context, uuid.UUID, uuid.UUID) (int, error) {
+	return 0, nil
+}

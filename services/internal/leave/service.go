@@ -20,6 +20,8 @@ type RepositoryInterface interface {
 	CreatePolicy(ctx context.Context, orgID uuid.UUID, req CreatePolicyRequest) (*Policy, error)
 	UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID, req UpdatePolicyRequest) (*Policy, error)
 	DeactivatePolicy(ctx context.Context, orgID, policyID uuid.UUID) error
+	CountPendingRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error)
+	CountFutureApprovedRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error)
 
 	// Balances
 	GetBalance(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int) (*Balance, error)
@@ -133,6 +135,31 @@ func (s *Service) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID, r
 }
 
 func (s *Service) DeactivatePolicy(ctx context.Context, orgID, policyID uuid.UUID) error {
+	// 1. Check for pending requests - cannot delete if any exist
+	pendingCount, err := s.repo.CountPendingRequestsByPolicy(ctx, orgID, policyID)
+	if err != nil {
+		return fmt.Errorf("count pending requests: %w", err)
+	}
+	if pendingCount > 0 {
+		return apperr.New(
+			apperr.CodeConflict,
+			fmt.Sprintf("Cannot delete policy — %d pending request(s) exist. Reject or cancel them first.", pendingCount),
+		)
+	}
+
+	// 2. Check for approved future leave - cannot delete if any exist
+	futureCount, err := s.repo.CountFutureApprovedRequestsByPolicy(ctx, orgID, policyID)
+	if err != nil {
+		return fmt.Errorf("count future approved requests: %w", err)
+	}
+	if futureCount > 0 {
+		return apperr.New(
+			apperr.CodeConflict,
+			fmt.Sprintf("Cannot delete policy — %d approved future leave(s) exist.", futureCount),
+		)
+	}
+
+	// 3. Safe to deactivate
 	if err := s.repo.DeactivatePolicy(ctx, orgID, policyID); err != nil {
 		return fmt.Errorf("deactivate policy: %w", err)
 	}

@@ -50,27 +50,29 @@ func (f *fakeBatchResults) Close() error                     { return nil }
 // ── fakeRepo ────────────────────────────────────────────────────────────────
 
 type fakeRepo struct {
-	listPoliciesFn        func(ctx context.Context, orgID uuid.UUID) ([]leave.Policy, error)
-	getPolicyFn           func(ctx context.Context, orgID, policyID uuid.UUID) (*leave.Policy, error)
-	createPolicyFn        func(ctx context.Context, orgID uuid.UUID, req leave.CreatePolicyRequest) (*leave.Policy, error)
-	updatePolicyFn        func(ctx context.Context, orgID, policyID uuid.UUID, req leave.UpdatePolicyRequest) (*leave.Policy, error)
-	deactivatePolicyFn    func(ctx context.Context, orgID, policyID uuid.UUID) error
-	getBalanceFn          func(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int) (*leave.Balance, error)
-	getBalanceForUpdateFn func(ctx context.Context, tx pgx.Tx, orgID, employeeID, policyID uuid.UUID, year int) (*leave.Balance, error)
-	listBalancesFn        func(ctx context.Context, orgID uuid.UUID, year int) ([]leave.BalanceWithPolicy, error)
-	listEmployeeBalsFn    func(ctx context.Context, orgID, employeeID uuid.UUID, year int) ([]leave.BalanceWithPolicy, error)
-	ensureBalanceFn       func(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int, entitledDays float64) error
-	updateBalPendingFn    func(ctx context.Context, tx pgx.Tx, balanceID uuid.UUID, deltaDays float64) error
-	approveBalUpdateFn    func(ctx context.Context, tx pgx.Tx, balanceID uuid.UUID, totalDays float64) error
-	createRequestFn       func(ctx context.Context, tx pgx.Tx, orgID, employeeID, policyID uuid.UUID, startDate, endDate string, totalDays float64, reason *string) (*leave.Request, error)
-	getRequestFn          func(ctx context.Context, orgID, requestID uuid.UUID) (*leave.Request, error)
-	updateRequestStatusFn func(ctx context.Context, tx pgx.Tx, orgID, requestID uuid.UUID, expectedCurrentStatus, newStatus string, reviewedBy *uuid.UUID, reviewNote *string) (*leave.Request, error)
-	listRequestsFn        func(ctx context.Context, orgID uuid.UUID, filter leave.ListRequestsFilter) ([]leave.RequestWithDetails, error)
-	hasOverlapFn          func(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (bool, error)
-	listCalendarFn        func(ctx context.Context, orgID uuid.UUID, year, month int) ([]leave.CalendarEntry, error)
-	isOnApprovedLeaveFn   func(ctx context.Context, orgID, employeeID uuid.UUID, date string) (bool, error)
-	listHolidaysFn        func(ctx context.Context, countryCode, startDate, endDate string) ([]leave.PublicHoliday, error)
-	beginTxFn             func(ctx context.Context) (pgx.Tx, error)
+	listPoliciesFn                        func(ctx context.Context, orgID uuid.UUID) ([]leave.Policy, error)
+	getPolicyFn                           func(ctx context.Context, orgID, policyID uuid.UUID) (*leave.Policy, error)
+	createPolicyFn                        func(ctx context.Context, orgID uuid.UUID, req leave.CreatePolicyRequest) (*leave.Policy, error)
+	updatePolicyFn                        func(ctx context.Context, orgID, policyID uuid.UUID, req leave.UpdatePolicyRequest) (*leave.Policy, error)
+	deactivatePolicyFn                    func(ctx context.Context, orgID, policyID uuid.UUID) error
+	countPendingRequestsByPolicyFn        func(ctx context.Context, orgID, policyID uuid.UUID) (int, error)
+	countFutureApprovedRequestsByPolicyFn func(ctx context.Context, orgID, policyID uuid.UUID) (int, error)
+	getBalanceFn                          func(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int) (*leave.Balance, error)
+	getBalanceForUpdateFn                 func(ctx context.Context, tx pgx.Tx, orgID, employeeID, policyID uuid.UUID, year int) (*leave.Balance, error)
+	listBalancesFn                        func(ctx context.Context, orgID uuid.UUID, year int) ([]leave.BalanceWithPolicy, error)
+	listEmployeeBalsFn                    func(ctx context.Context, orgID, employeeID uuid.UUID, year int) ([]leave.BalanceWithPolicy, error)
+	ensureBalanceFn                       func(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int, entitledDays float64) error
+	updateBalPendingFn                    func(ctx context.Context, tx pgx.Tx, balanceID uuid.UUID, deltaDays float64) error
+	approveBalUpdateFn                    func(ctx context.Context, tx pgx.Tx, balanceID uuid.UUID, totalDays float64) error
+	createRequestFn                       func(ctx context.Context, tx pgx.Tx, orgID, employeeID, policyID uuid.UUID, startDate, endDate string, totalDays float64, reason *string) (*leave.Request, error)
+	getRequestFn                          func(ctx context.Context, orgID, requestID uuid.UUID) (*leave.Request, error)
+	updateRequestStatusFn                 func(ctx context.Context, tx pgx.Tx, orgID, requestID uuid.UUID, expectedCurrentStatus, newStatus string, reviewedBy *uuid.UUID, reviewNote *string) (*leave.Request, error)
+	listRequestsFn                        func(ctx context.Context, orgID uuid.UUID, filter leave.ListRequestsFilter) ([]leave.RequestWithDetails, error)
+	hasOverlapFn                          func(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (bool, error)
+	listCalendarFn                        func(ctx context.Context, orgID uuid.UUID, year, month int) ([]leave.CalendarEntry, error)
+	isOnApprovedLeaveFn                   func(ctx context.Context, orgID, employeeID uuid.UUID, date string) (bool, error)
+	listHolidaysFn                        func(ctx context.Context, countryCode, startDate, endDate string) ([]leave.PublicHoliday, error)
+	beginTxFn                             func(ctx context.Context) (pgx.Tx, error)
 }
 
 func (f *fakeRepo) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]leave.Policy, error) {
@@ -87,6 +89,18 @@ func (f *fakeRepo) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID, 
 }
 func (f *fakeRepo) DeactivatePolicy(ctx context.Context, orgID, policyID uuid.UUID) error {
 	return f.deactivatePolicyFn(ctx, orgID, policyID)
+}
+func (f *fakeRepo) CountPendingRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error) {
+	if f.countPendingRequestsByPolicyFn != nil {
+		return f.countPendingRequestsByPolicyFn(ctx, orgID, policyID)
+	}
+	return 0, nil
+}
+func (f *fakeRepo) CountFutureApprovedRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error) {
+	if f.countFutureApprovedRequestsByPolicyFn != nil {
+		return f.countFutureApprovedRequestsByPolicyFn(ctx, orgID, policyID)
+	}
+	return 0, nil
 }
 func (f *fakeRepo) GetBalance(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int) (*leave.Balance, error) {
 	return f.getBalanceFn(ctx, orgID, employeeID, policyID, year)
@@ -443,13 +457,72 @@ func TestService_DeactivatePolicy(t *testing.T) {
 		name    string
 		setup   func(r *fakeRepo)
 		wantErr bool
+		errCode string
 	}{
 		{
-			name: "happy path",
+			name: "happy path - no pending or future requests",
+			setup: func(r *fakeRepo) {
+				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 0, nil
+				}
+				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 0, nil
+				}
+			},
 		},
 		{
-			name: "repo error",
+			name: "blocked - has pending requests",
 			setup: func(r *fakeRepo) {
+				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 3, nil
+				}
+			},
+			wantErr: true,
+			errCode: apperr.CodeConflict,
+		},
+		{
+			name: "blocked - has approved future leave",
+			setup: func(r *fakeRepo) {
+				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 0, nil
+				}
+				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 2, nil
+				}
+			},
+			wantErr: true,
+			errCode: apperr.CodeConflict,
+		},
+		{
+			name: "error counting pending requests",
+			setup: func(r *fakeRepo) {
+				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 0, errors.New("db down")
+				}
+			},
+			wantErr: true,
+		},
+		{
+			name: "error counting future requests",
+			setup: func(r *fakeRepo) {
+				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 0, nil
+				}
+				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 0, errors.New("db down")
+				}
+			},
+			wantErr: true,
+		},
+		{
+			name: "repo deactivate error",
+			setup: func(r *fakeRepo) {
+				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 0, nil
+				}
+				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+					return 0, nil
+				}
 				r.deactivatePolicyFn = func(_ context.Context, _, _ uuid.UUID) error {
 					return errors.New("db down")
 				}
@@ -472,6 +545,16 @@ func TestService_DeactivatePolicy(t *testing.T) {
 			if tt.wantErr {
 				if err == nil {
 					t.Fatal("expected error, got nil")
+				}
+				if tt.errCode != "" {
+					var appErr *apperr.AppError
+					if errors.As(err, &appErr) {
+						if appErr.Code != tt.errCode {
+							t.Fatalf("expected error code %s, got %s", tt.errCode, appErr.Code)
+						}
+					} else {
+						t.Fatalf("expected AppError with code %s, got regular error: %v", tt.errCode, err)
+					}
 				}
 				return
 			}

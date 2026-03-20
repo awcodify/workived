@@ -138,6 +138,39 @@ func (r *Repository) DeactivatePolicy(ctx context.Context, orgID, policyID uuid.
 	return nil
 }
 
+// CountPendingRequestsByPolicy returns the number of pending leave requests for a specific policy.
+func (r *Repository) CountPendingRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM leave_requests
+		WHERE organisation_id = $1
+		  AND leave_policy_id = $2
+		  AND status = 'pending'
+	`, orgID, policyID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count pending requests by policy: %w", err)
+	}
+	return count, nil
+}
+
+// CountFutureApprovedRequestsByPolicy returns the number of approved requests with end_date in the future.
+func (r *Repository) CountFutureApprovedRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM leave_requests
+		WHERE organisation_id = $1
+		  AND leave_policy_id = $2
+		  AND status = 'approved'
+		  AND end_date > CURRENT_DATE
+	`, orgID, policyID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count future approved requests by policy: %w", err)
+	}
+	return count, nil
+}
+
 // ── Balances ────────────────────────────────────────────────────────────────
 
 // GetBalance returns a single balance row, locking it for update within a transaction.
@@ -195,6 +228,7 @@ func (r *Repository) GetBalanceForUpdate(ctx context.Context, tx pgx.Tx, orgID, 
 }
 
 // ListBalances returns all balances for an org in a given year, joined with policy names.
+// Only includes balances for active policies (inactive policies are hidden from UX).
 func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int) ([]BalanceWithPolicy, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT b.id, b.organisation_id, b.employee_id, b.leave_policy_id, b.year,
@@ -204,6 +238,7 @@ func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int
 		FROM leave_balances b
 		JOIN leave_policies lp ON lp.id = b.leave_policy_id
 		WHERE b.organisation_id = $1 AND b.year = $2
+		  AND lp.is_active = TRUE
 		ORDER BY b.employee_id, lp.name
 	`, orgID, year)
 	if err != nil {
@@ -228,6 +263,7 @@ func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int
 }
 
 // ListEmployeeBalances returns all balances for a specific employee in a given year.
+// Only includes balances for active policies (inactive policies are hidden from UX).
 func (r *Repository) ListEmployeeBalances(ctx context.Context, orgID, employeeID uuid.UUID, year int) ([]BalanceWithPolicy, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT b.id, b.organisation_id, b.employee_id, b.leave_policy_id, b.year,
@@ -237,6 +273,7 @@ func (r *Repository) ListEmployeeBalances(ctx context.Context, orgID, employeeID
 		FROM leave_balances b
 		JOIN leave_policies lp ON lp.id = b.leave_policy_id
 		WHERE b.organisation_id = $1 AND b.employee_id = $2 AND b.year = $3
+		  AND lp.is_active = TRUE
 		ORDER BY lp.name
 	`, orgID, employeeID, year)
 	if err != nil {

@@ -42,10 +42,11 @@ Workived is an **attendance and leave management platform for 5–25 person star
 ### Free tier (all companies, up to 25 employees)
 | Module | Free features |
 |--------|--------------|
-| Employee management | Profiles, documents, org chart, basic fields |
+| Employee management | Profiles, documents, org chart, basic fields, job hierarchy (`reporting_to`) |
 | Attendance | Clock-in/out, manual correction, basic reports |
 | Leave | Requests, approvals, preset leave types |
 | Claims | Submit, approve, receipt upload, basic flow |
+| Approval system | Modular approval engine, hierarchy-based routing, multi-level approval chains |
 | Task management | Create, assign, due dates, basic kanban |
 | Announcements | Company-wide notice board |
 
@@ -55,8 +56,9 @@ Workived is an **attendance and leave management platform for 5–25 person star
 | Employee management | Custom fields (JSONB), bulk import, unlimited headcount |
 | Attendance | GPS geofencing, face verify, shift scheduling, overtime |
 | Leave | Custom leave types, accrual rules, carry-over config |
-| Claims | Multi-level approval, budget caps per category, monthly limits |
+| Claims | Budget caps per category, monthly limits |
 | Task management | Subtasks, dependencies, time tracking, Gantt view |
+| Approval system | Escalation rules (auto-approve after X days, skip-level escalation) |
 | Analytics | HR dashboards, insights, custom reports |
 
 ### Enterprise (custom pricing)
@@ -74,7 +76,7 @@ Payroll is explicitly out of scope for the initial build. Build the general empl
 
 - **Freemium** — generous free tier to drive acquisition
 - **Depth-based upgrade triggers** — charge for scale and automation, not feature access
-- **Key conversion triggers:** hitting 25-employee limit, needing geofencing, wanting analytics, multi-level approvals
+- **Key conversion triggers:** hitting 25-employee limit, needing geofencing, wanting analytics, approval escalation rules
 - **Free tier limit:** 25 employees per organisation — enforced at application layer via `organisations.plan_employee_limit`
 
 ### Billing Implementation (Post-MVP)
@@ -750,13 +752,27 @@ FOR EACH active employee × active leave_policy:
 
 **Sprint Duration:** 4 days (delivered ahead of estimate)
 
-### Sprint 6 — Claims (basic flow only) — NEXT 🟢
+### Sprint 6 — Claims + Employee Hierarchy + Modular Approval — NEXT 🟢
+
+**Employee Hierarchy:**
+- [ ] Add `reporting_to UUID REFERENCES employees(id)` to employees table (nullable)
+- [ ] Update employee CRUD (BE + FE) with "Reports To" dropdown
+- [ ] Display reporting chain in employee detail page
+
+**Modular Approval System (Free tier):**
+- [ ] Create `internal/approval/` module with shared types and logic
+- [ ] Multi-level approval chains: employee → manager → admin (hierarchy-based routing via `reporting_to`)
+- [ ] Refactor leave approval to use shared approval module
+- [ ] Claims approval uses shared module from day 1
+
+**Claims (basic flow):**
 - [ ] Claim categories configuration (CRUD)
 - [ ] Claim submission + receipt upload (S3 or local for MVP)
-- [ ] Approval flow (single-level only, multi-level in Pro)
 - [ ] Claims list page (admin: all claims, employee: my claims)
 - [ ] Claims frontend pages (submit, view, approve/reject)
 - [ ] Basic reporting (monthly totals per employee)
+
+**Polish:**
 - [ ] **Empty states with CTAs** — Add to all list pages (employees, attendance, claims)
   - Clear call-to-action when no data exists
   - Example: "No claims yet. Submit your first expense claim"
@@ -781,6 +797,7 @@ FOR EACH active employee × active leave_policy:
 - [ ] GPS geofencing for clock-in
 - [ ] Custom leave types (Pro only)
 - [ ] Shift scheduling + overtime auto-calc
+- [ ] **Approval escalation rules (Pro only)** — auto-approve after X days, skip-level escalation
 - [ ] Upgrade flow + billing integration (TBD: Stripe/Paddle)
 
 ### Sprint 9+ — Analytics + Tasks (if validated demand)

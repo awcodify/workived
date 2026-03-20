@@ -86,51 +86,48 @@ function CalendarPage() {
       className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
       style={{ background: moduleBackgrounds.leave }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1
-            className="font-extrabold"
-            style={{
-              fontSize: typography.display.size,
-              letterSpacing: typography.display.tracking,
-              color: t.text,
-              lineHeight: typography.display.lineHeight,
-            }}
-          >
-            Leave Calendar
-          </h1>
-          {backendCountryName && (
-            <div className="flex items-center gap-2 mt-1">
-              <p
+      {/* Header - with horizontal padding on mobile */}
+      <div className="mb-6">
+        <h1
+          className="font-extrabold text-3xl md:text-4xl"
+          style={{
+            letterSpacing: typography.display.tracking,
+            color: t.text,
+            lineHeight: typography.display.lineHeight,
+          }}
+        >
+          Leave Calendar
+        </h1>
+        {backendCountryName && (
+          <div className="flex flex-wrap items-center gap-2 mt-1">
+            <p
+              className="text-sm md:text-base"
+              style={{
+                color: t.textMuted,
+              }}
+            >
+              Public holidays: {backendCountryName} ({backendCountry})
+            </p>
+            {org && backendCountry !== org.country_code && (
+              <span
                 style={{
-                  fontSize: typography.body.size,
-                  color: t.textMuted,
+                  fontSize: 11,
+                  color: '#E85757',
+                  background: 'rgba(232,87,87,0.1)',
+                  padding: '2px 8px',
+                  borderRadius: 4,
+                  fontWeight: 600,
                 }}
               >
-                Public holidays: {backendCountryName} ({backendCountry})
-              </p>
-              {org && backendCountry !== org.country_code && (
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: '#E85757',
-                    background: 'rgba(232,87,87,0.1)',
-                    padding: '2px 8px',
-                    borderRadius: 4,
-                    fontWeight: 600,
-                  }}
-                >
-                  ⚠ Org: {org.country_code}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+                ⚠ Org: {org.country_code}
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Calendar Controls */}
-      <div className="flex items-center justify-between mb-6">
+      {/* Calendar Controls - with horizontal padding on mobile */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 mb-6">
         <div className="flex items-center gap-2">
           <button
             onClick={goToPrevMonth}
@@ -145,7 +142,7 @@ function CalendarPage() {
             <ChevronLeft size={20} />
           </button>
           <h2
-            className="font-bold min-w-[180px] text-center"
+            className="font-bold flex-1 sm:min-w-[180px] text-center"
             style={{
               fontSize: typography.h2.size,
               letterSpacing: typography.h2.tracking,
@@ -180,12 +177,14 @@ function CalendarPage() {
         </button>
       </div>
 
-      {/* Calendar Grid */}
-      {isLoading ? (
-        <CalendarSkeleton />
-      ) : (
-        <LeaveCalendar year={year} month={month} entries={entries ?? []} holidays={holidays ?? []} />
-      )}
+      {/* Calendar Grid - full width, no padding on mobile to allow horizontal scroll */}
+      <div className="-mx-6 md:mx-0">
+        {isLoading ? (
+          <CalendarSkeleton />
+        ) : (
+          <LeaveCalendar year={year} month={month} entries={entries ?? []} holidays={holidays ?? []} />
+        )}
+      </div>
     </div>
   )
 }
@@ -269,235 +268,241 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
 
   return (
     <div
+      className="relative mx-6 md:mx-0"
       style={{
         background: t.surface,
         borderRadius: 16,
         border: `1px solid ${t.border}`,
-        padding: 24,
-        overflow: 'visible',
+        overflow: 'hidden',
       }}
     >
-      {/* Day headers */}
-      <div className="grid grid-cols-7 gap-2 mb-2">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-          <div
-            key={day}
-            className="text-center font-bold py-2"
-            style={{
-              fontSize: typography.label.size,
-              color: t.textMuted,
-            }}
-          >
-            {day}
+      {/* Horizontal scroll wrapper for mobile */}
+      <div className="overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
+        <div className="p-3 md:p-6" style={{ minWidth: '700px', width: '100%' }}>
+          {/* Day headers */}
+          <div className="grid grid-cols-7 gap-1.5 md:gap-2 mb-2" style={{ minWidth: '100%' }}>
+            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+              <div
+                key={day}
+                className="text-center font-bold py-2 text-xs md:text-sm"
+                style={{
+                  color: t.textMuted,
+                  minWidth: '85px',
+                }}
+              >
+                {day}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-2" style={{ overflow: 'visible' }}>
-        {weeks.map((week, weekIdx) => (
-          <>
-            {week.map((day, dayIdx) => {
-              if (day === null) {
-                return <div key={`empty-${weekIdx}-${dayIdx}`} />
-              }
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-1.5 md:gap-2" style={{ minWidth: '100%' }}>
+            {weeks.map((week, weekIdx) => (
+              <>
+                {week.map((day, dayIdx) => {
+                  if (day === null) {
+                    return <div key={`empty-${weekIdx}-${dayIdx}`} style={{ minWidth: '85px' }} />
+                  }
 
-              const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-              const dayEntries = entriesByDate.get(dateStr) ?? []
-              const isToday = dateStr === todayStr
-              const holidayInfo = holidayMap.get(dateStr)
-              const isHoliday = !!(holidayInfo && holidayInfo.length > 0)
-              const isActive = activeTooltip === dateStr
-              const hasInfo = isHoliday || dayEntries.length > 0
+                  const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+                  const dayEntries = entriesByDate.get(dateStr) ?? []
+                  const isToday = dateStr === todayStr
+                  const holidayInfo = holidayMap.get(dateStr)
+                  const isHoliday = !!(holidayInfo && holidayInfo.length > 0)
+                  const isActive = activeTooltip === dateStr
+                  const hasInfo = isHoliday || dayEntries.length > 0
 
-              return (
-                <div
-                  key={dateStr}
-                  className="min-h-[100px] p-2 transition-colors relative cursor-pointer"
-                  style={{
-                    background: isToday 
-                      ? 'rgba(99,87,232,0.05)' 
-                      : isHoliday 
-                      ? 'rgba(232,87,87,0.05)'
-                      : t.input,
-                    border: isToday
-                      ? `2px solid ${t.accent}`
-                      : isHoliday
-                      ? '1px solid rgba(232,87,87,0.3)'
-                      : `1px solid ${t.inputBorder}`,
-                    borderRadius: 8,
-                    overflow: 'visible',
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    if (hasInfo) {
-                      setActiveTooltip(isActive ? null : dateStr)
-                    }
-                  }}
-                  title={hasInfo ? "Click for details" : ""}
-                >
-                  <div className="flex items-center justify-between mb-1">
+                  return (
                     <div
-                      className="font-bold"
+                      key={dateStr}
+                      className="min-h-[70px] md:min-h-[100px] p-1.5 md:p-2 transition-colors relative cursor-pointer"
                       style={{
-                        fontSize: typography.body.size,
-                        color: isToday ? t.accent : isHoliday ? '#E85757' : t.text,
+                        minWidth: '85px',
+                        background: isToday 
+                          ? 'rgba(99,87,232,0.05)' 
+                          : isHoliday 
+                          ? 'rgba(232,87,87,0.05)'
+                          : t.input,
+                        border: isToday
+                          ? `2px solid ${t.accent}`
+                          : isHoliday
+                          ? '1px solid rgba(232,87,87,0.3)'
+                          : `1px solid ${t.inputBorder}`,
+                        borderRadius: 6,
+                        overflow: 'visible',
                       }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (hasInfo) {
+                          setActiveTooltip(isActive ? null : dateStr)
+                        }
+                      }}
+                      title={hasInfo ? "Click for details" : ""}
                     >
-                      {day}
-                    </div>
-                    {isHoliday && holidayInfo && (
-                      <div className="space-y-1">
-                        {holidayInfo.map((holiday, idx) => (
-                          <div
-                            key={idx}
-                            className="text-xs px-1.5 py-0.5 truncate pointer-events-none"
-                            style={{
-                              background: 'rgba(232,87,87,0.1)',
-                              color: '#E85757',
-                              borderRadius: 4,
-                              fontSize: 10,
-                              fontWeight: 600,
-                            }}
-                          >
-                            {holiday.name}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  {dayEntries.length > 0 && (
-                    <div className="space-y-1">
-                      {dayEntries.slice(0, 2).map((entry, idx) => (
+                      <div className="flex items-center justify-between mb-1">
                         <div
-                          key={idx}
-                          className="text-xs px-1.5 py-1 truncate pointer-events-none"
+                          className="font-bold text-sm md:text-base"
                           style={{
-                            background: getPolicyColor(entry.policy_name),
-                            color: '#FFFFFF',
-                            borderRadius: 4,
-                            fontSize: 11,
+                            color: isToday ? t.accent : isHoliday ? '#E85757' : t.text,
                           }}
                         >
-                          {entry.employee_name}
+                          {day}
                         </div>
-                      ))}
-                      {dayEntries.length > 2 && (
-                        <div
-                          className="text-xs px-1.5 py-1 pointer-events-none"
-                          style={{
-                            color: t.textMuted,
-                            fontSize: 11,
-                          }}
-                        >
-                          +{dayEntries.length - 2} more
+                        {isHoliday && holidayInfo && (
+                          <div className="space-y-1 hidden md:block">
+                            {holidayInfo.map((holiday, idx) => (
+                              <div
+                                key={idx}
+                                className="text-xs px-1.5 py-0.5 truncate pointer-events-none"
+                                style={{
+                                  background: 'rgba(232,87,87,0.1)',
+                                  color: '#E85757',
+                                  borderRadius: 4,
+                                  fontSize: 10,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {holiday.name}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                      {dayEntries.length > 0 && (
+                        <div className="space-y-1">
+                          {dayEntries.slice(0, 2).map((entry, idx) => (
+                            <div
+                              key={idx}
+                              className="text-xs px-1.5 py-0.5 md:py-1 truncate pointer-events-none"
+                              style={{
+                                background: getPolicyColor(entry.policy_name),
+                                color: '#FFFFFF',
+                                borderRadius: 4,
+                                fontSize: 10,
+                              }}
+                            >
+                              {entry.employee_name}
+                            </div>
+                          ))}
+                          {dayEntries.length > 2 && (
+                            <div
+                              className="text-xs px-1.5 py-0.5 md:py-1 pointer-events-none"
+                              style={{
+                                color: t.textMuted,
+                                fontSize: 10,
+                              }}
+                            >
+                              +{dayEntries.length - 2} more
+                            </div>
+                          )}
                         </div>
                       )}
+                      
+                      {/* Tooltip showing all info for this date */}
+                      {isActive && (
+                        <>
+                          <div
+                            className="fixed inset-0"
+                            style={{ zIndex: 9998 }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setActiveTooltip(null)
+                            }}
+                          />
+                          <div
+                            className="absolute left-0 bottom-full mb-2 px-4 py-3 shadow-2xl"
+                            style={{
+                              background: '#1F2937',
+                              color: '#FFFFFF',
+                              borderRadius: 8,
+                              fontSize: 12,
+                              zIndex: 9999,
+                              minWidth: '250px',
+                              maxWidth: '300px',
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="font-bold mb-2" style={{ fontSize: 13 }}>
+                              {new Date(dateStr).toLocaleDateString('en-US', { 
+                                weekday: 'long', 
+                                year: 'numeric', 
+                                month: 'long', 
+                                day: 'numeric' 
+                              })}
+                            </div>
+                            
+                            {holidayInfo && holidayInfo.length > 0 && (
+                              <div className="mb-3">
+                                <div className="text-xs font-semibold mb-1.5" style={{ color: '#FCA5A5' }}>
+                                  🎉 Public Holidays
+                                </div>
+                                {holidayInfo.map((holiday, idx) => (
+                                  <div key={idx} className="ml-2 mb-1" style={{ fontSize: 11 }}>
+                                    • {holiday.name}
+                                    <span style={{ opacity: 0.7 }}> ({holiday.country})</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {dayEntries.length > 0 && (
+                              <div>
+                                <div className="text-xs font-semibold mb-1.5" style={{ color: '#A5B4FC' }}>
+                                  🏖️ On Leave ({dayEntries.length})
+                                </div>
+                                {dayEntries.map((entry, idx) => (
+                                  <div key={idx} className="ml-2 mb-1" style={{ fontSize: 11 }}>
+                                    • {entry.employee_name}
+                                    <span style={{ opacity: 0.7 }}> - {entry.policy_name}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
-                  )}
-                  
-                  {/* Tooltip showing all info for this date */}
-                  {isActive && (
-                    <>
+                  )
+                })}
+              </>
+            ))}
+          </div>
+
+          {/* Legend */}
+          {entries.length > 0 && (
+            <div className="mt-6 pt-6" style={{ borderTop: `1px solid ${t.border}` }}>
+              <p
+                className="font-semibold mb-3 text-xs md:text-sm"
+                style={{ color: t.text }}
+              >
+                Leave Types
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {Array.from(new Set(entries.map((e) => e.policy_name))).map(
+                  (policyName) => (
+                    <div key={policyName} className="flex items-center gap-2">
                       <div
-                        className="fixed inset-0"
-                        style={{ zIndex: 9998 }}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setActiveTooltip(null)
+                        style={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: 3,
+                          background: getPolicyColor(policyName),
                         }}
                       />
-                      <div
-                        className="absolute left-0 bottom-full mb-2 px-4 py-3 shadow-2xl"
-                        style={{
-                          background: '#1F2937',
-                          color: '#FFFFFF',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          zIndex: 9999,
-                          minWidth: '250px',
-                          maxWidth: '300px',
-                        }}
-                        onClick={(e) => e.stopPropagation()}
+                      <span
+                        className="text-xs md:text-sm"
+                        style={{ color: t.text }}
                       >
-                        <div className="font-bold mb-2" style={{ fontSize: 13 }}>
-                          {new Date(dateStr).toLocaleDateString('en-US', { 
-                            weekday: 'long', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                          })}
-                        </div>
-                        
-                        {holidayInfo && holidayInfo.length > 0 && (
-                          <div className="mb-3">
-                            <div className="text-xs font-semibold mb-1.5" style={{ color: '#FCA5A5' }}>
-                              🎉 Public Holidays
-                            </div>
-                            {holidayInfo.map((holiday, idx) => (
-                              <div key={idx} className="ml-2 mb-1" style={{ fontSize: 11 }}>
-                                • {holiday.name}
-                                <span style={{ opacity: 0.7 }}> ({holiday.country})</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {dayEntries.length > 0 && (
-                          <div>
-                            <div className="text-xs font-semibold mb-1.5" style={{ color: '#A5B4FC' }}>
-                              🏖️ On Leave ({dayEntries.length})
-                            </div>
-                            {dayEntries.map((entry, idx) => (
-                              <div key={idx} className="ml-2 mb-1" style={{ fontSize: 11 }}>
-                                • {entry.employee_name}
-                                <span style={{ opacity: 0.7 }}> - {entry.policy_name}</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </>
-                  )}
-                </div>
-              )
-            })}
-          </>
-        ))}
-      </div>
-
-      {/* Legend */}
-      {entries.length > 0 && (
-        <div className="mt-6 pt-6" style={{ borderTop: `1px solid ${t.border}` }}>
-          <p
-            className="font-semibold mb-3"
-            style={{ fontSize: typography.label.size, color: t.text }}
-          >
-            Leave Types
-          </p>
-          <div className="flex flex-wrap gap-3">
-            {Array.from(new Set(entries.map((e) => e.policy_name))).map(
-              (policyName) => (
-                <div key={policyName} className="flex items-center gap-2">
-                  <div
-                    style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: 3,
-                      background: getPolicyColor(policyName),
-                    }}
-                  />
-                  <span
-                    style={{ fontSize: typography.body.size, color: t.text }}
-                  >
-                    {policyName}
-                  </span>
-                </div>
-              )
-            )}
-          </div>
+                        {policyName}
+                      </span>
+                    </div>
+                  )
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -510,8 +515,8 @@ function CalendarSkeleton() {
         background: t.surface,
         borderRadius: 16,
         border: `1px solid ${t.border}`,
-        padding: 24,
-        height: 600,
+        padding: '1rem',
+        height: '500px',
       }}
     />
   )
