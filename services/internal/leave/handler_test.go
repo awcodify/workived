@@ -132,6 +132,10 @@ func (f *fakeService) ListHolidays(ctx context.Context, orgID uuid.UUID, startDa
 	return []leave.PublicHoliday{}, nil
 }
 
+func (f *fakeService) GetNotificationCount(ctx context.Context, orgID uuid.UUID) (int, error) {
+	return 0, nil
+}
+
 func (f *fakeService) ListTemplates(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]leave.PolicyTemplate, error) {
 	return []leave.PolicyTemplate{}, nil
 }

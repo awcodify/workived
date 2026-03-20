@@ -35,6 +35,7 @@ type RepositoryInterface interface {
 	GetRequest(ctx context.Context, orgID, requestID uuid.UUID) (*Request, error)
 	UpdateRequestStatus(ctx context.Context, tx pgx.Tx, orgID, requestID uuid.UUID, expectedCurrentStatus, newStatus string, reviewedBy *uuid.UUID, reviewNote *string) (*Request, error)
 	ListRequests(ctx context.Context, orgID uuid.UUID, filter ListRequestsFilter) ([]RequestWithDetails, error)
+	CountPendingRequests(ctx context.Context, orgID uuid.UUID) (int, error)
 	HasOverlap(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (bool, error)
 
 	// Calendar & attendance integration
@@ -404,6 +405,13 @@ func (s *Service) CancelRequest(ctx context.Context, orgID, employeeID, requestI
 		ResourceType: "leave_request", ResourceID: requestID, AfterState: req,
 	})
 	return req, nil
+}
+
+// ── Notifications ───────────────────────────────────────────────────────────
+
+// GetNotificationCount returns the number of pending leave requests for the organization.
+func (s *Service) GetNotificationCount(ctx context.Context, orgID uuid.UUID) (int, error) {
+	return s.repo.CountPendingRequests(ctx, orgID)
 }
 
 // ── Calendar ────────────────────────────────────────────────────────────────

@@ -4,6 +4,8 @@ import { dockThemes } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 import { SettingsMenu } from './SettingsMenu'
 import { useEnabledFeatures } from '@/lib/hooks/useFeatures'
+import { useLeaveNotificationCount } from '@/lib/hooks/useLeave'
+import { useCanManageLeave } from '@/lib/hooks/useRole'
 
 type ModuleKey = keyof typeof dockThemes
 
@@ -15,14 +17,6 @@ const NAV_ITEMS = [
   { to: '/reports', label: 'Reports', icon: BarChart3, module: 'reports' as ModuleKey, featureKey: 'reports', notificationKey: null },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey, featureKey: 'tasks', notificationKey: 'tasks' },
 ] as const
-
-// Mock notification counts - replace with actual data from your API
-const mockNotifications = {
-  people: 3, // 3 leave requests awaiting approval
-  attendance: 2, // 2 attendance corrections pending
-  leave: 0, // pending leave approvals
-  tasks: 5, // 5 task updates
-}
 
 function getCurrentModule(pathname: string): ModuleKey {
   if (pathname.startsWith('/people')) return 'people'
@@ -39,6 +33,18 @@ export function Dock() {
   const currentModule = getCurrentModule(pathname)
   const theme = dockThemes[currentModule]
   const { data: features } = useEnabledFeatures()
+  
+  // Get real notification counts
+  const canManageLeave = useCanManageLeave()
+  const { data: leaveCount } = useLeaveNotificationCount()
+  
+  // Build notification counts object
+  const notificationCounts = {
+    people: 0,
+    attendance: 0,
+    leave: canManageLeave ? (leaveCount ?? 0) : 0,
+    tasks: 0,
+  }
 
   const visibleItems = NAV_ITEMS.filter(
     (item) => item.featureKey === null || features === undefined || features[item.featureKey] === true
@@ -63,7 +69,7 @@ export function Dock() {
         {visibleItems.map((item) => {
           const isActive = pathname === item.to || pathname.startsWith(item.to + '/')
           const Icon = item.icon
-          const notificationCount = item.notificationKey ? mockNotifications[item.notificationKey] || 0 : 0
+          const notificationCount = item.notificationKey ? notificationCounts[item.notificationKey] || 0 : 0
           
           return (
             <Link

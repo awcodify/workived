@@ -32,6 +32,9 @@ type ServiceInterface interface {
 	RejectRequest(ctx context.Context, orgID, reviewerEmployeeID, requestID uuid.UUID, note *string) (*Request, error)
 	CancelRequest(ctx context.Context, orgID, employeeID, requestID uuid.UUID) (*Request, error)
 
+	// Notifications
+	GetNotificationCount(ctx context.Context, orgID uuid.UUID) (int, error)
+
 	// Calendar
 	GetCalendar(ctx context.Context, orgID uuid.UUID, year, month int) ([]CalendarEntry, error)
 	ListHolidays(ctx context.Context, orgID uuid.UUID, startDate, endDate string) ([]PublicHoliday, error)
@@ -75,6 +78,9 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	leave.GET("/requests", middleware.Require(middleware.PermLeaveRead), h.ListRequests)
 	leave.GET("/requests/me", middleware.Require(middleware.PermSelfLeave), h.ListMyRequests)
 	leave.POST("/requests/:id/cancel", middleware.Require(middleware.PermSelfLeave), h.CancelRequest)
+
+	// Notifications — pending approvals count
+	leave.GET("/notifications/count", middleware.Require(middleware.PermLeaveRead), h.GetNotificationCount)
 
 	// Approve / reject — admin or manager
 	leave.POST("/requests/:id/approve", middleware.RequireAny(middleware.PermLeaveApprove, middleware.PermTeamLeaveApprove), h.ApproveRequest)
@@ -419,6 +425,20 @@ func (h *Handler) ListHolidays(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": holidays})
+}
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+
+func (h *Handler) GetNotificationCount(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	count, err := h.service.GetNotificationCount(c.Request.Context(), orgID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"count": count}})
 }
 
 // ── Templates ─────────────────────────────────────────────────────────────────

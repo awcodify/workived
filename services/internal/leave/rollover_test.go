@@ -269,3 +269,6 @@ func (m *mockRepo) ImportPoliciesFromTemplates(context.Context, pgx.Tx, uuid.UUI
 func (m *mockRepo) CreateBalancesForAllEmployees(context.Context, pgx.Tx, uuid.UUID, uuid.UUID, int, float64) error {
 	return nil
 }
+func (m *mockRepo) CountPendingRequests(context.Context, uuid.UUID) (int, error) {
+	return 0, nil
+}

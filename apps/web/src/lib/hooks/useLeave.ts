@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { leaveApi } from '@/lib/api/leave'
+import { useCanManageLeave } from '@/lib/hooks/useRole'
 import type {
   CreatePolicyInput,
   UpdatePolicyInput,
@@ -25,6 +26,8 @@ export const leaveKeys = {
     [...leaveKeys.all, 'calendar', year, month] as const,
   holidays: (startDate: string, endDate: string) =>
     [...leaveKeys.all, 'holidays', startDate, endDate] as const,
+
+  notificationCount: () => [...leaveKeys.all, 'notificationCount'] as const,
 }
 
 // ── Policy Hooks ─────────────────────────────────────────────
@@ -262,5 +265,19 @@ export function useHolidays(startDate: string, endDate: string) {
     queryFn: () => leaveApi.listHolidays(startDate, endDate).then((r) => r.data.data),
     staleTime: 30 * 60 * 1000, // 30 min — public holidays rarely change
     enabled: !!startDate && !!endDate,
+  })
+}
+
+// ── Notification Hooks ───────────────────────────────────────
+
+export function useLeaveNotificationCount() {
+  const canManage = useCanManageLeave()
+  
+  return useQuery({
+    queryKey: leaveKeys.notificationCount(),
+    queryFn: () => leaveApi.getNotificationCount().then((r) => r.data.data.count),
+    staleTime: 60 * 1000, // 1 min — refetch frequently to stay current
+    refetchInterval: 60 * 1000, // Auto-refetch every minute
+    enabled: canManage, // Only fetch for users with permission
   })
 }

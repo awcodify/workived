@@ -453,6 +453,21 @@ func (r *Repository) HasOverlap(ctx context.Context, orgID, employeeID uuid.UUID
 	return exists, nil
 }
 
+// CountPendingRequests returns the number of pending leave requests for the organization.
+func (r *Repository) CountPendingRequests(ctx context.Context, orgID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM leave_requests
+		WHERE organisation_id = $1
+		  AND status = 'pending'
+	`, orgID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count pending leave requests: %w", err)
+	}
+	return count, nil
+}
+
 // ── Calendar ────────────────────────────────────────────────────────────────
 
 // ListCalendar returns approved leave entries that overlap a given month.

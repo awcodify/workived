@@ -4,6 +4,7 @@ import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
 import { useDailyReport, useMonthlyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
+import { useMyBalances } from '@/lib/hooks/useLeave'
 import { todayISO, formatDate } from '@/lib/utils/date'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
@@ -148,8 +149,12 @@ function OverviewPage() {
   const tz = org?.timezone ?? 'UTC'
   const today = todayISO(tz)
 
-  const { data: employees, isLoading: empLoading } = useEmployees({ limit: 100 })
+  const { data: employees, isLoading: empLoading} = useEmployees({ limit: 100 })
   const { data: daily, isLoading: dailyLoading } = useDailyReport(today)
+
+  // Leave balances for current year
+  const currentYear = new Date().getFullYear()
+  const { data: leaveBalances } = useMyBalances(currentYear)
 
   const totalEmployees = employees?.data?.length ?? 0
   const present = daily?.filter((e) => e.status === 'present').length ?? 0
@@ -710,6 +715,99 @@ function OverviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Leave Balance Summary */}
+      {leaveBalances && leaveBalances.length > 0 && (
+        <div style={{ marginTop: 32, maxWidth: 900, margin: '32px auto 0 auto' }}>
+          <div 
+            style={{
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 18,
+              boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
+              background: colors.accentText,
+              padding: '28px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <CalendarDays size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
+                <h3 style={{ 
+                  fontSize: typography.h2.size, 
+                  fontWeight: typography.h2.weight, 
+                  color: 'rgba(255,255,255,0.7)', 
+                  letterSpacing: typography.h2.tracking, 
+                  lineHeight: typography.h2.lineHeight, 
+                  marginBottom: 0 
+                }}>
+                  Your leave balance ({currentYear})
+                </h3>
+              </div>
+              <Link
+                to="/leave"
+                className="flex items-center gap-1 text-sm font-semibold transition-opacity hover:opacity-100"
+                style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
+              >
+                View details <ChevronRight size={16} />
+              </Link>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+              {leaveBalances.map((balance) => {
+                const available = balance.entitled_days + balance.carried_over_days - balance.used_days - balance.pending_days
+                const totalEntitled = balance.entitled_days + balance.carried_over_days
+                const usagePercent = totalEntitled > 0 ? ((balance.used_days + balance.pending_days) / totalEntitled) * 100 : 0
+
+                return (
+                  <div
+                    key={balance.policy_name}
+                    style={{
+                      flex: '1 1 calc(33.333% - 11px)',
+                      minWidth: 200,
+                      background: 'rgba(255,255,255,0.05)',
+                      borderRadius: 12,
+                      padding: '18px 20px',
+                      border: '1px solid rgba(255,255,255,0.08)',
+                    }}
+                  >
+                    <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.5)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {balance.policy_name}
+                    </p>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
+                      <p style={{ fontSize: 32, fontWeight: 800, color: available > 0 ? colors.ok : 'rgba(255,255,255,0.3)', fontFamily: typography.fontMono, letterSpacing: '-0.02em', lineHeight: 1 }}>
+                        {available.toFixed(1)}
+                      </p>
+                      <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)', fontWeight: 600 }}>
+                        / {totalEntitled.toFixed(1)} days
+                      </span>
+                    </div>
+                    <div style={{ marginBottom: 10 }}>
+                      <div style={{ width: '100%', height: 6, background: 'rgba(255,255,255,0.10)', borderRadius: 3, overflow: 'hidden' }}>
+                        <div style={{ 
+                          width: `${Math.min(100, usagePercent)}%`, 
+                          height: '100%', 
+                          background: usagePercent > 90 ? colors.err : usagePercent > 70 ? colors.warn : colors.ok,
+                          transition: 'width 0.3s ease',
+                        }} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 16, fontSize: 12 }}>
+                      <div>
+                        <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Used: </span>
+                        <span style={{ color: colors.ink0, fontWeight: 700 }}>{balance.used_days.toFixed(1)}</span>
+                      </div>
+                      {balance.pending_days > 0 && (
+                        <div>
+                          <span style={{ color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Pending: </span>
+                          <span style={{ color: colors.warn, fontWeight: 700 }}>{balance.pending_days.toFixed(1)}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Responsive styles for dashboard columns */}
       <style>{`

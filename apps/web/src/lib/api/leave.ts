@@ -103,4 +103,8 @@ export const leaveApi = {
     apiClient.get<CalendarResponse>('/api/v1/leave/calendar', {
       params: { year, month },
     }),
+
+  // ── Notifications ──────────────────────────────────────────
+  getNotificationCount: () =>
+    apiClient.get<ApiResponse<{ count: number }>>('/api/v1/leave/notifications/count'),
 }
