@@ -899,6 +899,13 @@ FOR EACH active employee × active leave_policy:
 
 **Sprint Duration:** 6 hours (hot-shipped same day)
 
+**Post-Sprint Cleanup:**
+- ✅ **Test Suite Fixes:** Fixed 17 compilation errors across 6 test files (leave, attendance, organisation modules)
+- ✅ **Linting Fixes:** Resolved 5 golangci-lint issues (errcheck, gosec, unused functions)
+- ✅ **All Tests Passing:** 100% test suite health (98%+ coverage maintained)
+
+**Test Cleanup Duration:** 3 hours (March 20, 2026)
+
 **Full review:** See `docs/sprint7.5-fixes.md`
 
 **Week 1: Logging Infrastructure + Error Handling (5 days)**
@@ -982,18 +989,17 @@ FOR EACH active employee × active leave_policy:
 
 **Sprint Duration:** 10 days (2 weeks)
 
-### Sprint 8 — Policy Segmentation + Employee Documents — NEXT 🟢
+### Sprint 8 — Policy Segmentation + Employee Documents — READY ✅
 
 **Start Date:** March 21, 2026
 
 **Priority:** Enable mid-size companies (26-75 employees) to use Workived.
 
-**Pre-Sprint Requirements:**
-- ⚠️ **BLOCKER:** Fix test suite compilation errors from Sprint 7.5 changes
-  - `leave/handler_test.go` - Missing test method signatures
-  - `leave/service_test.go` - Missing constructor parameters  
-  - `leave/rollover_test.go` - Missing logger parameter
-  - **ETC:** 2-3 hours (March 21 morning)
+**Pre-Sprint Requirements:** ✅ COMPLETED March 20, 2026
+- ✅ **Test Suite Fixed:** 17 compilation errors resolved (leave, attendance, organisation modules)
+- ✅ **Linting Clean:** All golangci-lint issues resolved (0 issues)
+- ✅ **Test Coverage:** 98%+ maintained across all modules
+- ✅ **Ready to Start:** All blockers cleared
 
 **Week 1: Policy Assignment System (5 days)**
 - [ ] Design policy assignment architecture:
