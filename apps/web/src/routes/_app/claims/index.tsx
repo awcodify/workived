@@ -1,9 +1,10 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useMyClaims, useAllClaims } from '@/lib/hooks/useClaims'
 import { ClaimCard } from '@/components/workived/claims/ClaimCard'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
-import { Plus } from 'lucide-react'
+import { Plus, Settings } from 'lucide-react'
+import { useCanManageClaims } from '@/lib/hooks/useRole'
 
 const t = moduleThemes.claims
 
@@ -20,6 +21,7 @@ const STATUS_TABS = [
 
 function ClaimsPage() {
   const navigate = useNavigate()
+  const canManageClaims = useCanManageClaims()
   const [activeTab, setActiveTab] = useState<string>('all')
   const [view, setView] = useState<'my' | 'team'>('my')
   
@@ -63,19 +65,35 @@ function ClaimsPage() {
           </p>
         </div>
 
-        {/* Submit New Claim Button */}
-        <button
-          onClick={() => navigate({ to: '/claims/new' })}
-          className="flex items-center gap-2 px-4 py-2.5 font-semibold text-sm transition-opacity hover:opacity-90"
-          style={{
-            background: t.accent,
-            color: t.accentText,
-            borderRadius: 12,
-          }}
-        >
-          <Plus size={18} />
-          New Claim
-        </button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          {canManageClaims && (
+            <Link
+              to="/claims/categories"
+              className="flex items-center gap-2 px-4 py-2.5 font-semibold text-sm transition-opacity hover:opacity-90"
+              style={{
+                background: t.surface,
+                color: t.text,
+                borderRadius: 12,
+              }}
+            >
+              <Settings size={16} />
+              Manage Categories
+            </Link>
+          )}
+          <button
+            onClick={() => navigate({ to: '/claims/new' })}
+            className="flex items-center gap-2 px-4 py-2.5 font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{
+              background: t.accent,
+              color: t.accentText,
+              borderRadius: 12,
+            }}
+          >
+            <Plus size={18} />
+            New Claim
+          </button>
+        </div>
       </div>
 
       {/* View Toggle (My / Team) */}

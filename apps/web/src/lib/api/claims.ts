@@ -1,6 +1,7 @@
 import { apiClient } from './client'
 import type {
   ClaimCategory,
+  CategoryTemplate,
   Claim,
   ClaimWithDetails,
   CreateCategoryInput,
@@ -42,6 +43,18 @@ export const claimsApi = {
 
   deactivateCategory: (id: string) =>
     apiClient.delete(`/api/v1/claims/categories/${id}`),
+
+  // ── Templates ──────────────────────────────────────────────
+  listCategoryTemplates: (countryCode?: string) =>
+    apiClient.get<ApiResponse<CategoryTemplate[]>>('/api/v1/claims/categories/templates', {
+      params: countryCode ? { country_code: countryCode } : undefined,
+    }),
+
+  importCategories: (templateIds: string[]) =>
+    apiClient.post<ApiResponse<{ categories: ClaimCategory[]; created_count: number }>>(
+      '/api/v1/claims/categories/import',
+      { template_ids: templateIds }
+    ),
 
   // ── Claims ─────────────────────────────────────────────────
   submitClaim: (data: SubmitClaimInput, receipt?: File) => {

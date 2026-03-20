@@ -13,6 +13,8 @@ export const claimsKeys = {
   all: ['claims'] as const,
 
   categories: () => [...claimsKeys.all, 'categories'] as const,
+  categoryTemplates: (countryCode?: string) => 
+    [...claimsKeys.all, 'category-templates', countryCode] as const,
 
   claims: () => [...claimsKeys.all, 'claims'] as const,
   myClaims: (filters?: { cursor?: string; limit?: number }) =>
@@ -59,6 +61,26 @@ export function useDeactivateCategory() {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (id: string) => claimsApi.deactivateCategory(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: claimsKeys.categories() })
+    },
+  })
+}
+
+// ── Template Hooks ───────────────────────────────────────────
+export function useCategoryTemplates(countryCode?: string) {
+  return useQuery({
+    queryKey: claimsKeys.categoryTemplates(countryCode),
+    queryFn: () => claimsApi.listCategoryTemplates(countryCode).then((r) => r.data.data),
+    staleTime: 30 * 60 * 1000, // 30 min — templates rarely change
+    enabled: !!countryCode, // Only fetch if country code is provided
+  })
+}
+
+export function useImportCategories() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (templateIds: string[]) => claimsApi.importCategories(templateIds),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: claimsKeys.categories() })
     },

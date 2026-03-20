@@ -38,6 +38,7 @@ import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/r
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
 import { Route as AppLeaveRequestsIndexRouteImport } from './routes/_app/leave/requests/index'
 import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/policies/index'
+import { Route as AppClaimsCategoriesIndexRouteImport } from './routes/_app/claims/categories/index'
 import { Route as AppLeaveRequestsPendingRouteImport } from './routes/_app/leave/requests/pending'
 import { Route as AppLeaveRequestsNewRouteImport } from './routes/_app/leave/requests/new'
 import { Route as AppLeavePoliciesNewRouteImport } from './routes/_app/leave/policies/new'
@@ -187,6 +188,12 @@ const AppLeavePoliciesIndexRoute = AppLeavePoliciesIndexRouteImport.update({
   path: '/policies/',
   getParentRoute: () => AppLeaveRouteRoute,
 } as any)
+const AppClaimsCategoriesIndexRoute =
+  AppClaimsCategoriesIndexRouteImport.update({
+    id: '/categories/',
+    path: '/categories/',
+    getParentRoute: () => AppClaimsRouteRoute,
+  } as any)
 const AppLeaveRequestsPendingRoute = AppLeaveRequestsPendingRouteImport.update({
   id: '/requests/pending',
   path: '/requests/pending',
@@ -238,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/leave/requests/new': typeof AppLeaveRequestsNewRoute
   '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
+  '/claims/categories/': typeof AppClaimsCategoriesIndexRoute
   '/leave/policies/': typeof AppLeavePoliciesIndexRoute
   '/leave/requests/': typeof AppLeaveRequestsIndexRoute
 }
@@ -267,6 +275,7 @@ export interface FileRoutesByTo {
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/leave/requests/new': typeof AppLeaveRequestsNewRoute
   '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
+  '/claims/categories': typeof AppClaimsCategoriesIndexRoute
   '/leave/policies': typeof AppLeavePoliciesIndexRoute
   '/leave/requests': typeof AppLeaveRequestsIndexRoute
 }
@@ -303,6 +312,7 @@ export interface FileRoutesById {
   '/_app/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/_app/leave/requests/new': typeof AppLeaveRequestsNewRoute
   '/_app/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
+  '/_app/claims/categories/': typeof AppClaimsCategoriesIndexRoute
   '/_app/leave/policies/': typeof AppLeavePoliciesIndexRoute
   '/_app/leave/requests/': typeof AppLeaveRequestsIndexRoute
 }
@@ -338,6 +348,7 @@ export interface FileRouteTypes {
     | '/leave/policies/new'
     | '/leave/requests/new'
     | '/leave/requests/pending'
+    | '/claims/categories/'
     | '/leave/policies/'
     | '/leave/requests/'
   fileRoutesByTo: FileRoutesByTo
@@ -367,6 +378,7 @@ export interface FileRouteTypes {
     | '/leave/policies/new'
     | '/leave/requests/new'
     | '/leave/requests/pending'
+    | '/claims/categories'
     | '/leave/policies'
     | '/leave/requests'
   id:
@@ -402,6 +414,7 @@ export interface FileRouteTypes {
     | '/_app/leave/policies/new'
     | '/_app/leave/requests/new'
     | '/_app/leave/requests/pending'
+    | '/_app/claims/categories/'
     | '/_app/leave/policies/'
     | '/_app/leave/requests/'
   fileRoutesById: FileRoutesById
@@ -617,6 +630,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppLeavePoliciesIndexRouteImport
       parentRoute: typeof AppLeaveRouteRoute
     }
+    '/_app/claims/categories/': {
+      id: '/_app/claims/categories/'
+      path: '/categories'
+      fullPath: '/claims/categories/'
+      preLoaderRoute: typeof AppClaimsCategoriesIndexRouteImport
+      parentRoute: typeof AppClaimsRouteRoute
+    }
     '/_app/leave/requests/pending': {
       id: '/_app/leave/requests/pending'
       path: '/requests/pending'
@@ -664,11 +684,13 @@ const AppAttendanceRouteRouteWithChildren =
 interface AppClaimsRouteRouteChildren {
   AppClaimsNewRoute: typeof AppClaimsNewRoute
   AppClaimsIndexRoute: typeof AppClaimsIndexRoute
+  AppClaimsCategoriesIndexRoute: typeof AppClaimsCategoriesIndexRoute
 }
 
 const AppClaimsRouteRouteChildren: AppClaimsRouteRouteChildren = {
   AppClaimsNewRoute: AppClaimsNewRoute,
   AppClaimsIndexRoute: AppClaimsIndexRoute,
+  AppClaimsCategoriesIndexRoute: AppClaimsCategoriesIndexRoute,
 }
 
 const AppClaimsRouteRouteWithChildren = AppClaimsRouteRoute._addFileChildren(

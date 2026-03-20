@@ -20,6 +20,19 @@ type Category struct {
 	UpdatedAt       time.Time `json:"updated_at"`
 }
 
+// CategoryTemplate represents a pre-defined category template for a country.
+type CategoryTemplate struct {
+	ID              uuid.UUID `json:"id"`
+	CountryCode     string    `json:"country_code"`
+	Name            string    `json:"name"`
+	Description     *string   `json:"description,omitempty"`
+	MonthlyLimit    *int64    `json:"monthly_limit,omitempty"` // Smallest currency unit
+	CurrencyCode    *string   `json:"currency_code,omitempty"`
+	RequiresReceipt bool      `json:"requires_receipt"`
+	SortOrder       int       `json:"sort_order"`
+	CreatedAt       time.Time `json:"created_at"`
+}
+
 // Claim represents an expense claim.
 type Claim struct {
 	ID             uuid.UUID `json:"id"`
@@ -75,6 +88,10 @@ type ApproveClaimRequest struct {
 
 type RejectClaimRequest struct {
 	ReviewNote string `json:"review_note" binding:"required,max=500"`
+}
+
+type ImportCategoriesRequest struct {
+	TemplateIDs []string `json:"template_ids" binding:"required,min=1"`
 }
 
 // ── Filter types ──────────────────────────────────────────────────────────────

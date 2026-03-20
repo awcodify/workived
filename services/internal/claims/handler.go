@@ -26,6 +26,10 @@ type ServiceInterface interface {
 	UpdateCategory(ctx context.Context, orgID, id uuid.UUID, req UpdateCategoryRequest, actorUserID ...uuid.UUID) (*Category, error)
 	DeactivateCategory(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
 
+	// Templates
+	ListTemplates(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]CategoryTemplate, error)
+	ImportCategories(ctx context.Context, orgID uuid.UUID, req ImportCategoriesRequest, actorUserID ...uuid.UUID) ([]Category, int, error)
+
 	// Claims
 	ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFilters) (*ListResult, error)
 	GetClaim(ctx context.Context, orgID, id uuid.UUID) (*Claim, error)
@@ -61,6 +65,10 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	claims.POST("/categories", middleware.Require(middleware.PermClaimsWrite), h.CreateCategory)
 	claims.PUT("/categories/:id", middleware.Require(middleware.PermClaimsWrite), h.UpdateCategory)
 	claims.DELETE("/categories/:id", middleware.Require(middleware.PermClaimsWrite), h.DeactivateCategory)
+
+	// Templates — admin only
+	claims.GET("/categories/templates", middleware.Require(middleware.PermClaimsRead), h.ListCategoryTemplates)
+	claims.POST("/categories/import", middleware.Require(middleware.PermClaimsWrite), h.ImportCategories)
 
 	// Claims — submit & view own
 	claims.POST("", middleware.Require(middleware.PermSelfClaims), h.SubmitClaim)
@@ -157,6 +165,49 @@ func (h *Handler) DeactivateCategory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "category deactivated"}})
+}
+
+func (h *Handler) ListCategoryTemplates(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	// Optional country_code query param
+	countryCode := c.Query("country_code")
+	var cc *string
+	if countryCode != "" {
+		cc = &countryCode
+	}
+
+	templates, err := h.service.ListTemplates(c.Request.Context(), orgID, cc)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": templates})
+}
+
+func (h *Handler) ImportCategories(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	var req ImportCategoriesRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	categories, count, err := h.service.ImportCategories(c.Request.Context(), orgID, req, userID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"data": gin.H{
+			"categories":    categories,
+			"created_count": count,
+		},
+	})
 }
 
 // ── Claim Handlers ────────────────────────────────────────────────────────────

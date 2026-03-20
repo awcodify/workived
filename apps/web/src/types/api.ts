@@ -380,6 +380,18 @@ export interface ClaimCategory {
   updated_at: string
 }
 
+export interface CategoryTemplate {
+  id: string
+  country_code: string
+  name: string
+  description?: string
+  monthly_limit?: number  // Main currency unit for templates
+  currency_code?: string
+  requires_receipt: boolean
+  sort_order: number
+  created_at: string
+}
+
 export interface Claim {
   id: string
   organisation_id: string

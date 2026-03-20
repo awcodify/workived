@@ -320,6 +320,60 @@ func (r *Repository) GetMonthlySummary(ctx context.Context, orgID uuid.UUID, yea
 	return summaries, rows.Err()
 }
 
+// ListTemplates returns all category templates for a given country, ordered by sort_order.
+func (r *Repository) ListTemplates(ctx context.Context, countryCode string) ([]CategoryTemplate, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, country_code, name, description, monthly_limit, currency_code, 
+		       requires_receipt, sort_order, created_at
+		FROM claim_category_templates
+		WHERE country_code = $1
+		ORDER BY sort_order
+	`, countryCode)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var templates []CategoryTemplate
+	for rows.Next() {
+		var t CategoryTemplate
+		if err := rows.Scan(
+			&t.ID, &t.CountryCode, &t.Name, &t.Description, &t.MonthlyLimit,
+			&t.CurrencyCode, &t.RequiresReceipt, &t.SortOrder, &t.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		templates = append(templates, t)
+	}
+	return templates, rows.Err()
+}
+
+// ImportCategoriesFromTemplates creates categories from templates.
+// Returns the created categories. Skips templates with duplicate names.
+func (r *Repository) ImportCategoriesFromTemplates(ctx context.Context, orgID uuid.UUID, templates []CategoryTemplate) ([]Category, error) {
+	var created []Category
+
+	for _, tmpl := range templates {
+		var cat Category
+		err := r.db.QueryRow(ctx, `
+			INSERT INTO claim_categories (organisation_id, name, monthly_limit, currency_code, requires_receipt)
+			VALUES ($1, $2, $3, $4, $5)
+			ON CONFLICT (organisation_id, name) DO NOTHING
+			RETURNING id, organisation_id, name, monthly_limit, currency_code, requires_receipt, 
+			          is_active, created_at, updated_at
+		`, orgID, tmpl.Name, tmpl.MonthlyLimit, tmpl.CurrencyCode, tmpl.RequiresReceipt).Scan(
+			&cat.ID, &cat.OrganisationID, &cat.Name, &cat.MonthlyLimit, &cat.CurrencyCode,
+			&cat.RequiresReceipt, &cat.IsActive, &cat.CreatedAt, &cat.UpdatedAt,
+		)
+		if err == nil {
+			created = append(created, cat)
+		}
+		// Silently skip duplicates (ON CONFLICT DO NOTHING causes ErrNoRows)
+	}
+
+	return created, nil
+}
+
 func nilIfEmpty(s string) *string {
 	if s == "" {
 		return nil

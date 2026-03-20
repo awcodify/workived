@@ -26,6 +26,12 @@ export function useCanManageLeave(): boolean {
   return role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin'
 }
 
+// claims.write permission: owner, admin, hr_admin
+export function useCanManageClaims(): boolean {
+  const role = useRole()
+  return role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin'
+}
+
 // Returns true if the JWT contains a non-empty org_id claim.
 // False means the user is authenticated but has not yet created or joined an organisation.
 export function useHasOrg(): boolean {

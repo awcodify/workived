@@ -22,6 +22,10 @@ type RepositoryInterface interface {
 	DeactivateCategory(ctx context.Context, orgID, id uuid.UUID) error
 	CountPendingClaimsByCategory(ctx context.Context, orgID, categoryID uuid.UUID) (int, error)
 
+	// Templates
+	ListTemplates(ctx context.Context, countryCode string) ([]CategoryTemplate, error)
+	ImportCategoriesFromTemplates(ctx context.Context, orgID uuid.UUID, templates []CategoryTemplate) ([]Category, error)
+
 	// Claims
 	CreateClaim(ctx context.Context, orgID uuid.UUID, req SubmitClaimRequest, employeeID uuid.UUID, receiptURL *string) (*Claim, error)
 	GetClaim(ctx context.Context, orgID, id uuid.UUID) (*Claim, error)
@@ -138,6 +142,92 @@ func (s *Service) DeactivateCategory(ctx context.Context, orgID, id uuid.UUID, a
 	}
 
 	return nil
+}
+
+// ListTemplates returns category templates for the org's country.
+func (s *Service) ListTemplates(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]CategoryTemplate, error) {
+	// If no country code provided, get it from organisation
+	cc := ""
+	if countryCode != nil && *countryCode != "" {
+		cc = *countryCode
+	} else {
+		// Fetch org country code
+		_, _, err := s.orgRepo.GetOrgPlanInfo(ctx, orgID)
+		if err != nil {
+			return nil, err
+		}
+		// Note: GetOrgPlanInfo doesn't return country code yet. Let's return empty for now
+		// TODO: Update OrgInfoProvider interface to include country code
+		return nil, apperr.New(apperr.CodeValidation, "country_code parameter is required")
+	}
+
+	return s.repo.ListTemplates(ctx, cc)
+}
+
+// ImportCategories imports categories from templates.
+func (s *Service) ImportCategories(ctx context.Context, orgID uuid.UUID, req ImportCategoriesRequest, actorUserID ...uuid.UUID) ([]Category, int, error) {
+	if len(req.TemplateIDs) == 0 {
+		return nil, 0, apperr.New(apperr.CodeValidation, "template_ids cannot be empty")
+	}
+
+	// Fetch country code from organisation
+	// Note: For now we'll fetch all templates and filter by IDs
+	// TODO: Optimize by adding a method to fetch templates by IDs
+
+	// For simplicity, let's assume all templates are for the same country
+	// We'll need to get the org's country code first
+	_, _, err := s.orgRepo.GetOrgPlanInfo(ctx, orgID)
+	if err != nil {
+		return nil, 0, err
+	}
+	var templateUUIDs []uuid.UUID
+	for _, idStr := range req.TemplateIDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			return nil, 0, apperr.New(apperr.CodeValidation, fmt.Sprintf("invalid template_id: %s", idStr))
+		}
+		templateUUIDs = append(templateUUIDs, id)
+	}
+
+	// For now, we'll need to fetch templates by looping through countries
+	// This is not ideal but works for the MVP
+	var templates []CategoryTemplate
+	for _, cc := range []string{"ID", "AE", "MY", "SG"} {
+		countryTemplates, err := s.repo.ListTemplates(ctx, cc)
+		if err != nil {
+			continue
+		}
+		for _, tmpl := range countryTemplates {
+			for _, wantedID := range templateUUIDs {
+				if tmpl.ID == wantedID {
+					templates = append(templates, tmpl)
+					break
+				}
+			}
+		}
+	}
+
+	if len(templates) == 0 {
+		return nil, 0, apperr.New(apperr.CodeNotFound, "no templates found with provided IDs")
+	}
+
+	// Import categories
+	created, err := s.repo.ImportCategoriesFromTemplates(ctx, orgID, templates)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Log audit entry
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       fmt.Sprintf("claim_categories.imported_%d", len(created)),
+			ResourceType: "claim_category",
+		})
+	}
+
+	return created, len(created), nil
 }
 
 // ── Claim Methods ─────────────────────────────────────────────────────────────

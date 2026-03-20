@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Plus, Pencil, Trash2, Download } from 'lucide-react'
 import { usePolicies, useDeactivatePolicy } from '@/lib/hooks/useLeave'
-import { useState } from 'react'
+import { useCanManageLeave } from '@/lib/hooks/useRole'
+import { useState, useEffect } from 'react'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
 import { ImportTemplatesModal } from '@/components/workived/leave/ImportTemplatesModal'
 
@@ -12,10 +13,19 @@ export const Route = createFileRoute('/_app/leave/policies/')({
 })
 
 function PoliciesPage() {
+  const navigate = useNavigate()
+  const canManage = useCanManageLeave()
   const { data: policies, isLoading } = usePolicies()
   const deactivateMutation = useDeactivatePolicy()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
+
+  // Redirect if no permission
+  useEffect(() => {
+    if (!canManage) {
+      navigate({ to: '/leave' })
+    }
+  }, [canManage, navigate])
 
   const handleDeactivate = async (id: string) => {
     if (deletingId === id) {

@@ -149,7 +149,7 @@ function OverviewPage() {
   const tz = org?.timezone ?? 'UTC'
   const today = todayISO(tz)
 
-  const { data: employees, isLoading: empLoading} = useEmployees({ limit: 100 })
+  const { data: employees, isLoading: empLoading} = useEmployees({ limit: 100, status: 'active' })
   const { data: daily, isLoading: dailyLoading } = useDailyReport(today)
 
   // Leave balances for current year
