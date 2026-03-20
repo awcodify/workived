@@ -806,71 +806,238 @@ FOR EACH active employee × active leave_policy:
 
 **Sprint Duration:** 4 hours (hot-shipped same day as feedback)
 
-### Sprint 6 — Claims + Employee Hierarchy + Modular Approval — NEXT 🟢
+### Sprint 6 — Claims Module — DONE ✅
 
-**Employee Hierarchy:**
-- [ ] Add `reporting_to UUID REFERENCES employees(id)` to employees table (nullable)
-- [ ] Update employee CRUD (BE + FE) with "Reports To" dropdown
-- [ ] Display reporting chain in employee detail page
+**Delivered:** Full claims management system with categories, templates, monthly balances, and approval workflow.
 
-**Modular Approval System (Free tier):**
-- [ ] Create `internal/approval/` module with shared types and logic
-- [ ] Multi-level approval chains: employee → manager → admin (hierarchy-based routing via `reporting_to`)
-- [ ] Refactor leave approval to use shared approval module
-- [ ] Claims approval uses shared module from day 1
+**Scope:**
+- [x] Claim categories configuration (CRUD, country-specific templates)
+- [x] Category template import (bulk create from predefined templates)
+- [x] Monthly balances with budget tracking (auto-initialized, progress bars)
+- [x] Claim submission with receipt upload (S3/MinIO integration)
+- [x] Claims list pages (admin: all claims, employee: my claims, pending approvals)
+- [x] Approval workflow (modal-based, matching leave UX)
+- [x] Notifications in dock (badge for pending claims)
+- [x] Balance tracking (remaining budget, monthly limits)
+- [x] Receipt management (upload, preview, download)
 
-**Claims (basic flow):**
-- [ ] Claim categories configuration (CRUD)
-- [ ] Claim submission + receipt upload (S3 or local for MVP)
-- [ ] Claims list page (admin: all claims, employee: my claims)
-- [ ] Claims frontend pages (submit, view, approve/reject)
-- [ ] Basic reporting (monthly totals per employee)
+**Technical Highlights:**
+- Modular approval pattern using shared `approval.ReviewInfo` type
+- Multi-tenancy enforced on all queries
+- Foreign key integrity with proper cascade/restrict
+- Balance auto-initialization on category creation
+- UX parity with leave module (modal approvals, notification badges)
+- Data integrity: NOT NULL constraints, soft delete for categories
+- PostgreSQL type casting fix for ambiguous parameters
 
-**Polish:**
-- [ ] **Empty states with CTAs** — Add to all list pages (employees, attendance, claims)
-  - Clear call-to-action when no data exists
-  - Example: "No claims yet. Submit your first expense claim"
-  - Design: Icon + heading + description + primary button
+**Test Coverage:**
+- Frontend: 18 tests (ClaimApprovalDialog, category auto-selection)
+- Backend: All existing tests pass, claims module functional (no test files yet)
 
-### Sprint 7 — Landing page + PWA + Onboarding
+**Untracked Work (Scope Creep - Acceptable):**
+- S3/MinIO configuration fixes (3 cascading issues)
+- Error architecture simplification (generic base codes)
+- Structured logging for errors (foreign key violations)
+- Frontend timing fixes (category auto-selection race condition)
+- OpenAPI documentation updates (3 endpoints, 2 schemas)
+
+**Known Limitations (Acceptable for MVP):**
+- No bulk claim operations (CSV import, batch approval)
+- No recurring claims (auto-create monthly allowances)
+- No receipt OCR (amount/date extraction)
+- Backend test coverage deferred
+
+**Sprint Duration:** ~30 hours (1.88x original estimate due to infrastructure fixes)
+
+**Full review:** See `docs/sprint6-review.md`
+
+### Sprint 7 — Observability & Error Handling — NEXT 🟢
+
+**Priority:** Production-ready logging and error messages for operational excellence.
+
+**Week 1: Logging Infrastructure + Error Handling (5 days)**
+
+**⭐ Priority 1: Structured Application Logging (3 days)**
+- [ ] Add zerolog library and create `pkg/logger` package
+- [ ] Define structured log format (JSON, levels, contextual fields)
+- [ ] Implement request context propagation (request_id, user_id, org_id)
+- [ ] Log all business events across modules:
+  - Auth: login/logout, invitation sent/accepted, password resets
+  - Employee: created/updated/deactivated, department changes
+  - Leave: request submitted/approved/rejected, balance adjusted
+  - Claims: submitted/approved/rejected, budget exceeded warnings
+  - Attendance: clock-in/out, manual corrections
+- [ ] Remove all `log.Printf` calls entirely
+- [ ] Add error logging with full context before returning to user
+- [ ] Configure log output for APM integration (JSON format)
+
+**Business Events to Log:**
+```go
+// Critical events (must log):
+- user_logged_in/out (user_id, org_id, ip, timestamp)
+- employee_created/updated/deactivated (who, what changed)
+- leave_request_submitted/approved/rejected (employee, dates, approver)
+- claim_submitted/approved/rejected (employee, amount, category, approver)
+- balance_adjusted (policy/category, old/new values, reason)
+- policy_created/updated (who, what changed)
+- validation_failed (rule, context, user input)
+- system_error (full stack trace, context)
+
+// Performance events (optional):
+- slow_query (duration > 1s)
+- large_file_upload (size, user)
+```
+
+**⭐ Priority 2: Proper Error Messages (2 days)**
+- [ ] Leave validation errors with context:
+  - "Insufficient leave balance (you have 2 days, requested 5)"
+  - "Cannot apply leave on non-working day (Saturday)"
+  - "Minimum X days notice required for this leave type"
+  - "Cannot apply leave for backdate"
+  - "Leave request overlaps with existing approved leave"
+- [ ] Claims validation errors with context:
+  - "Budget exceeded for [category] (limit: X, spent: Y, requested: Z)"
+  - "Category [name] is inactive"
+  - "Receipt required for this category"
+  - "Monthly limit reached for [category]"
+- [ ] Employee validation errors:
+  - "Email already exists in this organisation"
+  - "Employee code must be unique"
+  - "Cannot deactivate employee with pending approvals"
+- [ ] Log every validation error with full context before returning
+
+**Week 2: Notifications + Analytics (5 days)**
+
+**Priority 3: Email Notifications (3 days)**
+- [ ] Email service integration (SendGrid/SES/Resend - TBD)
+- [ ] Email templates:
+  - Claim pending approval → notify manager
+  - Leave pending approval → notify manager
+  - Claim approved/rejected → notify employee
+  - Leave approved/rejected → notify employee
+- [ ] Log email delivery (sent/failed/bounced)
+- [ ] Queue-based email system (optional - depends on provider)
+- [ ] Email preferences (allow users to opt-out of certain types)
+
+**Priority 4: Claims Analytics Dashboard (2 days)**
+- [ ] Monthly spending by category (bar chart)
+- [ ] Budget vs actual comparison
+- [ ] Top spending employees (table)
+- [ ] Category utilization rates
+- [ ] Export to CSV
+- [ ] Date range filters (month, quarter, year)
+
+**Success Criteria:**
+- ✅ Every business event is logged with structured context
+- ✅ Users see actionable error messages (not "Internal Error")
+- ✅ Managers get email alerts for pending approvals
+- ✅ Support team can debug issues via logs
+- ✅ Compliance-ready audit trail from day 1
+
+**Sprint Duration:** 10 days (2 weeks)
+
+### Sprint 8 — Policy Segmentation + Employee Documents
+
+**Priority:** Enable mid-size companies (26-75 employees) to use Workived.
+
+**Week 1: Policy Assignment System (5 days)**
+- [ ] Design policy assignment architecture:
+  - Policy applies to: organisation (default) → department → employee (most specific wins)
+  - Cascade rules: employee override > department > organisation default
+  - Migration path for existing policies (all become org-level defaults)
+- [ ] Database schema changes:
+  - Add `policy_assignments` table (policy_id, assignee_type, assignee_id)
+  - Assignee types: 'organisation', 'department', 'employee', 'job_title'
+- [ ] Backend logic:
+  - Policy resolution service (find applicable policy for employee)
+  - Assignment API endpoints (create, list, delete assignments)
+  - Validation (prevent policy conflicts, ensure at least one policy)
+- [ ] Balance initialization updates (use applicable policy for employee)
+
+**Examples:**
+- "Managers get 20 annual leave days, staff get 15"
+- "Sales team has travel allowance category, engineers don't"
+- "Senior employees get gym reimbursement"
+
+**Week 2: Employee Documents + UI (5 days)**
+- [ ] Employee documents module:
+  - Document types: Contract, ID Copy, Certificates, Performance Reviews
+  - Upload to S3/MinIO (same pattern as receipts)
+  - Document expiry tracking (e.g., visa expires in 30 days)
+  - Access control (only employee + admin can view)
+- [ ] Policy assignment UI:
+  - Department-level: Assign policies in department settings
+  - Employee-level: Assign policies in employee detail page
+  - Bulk assignment: Select multiple employees → assign policy
+  - Visual indicator showing which policy applies (org/dept/employee level)
+- [ ] Document management UI:
+  - Upload documents in employee detail page
+  - Document list with preview/download
+  - Expiry warnings (visual badge for expiring soon)
+
+**Success Criteria:**
+- ✅ Companies can segment leave policies by role/department
+- ✅ Sensitive documents stored securely with access control
+- ✅ Compliance requirement met (store contracts, IDs, certificates)
+
+**Sprint Duration:** 10 days (2 weeks)
+
+### Sprint 9 — System Transparency + UX Polish
+
+**Priority:** Build trust through transparency and improve usability based on feedback.
+
+**Week 1: System Changelog + Better UX (5 days)**
+- [ ] System update and changelog:
+  - Markdown-based changelog (stored in database or S3)
+  - API endpoint: `GET /api/v1/system/changelog`
+  - Frontend: "What's New" modal on dashboard (dismissible, version-tracked)
+  - Show: new features, bug fixes, known issues
+  - Update frequency: bi-weekly releases
+- [ ] Known issues board:
+  - API endpoint: `GET /api/v1/system/known-issues`
+  - Frontend: Link in help menu → modal showing active issues
+  - Admin can mark issues as "investigating" / "fixing" / "resolved"
+- [ ] Better UI/UX improvements (SPECIFIC - based on user feedback):
+  - [TBD: Add specific UX issues identified in Sprint 7-8]
+  - Examples: Simplify multi-step forms, reduce clicks, improve mobile navigation
+  - Data-driven: Use analytics to find friction points
+
+**Week 2: Customizable Dashboard (OPTIONAL - Low Priority)**
+- [ ] Widget system:
+  - Widget types: Attendance summary, Leave balance, Pending approvals, Recent claims
+  - Drag-and-drop using react-dnd or similar
+  - Widget visibility toggles
+  - Layout persistence (per user, stored in database)
+- [ ] Alternative (simpler): Fixed layout with show/hide toggles for each widget
+  - Skip drag-and-drop complexity
+  - User preferences: `{ widgets: { attendance: true, claims: false } }`
+
+**NOTE:** Customizable dashboard deferred or dropped if ROI is low. Prioritize only if user feedback demands it.
+
+**Success Criteria:**
+- ✅ Users see what's being worked on (transparency builds trust)
+- ✅ Known issues are visible (reduces support burden)
+- ✅ UX friction points addressed (measured via analytics)
+
+**Sprint Duration:** 5-10 days (1-2 weeks, depends on dashboard scope)
+
+### Sprint 10+ — Landing Page + PWA + Pro Features
 - [ ] Astro marketing site (apps/landing)
 - [ ] PWA manifest + service worker for dashboard
 - [ ] SEO optimization, blog setup
-- [ ] **Onboarding checklist** — Progress tracker for first-time admins
-  - 5-step setup: Create org → Add employees → Import leave policies → Set work schedule → First attendance
-  - Persistent card on dashboard (dismissible after completion)
-  - Visual progress indicator (3/5 steps complete)
-  - Links directly to action pages
-- [ ] **Contextual help tooltips** — Inline guidance on complex fields
-  - Work schedule explanation, leave accrual rules, claim approval flow
-  - Hover trigger, small info icon, non-intrusive
-  - Links to docs where relevant
+- [ ] Feature gating middleware for Pro tier
+- [ ] GPS geofencing for clock-in (Pro)
+- [ ] Custom leave types (Pro)
+- [ ] Shift scheduling + overtime auto-calc (Pro)
+- [ ] Approval escalation rules (Pro): auto-approve after X days, skip-level escalation
+- [ ] Upgrade flow + billing integration (Stripe/Paddle)
 
-### Sprint 8 — Pro features (monetization)
-- [ ] Feature gating middleware
-- [ ] GPS geofencing for clock-in
-- [ ] Custom leave types (Pro only)
-- [ ] Shift scheduling + overtime auto-calc
-- [ ] **Approval escalation rules (Pro only)** — auto-approve after X days, skip-level escalation
-- [ ] Upgrade flow + billing integration (TBD: Stripe/Paddle)
-
-### Sprint 9+ — Analytics + Tasks (if validated demand)
+### Future — Analytics + Tasks (Phase 2)
 - [ ] HR analytics dashboard (Pro feature)
 - [ ] Custom reports
-- [ ] **Unified calendar** — Aggregate view at `/calendar` showing leave, tasks, claims deadlines, company events, public holidays
-  - Replaces module-specific calendars with single source of truth
-  - Click date → see all activities for that day across modules
-- [ ] **Tasks module (CONDITIONAL — build only if customers request it)**
-  - Task lists, CRUD, comments
-  - Does NOT include: subtasks, dependencies, time tracking, Gantt (avoid feature parity with Trello/Asana)
-- [ ] **App tour (OPTIONAL — data-driven decision)**
-  - Only build if support tickets or analytics show confusion at specific steps
-  - Max 3-4 steps, fully skippable, feature-flagged for A/B testing
-  - Must measure impact on activation metrics before keeping
-  - Alternative: Record screen walkthroughs (Loom) and link from help menu
-
-### Future — Payroll (Phase 2)
-- [ ] TBD — design separately when core is proven
+- [ ] Unified calendar (aggregate leave, tasks, claims, events)
+- [ ] Tasks module (CONDITIONAL — only if customers request)
+- [ ] Payroll integration (Phase 2 — separate design)
 
 ---
 
