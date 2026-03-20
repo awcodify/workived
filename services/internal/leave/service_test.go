@@ -796,7 +796,7 @@ func TestService_SubmitRequest(t *testing.T) {
 				}
 			},
 			wantErr:  true,
-			wantCode: apperr.CodeInsufficientBalance,
+			wantCode: apperr.CodeUpgradeRequired,
 		},
 		{
 			name: "get policy error",

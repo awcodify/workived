@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useForm } from 'react-hook-form'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, Upload, X } from 'lucide-react'
 import { useSubmitClaim, useCategories } from '@/lib/hooks/useClaims'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
@@ -8,8 +8,15 @@ import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
 
 const t = moduleThemes.claims
 
+type ClaimSearchParams = {
+  categoryId?: string
+}
+
 export const Route = createFileRoute('/_app/claims/new')({
   component: NewClaimPage,
+  validateSearch: (search: Record<string, unknown>): ClaimSearchParams => ({
+    categoryId: (search.categoryId as string) || undefined,
+  }),
 })
 
 interface ClaimFormData {
@@ -21,6 +28,7 @@ interface ClaimFormData {
 
 function NewClaimPage() {
   const navigate = useNavigate()
+  const { categoryId: prefilledCategoryId } = Route.useSearch()
   const { data: org } = useOrganisation()
   const { data: categories } = useCategories()
   const submitMutation = useSubmitClaim()
@@ -32,15 +40,30 @@ function NewClaimPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<ClaimFormData>({
     defaultValues: {
+      category_id: prefilledCategoryId || '',
       claim_date: new Date().toISOString().split('T')[0], // Today
     },
   })
 
   const categoryId = watch('category_id')
   const selectedCategory = categories?.find((c) => c.id === categoryId)
+
+  // Set category when prefilled and categories are loaded
+  useEffect(() => {
+    if (prefilledCategoryId && categories && categories.length > 0) {
+      // Only set if the category exists and is active
+      const categoryExists = categories.find(
+        (c) => c.id === prefilledCategoryId && c.is_active
+      )
+      if (categoryExists) {
+        setValue('category_id', prefilledCategoryId)
+      }
+    }
+  }, [prefilledCategoryId, categories, setValue])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -137,15 +160,30 @@ function NewClaimPage() {
         <div
           className="mb-6 p-4"
           style={{
-            background: '#FDF2E3',
-            border: '1px solid #C97B2A',
+            background: (submitMutation.error as any)?.response?.data?.error?.code === 'INSUFFICIENT_CLAIM_BUDGET' 
+              ? '#FEF3E2' 
+              : '#FDF2E3',
+            border: (submitMutation.error as any)?.response?.data?.error?.code === 'INSUFFICIENT_CLAIM_BUDGET'
+              ? '1px solid #F59E0B'
+              : '1px solid #C97B2A',
             borderRadius: 14,
           }}
         >
           <p className="text-sm font-semibold" style={{ color: '#A0601A' }}>
-            Failed to submit claim
+            {(() => {
+              const errorCode = (submitMutation.error as any)?.response?.data?.error?.code
+              switch (errorCode) {
+                case 'INSUFFICIENT_CLAIM_BUDGET': return 'Budget Exceeded'
+                case 'CATEGORY_INACTIVE': return 'Category Inactive'
+                case 'RECEIPT_REQUIRED': return 'Receipt Required'
+                case 'CURRENCY_MISMATCH': return 'Currency Mismatch'
+                case 'INVALID_CLAIM_AMOUNT': return 'Invalid Amount'
+                case 'INVALID_CLAIM_DATE': return 'Invalid Date'
+                default: return 'Failed to Submit Claim'
+              }
+            })()}
           </p>
-          <p className="text-xs mt-1" style={{ color: '#72708A' }}>
+          <p className="text-xs mt-1 whitespace-pre-line" style={{ color: '#72708A' }}>
             {(submitMutation.error as any)?.response?.data?.error?.message || 
               submitMutation.error.message || 
               'Please check your input and try again'}
@@ -178,8 +216,9 @@ function NewClaimPage() {
             </label>
             <select
               id="category_id"
-              {...register('category_id', { required: true })}
-              className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
+              {...register('category_id', { required: 'Please select a category' })}
+              disabled={!!prefilledCategoryId}
+              className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 background: t.input,
                 border: errors.category_id ? '2px solid #D44040' : `1px solid ${t.inputBorder}`,
@@ -196,6 +235,11 @@ function NewClaimPage() {
                   </option>
                 ))}
             </select>
+            {errors.category_id && (
+              <p className="text-xs mt-1" style={{ color: '#D44040' }}>
+                {errors.category_id.message}
+              </p>
+            )}
             {selectedCategory?.requires_receipt && (
               <p className="text-xs mt-1" style={{ color: t.textMuted }}>
                 Receipt required for this category
@@ -221,7 +265,11 @@ function NewClaimPage() {
               type="number"
               step="1"
               min="1"
-              {...register('amount', { required: true, min: 1 })}
+              {...register('amount', { 
+                required: 'Amount is required', 
+                min: { value: 1, message: 'Amount must be at least 1' },
+                validate: (value) => parseInt(value) > 0 || 'Amount must be greater than zero'
+              })}
               placeholder="0"
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
@@ -231,6 +279,11 @@ function NewClaimPage() {
                 color: t.text,
               }}
             />
+            {errors.amount && (
+              <p className="text-xs mt-1" style={{ color: '#D44040' }}>
+                {errors.amount.message}
+              </p>
+            )}
             <p className="text-xs mt-1" style={{ color: t.textMuted }}>
               Enter amount in smallest currency unit (e.g., cents for USD, rupiah for IDR)
             </p>
@@ -252,7 +305,16 @@ function NewClaimPage() {
             <input
               id="claim_date"
               type="date"
-              {...register('claim_date', { required: true })}
+              max={new Date().toISOString().split('T')[0]}
+              {...register('claim_date', { 
+                required: 'Claim date is required',
+                validate: (value) => {
+                  const selectedDate = new Date(value)
+                  const today = new Date()
+                  today.setHours(23, 59, 59, 999)
+                  return selectedDate <= today || 'Claim date cannot be in the future'
+                }
+              })}
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -261,6 +323,11 @@ function NewClaimPage() {
                 color: t.text,
               }}
             />
+            {errors.claim_date && (
+              <p className="text-xs mt-1" style={{ color: '#D44040' }}>
+                {errors.claim_date.message}
+              </p>
+            )}
           </div>
 
           {/* Description */}
@@ -278,7 +345,10 @@ function NewClaimPage() {
             </label>
             <textarea
               id="description"
-              {...register('description', { required: true, maxLength: 500 })}
+              {...register('description', { 
+                required: 'Description is required', 
+                maxLength: { value: 500, message: 'Description must not exceed 500 characters' }
+              })}
               rows={3}
               placeholder="Describe the expense..."
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none"
@@ -289,9 +359,9 @@ function NewClaimPage() {
                 color: t.text,
               }}
             />
-            {errors.description?.type === 'maxLength' && (
+            {errors.description && (
               <p className="text-xs mt-1" style={{ color: '#D44040' }}>
-                Description must be 500 characters or less
+                {errors.description.message}
               </p>
             )}
           </div>

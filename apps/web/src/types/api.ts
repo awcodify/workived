@@ -373,7 +373,7 @@ export interface ClaimCategory {
   organisation_id: string
   name: string
   monthly_limit?: number  // Smallest currency unit
-  currency_code?: string
+  currency_code: string   // Always set to org's currency
   requires_receipt: boolean
   is_active: boolean
   created_at: string
@@ -413,6 +413,26 @@ export interface Claim {
 export interface ClaimWithDetails extends Claim {
   employee_name: string
   category_name: string
+}
+
+export interface ClaimBalance {
+  id: string
+  organisation_id: string
+  employee_id: string
+  category_id: string
+  year: number
+  month: number
+  total_spent: number  // Smallest currency unit
+  claim_count: number
+  currency_code: string
+  monthly_limit?: number  // Smallest currency unit
+  created_at: string
+  updated_at: string
+}
+
+export interface ClaimBalanceWithCategory extends ClaimBalance {
+  category_name: string
+  remaining?: number  // monthly_limit - total_spent
 }
 
 export interface ClaimMonthlySummary {

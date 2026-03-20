@@ -107,7 +107,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmploye
 			return nil, err
 		}
 		if count >= *limit {
-			return nil, apperr.New(apperr.CodeEmployeeLimitReached,
+			return nil, apperr.New(apperr.CodeUpgradeRequired,
 				"free plan limit reached — upgrade to Pro for unlimited employees")
 		}
 	}

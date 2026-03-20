@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -70,6 +72,17 @@ func (r *Repository) GetCategory(ctx context.Context, orgID, id uuid.UUID) (*Cat
 }
 
 func (r *Repository) CreateCategory(ctx context.Context, orgID uuid.UUID, req CreateCategoryRequest) (*Category, error) {
+	// If currency_code not provided, use organization's currency
+	currencyCode := req.CurrencyCode
+	if currencyCode == nil || *currencyCode == "" {
+		var orgCurrency string
+		err := r.db.QueryRow(ctx, `SELECT currency_code FROM organisations WHERE id = $1`, orgID).Scan(&orgCurrency)
+		if err != nil {
+			return nil, err
+		}
+		currencyCode = &orgCurrency
+	}
+
 	var c Category
 
 	err := r.db.QueryRow(ctx, `
@@ -78,7 +91,7 @@ func (r *Repository) CreateCategory(ctx context.Context, orgID uuid.UUID, req Cr
 		) VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, organisation_id, name, monthly_limit, currency_code,
 		          requires_receipt, is_active, created_at, updated_at
-	`, orgID, req.Name, req.MonthlyLimit, req.CurrencyCode, req.RequiresReceipt).Scan(
+	`, orgID, req.Name, req.MonthlyLimit, *currencyCode, req.RequiresReceipt).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
 		&c.RequiresReceipt, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
@@ -127,24 +140,12 @@ func (r *Repository) DeactivateCategory(ctx context.Context, orgID, id uuid.UUID
 	return nil
 }
 
-// CountPendingClaimsByCategory returns the number of pending claims for a category.
-// Used to prevent deletion of categories with pending claims.
+// CountPendingClaimsByCategory returns the count of pending claims for a category.
 func (r *Repository) CountPendingClaimsByCategory(ctx context.Context, orgID, categoryID uuid.UUID) (int, error) {
 	var count int
 	err := r.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM claims
 		WHERE organisation_id = $1 AND category_id = $2 AND status = 'pending'
-	`, orgID, categoryID).Scan(&count)
-	return count, err
-}
-
-// CountBalancesByCategory returns the number of balances for a category.
-// Used to check if historical data exists before deletion.
-func (r *Repository) CountBalancesByCategory(ctx context.Context, orgID, categoryID uuid.UUID) (int, error) {
-	var count int
-	err := r.db.QueryRow(ctx, `
-		SELECT COUNT(*) FROM claim_balances
-		WHERE organisation_id = $1 AND category_id = $2
 	`, orgID, categoryID).Scan(&count)
 	return count, err
 }
@@ -260,7 +261,7 @@ func (r *Repository) UpdateStatus(ctx context.Context, orgID, claimID uuid.UUID,
 		UPDATE claims SET
 			status      = $3,
 			reviewed_by = $4,
-			reviewed_at = CASE WHEN $3 IN ('approved', 'rejected') THEN NOW() ELSE reviewed_at END,
+			reviewed_at = CASE WHEN $3::varchar IN ('approved', 'rejected') THEN NOW() ELSE reviewed_at END,
 			review_note = $5
 		WHERE organisation_id = $1 AND id = $2 AND status = $6
 		RETURNING id, organisation_id, employee_id, category_id, amount, currency_code,
@@ -274,6 +275,14 @@ func (r *Repository) UpdateStatus(ctx context.Context, orgID, claimID uuid.UUID,
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.New(apperr.CodeConflict, fmt.Sprintf("claim is not in %s status", fromStatus))
+		}
+		// Log detailed error for debugging
+		log.Printf("[UpdateStatus] ERROR - orgID=%s, claimID=%s, fromStatus=%s, toStatus=%s, reviewerEmployeeID=%v",
+			orgID, claimID, fromStatus, toStatus, reviewerEmployeeID)
+		log.Printf("[UpdateStatus] SQL Error: %v", err)
+		// Check if it's a foreign key violation
+		if strings.Contains(err.Error(), "foreign key") || strings.Contains(err.Error(), "violates") {
+			return nil, apperr.New(apperr.CodeValidation, "reviewer employee not found or inactive")
 		}
 		return nil, err
 	}
@@ -360,29 +369,41 @@ func (r *Repository) ListTemplates(ctx context.Context, countryCode string) ([]C
 }
 
 // ImportCategoriesFromTemplates creates categories from templates.
-// Returns the created categories. Skips templates with duplicate names.
+// Always creates new categories - duplicates are allowed for flexibility.
 func (r *Repository) ImportCategoriesFromTemplates(ctx context.Context, orgID uuid.UUID, templates []CategoryTemplate) ([]Category, error) {
-	var created []Category
+	// Get organisation's currency code as fallback
+	var orgCurrencyCode string
+	err := r.db.QueryRow(ctx, `SELECT currency_code FROM organisations WHERE id = $1`, orgID).Scan(&orgCurrencyCode)
+	if err != nil {
+		return nil, err
+	}
+
+	var categories []Category
 
 	for _, tmpl := range templates {
+		// Use template's currency_code if provided, otherwise use org's currency
+		currencyCode := orgCurrencyCode
+		if tmpl.CurrencyCode != nil && *tmpl.CurrencyCode != "" {
+			currencyCode = *tmpl.CurrencyCode
+		}
+
 		var cat Category
 		err := r.db.QueryRow(ctx, `
 			INSERT INTO claim_categories (organisation_id, name, monthly_limit, currency_code, requires_receipt)
 			VALUES ($1, $2, $3, $4, $5)
-			ON CONFLICT (organisation_id, name) DO NOTHING
 			RETURNING id, organisation_id, name, monthly_limit, currency_code, requires_receipt, 
 			          is_active, created_at, updated_at
-		`, orgID, tmpl.Name, tmpl.MonthlyLimit, tmpl.CurrencyCode, tmpl.RequiresReceipt).Scan(
+		`, orgID, tmpl.Name, tmpl.MonthlyLimit, currencyCode, tmpl.RequiresReceipt).Scan(
 			&cat.ID, &cat.OrganisationID, &cat.Name, &cat.MonthlyLimit, &cat.CurrencyCode,
 			&cat.RequiresReceipt, &cat.IsActive, &cat.CreatedAt, &cat.UpdatedAt,
 		)
-		if err == nil {
-			created = append(created, cat)
+		if err != nil {
+			return nil, err
 		}
-		// Silently skip duplicates (ON CONFLICT DO NOTHING causes ErrNoRows)
+		categories = append(categories, cat)
 	}
 
-	return created, nil
+	return categories, nil
 }
 
 // ── Balance Methods ───────────────────────────────────────────────────────────
@@ -466,6 +487,7 @@ func (r *Repository) UpdateBalanceOnRejection(ctx context.Context, orgID, employ
 }
 
 // ListBalancesByEmployee returns all balances for an employee in a specific month.
+// Only returns balances for active categories.
 func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT b.id, b.organisation_id, b.employee_id, b.category_id, b.year, b.month,
@@ -475,6 +497,7 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 		JOIN claim_categories c ON b.category_id = c.id
 		WHERE b.organisation_id = $1 AND b.employee_id = $2 
 		  AND b.year = $3 AND b.month = $4
+		  AND c.is_active = true
 		ORDER BY c.name
 	`, orgID, employeeID, year, month)
 	if err != nil {
@@ -502,6 +525,24 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 		balances = append(balances, b)
 	}
 	return balances, rows.Err()
+}
+
+// CreateBalancesForAllEmployees creates claim balances for all active employees in the organization
+// for the current month. Called when a new category is created or imported.
+func (r *Repository) CreateBalancesForAllEmployees(ctx context.Context, orgID, categoryID uuid.UUID, year, month int) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO claim_balances (organisation_id, employee_id, category_id, year, month, currency_code, monthly_limit)
+		SELECT $1, e.id, $2, $3, $4, c.currency_code, c.monthly_limit
+		FROM employees e
+		CROSS JOIN claim_categories c
+		WHERE e.organisation_id = $1 AND e.is_active = true
+		  AND c.id = $2 AND c.is_active = true
+		ON CONFLICT (organisation_id, employee_id, category_id, year, month) DO NOTHING
+	`, orgID, categoryID, year, month)
+	if err != nil {
+		return fmt.Errorf("create balances for all employees: %w", err)
+	}
+	return nil
 }
 
 func nilIfEmpty(s string) *string {

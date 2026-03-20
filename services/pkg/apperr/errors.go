@@ -6,15 +6,13 @@ import (
 )
 
 const (
-	CodeNotFound             = "NOT_FOUND"
-	CodeUnauthorized         = "UNAUTHORIZED"
-	CodeForbidden            = "FORBIDDEN"
-	CodeValidation           = "VALIDATION_ERROR"
-	CodeUpgradeRequired      = "UPGRADE_REQUIRED"
-	CodeInsufficientBalance  = "INSUFFICIENT_LEAVE_BALANCE"
-	CodeEmployeeLimitReached = "EMPLOYEE_LIMIT_REACHED"
-	CodeConflict             = "CONFLICT"
-	CodeInternal             = "INTERNAL_ERROR"
+	CodeNotFound        = "NOT_FOUND"
+	CodeUnauthorized    = "UNAUTHORIZED"
+	CodeForbidden       = "FORBIDDEN"
+	CodeValidation      = "VALIDATION_ERROR"
+	CodeUpgradeRequired = "UPGRADE_REQUIRED"
+	CodeConflict        = "CONFLICT"
+	CodeInternal        = "INTERNAL_ERROR"
 )
 
 type AppError struct {
@@ -84,6 +82,7 @@ func Response(err error) map[string]any {
 }
 
 // HTTPStatus maps an AppError code to an HTTP status code.
+// Only handles common/global error codes.
 func HTTPStatus(err error) int {
 	var e *AppError
 	if errors.As(err, &e) {
@@ -96,7 +95,7 @@ func HTTPStatus(err error) int {
 			return http.StatusForbidden
 		case CodeValidation:
 			return http.StatusBadRequest
-		case CodeUpgradeRequired, CodeEmployeeLimitReached:
+		case CodeUpgradeRequired:
 			return http.StatusPaymentRequired
 		case CodeConflict:
 			return http.StatusConflict

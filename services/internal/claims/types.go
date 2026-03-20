@@ -13,7 +13,7 @@ type Category struct {
 	OrganisationID  uuid.UUID `json:"organisation_id"`
 	Name            string    `json:"name"`
 	MonthlyLimit    *int64    `json:"monthly_limit,omitempty"` // Pro only, smallest currency unit
-	CurrencyCode    *string   `json:"currency_code,omitempty"` // Required if monthly_limit set
+	CurrencyCode    string    `json:"currency_code"`           // Always set to org's currency
 	RequiresReceipt bool      `json:"requires_receipt"`
 	IsActive        bool      `json:"is_active"`
 	CreatedAt       time.Time `json:"created_at"`

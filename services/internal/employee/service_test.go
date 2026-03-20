@@ -139,6 +139,16 @@ func (f *fakeEmpRepo) GetWithManagerName(_ context.Context, orgID, id uuid.UUID)
 	return result, nil
 }
 
+func (f *fakeEmpRepo) ListAllActive(_ context.Context, orgID uuid.UUID) ([]employee.Employee, error) {
+	var result []employee.Employee
+	for _, e := range f.employees {
+		if e.OrganisationID == orgID && e.IsActive {
+			result = append(result, *e)
+		}
+	}
+	return result, nil
+}
+
 // ── Fake audit logger ────────────────────────────────────────────────────────
 
 type fakeAuditLogger struct {
@@ -178,7 +188,7 @@ func TestEmployeeService_Create_PlanLimit(t *testing.T) {
 			plan:        "free",
 			limit:       intPtr(25),
 			activeCount: 25,
-			wantErr:     apperr.CodeEmployeeLimitReached,
+			wantErr:     apperr.CodeUpgradeRequired,
 		},
 		{
 			name:        "pro plan — no limit enforced",

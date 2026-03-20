@@ -189,7 +189,8 @@ function NewRequestPage() {
               id="leave_policy_id"
               {...register('leave_policy_id')}
               required
-              className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
+              disabled={!!preselectedPolicyId}
+              className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 background: t.input,
                 border: errors.leave_policy_id ? '2px solid #D44040' : `1px solid ${t.inputBorder}`,

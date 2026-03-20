@@ -266,7 +266,7 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 		return nil, fmt.Errorf("get balance for update: %w", err)
 	}
 	if balance.Available() < totalDays {
-		return nil, apperr.New(apperr.CodeInsufficientBalance,
+		return nil, apperr.New(apperr.CodeUpgradeRequired,
 			fmt.Sprintf("insufficient leave balance: %.1f days available, %.1f requested", balance.Available(), totalDays))
 	}
 

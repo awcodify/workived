@@ -19,7 +19,7 @@ type Config struct {
 	JWTAccessTTL  time.Duration `mapstructure:"JWT_ACCESS_TTL"`
 	JWTRefreshTTL time.Duration `mapstructure:"JWT_REFRESH_TTL"`
 
-	S3Endpoint         string `mapstructure:"S3_ENDPOINT"` // MinIO: http://localhost:9000, AWS: leave empty
+	S3Endpoint         string `mapstructure:"S3_ENDPOINT"` // MinIO: localhost:9000 (no protocol!), AWS: leave empty
 	S3Bucket           string `mapstructure:"S3_BUCKET"`
 	S3Region           string `mapstructure:"S3_REGION"`
 	S3UseSSL           bool   `mapstructure:"S3_USE_SSL"` // false for local MinIO, true for production

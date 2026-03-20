@@ -20,6 +20,9 @@ infra-up: ## Start postgres, redis, and minio (detached)
 infra-down: ## Stop and remove all infra containers
 	$(DOCKER_COMPOSE) down
 
+setup-storage: ## Create MinIO bucket (run after infra-up)
+	@./scripts/setup-minio.sh
+
 # ── Migrations ────────────────────────────────────────────────────────────────
 
 migrate-up: ## Apply all pending migrations
@@ -39,6 +42,7 @@ run: ## Run the API server (infra must already be up)
 dev: infra-up ## Start infra, run migrations, then start the API server
 	@echo "Waiting for postgres to be ready..."
 	@sleep 3
+	@$(MAKE) setup-storage
 	@$(MAKE) migrate-up
 	@$(MAKE) run
 

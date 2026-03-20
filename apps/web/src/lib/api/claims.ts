@@ -4,6 +4,7 @@ import type {
   CategoryTemplate,
   Claim,
   ClaimWithDetails,
+  ClaimBalanceWithCategory,
   CreateCategoryInput,
   UpdateCategoryInput,
   SubmitClaimInput,
@@ -55,6 +56,12 @@ export const claimsApi = {
       '/api/v1/claims/categories/import',
       { template_ids: templateIds }
     ),
+
+  // ── Balances ───────────────────────────────────────────────
+  myBalances: (year: number, month: number) =>
+    apiClient.get<ApiResponse<ClaimBalanceWithCategory[]>>('/api/v1/claims/balances/me', {
+      params: { year, month },
+    }),
 
   // ── Claims ─────────────────────────────────────────────────
   submitClaim: (data: SubmitClaimInput, receipt?: File) => {

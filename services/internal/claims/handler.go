@@ -3,6 +3,7 @@ package claims
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -72,6 +73,9 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Templates — admin only
 	claims.GET("/categories/templates", middleware.Require(middleware.PermClaimsRead), h.ListCategoryTemplates)
 	claims.POST("/categories/import", middleware.Require(middleware.PermClaimsWrite), h.ImportCategories)
+
+	// Balances — view own
+	claims.GET("/balances/me", middleware.Require(middleware.PermSelfClaims), h.ListMyBalances)
 
 	// Claims — submit & view own
 	claims.POST("", middleware.Require(middleware.PermSelfClaims), h.SubmitClaim)
@@ -213,6 +217,39 @@ func (h *Handler) ImportCategories(c *gin.Context) {
 	})
 }
 
+// ── Balance Handlers ──────────────────────────────────────────────────────────
+
+func (h *Handler) ListMyBalances(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	// Resolve user → employee
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	// Parse year and month from query params, default to current
+	now := time.Now()
+	year, err := strconv.Atoi(c.DefaultQuery("year", strconv.Itoa(now.Year())))
+	if err != nil {
+		year = now.Year()
+	}
+	month, err := strconv.Atoi(c.DefaultQuery("month", strconv.Itoa(int(now.Month()))))
+	if err != nil {
+		month = int(now.Month())
+	}
+
+	balances, err := h.service.ListBalances(c.Request.Context(), orgID, employeeID, year, month)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": balances})
+}
+
 // ── Claim Handlers ────────────────────────────────────────────────────────────
 
 func (h *Handler) SubmitClaim(c *gin.Context) {
@@ -234,14 +271,31 @@ func (h *Handler) SubmitClaim(c *gin.Context) {
 
 	// Parse JSON fields from form
 	var req SubmitClaimRequest
-	req.CategoryID, _ = uuid.Parse(c.PostForm("category_id"))
-	req.Amount, _ = strconv.ParseInt(c.PostForm("amount"), 10, 64)
+
+	// Parse category_id
+	req.CategoryID, err = uuid.Parse(c.PostForm("category_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(fmt.Errorf("invalid category_id")))
+		return
+	}
+
+	// Parse amount
+	req.Amount, err = strconv.ParseInt(c.PostForm("amount"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(fmt.Errorf("invalid amount")))
+		return
+	}
+
 	req.CurrencyCode = c.PostForm("currency_code")
 	req.Description = c.PostForm("description")
 
 	// Parse claim_date (YYYY-MM-DD format)
 	claimDateStr := c.PostForm("claim_date")
-	req.ClaimDate, _ = time.Parse("2006-01-02", claimDateStr)
+	req.ClaimDate, err = time.Parse("2006-01-02", claimDateStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(fmt.Errorf("invalid claim_date format, expected YYYY-MM-DD")))
+		return
+	}
 
 	if err := validate.Struct(&req); err != nil {
 		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
@@ -274,7 +328,8 @@ func (h *Handler) SubmitClaim(c *gin.Context) {
 		// Upload to S3/MinIO
 		contentType := header.Header.Get("Content-Type")
 		if err := h.storageClient.Upload(c.Request.Context(), key, file, contentType); err != nil {
-			c.JSON(http.StatusInternalServerError, apperr.Response(fmt.Errorf("file upload failed: %w", err)))
+			log.Printf("ERROR uploading receipt to storage: %v", err)
+			c.JSON(http.StatusInternalServerError, apperr.Response(apperr.New(apperr.CodeInternal, "file upload failed - please try again or contact support")))
 			return
 		}
 
@@ -418,9 +473,11 @@ func (h *Handler) ApproveClaim(c *gin.Context) {
 
 	reviewerEmployeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
+		log.Printf("[ApproveClaim] ERROR - empLookup failed: orgID=%s, userID=%s, error=%v", orgID, userID, err)
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
 	}
+	log.Printf("[ApproveClaim] Found reviewer: employeeID=%s for userID=%s in org=%s", reviewerEmployeeID, userID, orgID)
 
 	var req ApproveClaimRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

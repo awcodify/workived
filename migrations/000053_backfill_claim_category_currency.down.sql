@@ -1,0 +1,2 @@
+-- 000053_backfill_claim_category_currency.down.sql
+-- No-op: We don't want to revert currency codes to NULL

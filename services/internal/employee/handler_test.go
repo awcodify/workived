@@ -23,14 +23,15 @@ func init() {
 // ── Mock service ──────────────────────────────────────────────────────────────
 
 type mockEmpService struct {
-	listFn             func(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error)
-	createFn           func(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest) (*employee.Employee, error)
-	getFn              func(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error)
-	getByUserIDFn      func(ctx context.Context, orgID, userID uuid.UUID) (*employee.Employee, error)
-	updateFn           func(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error)
-	deactivateFn       func(ctx context.Context, orgID, id uuid.UUID) error
-	getDirectReportsFn func(ctx context.Context, orgID, managerID uuid.UUID) ([]employee.Employee, error)
-	getWithManagerNameFn func(ctx context.Context, orgID, id uuid.UUID) (*employee.EmployeeWithManager, error)}
+	listFn               func(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error)
+	createFn             func(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest) (*employee.Employee, error)
+	getFn                func(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error)
+	getByUserIDFn        func(ctx context.Context, orgID, userID uuid.UUID) (*employee.Employee, error)
+	updateFn             func(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error)
+	deactivateFn         func(ctx context.Context, orgID, id uuid.UUID) error
+	getDirectReportsFn   func(ctx context.Context, orgID, managerID uuid.UUID) ([]employee.Employee, error)
+	getWithManagerNameFn func(ctx context.Context, orgID, id uuid.UUID) (*employee.EmployeeWithManager, error)
+}
 
 func (m *mockEmpService) List(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error) {
 	return m.listFn(ctx, orgID, f)
@@ -65,6 +66,10 @@ func (m *mockEmpService) GetWithManagerName(ctx context.Context, orgID, id uuid.
 	if m.getWithManagerNameFn != nil {
 		return m.getWithManagerNameFn(ctx, orgID, id)
 	}
+	return nil, nil
+}
+
+func (m *mockEmpService) GetOrgChart(ctx context.Context, orgID uuid.UUID) ([]*employee.OrgChartNode, error) {
 	return nil, nil
 }
 
@@ -144,7 +149,7 @@ func TestEmployeeHandler_List(t *testing.T) {
 						return nil, tt.serviceErr
 					}
 					return &employee.ListResult{
-						Employees: []employee.Employee{},
+						Employees: []employee.EmployeeWithManager{},
 						Meta:      paginate.Meta{Limit: 20},
 					}, nil
 				},
@@ -191,7 +196,7 @@ func TestEmployeeHandler_Create(t *testing.T) {
 		{
 			name:       "employee limit reached",
 			body:       validBody,
-			serviceErr: apperr.New(apperr.CodeEmployeeLimitReached, "limit reached"),
+			serviceErr: apperr.New(apperr.CodeUpgradeRequired, "limit reached"),
 			wantStatus: http.StatusPaymentRequired,
 		},
 		{

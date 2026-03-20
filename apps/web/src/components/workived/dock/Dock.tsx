@@ -5,7 +5,9 @@ import { cn } from '@/lib/utils/cn'
 import { SettingsMenu } from './SettingsMenu'
 import { useEnabledFeatures } from '@/lib/hooks/useFeatures'
 import { useLeaveNotificationCount } from '@/lib/hooks/useLeave'
+import { useClaimNotificationCount } from '@/lib/hooks/useClaims'
 import { useCanManageLeave } from '@/lib/hooks/useRole'
+import { useCanManageClaims } from '@/lib/hooks/useRole'
 
 type ModuleKey = keyof typeof dockThemes
 
@@ -14,7 +16,7 @@ const NAV_ITEMS = [
   { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey, featureKey: null, notificationKey: 'people' },
   { to: '/attendance', label: 'Attendance', icon: Clock, module: 'attendance' as ModuleKey, featureKey: null, notificationKey: 'attendance' },
   { to: '/leave', label: 'Leave', icon: Calendar, module: 'leave' as ModuleKey, featureKey: null, notificationKey: 'leave' },
-  { to: '/claims', label: 'Claims', icon: Receipt, module: 'claims' as ModuleKey, featureKey: null, notificationKey: null },
+  { to: '/claims', label: 'Claims', icon: Receipt, module: 'claims' as ModuleKey, featureKey: null, notificationKey: 'claims' },
   { to: '/reports', label: 'Reports', icon: BarChart3, module: 'reports' as ModuleKey, featureKey: 'reports', notificationKey: null },
   { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey, featureKey: 'tasks', notificationKey: 'tasks' },
 ] as const
@@ -38,13 +40,16 @@ export function Dock() {
   
   // Get real notification counts
   const canManageLeave = useCanManageLeave()
+  const canManageClaims = useCanManageClaims()
   const { data: leaveCount } = useLeaveNotificationCount()
+  const { data: claimCount } = useClaimNotificationCount()
   
   // Build notification counts object
   const notificationCounts = {
     people: 0,
     attendance: 0,
     leave: canManageLeave ? (leaveCount ?? 0) : 0,
+    claims: canManageClaims ? (claimCount ?? 0) : 0,
     tasks: 0,
   }
 

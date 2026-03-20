@@ -22,6 +22,10 @@ export const claimsKeys = {
   allClaims: (filters?: ClaimFilters) => [...claimsKeys.claims(), 'all', filters] as const,
   claim: (id: string) => [...claimsKeys.claims(), id] as const,
 
+  balances: () => [...claimsKeys.all, 'balances'] as const,
+  myBalances: (year: number, month: number) =>
+    [...claimsKeys.balances(), 'me', year, month] as const,
+
   summary: (year: number, month: number) =>
     [...claimsKeys.all, 'summary', year, month] as const,
 }
@@ -160,11 +164,33 @@ export function useCancelClaim() {
   })
 }
 
+// ── Balance Hooks ────────────────────────────────────────────
+export function useMyClaimBalances(year: number, month: number) {
+  return useQuery({
+    queryKey: claimsKeys.myBalances(year, month),
+    queryFn: () => claimsApi.myBalances(year, month).then((r) => r.data.data),
+    staleTime: 2 * 60 * 1000, // 2 min
+  })
+}
+
 // ── Summary Hooks ────────────────────────────────────────────
 export function useMonthlySummary(year: number, month: number) {
   return useQuery({
     queryKey: claimsKeys.summary(year, month),
     queryFn: () => claimsApi.getMonthlySummary(year, month).then((r) => r.data.data),
     staleTime: 5 * 60 * 1000, // 5 min
+  })
+}
+
+// ── Notification Hooks ───────────────────────────────────────────
+export function useClaimNotificationCount() {
+  return useQuery({
+    queryKey: [...claimsKeys.all, 'notification-count'],
+    queryFn: async () => {
+      const response = await claimsApi.listClaims({ status: 'pending' })
+      return response.data.data?.length ?? 0
+    },
+    staleTime: 30 * 1000, // 30 seconds - refresh frequently for notifications
+    refetchInterval: 60 * 1000, // Auto-refresh every minute
   })
 }

@@ -1092,6 +1092,103 @@ paths:
         "409":
           $ref: "#/components/responses/ConflictError"
 
+  /claims/categories/templates:
+    get:
+      operationId: listClaimCategoryTemplates
+      summary: List claim category templates
+      description: Get predefined category templates for quick setup
+      tags: [Claims]
+      parameters:
+        - name: country_code
+          in: query
+          schema:
+            type: string
+            description: Filter templates by country (e.g., 'ID', 'AE', 'MY', 'SG')
+      responses:
+        "200":
+          description: List of category templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClaimCategoryTemplate"
+
+  /claims/categories/import:
+    post:
+      operationId: importClaimCategories
+      summary: Import categories from templates
+      description: Bulk create categories from template IDs
+      tags: [Claims]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [template_ids]
+              properties:
+                template_ids:
+                  type: array
+                  items:
+                    type: string
+                  minItems: 1
+      responses:
+        "201":
+          description: Categories imported
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      created:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/ClaimCategory"
+                      skipped:
+                        type: integer
+                        description: Number of templates skipped (duplicates)
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /claims/balances/me:
+    get:
+      operationId: listMyClaimBalances
+      summary: Get my claim balances
+      description: Returns monthly balances for all categories
+      tags: [Claims]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        "200":
+          description: My claim balances
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClaimBalanceWithCategory"
+
   /claims:
     get:
       operationId: listClaims
@@ -2659,6 +2756,78 @@ components:
           maxLength: 3
         requires_receipt:
           type: boolean
+
+    ClaimCategoryTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        default_limit:
+          type: integer
+          nullable: true
+          description: Suggested monthly limit
+        currency_code:
+          type: string
+          minLength: 3
+          maxLength: 3
+        requires_receipt:
+          type: boolean
+        country_code:
+          type: string
+          nullable: true
+          description: Country this template is tailored for (ID, AE, MY, SG)
+        description:
+          type: string
+          nullable: true
+
+    ClaimBalanceWithCategory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        employee_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+        year:
+          type: integer
+        month:
+          type: integer
+        total_spent:
+          type: integer
+          description: Total amount spent in smallest currency unit
+        claim_count:
+          type: integer
+          description: Number of claims submitted
+        currency_code:
+          type: string
+          minLength: 3
+          maxLength: 3
+        monthly_limit:
+          type: integer
+          nullable: true
+          description: Monthly budget limit (null = unlimited)
+        remaining:
+          type: integer
+          nullable: true
+          description: Calculated remaining budget (null if no limit)
+        category_name:
+          type: string
+          description: Name of the category
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
 
     Claim:
       type: object
