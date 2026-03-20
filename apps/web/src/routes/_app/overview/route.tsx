@@ -3,12 +3,15 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
-import { useDailyReport, useMonthlyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
-import { useMyBalances } from '@/lib/hooks/useLeave'
+import { useDailyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
+import { useMyBalances, useCalendar, useHolidays, useLeaveNotificationCount } from '@/lib/hooks/useLeave'
+import { useMyClaimBalances, useClaimNotificationCount } from '@/lib/hooks/useClaims'
+import { useCanManageLeave, useCanManageClaims } from '@/lib/hooks/useRole'
 import { todayISO, formatDate } from '@/lib/utils/date'
+import { formatMoney } from '@/lib/utils/money'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
-import { LogIn, LogOut, Clock, Timer, Users, CalendarDays, Building2 } from 'lucide-react'
+import { LogIn, LogOut, Clock, Timer, Users, CalendarDays, Receipt, AlertCircle, ChevronRight } from 'lucide-react'
 
 // ── Tooltip ──────────────────────────────────────────────────────
 import { useRef, useState as useTooltipState } from 'react'
@@ -154,7 +157,48 @@ function OverviewPage() {
 
   // Leave balances for current year
   const currentYear = new Date().getFullYear()
+  const currentMonth = new Date().getMonth() + 1
   const { data: leaveBalances } = useMyBalances(currentYear)
+
+  // Claims data
+  const { data: claimBalances } = useMyClaimBalances(currentYear, currentMonth)
+
+  // Calendar data — who's on leave today + upcoming holidays
+  const { data: calendarEntries } = useCalendar(currentYear, currentMonth)
+  const holidayDates = useMemo(() => {
+    const now = new Date()
+    const start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    const endDate = new Date(now)
+    endDate.setDate(endDate.getDate() + 30)
+    const end = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`
+    return { start, end }
+  }, [])
+  const { data: holidays } = useHolidays(holidayDates.start, holidayDates.end)
+
+  // Notification counts for pending approvals
+  const canManageLeave = useCanManageLeave()
+  const canManageClaims = useCanManageClaims()
+  const { data: leaveNotifCount } = useLeaveNotificationCount()
+  const { data: claimNotifCount } = useClaimNotificationCount()
+  const pendingLeave = canManageLeave ? (leaveNotifCount ?? 0) : 0
+  const pendingClaims = canManageClaims ? (claimNotifCount ?? 0) : 0
+  const totalPending = pendingLeave + pendingClaims
+
+  // Who's on leave today
+  const todayStr = useMemo(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  }, [])
+  const onLeaveEntries = useMemo(() => {
+    if (!calendarEntries) return []
+    return calendarEntries.filter((e) => e.start_date <= todayStr && e.end_date >= todayStr)
+  }, [calendarEntries, todayStr])
+
+  // Upcoming holidays (next 30 days, future only)
+  const upcomingHolidays = useMemo(() => {
+    if (!holidays) return []
+    return holidays.filter((h) => h.date > todayStr).slice(0, 3)
+  }, [holidays, todayStr])
 
   const totalEmployees = employees?.data?.length ?? 0
   const present = daily?.filter((e) => e.status === 'present').length ?? 0
@@ -167,8 +211,9 @@ function OverviewPage() {
     return daily.map((e) => ({ ...e }))
   }, [daily])
 
-  const onLeaveCount = enrichedEntries.filter((e) => e.onLeave).length
-  const trueAbsent = absent - onLeaveCount
+  // On-leave count comes from calendar entries (not daily report)
+  const onLeaveCount = onLeaveEntries.length
+  const trueAbsent = Math.max(0, absent - onLeaveCount)
 
   const fullName = user?.full_name ?? myEmployee?.full_name
   const firstName = fullName?.split(' ')[0] ?? 'there'
@@ -194,14 +239,16 @@ function OverviewPage() {
     clockOut.mutate({ note: note || undefined }, { onSuccess: () => setNote('') })
   }
 
-  // Team pulse data — merge employees with daily report
+  // Team pulse data — merge employees with daily report + leave calendar
   const teamMembers = useMemo(() => {
     const empList = employees?.data ?? []
+    const leaveIds = new Set(onLeaveEntries.map((e) => e.employee_id))
     return empList.map((emp) => {
       const entry = enrichedEntries.find((e) => e.employee_id === emp.id)
-      return { ...emp, attendance: entry ?? null }
+      const isOnLeave = leaveIds.has(emp.id)
+      return { ...emp, attendance: entry ?? null, isOnLeave }
     })
-  }, [employees?.data, enrichedEntries])
+  }, [employees?.data, enrichedEntries, onLeaveEntries])
 
   return (
     <div
@@ -313,13 +360,15 @@ function OverviewPage() {
         </div>
       </div>
 
-      {/* ── Main Content (responsive 3 columns, flex grid, with border) ──────────────────────────── */}
+      {/* ── Main Content: 3-Column Dashboard ──────────────────────────── */}
       <div
         className="dashboard-columns"
-        style={{ display: 'flex', gap: 32, marginTop: 32 }}
+        style={{ display: 'flex', gap: 24, marginTop: 32 }}
       >
-        {/* Left Column: My Attendance + Annual Leave (stacked) */}
+
+        {/* ═══ LEFT COLUMN: Clock In + Upcoming ═══ */}
         <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
           {/* My Attendance Card */}
           <div style={{
             border: '1px solid rgba(255,255,255,0.08)',
@@ -521,6 +570,139 @@ function OverviewPage() {
           </div>
         </div>
 
+          {/* Upcoming Holidays */}
+          {upcomingHolidays.length > 0 && (
+            <div style={{
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 18,
+              boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
+              padding: '22px 28px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <CalendarDays size={18} style={{ color: '#FCD34D' }} />
+                  <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
+                    Upcoming
+                  </h3>
+                </div>
+                <Link
+                  to="/calendar"
+                  className="text-xs font-semibold transition-opacity hover:opacity-100"
+                  style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
+                >
+                  View calendar
+                </Link>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {upcomingHolidays.map((h, idx) => {
+                  const date = new Date(h.date + 'T00:00:00')
+                  const dayName = date.toLocaleDateString('en', { weekday: 'short' })
+                  const monthDay = date.toLocaleDateString('en', { month: 'short', day: 'numeric' })
+                  return (
+                    <div
+                      key={`${h.date}-${idx}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 14,
+                        padding: '10px 14px', borderRadius: 12,
+                        background: 'rgba(252, 211, 77, 0.04)',
+                        border: '1px solid rgba(252, 211, 77, 0.08)',
+                      }}
+                    >
+                      <div style={{
+                        width: 44, minWidth: 44, textAlign: 'center',
+                        padding: '4px 0', borderRadius: 8,
+                        background: 'rgba(252, 211, 77, 0.08)',
+                      }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(252, 211, 77, 0.6)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                          {dayName}
+                        </div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#FCD34D', letterSpacing: '-0.01em' }}>
+                          {monthDay}
+                        </div>
+                      </div>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>
+                        {h.name}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ═══ MIDDLE COLUMN: Approvals + Leave + Claims ═══ */}
+        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* Pending Approvals Card (managers only) */}
+          {totalPending > 0 && (
+            <div style={{
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 18,
+              boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
+              padding: '22px 28px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 10,
+                  background: 'rgba(212, 64, 64, 0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <AlertCircle size={17} style={{ color: colors.err }} />
+                </div>
+                <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: colors.ink0, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
+                  Pending Approvals
+                </h3>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {pendingLeave > 0 && (
+                  <Link
+                    to="/leave/requests"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 16px', borderRadius: 12,
+                      background: 'rgba(255,255,255,0.04)',
+                      textDecoration: 'none',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <CalendarDays size={16} style={{ color: colors.accentMid }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: colors.ink0 }}>
+                        {pendingLeave} leave request{pendingLeave > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                  </Link>
+                )}
+                {pendingClaims > 0 && (
+                  <Link
+                    to="/claims"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 16px', borderRadius: 12,
+                      background: 'rgba(255,255,255,0.04)',
+                      textDecoration: 'none',
+                      transition: 'background 0.15s',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Receipt size={16} style={{ color: '#34D399' }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: colors.ink0 }}>
+                        {pendingClaims} claim{pendingClaims > 1 ? 's' : ''} to review
+                      </span>
+                    </div>
+                    <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Annual Leave Balance Card */}
           {leaveBalances && leaveBalances.length > 0 && (() => {
             const annualLeave = leaveBalances.find(b => 
@@ -578,7 +760,7 @@ function OverviewPage() {
                   </span>
                 </div>
                 
-                {/* Progress Bar - Available (green) + Pending (yellow striped) */}
+                {/* Progress Bar */}
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ 
                     height: 8, 
@@ -587,7 +769,6 @@ function OverviewPage() {
                     overflow: 'hidden',
                     position: 'relative',
                   }}>
-                    {/* Available - green fill */}
                     <div style={{
                       position: 'absolute',
                       left: 0,
@@ -599,7 +780,6 @@ function OverviewPage() {
                       borderBottomLeftRadius: 4,
                       transition: 'width 0.3s ease',
                     }} />
-                    {/* Pending - striped yellow overlay */}
                     {pendingPercentage > 0 && (
                       <div style={{
                         position: 'absolute',
@@ -640,200 +820,96 @@ function OverviewPage() {
               </div>
             )
           })()}
-        </div>
 
-        {/* Middle: Attendance Graph */}
-        <div className="dashboard-col" style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          border: '1px solid rgba(255,255,255,0.10)',
-          borderRadius: 18,
-          boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Users size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
-              <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
-                Team attendance
-              </h3>
-            </div>
-            <Link
-              to="/attendance"
-              className="text-xs font-semibold transition-opacity hover:opacity-100"
-              style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none', marginLeft: 12 }}
-            >
-              View all
-            </Link>
-          </div>
-          <div style={{ marginTop: 20, padding: '0 28px 28px 28px' }}>
-            <AttendanceCard
-              present={present}
-              late={late}
-              onLeaveCount={onLeaveCount}
-              trueAbsent={trueAbsent}
-              totalEmployees={totalEmployees}
-              noBackground // Add prop to AttendanceCard to disable its internal background
-            />
-          </div>
-        </div>
+          {/* Claims Budget Card */}
+          {claimBalances && claimBalances.length > 0 && (() => {
+            const totalSpent = claimBalances.reduce((sum, b) => sum + b.total_spent, 0)
+            const totalLimit = claimBalances.reduce((sum, b) => sum + (b.monthly_limit ?? 0), 0)
+            const currency = claimBalances[0]?.currency_code ?? 'IDR'
+            const usagePercent = totalLimit > 0 ? Math.min((totalSpent / totalLimit) * 100, 100) : 0
+            const remaining = totalLimit - totalSpent
 
-        {/* Right: Team Member List */}
-        <div className="dashboard-col" style={{
-          flex: 1,
-          minWidth: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          border: '1px solid rgba(255,255,255,0.10)',
-          borderRadius: 18,
-          boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 28px 0 28px', marginBottom: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Building2 size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
-              <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
-                Your team today
-              </h3>
-            </div>
-            <Link
-              to="/people"
-              className="text-xs font-semibold transition-opacity hover:opacity-100"
-              style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none', marginLeft: 12 }}
-            >
-              View all
-            </Link>
-          </div>
-          <div style={{ marginTop: 20, padding: '0 28px 28px 28px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-              {teamMembers.slice(0, 8).map((m) => {
-                const att = m.attendance
-                const isPresent = att?.status === 'present' || att?.status === 'late'
-                const isLate = att?.status === 'late'
-                const isOnLeave = att?.onLeave
-                const isAbsent = att?.status === 'absent' && !isOnLeave
-                const noRecord = !att
-
-                const statusColor = isOnLeave ? colors.accentMid : isAbsent ? colors.err : isLate ? colors.warn : isPresent ? colors.ok : 'rgba(255,255,255,0.15)'
-                const statusLabel = isOnLeave ? 'On Leave' : isAbsent ? 'Absent' : isLate ? 'Late' : isPresent ? 'Ontime' : 'Not clocked in'
-
-                // Calculate worked hours for present employees
-                let workedHours = ''
-                if (isPresent && att?.clock_in_at) {
-                  const clockIn = new Date(att.clock_in_at)
-                  const clockOut = att.clock_out_at ? new Date(att.clock_out_at) : new Date()
-                  const diffMs = clockOut.getTime() - clockIn.getTime()
-                  const hours = Math.floor(diffMs / (1000 * 60 * 60))
-                  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-                  workedHours = `${hours}h ${minutes}m`
-                }
-
-                return (
-                  <TeamTooltip
-                    key={m.id}
-                    content={
-                      <>
-                        <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', marginBottom: 2 }}>{m.full_name}</div>
-                        <div style={{ fontSize: 12.5, color: '#bdbdc7', marginBottom: 7 }}>{m.job_title || m.employment_type.replace('_', ' ')}</div>
-                        <div style={{ fontSize: 12.5, color: '#e0e0e0', marginBottom: 2 }}>
-                          <span style={{ fontWeight: 600 }}>Status:</span> <span style={{ color: statusColor, fontWeight: 700 }}>{statusLabel}</span>
-                        </div>
-                        <div style={{ fontSize: 12.5, color: '#e0e0e0' }}>
-                          <span style={{ fontWeight: 600 }}>Working hours:</span> {isPresent && att?.clock_in_at ? workedHours : '—'}
-                        </div>
-                      </>
-                    }
+            return (
+              <div style={{
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 18,
+                background: 'rgba(16, 185, 129, 0.08)',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                boxShadow: '0 2px 16px 0 rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05) inset',
+                padding: '24px 28px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Receipt size={18} style={{ color: '#34D399' }} />
+                    <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: colors.ink0, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
+                      Claims Budget
+                    </h3>
+                  </div>
+                  <Link
+                    to="/claims"
+                    className="text-xs font-semibold transition-opacity hover:opacity-100"
+                    style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
                   >
-                    <Link
-                      to="/people/$id"
-                      params={{ id: m.id }}
-                      className="group"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '10px 14px',
-                        borderRadius: 12,
-                        background: 'rgba(255,255,255,0.045)',
-                        boxShadow: '0 1px 6px 0 rgba(0,0,0,0.06)',
-                        cursor: 'pointer',
-                        textDecoration: 'none',
-                        opacity: isAbsent || noRecord ? 0.55 : 1,
-                        border: 'none',
-                        transition: 'box-shadow 0.16s, background 0.16s, transform 0.16s',
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.09)';
-                        e.currentTarget.style.boxShadow = '0 3px 14px 0 rgba(0,0,0,0.13)';
-                        e.currentTarget.style.transform = 'translateY(-1.5px) scale(1.012)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = 'rgba(255,255,255,0.045)';
-                        e.currentTarget.style.boxShadow = '0 1px 6px 0 rgba(0,0,0,0.06)';
-                        e.currentTarget.style.transform = 'none';
-                      }}
-                    >
-                      {/* Column 1: Avatar, name, job title */}
-                      <div style={{ flex: 2, display: 'flex', alignItems: 'center', minWidth: 0 }}>
-                        <div className="flex-shrink-0" style={{ marginRight: 10, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <Avatar name={m.full_name} id={m.id} size={28} />
-                        </div>
-                        <div className="min-w-0" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                          <p className="truncate" style={{ fontSize: 14.5, fontWeight: 700, color: 'rgba(255,255,255,0.96)', letterSpacing: '-0.01em' }}>
-                            {m.full_name}
-                          </p>
-                          <p className="truncate" style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.38)', marginTop: 1, fontWeight: 500 }}>
-                            {m.job_title || m.employment_type.replace('_', ' ')}
-                          </p>
-                        </div>
-                      </div>
-                      {/* Column 2: Working hours */}
-                      <div style={{ flex: 1, textAlign: 'center', fontFamily: typography.fontMono, fontSize: 12.5, color: 'rgba(255,255,255,0.60)', fontWeight: 600 }}>
-                        {isPresent && att?.clock_in_at ? workedHours : '—'}
-                      </div>
-                      {/* Column 3: Status badge */}
-                      <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-                        <span
-                          style={{
-                            display: 'inline-flex', alignItems: 'center',
-                            padding: '3px 13px 3px 8px',
-                            borderRadius: 999,
-                            fontSize: 12,
-                            fontWeight: 700,
-                            letterSpacing: '0.02em',
-                            background: 'rgba(255,255,255,0.10)',
-                            color: statusColor,
-                            border: `1.2px solid ${statusColor}33`,
-                            boxShadow: `0 1px 2px 0 ${statusColor}11`,
-                            minWidth: 60,
-                            textAlign: 'center',
-                          }}
-                        >
-                          <span style={{
-                            display: 'inline-block',
-                            width: 8, height: 8,
-                            borderRadius: '50%',
-                            background: statusColor,
-                            marginRight: 7,
-                            boxShadow: `0 0 0 1.5px #18181f`,
-                          }} />
-                          {statusLabel}
-                        </span>
-                      </div>
-                    </Link>
-                  </TeamTooltip>
-                )
-              })}
-            </div>
-            {totalEmployees > 8 && (
-              <Link
-                to="/attendance"
-                className="flex justify-center text-sm font-semibold mt-4 transition-opacity hover:opacity-100"
-                style={{ color: 'rgba(255,255,255,0.35)' }}
-              >
-                +{totalEmployees - 8} more →
-              </Link>
-            )}
-          </div>
+                    View all
+                  </Link>
+                </div>
+
+                {/* Compact amount display */}
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 12 }}>
+                  <span style={{
+                    fontFamily: typography.fontMono,
+                    fontSize: 28,
+                    fontWeight: 800,
+                    color: remaining > 0 ? '#34D399' : colors.err,
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1,
+                  }}>
+                    {formatMoney(remaining > 0 ? remaining : 0, currency)}
+                  </span>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                    remaining
+                  </span>
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
+                  <div style={{
+                    width: `${usagePercent}%`,
+                    height: '100%',
+                    borderRadius: 3,
+                    background: usagePercent > 80 ? colors.warn : '#34D399',
+                    transition: 'width 0.3s ease',
+                  }} />
+                </div>
+
+                {/* Spent vs limit */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5 }}>
+                  <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
+                    Spent: <span style={{ color: colors.ink0, fontWeight: 700 }}>{formatMoney(totalSpent, currency)}</span>
+                  </span>
+                  {totalLimit > 0 && (
+                    <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
+                      Limit: <span style={{ color: colors.ink0, fontWeight: 700 }}>{formatMoney(totalLimit, currency)}</span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            )
+          })()}
+        </div>
+
+        {/* ═══ RIGHT COLUMN: Team Pulse ═══ */}
+        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <TeamPulseCard
+            teamMembers={teamMembers}
+            present={present}
+            late={late}
+            onLeaveCount={onLeaveCount}
+            trueAbsent={trueAbsent}
+            totalEmployees={totalEmployees}
+            onLeaveEntries={onLeaveEntries}
+          />
         </div>
       </div>
 
@@ -867,8 +943,39 @@ function OverviewPage() {
 
 // ── Subcomponents ──────────────────────────────────────────────
 
-function AttendanceCard({ present, late, onLeaveCount, trueAbsent, totalEmployees }: {
-  present: number; late: number; onLeaveCount: number; trueAbsent: number; totalEmployees: number
+type TeamMember = {
+  id: string
+  full_name: string
+  job_title?: string
+  employment_type: string
+  isOnLeave: boolean
+  attendance: {
+    employee_id: string
+    employee_name: string
+    status: 'present' | 'late' | 'absent'
+    clock_in_at?: string
+    clock_out_at?: string
+    note?: string
+  } | null
+}
+
+function getStatusCategory(m: TeamMember): string {
+  const att = m.attendance
+  if (m.isOnLeave) return 'On Leave'
+  if (att?.status === 'late') return 'Late'
+  if (att?.status === 'present') return 'On Time'
+  if (att?.status === 'absent') return 'Absent'
+  return 'Pending'
+}
+
+function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, totalEmployees, onLeaveEntries }: {
+  teamMembers: TeamMember[]
+  present: number
+  late: number
+  onLeaveCount: number
+  trueAbsent: number
+  totalEmployees: number
+  onLeaveEntries: { employee_id: string; policy_name: string }[]
 }) {
   const [hovered, setHovered] = useState<string | null>(null)
   const pending = Math.max(0, totalEmployees - present - late - trueAbsent - onLeaveCount)
@@ -882,10 +989,32 @@ function AttendanceCard({ present, late, onLeaveCount, trueAbsent, totalEmployee
   ]
 
   return (
-    <div>
-      <div className="flex flex-col items-center">
+    <div style={{
+      border: '1px solid rgba(255,255,255,0.10)',
+      borderRadius: 18,
+      boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px 0 24px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <Users size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
+          <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
+            Team pulse
+          </h3>
+        </div>
+        <Link
+          to="/attendance"
+          className="text-xs font-semibold transition-opacity hover:opacity-100"
+          style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
+        >
+          View all
+        </Link>
+      </div>
+
+      {/* Chart + Legend row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 24px 0 24px' }}>
         <DonutChart
-          size={130}
+          size={110}
           segments={segments.map(s => ({ label: s.label, value: s.value, color: s.color }))}
           total={totalEmployees}
           centerLabel="Total"
@@ -893,38 +1022,126 @@ function AttendanceCard({ present, late, onLeaveCount, trueAbsent, totalEmployee
           onHover={setHovered}
           showPercent
         />
-        <div className="flex flex-col gap-2.5 mt-4 w-full">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
           {segments.map((s) => {
-            const percent = totalEmployees > 0 ? (s.value / totalEmployees) * 100 : 0
             return (
               <div
                 key={s.label}
                 className="flex items-center gap-2 cursor-pointer"
-                style={{ opacity: hovered && hovered !== s.label ? 0.4 : 1, transition: 'opacity 0.15s' }}
+                style={{
+                  opacity: hovered && hovered !== s.label ? 0.35 : 1,
+                  transition: 'opacity 0.15s',
+                  padding: '3px 6px',
+                  borderRadius: 6,
+                  background: hovered === s.label ? 'rgba(255,255,255,0.04)' : 'transparent',
+                }}
                 onMouseEnter={() => setHovered(s.label)}
                 onMouseLeave={() => setHovered(null)}
               >
                 <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.legendColor ?? s.color, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500, width: 64 }}>{s.label}</span>
-                <span style={{ fontFamily: typography.fontMono, fontSize: 13, fontWeight: 700, color: s.value > 0 ? (s.legendColor ?? s.color) : 'rgba(255,255,255,0.2)', width: 28, textAlign: 'right' }}>
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500, flex: 1 }}>{s.label}</span>
+                <span style={{ fontFamily: typography.fontMono, fontSize: 13, fontWeight: 700, color: s.value > 0 ? (s.legendColor ?? s.color) : 'rgba(255,255,255,0.2)' }}>
                   {s.value}
                 </span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', fontWeight: 600, width: 32, textAlign: 'right' }}>
-                  {percent.toFixed(0)}%
-                </span>
-                <div style={{ width: 48, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.05)', flexShrink: 0, flex: 1 }}>
-                  <div style={{
-                    width: `${percent}%`,
-                    height: '100%',
-                    borderRadius: 2,
-                    background: s.legendColor ?? s.color,
-                    transition: 'width 0.5s ease',
-                  }} />
-                </div>
               </div>
             )
           })}
         </div>
+      </div>
+
+      {/* Divider */}
+      <div style={{ margin: '14px 24px 0 24px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+
+      {/* Team member list — highlight on hover, no filtering */}
+      <div style={{ padding: '12px 24px 20px 24px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {teamMembers.slice(0, 8).map((m) => {
+            const category = getStatusCategory(m)
+            const seg = segments.find((s) => s.label === category)
+            const statusColor = seg?.legendColor ?? seg?.color ?? 'rgba(255,255,255,0.15)'
+            const att = m.attendance
+            const isPresent = att?.status === 'present' || att?.status === 'late'
+            const isMatch = !hovered || category === hovered
+            const leaveEntry = m.isOnLeave ? onLeaveEntries.find((e) => e.employee_id === m.id) : null
+
+            let workedHours = ''
+            if (isPresent && att?.clock_in_at) {
+              const clockIn = new Date(att.clock_in_at)
+              const clockOut = att.clock_out_at ? new Date(att.clock_out_at) : new Date()
+              const diffMs = clockOut.getTime() - clockIn.getTime()
+              const hours = Math.floor(diffMs / (1000 * 60 * 60))
+              const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
+              workedHours = `${hours}h ${minutes}m`
+            }
+
+            return (
+              <TeamTooltip
+                key={m.id}
+                content={
+                  <>
+                    <div style={{ fontWeight: 700, fontSize: 15, color: '#fff', marginBottom: 2 }}>{m.full_name}</div>
+                    <div style={{ fontSize: 12.5, color: '#bdbdc7', marginBottom: 7 }}>{m.job_title || m.employment_type.replace('_', ' ')}</div>
+                    <div style={{ fontSize: 12.5, color: '#e0e0e0', marginBottom: 2 }}>
+                      <span style={{ fontWeight: 600 }}>Status:</span> <span style={{ color: statusColor, fontWeight: 700 }}>{category}</span>
+                    </div>
+                    {leaveEntry && (
+                      <div style={{ fontSize: 12.5, color: '#e0e0e0', marginBottom: 2 }}>
+                        <span style={{ fontWeight: 600 }}>Leave:</span> <span style={{ color: colors.accentMid, fontWeight: 600 }}>{leaveEntry.policy_name}</span>
+                      </div>
+                    )}
+                    <div style={{ fontSize: 12.5, color: '#e0e0e0' }}>
+                      <span style={{ fontWeight: 600 }}>Working hours:</span> {isPresent && att?.clock_in_at ? workedHours : '—'}
+                    </div>
+                  </>
+                }
+              >
+                <div
+                  style={{
+                    display: 'flex', alignItems: 'center',
+                    padding: '7px 10px', borderRadius: 10,
+                    background: isMatch && hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.035)',
+                    opacity: isMatch ? 1 : 0.25,
+                    borderLeft: isMatch && hovered ? `2px solid ${statusColor}` : '2px solid transparent',
+                    transition: 'opacity 0.18s, background 0.18s, border-color 0.18s',
+                    cursor: 'default',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+                    <Avatar name={m.full_name} id={m.id} size={24} />
+                    <span className="truncate" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>
+                      {m.full_name}
+                    </span>
+                  </div>
+                  {isPresent && att?.clock_in_at && (
+                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginRight: 8 }}>
+                      {workedHours}
+                    </span>
+                  )}
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '2px 8px', borderRadius: 999,
+                    fontSize: 10.5, fontWeight: 700,
+                    background: `${statusColor}15`,
+                    color: statusColor,
+                    border: `1px solid ${statusColor}22`,
+                  }}>
+                    <span style={{ width: 5, height: 5, borderRadius: '50%', background: statusColor }} />
+                    {category}
+                  </span>
+                </div>
+              </TeamTooltip>
+            )
+          })}
+        </div>
+        {totalEmployees > 8 && (
+          <Link
+            to="/attendance"
+            className="text-xs font-semibold transition-opacity hover:opacity-100"
+            style={{ color: 'rgba(255,255,255,0.35)', textDecoration: 'none', textAlign: 'center', display: 'block', marginTop: 8 }}
+          >
+            +{totalEmployees - 8} more
+          </Link>
+        )}
       </div>
     </div>
   )
