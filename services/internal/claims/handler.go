@@ -319,7 +319,11 @@ func (h *Handler) SubmitClaim(c *gin.Context) {
 	var receiptURL *string
 	file, header, err := c.Request.FormFile("receipt")
 	if err == nil {
-		defer file.Close()
+		defer func() {
+			if closeErr := file.Close(); closeErr != nil {
+				h.log.Warn().Err(closeErr).Msg("failed to close uploaded file")
+			}
+		}()
 
 		// Validate file type
 		ext := strings.ToLower(filepath.Ext(header.Filename))

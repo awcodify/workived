@@ -188,6 +188,28 @@ func (f *fakeOrgRepo) GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]in
 	return f.getOrgWorkDaysFn(ctx, orgID)
 }
 
+// ── fakeEmployeeRepo ────────────────────────────────────────────────────────
+
+type fakeEmployeeRepo struct {
+	getEmployeeProfileFn        func(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	verifyManagerRelationshipFn func(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
+}
+
+func (f *fakeEmployeeRepo) GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error) {
+	if f.getEmployeeProfileFn != nil {
+		return f.getEmployeeProfileFn(ctx, orgID, employeeID)
+	}
+	name = "Test Employee"
+	return name, nil, nil, nil
+}
+
+func (f *fakeEmployeeRepo) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
+	if f.verifyManagerRelationshipFn != nil {
+		return f.verifyManagerRelationshipFn(ctx, orgID, employeeID, managerEmployeeID)
+	}
+	return nil
+}
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 func defaultFakeRepo() *fakeRepo {
@@ -292,7 +314,8 @@ func defaultFakeOrgRepo() *fakeOrgRepo {
 }
 
 func newTestService(repo *fakeRepo, orgRepo *fakeOrgRepo) *leave.Service {
-	return leave.NewService(repo, orgRepo)
+	empRepo := &fakeEmployeeRepo{}
+	return leave.NewService(repo, orgRepo, empRepo, "http://test-app.workived.com")
 }
 
 // ── TestService_ListPolicies ────────────────────────────────────────────────

@@ -148,6 +148,7 @@ Accept your invitation here:
 
 This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.`
 
+//nolint:gosec // G101: False positive - this is an HTML template, not hardcoded credentials
 const passwordResetHTML = `<!DOCTYPE html>
 <html>
 <head>

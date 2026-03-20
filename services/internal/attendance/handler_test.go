@@ -11,6 +11,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
@@ -75,7 +76,7 @@ func newAttRouterWithLookup(svc attendance.ServiceInterface, lookup attendance.E
 		c.Set("role", middleware.RoleAdmin)
 		c.Next()
 	})
-	h := attendance.NewHandler(svc, lookup)
+	h := attendance.NewHandler(svc, lookup, zerolog.Nop())
 	h.RegisterRoutes(r.Group("/api/v1"))
 	return r
 }
@@ -124,9 +125,11 @@ func TestHandler_ClockIn(t *testing.T) {
 			wantStatus: http.StatusCreated,
 		},
 		{
-			name:       "employee not linked to user",
-			body:       nil,
-			empLookup:  func(_ context.Context, _, _ uuid.UUID) (uuid.UUID, error) { return uuid.Nil, apperr.NotFound("employee") },
+			name: "employee not linked to user",
+			body: nil,
+			empLookup: func(_ context.Context, _, _ uuid.UUID) (uuid.UUID, error) {
+				return uuid.Nil, apperr.NotFound("employee")
+			},
 			wantStatus: http.StatusNotFound,
 		},
 		{
@@ -188,9 +191,11 @@ func TestHandler_ClockOut(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
-			name:       "employee not linked to user",
-			body:       nil,
-			empLookup:  func(_ context.Context, _, _ uuid.UUID) (uuid.UUID, error) { return uuid.Nil, apperr.NotFound("employee") },
+			name: "employee not linked to user",
+			body: nil,
+			empLookup: func(_ context.Context, _, _ uuid.UUID) (uuid.UUID, error) {
+				return uuid.Nil, apperr.NotFound("employee")
+			},
 			wantStatus: http.StatusNotFound,
 		},
 		{

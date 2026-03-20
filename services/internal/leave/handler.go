@@ -60,16 +60,6 @@ func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc, log zero
 	return &Handler{service: service, empLookup: empLookup, log: log}
 }
 
-// logAndRespondError logs the error with context and sends JSON response to client
-func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fields map[string]string) {
-	event := h.log.Error().Err(err)
-	for k, v := range fields {
-		event = event.Str(k, v)
-	}
-	event.Msg(msg)
-	c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
-}
-
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	leave := rg.Group("/leave")
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/leave"
 )
 
@@ -48,7 +49,7 @@ func TestRolloverBalances(t *testing.T) {
 			return []leave.Emp{{ID: testEmpID, FullName: "John Doe"}}, nil
 		}
 
-		result, err := leave.RolloverBalances(ctx, repo, orgList, empList, 2025, 2026)
+		result, err := leave.RolloverBalances(ctx, repo, orgList, empList, 2025, 2026, zerolog.Nop())
 		if err != nil {
 			t.Fatalf("RolloverBalances() error = %v", err)
 		}
@@ -102,7 +103,7 @@ func TestRolloverBalances(t *testing.T) {
 			return []leave.Emp{{ID: testEmpID, FullName: "Jane Doe"}}, nil
 		}
 
-		result, err := leave.RolloverBalances(ctx, repo, orgList, empList, 2025, 2026)
+		result, err := leave.RolloverBalances(ctx, repo, orgList, empList, 2025, 2026, zerolog.Nop())
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -138,7 +139,7 @@ func TestRolloverBalances(t *testing.T) {
 			return []leave.Emp{{ID: testEmpID, FullName: "New Employee"}}, nil
 		}
 
-		result, err := leave.RolloverBalances(ctx, repo, orgList, empList, 2025, 2026)
+		result, err := leave.RolloverBalances(ctx, repo, orgList, empList, 2025, 2026, zerolog.Nop())
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -173,7 +174,7 @@ func TestRolloverBalances(t *testing.T) {
 			return []leave.Emp{{ID: testEmpID, FullName: "John Doe"}}, nil
 		}
 
-		result, err := leave.RolloverBalances(ctx, repo, orgList, empList, 2025, 2026)
+		result, err := leave.RolloverBalances(ctx, repo, orgList, empList, 2025, 2026, zerolog.Nop())
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

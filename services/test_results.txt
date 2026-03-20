@@ -1,0 +1,14 @@
+?   	github.com/workived/services/internal/admin	[no test files]
+?   	github.com/workived/services/internal/approval	[no test files]
+ok  	github.com/workived/services/internal/attendance	1.384s
+ok  	github.com/workived/services/internal/audit	(cached)
+ok  	github.com/workived/services/internal/auth	4.404s
+?   	github.com/workived/services/internal/claims	[no test files]
+?   	github.com/workived/services/internal/department	[no test files]
+ok  	github.com/workived/services/internal/employee	3.049s
+ok  	github.com/workived/services/internal/leave	(cached)
+ok  	github.com/workived/services/internal/organisation	1.899s
+?   	github.com/workived/services/internal/platform/config	[no test files]
+?   	github.com/workived/services/internal/platform/database	[no test files]
+ok  	github.com/workived/services/internal/platform/middleware	3.526s
+?   	github.com/workived/services/internal/platform/storage	[no test files]

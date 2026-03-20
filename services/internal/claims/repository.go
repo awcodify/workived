@@ -562,10 +562,3 @@ func ptrToUUID(s *string) *uuid.UUID {
 	}
 	return &id
 }
-
-func deref(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}

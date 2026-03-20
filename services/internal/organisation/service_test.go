@@ -369,6 +369,13 @@ func (f *fakeTokenIssuer) IssueAccessToken(_, _ uuid.UUID, _ string) (string, er
 	return "fake-jwt-token", nil
 }
 
+type fakeEmployeeRepo struct{}
+
+func (f *fakeEmployeeRepo) GetEmployeeProfile(_ context.Context, _, _ uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error) {
+	name = "Test Employee"
+	return name, nil, nil, nil
+}
+
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
 func hashToken(raw string) string {
@@ -379,7 +386,7 @@ func hashToken(raw string) string {
 func newTestService(t *testing.T) (*organisation.Service, *fakeRepo) {
 	t.Helper()
 	repo := newFakeRepo()
-	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, "https://app.workived.com")
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, "https://app.workived.com")
 	return svc, repo
 }
 
@@ -387,14 +394,14 @@ func newTestServiceWithAudit(t *testing.T) (*organisation.Service, *fakeRepo, *f
 	t.Helper()
 	repo := newFakeRepo()
 	al := &fakeAuditLogger{}
-	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, "https://app.workived.com", organisation.WithAuditLog(al))
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, "https://app.workived.com", organisation.WithAuditLog(al))
 	return svc, repo, al
 }
 
 func newTestServiceWithIssuer(t *testing.T, issuer *fakeTokenIssuer) (*organisation.Service, *fakeRepo) {
 	t.Helper()
 	repo := newFakeRepo()
-	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, issuer, "https://app.workived.com")
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, issuer, &fakeEmployeeRepo{}, "https://app.workived.com")
 	return svc, repo
 }
 
@@ -1210,7 +1217,7 @@ func TestOrgService_AuditLog_TransferOwnership(t *testing.T) {
 func TestOrgService_AuditLog_ErrorDoesNotBreakOperation(t *testing.T) {
 	repo := newFakeRepo()
 	al := &fakeAuditLogger{err: errors.New("audit db down")}
-	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, "https://app.workived.com", organisation.WithAuditLog(al))
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, "https://app.workived.com", organisation.WithAuditLog(al))
 	ctx := context.Background()
 	ownerID := uuid.New()
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/leave"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
@@ -136,6 +137,14 @@ func (f *fakeService) GetNotificationCount(ctx context.Context, orgID uuid.UUID,
 	return 0, nil
 }
 
+func (f *fakeService) GetRequest(ctx context.Context, orgID, requestID uuid.UUID) (*leave.Request, error) {
+	return &leave.Request{ID: requestID, Status: "pending"}, nil
+}
+
+func (f *fakeService) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
+	return nil
+}
+
 func (f *fakeService) ListTemplates(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]leave.PolicyTemplate, error) {
 	return []leave.PolicyTemplate{}, nil
 }
@@ -162,7 +171,7 @@ func newRouterWithLookup(svc leave.ServiceInterface, lookup leave.EmployeeLookup
 		c.Set("role", middleware.RoleAdmin)
 		c.Next()
 	})
-	h := leave.NewHandler(svc, lookup)
+	h := leave.NewHandler(svc, lookup, zerolog.Nop())
 	h.RegisterRoutes(r.Group("/api/v1"))
 	return r
 }

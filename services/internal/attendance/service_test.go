@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/pkg/apperr"
 )
@@ -14,16 +15,16 @@ import (
 // ── Fakes ─────────────────────────────────────────────────────────────────────
 
 type fakeRepo struct {
-	getByEmpDateFn      func(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error)
-	createFn            func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string) (*attendance.Record, error)
-	updateClockOutFn    func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string) (*attendance.Record, error)
-	listByDateFn        func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error)
-	listByMonthFn       func(ctx context.Context, orgID uuid.UUID, year, month int) ([]attendance.Record, error)
-	listByEmpMonthFn    func(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error)
-	getDefaultSchedFn   func(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error)
-	listHolidaysFn      func(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error)
-	listActiveEmpsFn    func(ctx context.Context, orgID uuid.UUID) ([]attendance.ActiveEmployee, error)
-	getEmployeeNameFn   func(ctx context.Context, orgID, empID uuid.UUID) (string, error)
+	getByEmpDateFn    func(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error)
+	createFn          func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string) (*attendance.Record, error)
+	updateClockOutFn  func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string) (*attendance.Record, error)
+	listByDateFn      func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error)
+	listByMonthFn     func(ctx context.Context, orgID uuid.UUID, year, month int) ([]attendance.Record, error)
+	listByEmpMonthFn  func(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error)
+	getDefaultSchedFn func(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error)
+	listHolidaysFn    func(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error)
+	listActiveEmpsFn  func(ctx context.Context, orgID uuid.UUID) ([]attendance.ActiveEmployee, error)
+	getEmployeeNameFn func(ctx context.Context, orgID, empID uuid.UUID) (string, error)
 }
 
 func (f *fakeRepo) GetByEmployeeAndDate(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error) {
@@ -58,10 +59,10 @@ func (f *fakeRepo) GetEmployeeName(ctx context.Context, orgID, empID uuid.UUID) 
 }
 
 type fakeOrgInfo struct {
-	tz      string
-	tzErr   error
-	cc      string
-	ccErr   error
+	tz    string
+	tzErr error
+	cc    string
+	ccErr error
 }
 
 func (f *fakeOrgInfo) GetOrgTimezone(_ context.Context, _ uuid.UUID) (string, error) {
@@ -148,7 +149,7 @@ func defaultFakeRepo() *fakeRepo {
 }
 
 func newTestService(repo *fakeRepo, orgInfo *fakeOrgInfo, now time.Time) *attendance.Service {
-	svc := attendance.NewService(repo, orgInfo)
+	svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
 	svc.SetNowFunc(fixedNow(now))
 	return svc
 }
@@ -160,10 +161,10 @@ func TestService_ClockIn(t *testing.T) {
 	nowUTC := time.Date(2026, 3, 16, 8, 30, 0, 0, time.UTC)
 
 	tests := []struct {
-		name       string
-		setup      func(r *fakeRepo, o *fakeOrgInfo)
-		wantErr    string
-		wantLate   bool
+		name     string
+		setup    func(r *fakeRepo, o *fakeOrgInfo)
+		wantErr  string
+		wantLate bool
 	}{
 		{
 			name:     "success — on time",
@@ -531,7 +532,7 @@ func TestService_DailyReport(t *testing.T) {
 				tt.setup(repo)
 			}
 
-			svc := attendance.NewService(repo, orgInfo)
+			svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
 			entries, err := svc.DailyReport(context.Background(), testOrgID, attendance.DailyReportFilters{Date: "2026-03-16"})
 
 			if tt.wantErr {
@@ -768,7 +769,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 				tt.setup(repo, orgInfo)
 			}
 
-			svc := attendance.NewService(repo, orgInfo)
+			svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
 			summaries, err := svc.MonthlySummaryReport(context.Background(), testOrgID, attendance.MonthlyReportFilters{Year: 2026, Month: 3})
 
 			if tt.wantErr {
@@ -877,7 +878,7 @@ func TestService_EmployeeMonthlySummary(t *testing.T) {
 				tt.setup(repo, orgInfo)
 			}
 
-			svc := attendance.NewService(repo, orgInfo)
+			svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
 			summary, err := svc.EmployeeMonthlySummary(context.Background(), testOrgID, testEmpID, attendance.MonthlyReportFilters{Year: 2026, Month: 3})
 
 			if tt.wantErr {
@@ -914,7 +915,7 @@ func TestService_HolidayOnWeekendNotSubtracted(t *testing.T) {
 		return []attendance.PublicHoliday{{Date: "2026-03-14", Name: "Weekend Holiday"}}, nil
 	}
 
-	svc := attendance.NewService(repo, orgInfo)
+	svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
 	summariesWithHoliday, err := svc.MonthlySummaryReport(context.Background(), testOrgID, attendance.MonthlyReportFilters{Year: 2026, Month: 3})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

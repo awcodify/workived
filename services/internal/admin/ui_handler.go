@@ -123,15 +123,6 @@ func (h *UIHandler) RequireAdminSession(jwtSecret string) gin.HandlerFunc {
 	}
 }
 
-// getUserFromContext extracts user info from Gin context
-func (h *UIHandler) getUserFromContext(c *gin.Context) gin.H {
-	userID := middleware.UserIDFromCtx(c)
-	return gin.H{
-		"ID":    userID.String(),
-		"Email": userID.String(), // Use user ID as email display for now
-	}
-}
-
 // LoginPage renders the admin login page
 func (h *UIHandler) LoginPage(c *gin.Context) {
 	error := c.Query("error")

@@ -851,9 +851,55 @@ FOR EACH active employee × active leave_policy:
 
 **Full review:** See `docs/sprint6-review.md`
 
-### Sprint 7 — Observability & Error Handling — NEXT 🟢
+### Sprint 7 — Observability & Error Handling — DONE ✅
 
 **Priority:** Production-ready logging and error messages for operational excellence.
+
+**Status:** SHIPPED March 20, 2026
+
+**Deliverables:**
+- ✅ **Structured Logging:** Complete zerolog migration across 8 modules with business event logging
+- ✅ **Enhanced Error Handling:** Rich error details with contextual information
+- ✅ **Email Infrastructure:** SMTP package with mailcatcher + templates (Invitation, Password Reset, Welcome)
+- ✅ **Health Checks:** `/health` and `/readyz` endpoints with DB + Redis validation
+- ✅ **Documentation:** ERROR_HANDLING.md guide + email README
+
+**Sprint Duration:** 10 days
+
+**Full review:** See `docs/sprint7-completion.md`
+
+### Sprint 7.5 — Manager-Based Approval System (Hotfixes) — DONE ✅
+
+**Status:** SHIPPED March 20, 2026 (same day)
+
+**Problem:** Critical data isolation and permission issues discovered during testing:
+1. Members with direct reports couldn't see/approve their team's requests
+2. Role-based permissions didn't respect organizational hierarchy
+3. Notification counts showed all org requests (not filtered by manager)
+
+**Deliverables:**
+- ✅ **Hierarchical Approval:** Implemented `reporting_to` relationship-based filtering
+  - Non-admins only see requests from direct reports
+  - Approval/rejection validates manager relationship before allowing action
+  - Applied to both leave requests and claims
+- ✅ **Notification Filtering:** Dock badge shows count filtered by manager scope
+- ✅ **Permission Refinement:** Added `PermLeaveWrite` and `PermClaimsWrite` to member role
+- ✅ **UI Permissions:** Hide "Add Employee" button for non-admin roles
+- ✅ **OpenAPI Documentation:** Updated 7 endpoints with new permission model
+
+**Code Changes:**
+- Backend: 13 files modified (handlers, services, repositories, middleware)
+- Frontend: 5 files modified (hooks, routes)
+- Documentation: 1 file modified (openapi.yaml)
+
+**Business Impact:**
+- ✅ Hierarchical approval workflow now working correctly
+- ✅ Data security enforced (managers only see their team)
+- ✅ Enables delegation (any employee can be a manager)
+
+**Sprint Duration:** 6 hours (hot-shipped same day)
+
+**Full review:** See `docs/sprint7.5-fixes.md`
 
 **Week 1: Logging Infrastructure + Error Handling (5 days)**
 
@@ -936,9 +982,18 @@ FOR EACH active employee × active leave_policy:
 
 **Sprint Duration:** 10 days (2 weeks)
 
-### Sprint 8 — Policy Segmentation + Employee Documents
+### Sprint 8 — Policy Segmentation + Employee Documents — NEXT 🟢
+
+**Start Date:** March 21, 2026
 
 **Priority:** Enable mid-size companies (26-75 employees) to use Workived.
+
+**Pre-Sprint Requirements:**
+- ⚠️ **BLOCKER:** Fix test suite compilation errors from Sprint 7.5 changes
+  - `leave/handler_test.go` - Missing test method signatures
+  - `leave/service_test.go` - Missing constructor parameters  
+  - `leave/rollover_test.go` - Missing logger parameter
+  - **ETC:** 2-3 hours (March 21 morning)
 
 **Week 1: Policy Assignment System (5 days)**
 - [ ] Design policy assignment architecture:
