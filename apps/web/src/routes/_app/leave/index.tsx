@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Plus } from 'lucide-react'
 import { useMyBalances } from '@/lib/hooks/useLeave'
+import { useCanManageLeave } from '@/lib/hooks/useRole'
 import { BalanceCard } from '@/components/workived/leave/BalanceCard'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
 
@@ -13,6 +14,10 @@ export const Route = createFileRoute('/_app/leave/')({
 function LeaveDashboard() {
   const currentYear = new Date().getFullYear()
   const { data: balances, isLoading } = useMyBalances(currentYear)
+  const canManageLeave = useCanManageLeave()
+
+  // Debug: log to see what's returned
+  console.log('canManageLeave:', canManageLeave)
 
   const totalAvailable = balances?.reduce((sum, b) => {
     const available = b.entitled_days + b.carried_over_days - b.used_days - b.pending_days
@@ -161,6 +166,34 @@ function LeaveDashboard() {
             See team leave schedule
           </p>
         </Link>
+
+        {canManageLeave && (
+          <Link
+            to="/leave/policies"
+            className="p-4 transition-colors"
+            style={{
+              background: t.surface,
+              borderRadius: 14,
+              border: `1px solid ${t.border}`,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = t.surfaceHover
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = t.surface
+            }}
+          >
+            <p
+              className="font-bold"
+              style={{ fontSize: typography.h3.size, color: t.text }}
+            >
+              Leave Settings
+            </p>
+            <p className="text-sm mt-1" style={{ color: t.textMuted }}>
+              Manage leave policies
+            </p>
+          </Link>
+        )}
       </div>
     </div>
   )
