@@ -9,6 +9,7 @@ import type {
   SubmitRequestInput,
   ReviewInput,
   CalendarEntry,
+  PublicHoliday,
   ApiResponse,
   CursorMeta,
 } from '@/types/api'
@@ -31,6 +32,10 @@ interface RequestListResponse {
 
 interface CalendarResponse {
   data: CalendarEntry[]
+}
+
+interface HolidayListResponse {
+  data: PublicHoliday[]
 }
 
 // ── API Client ───────────────────────────────────────────────
@@ -89,6 +94,11 @@ export const leaveApi = {
     ),
 
   // ── Calendar ───────────────────────────────────────────────
+
+  listHolidays: (startDate: string, endDate: string) =>
+    apiClient.get<HolidayListResponse>('/api/v1/leave/holidays', {
+      params: { start_date: startDate, end_date: endDate },
+    }),
   getCalendar: (year: number, month: number) =>
     apiClient.get<CalendarResponse>('/api/v1/leave/calendar', {
       params: { year, month },

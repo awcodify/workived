@@ -469,3 +469,18 @@ func (s *Service) calculateBusinessDays(ctx context.Context, orgID uuid.UUID, st
 
 	return count, nil
 }
+
+// ListHolidays returns public holidays for the organisation's country in the given date range.
+func (s *Service) ListHolidays(ctx context.Context, orgID uuid.UUID, startDate, endDate string) ([]PublicHoliday, error) {
+	countryCode, err := s.orgRepo.GetOrgCountryCode(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("get org country: %w", err)
+	}
+
+	holidays, err := s.repo.ListHolidays(ctx, countryCode, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("list holidays: %w", err)
+	}
+
+	return holidays, nil
+}

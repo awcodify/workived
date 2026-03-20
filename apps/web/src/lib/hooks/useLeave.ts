@@ -23,6 +23,8 @@ export const leaveKeys = {
 
   calendar: (year: number, month: number) =>
     [...leaveKeys.all, 'calendar', year, month] as const,
+  holidays: (startDate: string, endDate: string) =>
+    [...leaveKeys.all, 'holidays', startDate, endDate] as const,
 }
 
 // ── Policy Hooks ─────────────────────────────────────────────
@@ -251,5 +253,14 @@ export function useCalendar(year: number, month: number) {
     queryFn: () => leaveApi.getCalendar(year, month).then((r) => r.data.data),
     staleTime: 10 * 60 * 1000, // 10 min — approved leave doesn't change often
     enabled: !!year && !!month,
+  })
+}
+
+export function useHolidays(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: leaveKeys.holidays(startDate, endDate),
+    queryFn: () => leaveApi.listHolidays(startDate, endDate).then((r) => r.data.data),
+    staleTime: 30 * 60 * 1000, // 30 min — public holidays rarely change
+    enabled: !!startDate && !!endDate,
   })
 }

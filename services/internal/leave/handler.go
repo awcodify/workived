@@ -34,6 +34,7 @@ type ServiceInterface interface {
 
 	// Calendar
 	GetCalendar(ctx context.Context, orgID uuid.UUID, year, month int) ([]CalendarEntry, error)
+	ListHolidays(ctx context.Context, orgID uuid.UUID, startDate, endDate string) ([]PublicHoliday, error)
 }
 
 // EmployeeLookupFunc resolves the authenticated user's employee ID from their user ID.
@@ -73,6 +74,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 
 	// Calendar
 	leave.GET("/calendar", middleware.Require(middleware.PermLeaveRead), h.GetCalendar)
+	leave.GET("/holidays", middleware.Require(middleware.PermSelfLeave), h.ListHolidays)
 }
 
 // ── Policies ──────────────────────────────────────────────────────────────────
@@ -387,4 +389,26 @@ func (h *Handler) GetCalendar(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": entries})
+}
+
+func (h *Handler) ListHolidays(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	// Query params for date range
+	startDate := c.Query("start_date")
+	endDate := c.Query("end_date")
+
+	if startDate == "" || endDate == "" {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(
+			apperr.NewField(apperr.CodeValidation, "start_date and end_date are required", "start_date")))
+		return
+	}
+
+	holidays, err := h.service.ListHolidays(c.Request.Context(), orgID, startDate, endDate)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": holidays})
 }

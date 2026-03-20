@@ -1,13 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useCalendar } from '@/lib/hooks/useLeave'
+import { useCalendar, useHolidays } from '@/lib/hooks/useLeave'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
 import type { CalendarEntry } from '@/types/api'
 
 const t = moduleThemes.leave
 
-// @ts-expect-error - Route will be registered after route tree regenerates
 export const Route = createFileRoute('/_app/leave/calendar')({
   component: CalendarPage,
 })
@@ -18,6 +17,21 @@ function CalendarPage() {
   const [month, setMonth] = useState(today.getMonth() + 1) // 1-indexed
 
   const { data: entries, isLoading } = useCalendar(year, month)
+
+  // Calculate start and end dates for the month to fetch holidays
+  const { startDate, endDate } = useMemo(() => {
+    const firstDay = new Date(year, month - 1, 1)
+    const lastDay = new Date(year, month, 0)
+    return {
+      startDate: firstDay.toISOString().split('T')[0],
+      endDate: lastDay.toISOString().split('T')[0],
+    }
+  }, [year, month])
+
+  const { data: holidays } = useHolidays(startDate!, endDate!)
+
+  // Debug: log holidays data
+  console.log('Holidays data:', holidays)
 
   const monthNames = [
     'January',
@@ -132,7 +146,7 @@ function CalendarPage() {
       {isLoading ? (
         <CalendarSkeleton />
       ) : (
-        <LeaveCalendar year={year} month={month} entries={entries ?? []} />
+        <LeaveCalendar year={year} month={month} entries={entries ?? []} holidays={holidays ?? []} />
       )}
     </div>
   )
@@ -147,14 +161,22 @@ type LeaveCalendarProps = {
   year: number
   month: number
   entries: CalendarEntry[]
+  holidays: Array<{ date: string }>
 }
 
-function LeaveCalendar({ year, month, entries }: LeaveCalendarProps) {
+function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
+  // Debug: log what we received
+  console.log('LeaveCalendar received holidays:', holidays)
+
   // Build calendar grid
   const firstDay = new Date(year, month - 1, 1)
   const lastDay = new Date(year, month, 0)
   const daysInMonth = lastDay.getDate()
   const startDayOfWeek = firstDay.getDay() // 0 = Sunday
+
+  // Create set of holiday dates for quick lookup
+  const holidaySet = new Set(holidays.map((h) => h.date))
+  console.log('Holiday set:', Array.from(holidaySet))
 
   // Create map of date -> entries (expand ranges)
   const entriesByDate = new Map<string, DayEntry[]>()
@@ -240,27 +262,50 @@ function LeaveCalendar({ year, month, entries }: LeaveCalendarProps) {
               const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
               const dayEntries = entriesByDate.get(dateStr) ?? []
               const isToday = dateStr === todayStr
+              const isHoliday = holidaySet.has(dateStr)
 
               return (
                 <div
                   key={dateStr}
                   className="min-h-[100px] p-2 transition-colors"
                   style={{
-                    background: isToday ? 'rgba(99,87,232,0.05)' : t.input,
+                    background: isToday 
+                      ? 'rgba(99,87,232,0.05)' 
+                      : isHoliday 
+                      ? 'rgba(232,87,87,0.05)'
+                      : t.input,
                     border: isToday
                       ? `2px solid ${t.accent}`
+                      : isHoliday
+                      ? '1px solid rgba(232,87,87,0.3)'
                       : `1px solid ${t.inputBorder}`,
                     borderRadius: 8,
                   }}
                 >
-                  <div
-                    className="font-bold mb-1"
-                    style={{
-                      fontSize: typography.body.size,
-                      color: isToday ? t.accent : t.text,
-                    }}
-                  >
-                    {day}
+                  <div className="flex items-center justify-between mb-1">
+                    <div
+                      className="font-bold"
+                      style={{
+                        fontSize: typography.body.size,
+                        color: isToday ? t.accent : isHoliday ? '#E85757' : t.text,
+                      }}
+                    >
+                      {day}
+                    </div>
+                    {isHoliday && (
+                      <div
+                        className="text-xs px-1.5 py-0.5"
+                        style={{
+                          background: 'rgba(232,87,87,0.1)',
+                          color: '#E85757',
+                          borderRadius: 4,
+                          fontSize: 10,
+                          fontWeight: 600,
+                        }}
+                      >
+                        Holiday
+                      </div>
+                    )}
                   </div>
                   {dayEntries.length > 0 && (
                     <div className="space-y-1">

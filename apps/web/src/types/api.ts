@@ -307,6 +307,10 @@ export interface CalendarEntry {
   total_days: number
 }
 
+export interface PublicHoliday {
+  date: string  // YYYY-MM-DD
+}
+
 export interface CreatePolicyInput {
   name: string
   days_per_year: number
