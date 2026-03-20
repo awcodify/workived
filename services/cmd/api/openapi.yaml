@@ -788,7 +788,8 @@ paths:
   /leave/requests:
     get:
       operationId: listLeaveRequests
-      summary: List leave requests (admin)
+      summary: List leave requests
+      description: Admins see all requests. Non-admins only see requests from their direct reports (based on reporting_to relationship).
       tags: [Leave]
       parameters:
         - name: status
@@ -865,6 +866,7 @@ paths:
     post:
       operationId: approveLeaveRequest
       summary: Approve a leave request
+      description: Admins can approve any request. Non-admins can only approve requests from their direct reports (verified via reporting_to relationship).
       tags: [Leave]
       responses:
         "200":
@@ -885,6 +887,7 @@ paths:
     post:
       operationId: rejectLeaveRequest
       summary: Reject a leave request
+      description: Admins can reject any request. Non-admins can only reject requests from their direct reports (verified via reporting_to relationship).
       tags: [Leave]
       requestBody:
         content:
@@ -993,6 +996,7 @@ paths:
     get:
       operationId: getLeaveNotificationCount
       summary: Get pending leave requests count
+      description: Returns count of pending leave requests. Admins see all pending requests. Non-admins only see pending requests from their direct reports.
       tags: [Leave]
       responses:
         "200":
@@ -1192,7 +1196,8 @@ paths:
   /claims:
     get:
       operationId: listClaims
-      summary: List all claims (admin)
+      summary: List claims
+      description: Admins see all claims. Non-admins only see claims from their direct reports (based on reporting_to relationship).
       tags: [Claims]
       parameters:
         - name: status
@@ -1346,7 +1351,7 @@ paths:
     post:
       operationId: approveClaim
       summary: Approve a claim
-      description: Requires claims approval permission
+      description: Requires claims approval permission. Admins can approve any claim. Non-admins can only approve claims from their direct reports (verified via reporting_to relationship).
       tags: [Claims]
       requestBody:
         content:
@@ -1376,7 +1381,7 @@ paths:
     post:
       operationId: rejectClaim
       summary: Reject a claim
-      description: Requires claims approval permission
+      description: Requires claims approval permission. Admins can reject any claim. Non-admins can only reject claims from their direct reports (verified via reporting_to relationship).
       tags: [Claims]
       requestBody:
         required: true
