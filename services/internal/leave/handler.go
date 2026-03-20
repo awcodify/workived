@@ -35,6 +35,10 @@ type ServiceInterface interface {
 	// Calendar
 	GetCalendar(ctx context.Context, orgID uuid.UUID, year, month int) ([]CalendarEntry, error)
 	ListHolidays(ctx context.Context, orgID uuid.UUID, startDate, endDate string) ([]PublicHoliday, error)
+
+	// Templates
+	ListTemplates(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]PolicyTemplate, error)
+	ImportPolicies(ctx context.Context, orgID uuid.UUID, input ImportPoliciesInput) ([]Policy, error)
 }
 
 // EmployeeLookupFunc resolves the authenticated user's employee ID from their user ID.
@@ -55,8 +59,12 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Policies — admin/owner only
 	leave.GET("/policies", middleware.Require(middleware.PermLeaveRead), h.ListPolicies)
 	leave.POST("/policies", middleware.Require(middleware.PermLeaveWrite), h.CreatePolicy)
+	leave.POST("/policies/import", middleware.Require(middleware.PermLeaveWrite), h.ImportPolicies)
 	leave.PUT("/policies/:id", middleware.Require(middleware.PermLeaveWrite), h.UpdatePolicy)
 	leave.DELETE("/policies/:id", middleware.Require(middleware.PermLeaveWrite), h.DeactivatePolicy)
+
+	// Templates — admin can list and import
+	leave.GET("/templates", middleware.Require(middleware.PermLeaveRead), h.ListTemplates)
 
 	// Balances — admin sees all, employee sees own
 	leave.GET("/balances", middleware.Require(middleware.PermLeaveRead), h.ListBalances)
@@ -411,4 +419,53 @@ func (h *Handler) ListHolidays(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": holidays})
+}
+
+// ── Templates ─────────────────────────────────────────────────────────────────
+
+func (h *Handler) ListTemplates(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	// Optional country_code query param (defaults to org's country)
+	countryCode := c.Query("country_code")
+	var cc *string
+	if countryCode != "" {
+		cc = &countryCode
+	}
+
+	templates, err := h.service.ListTemplates(c.Request.Context(), orgID, cc)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": templates})
+}
+
+func (h *Handler) ImportPolicies(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	var input ImportPoliciesInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := validate.Struct(input); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	policies, err := h.service.ImportPolicies(c.Request.Context(), orgID, input)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"data": gin.H{
+			"created_count": len(policies),
+			"policies":      policies,
+		},
+	})
 }

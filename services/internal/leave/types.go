@@ -91,6 +91,22 @@ type PublicHoliday struct {
 	Name        string `json:"name"`
 }
 
+// PolicyTemplate represents a pre-configured leave policy template for a specific country.
+// Used for quick org onboarding (import templates → create policies).
+type PolicyTemplate struct {
+	ID                  uuid.UUID `json:"id"`
+	CountryCode         string    `json:"country_code"`
+	Name                string    `json:"name"`
+	Description         *string   `json:"description,omitempty"`
+	EntitledDaysPerYear float64   `json:"entitled_days_per_year"`
+	IsCarryOverAllowed  bool      `json:"is_carry_over_allowed"`
+	MaxCarryOverDays    *float64  `json:"max_carry_over_days,omitempty"`
+	IsAccrued           bool      `json:"is_accrued"`
+	RequiresApproval    bool      `json:"requires_approval"`
+	SortOrder           int       `json:"sort_order"`
+	CreatedAt           time.Time `json:"created_at"`
+}
+
 // ── Request / Response types ────────────────────────────────────────────────
 
 type CreatePolicyRequest struct {
@@ -118,6 +134,10 @@ type SubmitRequestInput struct {
 
 type ReviewInput struct {
 	Note *string `json:"note" validate:"omitempty,max=1000"`
+}
+
+type ImportPoliciesInput struct {
+	TemplateIDs []uuid.UUID `json:"template_ids" validate:"required,min=1,max=20"`
 }
 
 type ListRequestsFilter struct {

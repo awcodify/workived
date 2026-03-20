@@ -272,6 +272,22 @@ func (r *Repository) EnsureBalance(ctx context.Context, orgID, employeeID, polic
 	return nil
 }
 
+// CreateBalancesForAllEmployees creates balances for all active employees in the organization.
+// Must be called within a transaction.
+func (r *Repository) CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error {
+	_, err := tx.Exec(ctx, `
+		INSERT INTO leave_balances (organisation_id, employee_id, leave_policy_id, year, entitled_days)
+		SELECT $1, id, $2, $3, $4
+		FROM employees
+		WHERE organisation_id = $1 AND is_active = true
+		ON CONFLICT (employee_id, leave_policy_id, year) DO NOTHING
+	`, orgID, policyID, year, entitledDays)
+	if err != nil {
+		return fmt.Errorf("create balances for all employees: %w", err)
+	}
+	return nil
+}
+
 // UpdateBalancePending adds deltaDays to pending_days. Must be called in a transaction after GetBalanceForUpdate.
 func (r *Repository) UpdateBalancePending(ctx context.Context, tx pgx.Tx, balanceID uuid.UUID, deltaDays float64) error {
 	_, err := tx.Exec(ctx, `
@@ -528,6 +544,140 @@ func (r *Repository) ListHolidays(ctx context.Context, countryCode, startDate, e
 		holidays = append(holidays, h)
 	}
 	return holidays, nil
+}
+
+// ── Policy Templates ──────────────────────────────────────────────────────────
+
+// ListTemplates returns all policy templates for a given country, ordered by sort_order.
+func (r *Repository) ListTemplates(ctx context.Context, countryCode string) ([]PolicyTemplate, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, country_code, name, description,
+		       entitled_days_per_year, is_carry_over_allowed, max_carry_over_days,
+		       is_accrued, requires_approval, sort_order, created_at
+		FROM leave_policy_templates
+		WHERE country_code = $1
+		ORDER BY sort_order ASC
+	`, countryCode)
+	if err != nil {
+		return nil, fmt.Errorf("list templates: %w", err)
+	}
+	defer rows.Close()
+
+	var templates []PolicyTemplate
+	for rows.Next() {
+		var t PolicyTemplate
+		if err := rows.Scan(
+			&t.ID, &t.CountryCode, &t.Name, &t.Description,
+			&t.EntitledDaysPerYear, &t.IsCarryOverAllowed, &t.MaxCarryOverDays,
+			&t.IsAccrued, &t.RequiresApproval, &t.SortOrder, &t.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan template: %w", err)
+		}
+		templates = append(templates, t)
+	}
+	return templates, nil
+}
+
+// GetTemplatesByIDs fetches templates by their IDs. Returns error if any ID not found.
+func (r *Repository) GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]PolicyTemplate, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, country_code, name, description,
+		       entitled_days_per_year, is_carry_over_allowed, max_carry_over_days,
+		       is_accrued, requires_approval, sort_order, created_at
+		FROM leave_policy_templates
+		WHERE id = ANY($1)
+		ORDER BY sort_order ASC
+	`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("get templates by ids: %w", err)
+	}
+	defer rows.Close()
+
+	var templates []PolicyTemplate
+	for rows.Next() {
+		var t PolicyTemplate
+		if err := rows.Scan(
+			&t.ID, &t.CountryCode, &t.Name, &t.Description,
+			&t.EntitledDaysPerYear, &t.IsCarryOverAllowed, &t.MaxCarryOverDays,
+			&t.IsAccrued, &t.RequiresApproval, &t.SortOrder, &t.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan template: %w", err)
+		}
+		templates = append(templates, t)
+	}
+
+	if len(templates) != len(ids) {
+		return nil, fmt.Errorf("expected %d templates, got %d", len(ids), len(templates))
+	}
+	return templates, nil
+}
+
+// ImportPoliciesFromTemplates creates policies from templates in a transaction.
+// Skips templates whose policy name already exists for this org (idempotent).
+// Returns the created policies.
+func (r *Repository) ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, templates []PolicyTemplate) ([]Policy, error) {
+	// First, get existing policy names for this org to skip duplicates
+	existingNames, err := r.getExistingPolicyNames(ctx, tx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("get existing policy names: %w", err)
+	}
+
+	var policies []Policy
+	for _, tmpl := range templates {
+		// Skip if policy with this name already exists
+		if existingNames[tmpl.Name] {
+			continue
+		}
+
+		// Map template fields to policy fields
+		carryOverDays := 0.0
+		if tmpl.MaxCarryOverDays != nil {
+			carryOverDays = *tmpl.MaxCarryOverDays
+		}
+
+		var policy Policy
+		err := tx.QueryRow(ctx, `
+			INSERT INTO leave_policies (
+				organisation_id, name, days_per_year, carry_over_days,
+				min_tenure_days, requires_approval, is_active
+			)
+			VALUES ($1, $2, $3, $4, 0, $5, TRUE)
+			RETURNING id, organisation_id, name, days_per_year, carry_over_days,
+			          min_tenure_days, requires_approval, is_active, created_at, updated_at
+		`, orgID, tmpl.Name, tmpl.EntitledDaysPerYear, carryOverDays, tmpl.RequiresApproval).Scan(
+			&policy.ID, &policy.OrganisationID, &policy.Name, &policy.DaysPerYear,
+			&policy.CarryOverDays, &policy.MinTenureDays, &policy.RequiresApproval,
+			&policy.IsActive, &policy.CreatedAt, &policy.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("create policy from template %s: %w", tmpl.Name, err)
+		}
+		policies = append(policies, policy)
+	}
+
+	return policies, nil
+}
+
+// getExistingPolicyNames returns a set of policy names that already exist for this org.
+func (r *Repository) getExistingPolicyNames(ctx context.Context, tx pgx.Tx, orgID uuid.UUID) (map[string]bool, error) {
+	rows, err := tx.Query(ctx, `
+		SELECT name FROM leave_policies
+		WHERE organisation_id = $1 AND is_active = TRUE
+	`, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("query existing policy names: %w", err)
+	}
+	defer rows.Close()
+
+	names := make(map[string]bool)
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, fmt.Errorf("scan policy name: %w", err)
+		}
+		names[name] = true
+	}
+	return names, nil
 }
 
 // ── Year-end Rollover ─────────────────────────────────────────────────────────

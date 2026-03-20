@@ -44,6 +44,12 @@ type RepositoryInterface interface {
 	// Holidays
 	ListHolidays(ctx context.Context, countryCode, startDate, endDate string) ([]PublicHoliday, error)
 
+	// Templates
+	ListTemplates(ctx context.Context, countryCode string) ([]PolicyTemplate, error)
+	GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]PolicyTemplate, error)
+	ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, templates []PolicyTemplate) ([]Policy, error)
+	CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error
+
 	// Rollover
 	CreateBalanceWithCarryOver(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int, entitledDays, carriedOverDays float64) error
 
@@ -483,4 +489,99 @@ func (s *Service) ListHolidays(ctx context.Context, orgID uuid.UUID, startDate, 
 	}
 
 	return holidays, nil
+}
+
+// ListTemplates returns policy templates for the org's country.
+// If countryCode is provided, use that; otherwise use org's country.
+func (s *Service) ListTemplates(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]PolicyTemplate, error) {
+	var country string
+	if countryCode != nil && *countryCode != "" {
+		country = *countryCode
+	} else {
+		// Auto-detect from org's country
+		var err error
+		country, err = s.orgRepo.GetOrgCountryCode(ctx, orgID)
+		if err != nil {
+			return nil, fmt.Errorf("get org country: %w", err)
+		}
+	}
+
+	templates, err := s.repo.ListTemplates(ctx, country)
+	if err != nil {
+		return nil, fmt.Errorf("list templates: %w", err)
+	}
+
+	return templates, nil
+}
+
+// ImportPolicies creates policies from templates. Validates that templates match org's country.
+// Skips templates whose policy name already exists (idempotent).
+// Creates balances for all active employees.
+func (s *Service) ImportPolicies(ctx context.Context, orgID uuid.UUID, input ImportPoliciesInput) ([]Policy, error) {
+	// Get org's country code
+	orgCountry, err := s.orgRepo.GetOrgCountryCode(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("get org country: %w", err)
+	}
+
+	// Fetch templates
+	templates, err := s.repo.GetTemplatesByIDs(ctx, input.TemplateIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get templates: %w", err)
+	}
+
+	// Validate all templates match org's country
+	for _, tmpl := range templates {
+		if tmpl.CountryCode != orgCountry {
+			return nil, apperr.New(
+				apperr.CodeValidation,
+				fmt.Sprintf("template %s is for country %s, but org is in %s",
+					tmpl.Name, tmpl.CountryCode, orgCountry),
+			)
+		}
+	}
+
+	// Start transaction
+	tx, err := s.repo.BeginTx(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+
+	// Create policies from templates
+	policies, err := s.repo.ImportPoliciesFromTemplates(ctx, tx, orgID, templates)
+	if err != nil {
+		return nil, fmt.Errorf("import policies from templates: %w", err)
+	}
+
+	// For each newly created policy, create balances for all active employees
+	currentYear := time.Now().Year()
+	for _, policy := range policies {
+		if err := s.repo.CreateBalancesForAllEmployees(ctx, tx, orgID, policy.ID, currentYear, policy.DaysPerYear); err != nil {
+			return nil, fmt.Errorf("create balances for policy %s: %w", policy.Name, err)
+		}
+	}
+
+	// Commit
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit import: %w", err)
+	}
+
+	// Audit log
+	s.logAudit(ctx, audit.LogEntry{
+		OrgID: orgID, ActorUserID: uuid.Nil, Action: "leave_policies.imported",
+		ResourceType: "leave_policy", ResourceID: uuid.Nil,
+		AfterState: map[string]interface{}{
+			"count": len(policies),
+			"policy_names": func() []string {
+				names := make([]string, len(policies))
+				for i, p := range policies {
+					names[i] = p.Name
+				}
+				return names
+			}(),
+		},
+	})
+
+	return policies, nil
 }

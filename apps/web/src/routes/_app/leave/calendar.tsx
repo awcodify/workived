@@ -32,10 +32,6 @@ function CalendarPage() {
 
   const { data: holidays } = useHolidays(startDate!, endDate!)
 
-  // Debug: log holidays data
-  console.log('Holidays data from backend:', holidays)
-  console.log('Org country code:', org?.country_code)
-
   // Map country codes to names
   const countryNames: Record<string, string> = {
     ID: 'Indonesia',
@@ -208,9 +204,6 @@ type LeaveCalendarProps = {
 
 function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
-  
-  // Debug: log what we received
-  console.log('LeaveCalendar received holidays:', holidays)
 
   // Build calendar grid
   const firstDay = new Date(year, month - 1, 1)
@@ -226,7 +219,6 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
     const countryName = { ID: 'Indonesia', AE: 'UAE', MY: 'Malaysia', SG: 'Singapore' }[h.country_code] || h.country_code
     holidayMap.set(h.date, [...existing, { name: h.name, country: countryName }])
   })
-  console.log('Holiday map:', Array.from(holidayMap.entries()))
 
   // Create map of date -> entries (expand ranges)
   const entriesByDate = new Map<string, DayEntry[]>()

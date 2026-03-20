@@ -257,3 +257,15 @@ func (m *mockRepo) ListHolidays(context.Context, string, string, string) ([]leav
 	return nil, nil
 }
 func (m *mockRepo) BeginTx(context.Context) (pgx.Tx, error) { return nil, nil }
+func (m *mockRepo) ListTemplates(context.Context, string) ([]leave.PolicyTemplate, error) {
+	return nil, nil
+}
+func (m *mockRepo) GetTemplatesByIDs(context.Context, []uuid.UUID) ([]leave.PolicyTemplate, error) {
+	return nil, nil
+}
+func (m *mockRepo) ImportPoliciesFromTemplates(context.Context, pgx.Tx, uuid.UUID, []leave.PolicyTemplate) ([]leave.Policy, error) {
+	return nil, nil
+}
+func (m *mockRepo) CreateBalancesForAllEmployees(context.Context, pgx.Tx, uuid.UUID, uuid.UUID, int, float64) error {
+	return nil
+}

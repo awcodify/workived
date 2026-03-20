@@ -140,6 +140,18 @@ func (f *fakeRepo) CreateBalanceWithCarryOver(ctx context.Context, orgID, employ
 func (f *fakeRepo) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return f.beginTxFn(ctx)
 }
+func (f *fakeRepo) ListTemplates(ctx context.Context, countryCode string) ([]leave.PolicyTemplate, error) {
+	return []leave.PolicyTemplate{}, nil
+}
+func (f *fakeRepo) GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]leave.PolicyTemplate, error) {
+	return []leave.PolicyTemplate{}, nil
+}
+func (f *fakeRepo) ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, templates []leave.PolicyTemplate) ([]leave.Policy, error) {
+	return []leave.Policy{}, nil
+}
+func (f *fakeRepo) CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error {
+	return nil
+}
 
 // ── fakeOrgRepo ─────────────────────────────────────────────────────────────
 

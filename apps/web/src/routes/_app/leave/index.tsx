@@ -16,9 +16,6 @@ function LeaveDashboard() {
   const { data: balances, isLoading } = useMyBalances(currentYear)
   const canManageLeave = useCanManageLeave()
 
-  // Debug: log to see what's returned
-  console.log('canManageLeave:', canManageLeave)
-
   const totalAvailable = balances?.reduce((sum, b) => {
     const available = b.entitled_days + b.carried_over_days - b.used_days - b.pending_days
     return sum + available

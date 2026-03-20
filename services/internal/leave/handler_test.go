@@ -128,6 +128,18 @@ func (f *fakeService) GetCalendar(ctx context.Context, orgID uuid.UUID, year, mo
 	return []leave.CalendarEntry{}, nil
 }
 
+func (f *fakeService) ListHolidays(ctx context.Context, orgID uuid.UUID, startDate, endDate string) ([]leave.PublicHoliday, error) {
+	return []leave.PublicHoliday{}, nil
+}
+
+func (f *fakeService) ListTemplates(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]leave.PolicyTemplate, error) {
+	return []leave.PolicyTemplate{}, nil
+}
+
+func (f *fakeService) ImportPolicies(ctx context.Context, orgID uuid.UUID, input leave.ImportPoliciesInput) ([]leave.Policy, error) {
+	return []leave.Policy{}, nil
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 var defaultEmpLookup = leave.EmployeeLookupFunc(func(_ context.Context, _, _ uuid.UUID) (uuid.UUID, error) {
