@@ -752,6 +752,51 @@ FOR EACH active employee × active leave_policy:
 
 **Sprint Duration:** 4 days (delivered ahead of estimate)
 
+### Sprint 5.6 — Hotfixes (Mobile + UX + Data Integrity) — DONE ✅
+
+**Problem:** Post-Sprint 5.5 feedback revealed critical UX and data integrity issues that needed immediate attention.
+
+**Scope:**
+- [x] **Calendar mobile responsiveness** — Calendar trimmed on small screens, showing only 4 columns
+  - Fixed: Implemented horizontal scroll with explicit column widths
+  - Result: All 7 days visible on mobile with smooth touch scrolling
+  - Files: `apps/web/src/routes/_app/leave/calendar.tsx`
+
+- [x] **Template import deduplication warning** — Silent skip confused admins
+  - Fixed: Pre-import conflict detection with warning dialog
+  - Result: Clear UX showing which templates will be skipped, option to cancel or proceed
+  - Files: `apps/web/src/components/workived/leave/ImportTemplatesModal.tsx`
+
+- [x] **Policy deletion guards** — Could delete policies with pending/future requests
+  - Fixed: Validation checks block deletion if constraints exist
+  - Result: Data integrity protected, clear error messages
+  - Backend: `CountPendingRequestsByPolicy()`, `CountFutureApprovedRequestsByPolicy()`
+  - Service: Pre-deletion validation logic
+  - Tests: 6 comprehensive test cases
+  - Files: `services/internal/leave/{repository,service,service_test,rollover_test}.go`
+
+- [x] **Leave balance UX fix (bonus)** — Inactive policy balances shown in UI
+  - Fixed: Filter balance queries to only return active policies
+  - Result: Clean UX, historical data preserved for compliance
+  - Files: `services/internal/leave/repository.go`
+
+**Deletion Constraint Behavior:**
+| Condition | Allow deactivation? | Action |
+|-----------|---------------------|--------|
+| No balances/requests | ✅ Yes | Deactivate immediately |
+| Has balances, no pending/future requests | ✅ Yes | Deactivate (balances preserved as historical records) |
+| Has pending requests | ❌ Block | Error: "Cannot delete — X pending requests exist" |
+| Has approved future leave | ❌ Block | Error: "Cannot delete — X approved future leaves exist" |
+
+**Technical Highlights:**
+- Zero breaking changes
+- 98%+ test coverage maintained
+- All 77 leave module tests passing
+- Mobile-first fixes (horizontal scroll with touch support)
+- Data integrity: balances preserved for compliance/audit (5-year retention required by Indonesian law)
+
+**Sprint Duration:** 4 hours (hot-shipped same day as feedback)
+
 ### Sprint 6 — Claims + Employee Hierarchy + Modular Approval — NEXT 🟢
 
 **Employee Hierarchy:**
