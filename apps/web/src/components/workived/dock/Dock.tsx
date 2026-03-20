@@ -80,22 +80,22 @@ export function Dock() {
               <div
                 className={cn(
                   'relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300',
-                  isActive ? 'scale-100' : 'scale-95 opacity-60'
+                  isActive ? 'scale-100' : 'scale-95 opacity-60 group-hover:scale-100 group-hover:opacity-100'
                 )}
                 style={{
                   background: isActive ? theme.active.bg : 'transparent',
                 }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = theme.active.bg
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent'
+                  }
+                }}
               >
-                {/* Hover glow effect */}
-                {!isActive && (
-                  <div
-                    className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"
-                    style={{
-                      background: theme.active.bg,
-                    }}
-                  />
-                )}
-
                 {/* Icon with notification badge */}
                 <div className="relative group-hover:scale-110 group-hover:-translate-y-0.5 transition-all duration-300">
                   <Icon
@@ -105,6 +105,18 @@ export function Dock() {
                       color: isActive ? theme.active.icon : theme.icon,
                       strokeWidth: isActive ? 2.5 : 2,
                       transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color = theme.active.icon
+                        e.currentTarget.style.strokeWidth = '2.5'
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.color = theme.icon
+                        e.currentTarget.style.strokeWidth = '2'
+                      }
                     }}
                   />
                   
@@ -132,6 +144,16 @@ export function Dock() {
                   style={{ 
                     color: isActive ? theme.active.label : theme.label,
                     transition: 'color 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = theme.active.label
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isActive) {
+                      e.currentTarget.style.color = theme.label
+                    }
                   }}
                 >
                   {item.label}
