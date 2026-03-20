@@ -72,6 +72,9 @@ const (
 	PermReportsRead = "reports.read"
 	PermSalaryRead  = "salary.read"
 
+	PermTasksRead  = "tasks.read"
+	PermTasksWrite = "tasks.write"
+
 	// Self-scoped — resource-level check enforced in service layer.
 	PermSelfRead       = "self.read"
 	PermSelfWrite      = "self.write"
@@ -101,6 +104,7 @@ var RolePermissions = map[string][]string{
 		PermInvitationWrite,
 		PermReportsRead,
 		PermSalaryRead,
+		PermTasksRead, PermTasksWrite,
 		PermSelfRead, PermSelfWrite, PermSelfAttendance, PermSelfLeave, PermSelfClaims,
 	},
 	RoleMember: {
@@ -113,6 +117,7 @@ var RolePermissions = map[string][]string{
 		PermOrgRead,
 		PermLeaveRead, PermLeaveWrite, // Need read to view policies, write to see team requests
 		PermClaimsRead, PermClaimsWrite, // Need read to view categories, write to see team claims
+		PermTasksRead, // Collaborative task management
 	},
 
 	// ── Pro-tier ──
@@ -124,6 +129,7 @@ var RolePermissions = map[string][]string{
 		PermOrgRead,
 		PermInvitationWrite,
 		PermReportsRead,
+		PermTasksRead, PermTasksWrite,
 		PermSelfRead, PermSelfWrite, PermSelfAttendance, PermSelfLeave, PermSelfClaims,
 	},
 	RoleManager: {
@@ -138,6 +144,7 @@ var RolePermissions = map[string][]string{
 		PermOrgRead,
 		PermLeaveRead,  // Need to view policies to create own leave requests
 		PermClaimsRead, // Need to view categories to create own claims
+		PermTasksRead,  // Collaborative task management
 	},
 	RoleFinance: {
 		PermSelfRead, PermSelfWrite,
@@ -148,6 +155,7 @@ var RolePermissions = map[string][]string{
 		PermReportsRead,
 		PermOrgRead,
 		PermLeaveRead, // Need to view policies to create own leave requests
+		PermTasksRead, // Collaborative task management
 	},
 
 	// ── Internal (Workived team) ──

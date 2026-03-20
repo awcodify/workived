@@ -26,6 +26,7 @@ import (
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/internal/platform/storage"
+	"github.com/workived/services/internal/tasks"
 	"github.com/workived/services/pkg/email"
 	"github.com/workived/services/pkg/logger"
 )
@@ -95,6 +96,7 @@ func main() {
 	attRepo := attendance.NewRepository(db)
 	leaveRepo := leave.NewRepository(db)
 	claimsRepo := claims.NewRepository(db, log)
+	tasksRepo := tasks.NewRepository(db, log)
 	adminRepo := admin.NewRepository(db)
 	auditRepo := audit.NewRepository(db)
 
@@ -106,6 +108,7 @@ func main() {
 	attSvc := attendance.NewService(attRepo, orgRepo, log)
 	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender))
 	leaveSvc := leave.NewService(leaveRepo, orgRepo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender))
+	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log))
 	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log))
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
@@ -140,6 +143,14 @@ func main() {
 		}
 		return emp.ID, nil
 	}, storageClient, log)
+
+	tasksHandler := tasks.NewHandler(tasksSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
+		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		return emp.ID, nil
+	}, log)
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -201,6 +212,7 @@ func main() {
 	attHandler.RegisterRoutes(authed)
 	leaveHandler.RegisterRoutes(authed)
 	claimsHandler.RegisterRoutes(authed)
+	tasksHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)
