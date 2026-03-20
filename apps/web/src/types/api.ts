@@ -154,6 +154,8 @@ export interface Employee {
   job_title?: string
   department_id?: string
   department_name?: string
+  reporting_to?: string
+  manager_name?: string
   employment_type: 'full_time' | 'part_time' | 'contract' | 'intern'
   status: 'active' | 'probation' | 'inactive'
   start_date: string

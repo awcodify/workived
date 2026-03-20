@@ -141,13 +141,34 @@ function PeoplePage() {
         <PeopleEmptyState hasSearch={!!search} search={search} hasFilter={!!statusFilter} />
       ) : (
         <div className="flex flex-col gap-[3px]">
+          {/* Table header */}
+          <div
+            className="grid items-center gap-4 px-5 py-2"
+            style={{
+              gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
+              color: t.textMuted,
+              fontSize: 11,
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            <div></div>
+            <div>Employee</div>
+            <div>Manager</div>
+            <div>Department</div>
+            <div>Status</div>
+          </div>
+
+          {/* Table rows */}
           {employees.map((emp) => (
             <Link
               key={emp.id}
               to="/people/$id"
               params={{ id: emp.id }}
-              className="flex items-center gap-4 transition-all duration-150 hover:-translate-y-px"
+              className="grid items-center gap-4 transition-all duration-150 hover:-translate-y-px"
               style={{
+                gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
                 background: t.surface,
                 borderRadius: 12,
                 padding: '14px 20px',
@@ -161,36 +182,34 @@ function PeoplePage() {
             >
               <Avatar name={emp.full_name} id={emp.id} size={32} />
 
-              <div className="flex-1 min-w-0 flex items-center gap-4">
+              <div className="min-w-0">
                 <p
                   className="font-semibold truncate"
-                  style={{ fontSize: 13, color: t.text, minWidth: 0, flex: '0 1 auto', maxWidth: 200 }}
+                  style={{ fontSize: 13, color: t.text }}
                 >
                   {emp.full_name}
                 </p>
                 <p
-                  className="truncate hidden md:block"
-                  style={{ fontSize: 12, color: t.textMuted, flex: '0 1 auto', maxWidth: 160 }}
+                  className="truncate"
+                  style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}
                 >
                   {emp.job_title ?? emp.employment_type.replace('_', ' ')}
                 </p>
-
-                {emp.department_name && (
-                  <span
-                    className="font-semibold hidden md:inline-block truncate"
-                    style={{
-                      fontSize: 11,
-                      color: t.textMuted,
-                      background: t.surface,
-                      padding: '3px 9px',
-                      borderRadius: 6,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {emp.department_name}
-                  </span>
-                )}
               </div>
+
+              <p
+                className="truncate"
+                style={{ fontSize: 12, color: t.textMuted }}
+              >
+                {emp.manager_name ?? '—'}
+              </p>
+
+              <p
+                className="truncate"
+                style={{ fontSize: 12, color: t.textMuted }}
+              >
+                {emp.department_name ?? '—'}
+              </p>
 
               <StatusSquare status={emp.status} />
             </Link>
@@ -239,22 +258,39 @@ function PeoplePage() {
 function PeopleRowsSkeleton() {
   return (
     <div className="flex flex-col gap-[3px]">
+      {/* Header skeleton */}
+      <div
+        className="grid items-center gap-4 px-5 py-2"
+        style={{
+          gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
+        }}
+      >
+        <div></div>
+        <div className="rounded-md" style={{ width: 40, height: 11, background: t.surfaceHover }} />
+        <div className="rounded-md" style={{ width: 50, height: 11, background: t.surfaceHover }} />
+        <div className="rounded-md" style={{ width: 70, height: 11, background: t.surfaceHover }} />
+        <div className="rounded-md" style={{ width: 40, height: 11, background: t.surfaceHover }} />
+      </div>
+
+      {/* Row skeletons */}
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="flex items-center gap-4 animate-pulse"
+          className="grid items-center gap-4 animate-pulse"
           style={{
+            gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
             background: t.surface,
             borderRadius: 12,
             padding: '14px 20px',
           }}
         >
           <div className="rounded-[9px] flex-shrink-0" style={{ width: 32, height: 32, background: t.surfaceHover }} />
-          <div className="flex-1 flex items-center gap-4">
-            <div className="rounded-md" style={{ width: 120, height: 13, background: t.surfaceHover }} />
-            <div className="rounded-md hidden md:block" style={{ width: 80, height: 12, background: t.surface }} />
-            <div className="rounded-md hidden md:block" style={{ width: 64, height: 20, background: t.surface }} />
+          <div className="min-w-0">
+            <div className="rounded-md" style={{ width: 120, height: 13, background: t.surfaceHover, marginBottom: 4 }} />
+            <div className="rounded-md" style={{ width: 90, height: 12, background: t.surface }} />
           </div>
+          <div className="rounded-md" style={{ width: 90, height: 12, background: t.surface }} />
+          <div className="rounded-md" style={{ width: 70, height: 12, background: t.surface }} />
           <div className="flex items-center gap-1.5">
             <div className="rounded-sm" style={{ width: 7, height: 7, background: t.surfaceHover }} />
             <div className="rounded-sm" style={{ width: 40, height: 12, background: t.surface }} />

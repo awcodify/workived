@@ -77,13 +77,13 @@ func (f *fakeEmpRepo) GetByUserID(_ context.Context, orgID, userID uuid.UUID) (*
 	return nil, apperr.NotFound("employee")
 }
 
-func (f *fakeEmpRepo) List(_ context.Context, _ uuid.UUID, filters employee.ListFilters) ([]employee.Employee, error) {
+func (f *fakeEmpRepo) List(_ context.Context, _ uuid.UUID, filters employee.ListFilters) ([]employee.EmployeeWithManager, error) {
 	if f.listErr != nil {
 		return nil, f.listErr
 	}
-	var result []employee.Employee
+	var result []employee.EmployeeWithManager
 	for _, e := range f.employees {
-		result = append(result, *e)
+		result = append(result, employee.EmployeeWithManager{Employee: *e})
 	}
 	return result, nil
 }

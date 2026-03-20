@@ -2069,6 +2069,10 @@ components:
           format: uuid
           nullable: true
           description: Manager's employee ID (for org chart and approval routing)
+        manager_name:
+          type: string
+          nullable: true
+          description: Full name of the manager (reporting_to employee). Only populated in list responses.
         job_title:
           type: string
           nullable: true

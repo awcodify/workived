@@ -12,7 +12,7 @@ import (
 
 // RepositoryInterface is the data access interface the service depends on.
 type RepositoryInterface interface {
-	List(ctx context.Context, orgID uuid.UUID, f ListFilters) ([]Employee, error)
+	List(ctx context.Context, orgID uuid.UUID, f ListFilters) ([]EmployeeWithManager, error)
 	CountActive(ctx context.Context, orgID uuid.UUID) (int, error)
 	Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest) (*Employee, error)
 	GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employee, error)
@@ -64,7 +64,7 @@ func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
 }
 
 type ListResult struct {
-	Employees []Employee
+	Employees []EmployeeWithManager
 	Meta      paginate.Meta
 }
 

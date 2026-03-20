@@ -3,7 +3,7 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { useEffect } from 'react'
-import { useEmployee, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
+import { useEmployee, useEmployees, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
 import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
@@ -27,6 +27,7 @@ const baseSchema = z.object({
   phone: z.string().max(20).optional().or(z.literal('')),
   job_title: z.string().max(150).optional().or(z.literal('')),
   department_id: z.string().optional().or(z.literal('')),
+  reporting_to: z.string().optional().or(z.literal('')),
   employment_type: z.enum(['full_time', 'part_time', 'contract', 'intern']),
   start_date: z.string().min(1, 'Start date is required'),
 })
@@ -63,6 +64,8 @@ function NewEmployeePage() {
   const createMutation = useCreateEmployee()
   const inviteMutation = useInviteMember()
   const { data: unlinkedMembers = [], isLoading: loadingMembers } = useUnlinkedMembers()
+  const { data: employeesData } = useEmployees({ status: 'active', limit: 100 })
+  const activeEmployees = employeesData?.data ?? []
 
   const form = useForm<NewForm>({
     resolver: zodResolver(newSchema),
@@ -71,6 +74,7 @@ function NewEmployeePage() {
       phone: '',
       job_title: '',
       department_id: '',
+      reporting_to: '',
       employment_type: 'full_time',
       start_date: '',
       // If arriving from Members page with a user_id, pre-select member mode
@@ -102,6 +106,7 @@ function NewEmployeePage() {
       full_name: data.full_name,
       email: data.email_mode === 'new' ? data.email : member?.email,
       user_id: data.email_mode === 'member' ? data.selected_user_id : undefined,
+      reporting_to: data.reporting_to || undefined,
       phone: data.phone || undefined,
       job_title: data.job_title || undefined,
       department_id: data.department_id || undefined,
@@ -345,6 +350,21 @@ function NewEmployeePage() {
                 />
               </Field>
 
+              <Field label="Reports to (optional)" error={form.formState.errors.reporting_to?.message}>
+                <select
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('reporting_to')}
+                >
+                  <option value="">— No manager —</option>
+                  {activeEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.full_name} {emp.job_title && `(${emp.job_title})`}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+
               <Field label="Employment type" error={form.formState.errors.employment_type?.message}>
                 <select
                   className="form-input-dark"
@@ -407,6 +427,8 @@ function EditEmployeePage({ id }: { id: string }) {
   const navigate = useNavigate()
   const { data: employee, isLoading } = useEmployee(id)
   const updateMutation = useUpdateEmployee(id)
+  const { data: employeesData } = useEmployees({ status: 'active', limit: 100 })
+  const activeEmployees = (employeesData?.data ?? []).filter(emp => emp.id !== id)
 
   const form = useForm<EditForm>({
     resolver: zodResolver(editSchema),
@@ -415,6 +437,7 @@ function EditEmployeePage({ id }: { id: string }) {
       phone: '',
       job_title: '',
       department_id: '',
+      reporting_to: '',
       employment_type: 'full_time',
       start_date: '',
     },
@@ -427,6 +450,7 @@ function EditEmployeePage({ id }: { id: string }) {
         phone: employee.phone ?? '',
         job_title: employee.job_title ?? '',
         department_id: employee.department_id ?? '',
+        reporting_to: employee.reporting_to ?? '',
         employment_type: employee.employment_type,
         start_date: employee.start_date,
       })
@@ -439,6 +463,7 @@ function EditEmployeePage({ id }: { id: string }) {
       phone: data.phone || undefined,
       job_title: data.job_title || undefined,
       department_id: data.department_id || undefined,
+      reporting_to: data.reporting_to || undefined,
     }
     updateMutation.mutate(clean, {
       onSuccess: () => navigate({ to: '/people' }),
@@ -537,6 +562,21 @@ function EditEmployeePage({ id }: { id: string }) {
                   style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                   {...form.register('job_title')} 
                 />
+              </Field>
+
+              <Field label="Reports to (optional)" error={form.formState.errors.reporting_to?.message}>
+                <select
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('reporting_to')}
+                >
+                  <option value="">— No manager —</option>
+                  {activeEmployees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.full_name} {emp.job_title && `(${emp.job_title})`}
+                    </option>
+                  ))}
+                </select>
               </Field>
 
               <Field label="Employment type" error={form.formState.errors.employment_type?.message}>

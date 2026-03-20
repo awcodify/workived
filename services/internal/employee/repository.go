@@ -19,23 +19,25 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) ([]Employee, error) {
+func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) ([]EmployeeWithManager, error) {
 	limit := paginate.ClampLimit(f.Limit)
 	cursor := paginate.Decode(f.Cursor)
 
 	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, user_id, employee_code,
-		       full_name, email, phone, department_id, job_title,
-		       employment_type, status, reporting_to, start_date, end_date,
-		       base_salary, salary_currency, custom_fields,
-		       is_active, created_at, updated_at
-		FROM employees
-		WHERE organisation_id = $1
-		  AND is_active = TRUE
-		  AND ($2::varchar IS NULL OR status = $2)
-		  AND ($3::varchar IS NULL OR department_id::text = $3)
-		  AND ($4::varchar IS NULL OR full_name > $4)
-		ORDER BY full_name ASC
+		SELECT e.id, e.organisation_id, e.user_id, e.employee_code,
+		       e.full_name, e.email, e.phone, e.department_id, e.job_title,
+		       e.employment_type, e.status, e.reporting_to, e.start_date, e.end_date,
+		       e.base_salary, e.salary_currency, e.custom_fields,
+		       e.is_active, e.created_at, e.updated_at,
+		       m.full_name AS manager_name
+		FROM employees e
+		LEFT JOIN employees m ON e.reporting_to = m.id AND m.is_active = TRUE
+		WHERE e.organisation_id = $1
+		  AND e.is_active = TRUE
+		  AND ($2::varchar IS NULL OR e.status = $2)
+		  AND ($3::varchar IS NULL OR e.department_id::text = $3)
+		  AND ($4::varchar IS NULL OR e.full_name > $4)
+		ORDER BY e.full_name ASC
 		LIMIT $5
 	`, orgID, f.Status, f.DepartmentID, nilIfEmpty(cursor.Value), limit+1)
 	if err != nil {
@@ -43,15 +45,16 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 	}
 	defer rows.Close()
 
-	var emps []Employee
+	var emps []EmployeeWithManager
 	for rows.Next() {
-		var e Employee
+		var e EmployeeWithManager
 		if err := rows.Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
 			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.StartDate, &e.EndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
+			&e.ManagerName,
 		); err != nil {
 			return nil, err
 		}
