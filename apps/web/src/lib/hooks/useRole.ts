@@ -8,16 +8,16 @@ export function useRole(): string | null {
   return parseJwtRole(accessToken)
 }
 
-// org.settings permission: owner, admin
+// org.settings permission: owner, admin, super_admin
 export function useCanEditOrgSettings(): boolean {
   const role = useRole()
-  return role === 'owner' || role === 'admin'
+  return role === 'owner' || role === 'admin' || role === 'super_admin'
 }
 
-// invitation.write permission: owner, admin, hr_admin
+// invitation.write permission: owner, admin, hr_admin, super_admin
 export function useCanInvite(): boolean {
   const role = useRole()
-  return role === 'owner' || role === 'admin' || role === 'hr_admin'
+  return role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin'
 }
 
 // leave.write permission: owner, admin, hr_admin
