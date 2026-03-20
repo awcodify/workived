@@ -17,19 +17,39 @@ let isRefreshing = false
 apiClient.interceptors.response.use(
   (res) => res,
   async (error) => {
-    if (error.response?.status === 401 && !isRefreshing) {
+    const originalRequest = error.config
+    
+    // Don't retry if already retried or if it's a login/refresh request
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/login') &&
+      !originalRequest.url?.includes('/auth/refresh') &&
+      !isRefreshing
+    ) {
+      originalRequest._retry = true
       isRefreshing = true
+      
       try {
-        await useAuthStore.getState().refresh()
+        const refreshed = await useAuthStore.getState().refresh()
         isRefreshing = false
-        return apiClient(error.config)
-      } catch {
+        
+        if (refreshed) {
+          // Refresh succeeded - retry original request with new token
+          return apiClient(originalRequest)
+        } else {
+          // Refresh failed - redirect to login
+          window.location.href = '/login'
+          return Promise.reject(error)
+        }
+      } catch (refreshError) {
         isRefreshing = false
         useAuthStore.getState().logout()
         window.location.href = '/login'
         return Promise.reject(error)
       }
     }
+    
     return Promise.reject(error)
   },
 )
