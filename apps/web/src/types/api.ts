@@ -249,6 +249,7 @@ export interface LeavePolicy {
   id: string
   organisation_id: string
   name: string
+  description?: string
   days_per_year: number
   carry_over_days: number
   min_tenure_days: number
@@ -274,6 +275,7 @@ export interface LeaveBalance {
 
 export interface LeaveBalanceWithPolicy extends LeaveBalance {
   policy_name: string
+  policy_description?: string
 }
 
 export interface LeaveRequest {
@@ -334,6 +336,7 @@ export interface PublicHoliday {
 
 export interface CreatePolicyInput {
   name: string
+  description?: string
   days_per_year: number
   carry_over_days?: number
   min_tenure_days?: number
@@ -342,6 +345,7 @@ export interface CreatePolicyInput {
 
 export interface UpdatePolicyInput {
   name?: string
+  description?: string
   days_per_year?: number
   carry_over_days?: number
   min_tenure_days?: number

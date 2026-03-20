@@ -26,7 +26,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 // ListPolicies returns all active leave policies for an organisation.
 func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Policy, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, name, days_per_year, carry_over_days,
+		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
 		       min_tenure_days, requires_approval, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1
@@ -42,7 +42,7 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 	for rows.Next() {
 		var p Policy
 		if err := rows.Scan(
-			&p.ID, &p.OrganisationID, &p.Name, &p.DaysPerYear, &p.CarryOverDays,
+			&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 			&p.MinTenureDays, &p.RequiresApproval, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan leave policy: %w", err)
@@ -56,12 +56,12 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 func (r *Repository) GetPolicy(ctx context.Context, orgID, policyID uuid.UUID) (*Policy, error) {
 	var p Policy
 	err := r.db.QueryRow(ctx, `
-		SELECT id, organisation_id, name, days_per_year, carry_over_days,
+		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
 		       min_tenure_days, requires_approval, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, policyID).Scan(
-		&p.ID, &p.OrganisationID, &p.Name, &p.DaysPerYear, &p.CarryOverDays,
+		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
@@ -82,12 +82,12 @@ func (r *Repository) CreatePolicy(ctx context.Context, orgID uuid.UUID, req Crea
 
 	var p Policy
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO leave_policies (organisation_id, name, days_per_year, carry_over_days, min_tenure_days, requires_approval)
-		VALUES ($1, $2, $3, $4, $5, $6)
-		RETURNING id, organisation_id, name, days_per_year, carry_over_days,
+		INSERT INTO leave_policies (organisation_id, name, description, days_per_year, carry_over_days, min_tenure_days, requires_approval)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 		          min_tenure_days, requires_approval, is_active, created_at, updated_at
-	`, orgID, req.Name, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, reqApproval).Scan(
-		&p.ID, &p.OrganisationID, &p.Name, &p.DaysPerYear, &p.CarryOverDays,
+	`, orgID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, reqApproval).Scan(
+		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
@@ -102,15 +102,16 @@ func (r *Repository) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID
 	err := r.db.QueryRow(ctx, `
 		UPDATE leave_policies SET
 			name              = COALESCE($3, name),
-			days_per_year     = COALESCE($4, days_per_year),
-			carry_over_days   = COALESCE($5, carry_over_days),
-			min_tenure_days   = COALESCE($6, min_tenure_days),
-			requires_approval = COALESCE($7, requires_approval)
+			description       = COALESCE($4, description),
+			days_per_year     = COALESCE($5, days_per_year),
+			carry_over_days   = COALESCE($6, carry_over_days),
+			min_tenure_days   = COALESCE($7, min_tenure_days),
+			requires_approval = COALESCE($8, requires_approval)
 		WHERE organisation_id = $1 AND id = $2
-		RETURNING id, organisation_id, name, days_per_year, carry_over_days,
+		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 		          min_tenure_days, requires_approval, is_active, created_at, updated_at
-	`, orgID, policyID, req.Name, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, req.RequiresApproval).Scan(
-		&p.ID, &p.OrganisationID, &p.Name, &p.DaysPerYear, &p.CarryOverDays,
+	`, orgID, policyID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, req.RequiresApproval).Scan(
+		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
@@ -199,7 +200,7 @@ func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int
 		SELECT b.id, b.organisation_id, b.employee_id, b.leave_policy_id, b.year,
 		       b.entitled_days, b.carried_over_days, b.used_days, b.pending_days,
 		       b.created_at, b.updated_at,
-		       lp.name
+		       lp.name, lp.description
 		FROM leave_balances b
 		JOIN leave_policies lp ON lp.id = b.leave_policy_id
 		WHERE b.organisation_id = $1 AND b.year = $2
@@ -217,7 +218,7 @@ func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int
 			&bwp.ID, &bwp.OrganisationID, &bwp.EmployeeID, &bwp.LeavePolicyID, &bwp.Year,
 			&bwp.EntitledDays, &bwp.CarriedOverDays, &bwp.UsedDays, &bwp.PendingDays,
 			&bwp.CreatedAt, &bwp.UpdatedAt,
-			&bwp.PolicyName,
+			&bwp.PolicyName, &bwp.PolicyDescription,
 		); err != nil {
 			return nil, fmt.Errorf("scan leave balance: %w", err)
 		}
@@ -232,7 +233,7 @@ func (r *Repository) ListEmployeeBalances(ctx context.Context, orgID, employeeID
 		SELECT b.id, b.organisation_id, b.employee_id, b.leave_policy_id, b.year,
 		       b.entitled_days, b.carried_over_days, b.used_days, b.pending_days,
 		       b.created_at, b.updated_at,
-		       lp.name
+		       lp.name, lp.description
 		FROM leave_balances b
 		JOIN leave_policies lp ON lp.id = b.leave_policy_id
 		WHERE b.organisation_id = $1 AND b.employee_id = $2 AND b.year = $3
@@ -250,7 +251,7 @@ func (r *Repository) ListEmployeeBalances(ctx context.Context, orgID, employeeID
 			&bwp.ID, &bwp.OrganisationID, &bwp.EmployeeID, &bwp.LeavePolicyID, &bwp.Year,
 			&bwp.EntitledDays, &bwp.CarriedOverDays, &bwp.UsedDays, &bwp.PendingDays,
 			&bwp.CreatedAt, &bwp.UpdatedAt,
-			&bwp.PolicyName,
+			&bwp.PolicyName, &bwp.PolicyDescription,
 		); err != nil {
 			return nil, fmt.Errorf("scan employee leave balance: %w", err)
 		}
@@ -653,14 +654,14 @@ func (r *Repository) ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx,
 		var policy Policy
 		err := tx.QueryRow(ctx, `
 			INSERT INTO leave_policies (
-				organisation_id, name, days_per_year, carry_over_days,
+				organisation_id, name, description, days_per_year, carry_over_days,
 				min_tenure_days, requires_approval, is_active
 			)
-			VALUES ($1, $2, $3, $4, 0, $5, TRUE)
-			RETURNING id, organisation_id, name, days_per_year, carry_over_days,
+			VALUES ($1, $2, $3, $4, $5, 0, $6, TRUE)
+			RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 			          min_tenure_days, requires_approval, is_active, created_at, updated_at
-		`, orgID, tmpl.Name, tmpl.EntitledDaysPerYear, carryOverDays, tmpl.RequiresApproval).Scan(
-			&policy.ID, &policy.OrganisationID, &policy.Name, &policy.DaysPerYear,
+		`, orgID, tmpl.Name, tmpl.Description, tmpl.EntitledDaysPerYear, carryOverDays, tmpl.RequiresApproval).Scan(
+			&policy.ID, &policy.OrganisationID, &policy.Name, &policy.Description, &policy.DaysPerYear,
 			&policy.CarryOverDays, &policy.MinTenureDays, &policy.RequiresApproval,
 			&policy.IsActive, &policy.CreatedAt, &policy.UpdatedAt,
 		)

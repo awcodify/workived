@@ -13,6 +13,7 @@ type Policy struct {
 	ID               uuid.UUID `json:"id"`
 	OrganisationID   uuid.UUID `json:"organisation_id"`
 	Name             string    `json:"name"`
+	Description      *string   `json:"description,omitempty"`
 	DaysPerYear      float64   `json:"days_per_year"`
 	CarryOverDays    float64   `json:"carry_over_days"`
 	MinTenureDays    int       `json:"min_tenure_days"`
@@ -64,7 +65,8 @@ type Request struct {
 // BalanceWithPolicy combines a balance row with its policy name for display.
 type BalanceWithPolicy struct {
 	Balance
-	PolicyName string `json:"policy_name"`
+	PolicyName        string  `json:"policy_name"`
+	PolicyDescription *string `json:"policy_description,omitempty"`
 }
 
 // RequestWithDetails combines a request with employee and policy names for display.
@@ -111,6 +113,7 @@ type PolicyTemplate struct {
 
 type CreatePolicyRequest struct {
 	Name             string  `json:"name"              validate:"required,min=1,max=100"`
+	Description      *string `json:"description"       validate:"omitempty,max=500"`
 	DaysPerYear      float64 `json:"days_per_year"     validate:"required,gte=0,lte=365"`
 	CarryOverDays    float64 `json:"carry_over_days"   validate:"gte=0,lte=365"`
 	MinTenureDays    int     `json:"min_tenure_days"   validate:"gte=0"`
@@ -119,6 +122,7 @@ type CreatePolicyRequest struct {
 
 type UpdatePolicyRequest struct {
 	Name             *string  `json:"name"              validate:"omitempty,min=1,max=100"`
+	Description      *string  `json:"description"       validate:"omitempty,max=500"`
 	DaysPerYear      *float64 `json:"days_per_year"     validate:"omitempty,gte=0,lte=365"`
 	CarryOverDays    *float64 `json:"carry_over_days"   validate:"omitempty,gte=0,lte=365"`
 	MinTenureDays    *int     `json:"min_tenure_days"   validate:"omitempty,gte=0"`

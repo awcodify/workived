@@ -69,7 +69,7 @@ function LeaveDashboard() {
           >
             <Clock size={18} style={{ color: t.accent }} />
             <span className="text-sm font-semibold" style={{ color: t.text }}>
-              Pending
+              Pending Approvals
             </span>
             {pendingCount > 0 && (
               <span
@@ -190,7 +190,7 @@ function LeaveDashboard() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.2fr',
+                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr',
                 gap: 16,
                 padding: '14px 20px',
                 background: t.surfaceHover,
@@ -228,10 +228,10 @@ function LeaveDashboard() {
                 Pending
               </div>
               <div
-                className="text-xs font-bold uppercase tracking-wide text-right"
+                className="text-xs font-bold uppercase tracking-wide"
                 style={{ color: t.textMuted }}
               >
-                Status
+                Description
               </div>
             </div>
 
@@ -259,7 +259,7 @@ function LeaveDashboard() {
                   }}
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.2fr',
+                    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr',
                     gap: 16,
                     padding: '18px 20px',
                     borderBottom:
@@ -407,41 +407,39 @@ function LeaveDashboard() {
                     </span>
                   </div>
 
-                  {/* Status Badge */}
-                  <div className="flex items-center justify-end">
-                    {isExhausted ? (
-                      <span
-                        className="px-3 py-1 text-xs font-semibold"
-                        style={{
-                          background: colors.errDim,
-                          color: colors.errText,
-                          borderRadius: 6,
-                        }}
+                  {/* Description */}
+                  <div className="flex flex-col justify-center">
+                    {balance.policy_description && (
+                      <p
+                        className="text-xs font-medium leading-relaxed"
+                        style={{ color: t.text }}
                       >
-                        Exhausted
-                      </span>
-                    ) : isLowBalance ? (
-                      <span
-                        className="px-3 py-1 text-xs font-semibold"
-                        style={{
-                          background: colors.warnDim,
-                          color: colors.warnText,
-                          borderRadius: 6,
-                        }}
+                        {balance.policy_description}
+                      </p>
+                    )}
+                    {balance.carried_over_days > 0 && balance.entitled_days !== 999 && (
+                      <p
+                        className="text-xs mt-0.5"
+                        style={{ color: t.textMuted }}
                       >
-                        Low
-                      </span>
-                    ) : (
-                      <span
-                        className="px-3 py-1 text-xs font-semibold"
-                        style={{
-                          background: colors.okDim,
-                          color: colors.okText,
-                          borderRadius: 6,
-                        }}
+                        +{balance.carried_over_days} carried from {balance.year - 1}
+                      </p>
+                    )}
+                    {isExhausted && (
+                      <p
+                        className="text-xs mt-0.5 font-semibold"
+                        style={{ color: colors.errText }}
                       >
-                        Available
-                      </span>
+                        ⚠ Balance exhausted
+                      </p>
+                    )}
+                    {isLowBalance && !isExhausted && (
+                      <p
+                        className="text-xs mt-0.5 font-semibold"
+                        style={{ color: colors.warnText }}
+                      >
+                        ⚠ Low balance
+                      </p>
                     )}
                   </div>
                 </div>
