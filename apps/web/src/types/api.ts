@@ -308,7 +308,9 @@ export interface CalendarEntry {
 }
 
 export interface PublicHoliday {
+  country_code: string
   date: string  // YYYY-MM-DD
+  name: string
 }
 
 export interface CreatePolicyInput {

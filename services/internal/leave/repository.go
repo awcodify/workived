@@ -507,7 +507,7 @@ func (r *Repository) IsOnApprovedLeave(ctx context.Context, orgID, employeeID uu
 // ListHolidays returns public holidays in a date range for a country.
 func (r *Repository) ListHolidays(ctx context.Context, countryCode, startDate, endDate string) ([]PublicHoliday, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT date::text
+		SELECT country_code, date::text, name
 		FROM public_holidays
 		WHERE country_code = $1
 		  AND date >= $2::date
@@ -522,7 +522,7 @@ func (r *Repository) ListHolidays(ctx context.Context, countryCode, startDate, e
 	var holidays []PublicHoliday
 	for rows.Next() {
 		var h PublicHoliday
-		if err := rows.Scan(&h.Date); err != nil {
+		if err := rows.Scan(&h.CountryCode, &h.Date, &h.Name); err != nil {
 			return nil, fmt.Errorf("scan holiday: %w", err)
 		}
 		holidays = append(holidays, h)

@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCalendar, useHolidays } from '@/lib/hooks/useLeave'
+import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
 import type { CalendarEntry } from '@/types/api'
 
@@ -16,6 +17,7 @@ function CalendarPage() {
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1) // 1-indexed
 
+  const { data: org } = useOrganisation()
   const { data: entries, isLoading } = useCalendar(year, month)
 
   // Calculate start and end dates for the month to fetch holidays
@@ -31,7 +33,19 @@ function CalendarPage() {
   const { data: holidays } = useHolidays(startDate!, endDate!)
 
   // Debug: log holidays data
-  console.log('Holidays data:', holidays)
+  console.log('Holidays data from backend:', holidays)
+  console.log('Org country code:', org?.country_code)
+
+  // Map country codes to names
+  const countryNames: Record<string, string> = {
+    ID: 'Indonesia',
+    AE: 'UAE',
+    MY: 'Malaysia',
+    SG: 'Singapore',
+  }
+
+  const backendCountry = holidays?.[0]?.country_code ?? ''
+  const backendCountryName = backendCountry ? countryNames[backendCountry] || backendCountry : ''
 
   const monthNames = [
     'January',
@@ -78,17 +92,45 @@ function CalendarPage() {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1
-          className="font-extrabold"
-          style={{
-            fontSize: typography.display.size,
-            letterSpacing: typography.display.tracking,
-            color: t.text,
-            lineHeight: typography.display.lineHeight,
-          }}
-        >
-          Leave Calendar
-        </h1>
+        <div>
+          <h1
+            className="font-extrabold"
+            style={{
+              fontSize: typography.display.size,
+              letterSpacing: typography.display.tracking,
+              color: t.text,
+              lineHeight: typography.display.lineHeight,
+            }}
+          >
+            Leave Calendar
+          </h1>
+          {backendCountryName && (
+            <div className="flex items-center gap-2 mt-1">
+              <p
+                style={{
+                  fontSize: typography.body.size,
+                  color: t.textMuted,
+                }}
+              >
+                Public holidays: {backendCountryName} ({backendCountry})
+              </p>
+              {org && backendCountry !== org.country_code && (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: '#E85757',
+                    background: 'rgba(232,87,87,0.1)',
+                    padding: '2px 8px',
+                    borderRadius: 4,
+                    fontWeight: 600,
+                  }}
+                >
+                  ⚠ Org: {org.country_code}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Calendar Controls */}
@@ -161,10 +203,12 @@ type LeaveCalendarProps = {
   year: number
   month: number
   entries: CalendarEntry[]
-  holidays: Array<{ date: string }>
+  holidays: Array<{ country_code: string; date: string; name: string }>
 }
 
 function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
+  
   // Debug: log what we received
   console.log('LeaveCalendar received holidays:', holidays)
 
@@ -174,9 +218,15 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
   const daysInMonth = lastDay.getDate()
   const startDayOfWeek = firstDay.getDay() // 0 = Sunday
 
-  // Create set of holiday dates for quick lookup
-  const holidaySet = new Set(holidays.map((h) => h.date))
-  console.log('Holiday set:', Array.from(holidaySet))
+  // Create map of holiday dates to holiday info for quick lookup
+  // Group holidays by date since multiple holidays can fall on same date
+  const holidayMap = new Map<string, Array<{ name: string; country: string }>>()
+  holidays.forEach((h) => {
+    const existing = holidayMap.get(h.date) || []
+    const countryName = { ID: 'Indonesia', AE: 'UAE', MY: 'Malaysia', SG: 'Singapore' }[h.country_code] || h.country_code
+    holidayMap.set(h.date, [...existing, { name: h.name, country: countryName }])
+  })
+  console.log('Holiday map:', Array.from(holidayMap.entries()))
 
   // Create map of date -> entries (expand ranges)
   const entriesByDate = new Map<string, DayEntry[]>()
@@ -232,6 +282,7 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
         borderRadius: 16,
         border: `1px solid ${t.border}`,
         padding: 24,
+        overflow: 'visible',
       }}
     >
       {/* Day headers */}
@@ -251,7 +302,7 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
       </div>
 
       {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-2" style={{ overflow: 'visible' }}>
         {weeks.map((week, weekIdx) => (
           <>
             {week.map((day, dayIdx) => {
@@ -262,12 +313,15 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
               const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
               const dayEntries = entriesByDate.get(dateStr) ?? []
               const isToday = dateStr === todayStr
-              const isHoliday = holidaySet.has(dateStr)
+              const holidayInfo = holidayMap.get(dateStr)
+              const isHoliday = !!(holidayInfo && holidayInfo.length > 0)
+              const isActive = activeTooltip === dateStr
+              const hasInfo = isHoliday || dayEntries.length > 0
 
               return (
                 <div
                   key={dateStr}
-                  className="min-h-[100px] p-2 transition-colors"
+                  className="min-h-[100px] p-2 transition-colors relative cursor-pointer"
                   style={{
                     background: isToday 
                       ? 'rgba(99,87,232,0.05)' 
@@ -280,7 +334,15 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
                       ? '1px solid rgba(232,87,87,0.3)'
                       : `1px solid ${t.inputBorder}`,
                     borderRadius: 8,
+                    overflow: 'visible',
                   }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (hasInfo) {
+                      setActiveTooltip(isActive ? null : dateStr)
+                    }
+                  }}
+                  title={hasInfo ? "Click for details" : ""}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div
@@ -292,18 +354,23 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
                     >
                       {day}
                     </div>
-                    {isHoliday && (
-                      <div
-                        className="text-xs px-1.5 py-0.5"
-                        style={{
-                          background: 'rgba(232,87,87,0.1)',
-                          color: '#E85757',
-                          borderRadius: 4,
-                          fontSize: 10,
-                          fontWeight: 600,
-                        }}
-                      >
-                        Holiday
+                    {isHoliday && holidayInfo && (
+                      <div className="space-y-1">
+                        {holidayInfo.map((holiday, idx) => (
+                          <div
+                            key={idx}
+                            className="text-xs px-1.5 py-0.5 truncate pointer-events-none"
+                            style={{
+                              background: 'rgba(232,87,87,0.1)',
+                              color: '#E85757',
+                              borderRadius: 4,
+                              fontSize: 10,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {holiday.name}
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -312,21 +379,20 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
                       {dayEntries.slice(0, 2).map((entry, idx) => (
                         <div
                           key={idx}
-                          className="text-xs px-1.5 py-1 truncate"
+                          className="text-xs px-1.5 py-1 truncate pointer-events-none"
                           style={{
                             background: getPolicyColor(entry.policy_name),
                             color: '#FFFFFF',
                             borderRadius: 4,
                             fontSize: 11,
                           }}
-                          title={`${entry.employee_name} - ${entry.policy_name}`}
                         >
                           {entry.employee_name}
                         </div>
                       ))}
                       {dayEntries.length > 2 && (
                         <div
-                          className="text-xs px-1.5 py-1"
+                          className="text-xs px-1.5 py-1 pointer-events-none"
                           style={{
                             color: t.textMuted,
                             fontSize: 11,
@@ -336,6 +402,70 @@ function LeaveCalendar({ year, month, entries, holidays }: LeaveCalendarProps) {
                         </div>
                       )}
                     </div>
+                  )}
+                  
+                  {/* Tooltip showing all info for this date */}
+                  {isActive && (
+                    <>
+                      <div
+                        className="fixed inset-0"
+                        style={{ zIndex: 9998 }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setActiveTooltip(null)
+                        }}
+                      />
+                      <div
+                        className="absolute left-0 bottom-full mb-2 px-4 py-3 shadow-2xl"
+                        style={{
+                          background: '#1F2937',
+                          color: '#FFFFFF',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          zIndex: 9999,
+                          minWidth: '250px',
+                          maxWidth: '300px',
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="font-bold mb-2" style={{ fontSize: 13 }}>
+                          {new Date(dateStr).toLocaleDateString('en-US', { 
+                            weekday: 'long', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                          })}
+                        </div>
+                        
+                        {holidayInfo && holidayInfo.length > 0 && (
+                          <div className="mb-3">
+                            <div className="text-xs font-semibold mb-1.5" style={{ color: '#FCA5A5' }}>
+                              🎉 Public Holidays
+                            </div>
+                            {holidayInfo.map((holiday, idx) => (
+                              <div key={idx} className="ml-2 mb-1" style={{ fontSize: 11 }}>
+                                • {holiday.name}
+                                <span style={{ opacity: 0.7 }}> ({holiday.country})</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {dayEntries.length > 0 && (
+                          <div>
+                            <div className="text-xs font-semibold mb-1.5" style={{ color: '#A5B4FC' }}>
+                              🏖️ On Leave ({dayEntries.length})
+                            </div>
+                            {dayEntries.map((entry, idx) => (
+                              <div key={idx} className="ml-2 mb-1" style={{ fontSize: 11 }}>
+                                • {entry.employee_name}
+                                <span style={{ opacity: 0.7 }}> - {entry.policy_name}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
                 </div>
               )

@@ -86,7 +86,9 @@ type CalendarEntry struct {
 
 // PublicHoliday is a minimal projection of the public_holidays table.
 type PublicHoliday struct {
-	Date string `json:"date"` // YYYY-MM-DD
+	CountryCode string `json:"country_code"`
+	Date        string `json:"date"` // YYYY-MM-DD
+	Name        string `json:"name"`
 }
 
 // ── Request / Response types ────────────────────────────────────────────────
