@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -21,6 +21,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { useDroppable } from '@dnd-kit/core'
 import { moduleBackgrounds, typography, colors } from '@/design/tokens'
 import { apiClient } from '@/lib/api/client'
+import { useTaskLists, useTasks, useMoveTask } from '@/lib/hooks/useTasks'
+import type { TaskWithDetails, TaskPriority } from '@/types/api'
 
 export const Route = createFileRoute('/_app/tasks')({
   loader: async () => {
@@ -37,71 +39,69 @@ export const Route = createFileRoute('/_app/tasks')({
   component: TasksPage,
 })
 
-// ── Types ───────────────────────────────────────────────────────
+// ── Priority Colors ──────────────────────────────────────────────
 
-type Priority = 'high' | 'medium' | 'low'
-type Status = 'todo' | 'in_progress' | 'done'
-
-interface Task {
-  id: string
-  title: string
-  project: string
-  priority: Priority
-  status: Status
-  assignee: string
-  dueDate: string
-}
-
-// ── Column Config ───────────────────────────────────────────────
-
-// TODO: Replace with backend API — GET /api/v1/tasks
-// No backend exists yet. Using placeholder data for UI development.
-
-const COLUMNS: { id: Status; label: string; accent: string; accentDim: string; headerBg: string }[] = [
-  { id: 'todo', label: 'To Do', accent: '#A0A0C0', accentDim: '#1A1A2E', headerBg: 'rgba(255,255,255,0.04)' },
-  { id: 'in_progress', label: 'In Progress', accent: '#818CF8', accentDim: '#1E1B4B', headerBg: 'rgba(129,140,248,0.08)' },
-  { id: 'done', label: 'Done', accent: '#34D399', accentDim: '#0D2818', headerBg: 'rgba(52,211,153,0.06)' },
-]
-
-const PRIORITY_COLORS: Record<Priority, string> = {
+const PRIORITY_COLORS: Record<TaskPriority, string> = {
+  urgent: colors.err,
   high: colors.err,
   medium: colors.warn,
   low: colors.accent,
 }
 
-// ── Placeholder Data ────────────────────────────────────────────
-// TODO: Replace with TanStack Query hook — useTasksQuery()
-
-const INITIAL_TASKS: Task[] = [
-  { id: '1', title: 'Review Q1 budget proposal', project: 'Finance', priority: 'high', status: 'in_progress', assignee: 'Ahmad', dueDate: '2026-03-20' },
-  { id: '2', title: 'Update employee handbook', project: 'HR Operations', priority: 'medium', status: 'todo', assignee: 'Sarah', dueDate: '2026-03-22' },
-  { id: '3', title: 'Prepare onboarding docs for new hire', project: 'Recruitment', priority: 'low', status: 'todo', assignee: 'Ahmad', dueDate: '2026-03-25' },
-  { id: '4', title: 'Submit monthly expense report', project: 'Finance', priority: 'high', status: 'done', assignee: 'Budi', dueDate: '2026-03-15' },
-  { id: '5', title: 'Schedule team building event', project: 'Culture', priority: 'low', status: 'in_progress', assignee: 'Sarah', dueDate: '2026-03-28' },
-  { id: '6', title: 'Review leave policy for Ramadan', project: 'HR Operations', priority: 'medium', status: 'todo', assignee: 'Ahmad', dueDate: '2026-03-30' },
-  { id: '7', title: 'Set up project tracking board', project: 'Operations', priority: 'medium', status: 'done', assignee: 'Budi', dueDate: '2026-03-12' },
-  { id: '8', title: 'Draft partnership proposal', project: 'Business Dev', priority: 'high', status: 'in_progress', assignee: 'Ahmad', dueDate: '2026-03-21' },
-]
-
 // ── Main Component ──────────────────────────────────────────────
 
 function TasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(INITIAL_TASKS)
-  const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const { data: taskLists = [], isLoading: listsLoading } = useTaskLists()
+  const { data: tasks = [], isLoading: tasksLoading } = useTasks()
+  const moveMutation = useMoveTask()
+
+  const [activeTask, setActiveTask] = useState<TaskWithDetails | null>(null)
+  const [optimisticTasks, setOptimisticTasks] = useState<TaskWithDetails[]>([])
+
+  // Sync with server data (ensure we always have an array)
+  useEffect(() => {
+    setOptimisticTasks(tasks || [])
+  }, [tasks])
+
+  // Only render first 3 lists (To Do, In Progress, Done)
+  const visibleLists = useMemo(() => {
+    const lists = taskLists || []
+    return lists
+      .filter((list) => list.is_active)
+      .sort((a, b) => a.position - b.position)
+      .slice(0, 3)
+  }, [taskLists])
+
+  // Visual column config
+  const columnConfig = useMemo(() => {
+    const configs = [
+      { accent: '#A0A0C0', accentDim: '#1A1A2E', headerBg: 'rgba(255,255,255,0.04)' },
+      { accent: '#818CF8', accentDim: '#1E1B4B', headerBg: 'rgba(129,140,248,0.08)' },
+      { accent: '#34D399', accentDim: '#0D2818', headerBg: 'rgba(52,211,153,0.06)' },
+    ]
+    return visibleLists.map((list, idx) => ({
+      ...list,
+      ...(configs[idx] || configs[0]), // Fallback to first config if index out of bounds
+    }))
+  }, [visibleLists])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
   )
 
-  const findColumn = useCallback((id: string): Status | undefined => {
-    if (['todo', 'in_progress', 'done'].includes(id)) return id as Status
-    return tasks.find((t) => t.id === id)?.status
-  }, [tasks])
+  const findListId = useCallback((id: string): string | undefined => {
+    // Check if id is a list ID
+    if (visibleLists.some((list) => list.id === id)) return id
+    // Find task and return its list_id
+    const tasks = optimisticTasks || []
+    return tasks.find((t) => t.id === id)?.task_list_id
+  }, [optimisticTasks, visibleLists])
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    const tasks = optimisticTasks || []
     const task = tasks.find((t) => t.id === event.active.id)
     if (task) setActiveTask(task)
-  }, [tasks])
+  }, [optimisticTasks])
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event
@@ -110,45 +110,111 @@ function TasksPage() {
     const activeId = active.id as string
     const overId = over.id as string
 
-    const activeColumn = findColumn(activeId)
-    const overColumn = findColumn(overId)
+    const activeListId = findListId(activeId)
+    const overListId = findListId(overId)
 
-    if (!activeColumn || !overColumn || activeColumn === overColumn) return
+    if (!activeListId || !overListId || activeListId === overListId) return
 
-    setTasks((prev) =>
-      prev.map((t) => (t.id === activeId ? { ...t, status: overColumn } : t)),
+    // Optimistically move to new list
+    setOptimisticTasks((prev) =>
+      prev.map((t) => (t.id === activeId ? { ...t, task_list_id: overListId } : t)),
     )
-  }, [findColumn])
+  }, [findListId])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event
+    const draggedTask = activeTask
     setActiveTask(null)
-    if (!over) return
+    if (!over || !draggedTask) return
 
     const activeId = active.id as string
     const overId = over.id as string
 
     if (activeId === overId) return
 
-    const activeColumn = findColumn(activeId)
-    const overColumn = findColumn(overId)
+    const activeListId = findListId(activeId)
+    const overListId = findListId(overId)
 
-    if (!activeColumn || !overColumn) return
+    if (!activeListId || !overListId) return
 
-    if (activeColumn === overColumn) {
-      setTasks((prev) => {
-        const columnTasks = prev.filter((t) => t.status === activeColumn)
-        const otherTasks = prev.filter((t) => t.status !== activeColumn)
-        const oldIdx = columnTasks.findIndex((t) => t.id === activeId)
-        const newIdx = columnTasks.findIndex((t) => t.id === overId)
+    // Same list: reorder within list
+    if (activeListId === overListId) {
+      setOptimisticTasks((prev) => {
+        const listTasks = prev.filter((t) => t.task_list_id === activeListId)
+        const otherTasks = prev.filter((t) => t.task_list_id !== activeListId)
+        const oldIdx = listTasks.findIndex((t) => t.id === activeId)
+        const newIdx = listTasks.findIndex((t) => t.id === overId)
         if (oldIdx === -1 || newIdx === -1) return prev
-        return [...otherTasks, ...arrayMove(columnTasks, oldIdx, newIdx)]
+        const reordered = arrayMove(listTasks, oldIdx, newIdx)
+        
+        // Calculate new position based on neighbors
+        const targetTask = reordered[newIdx]
+        const prevTask = reordered[newIdx - 1]
+        const nextTask = reordered[newIdx + 1]
+        
+        let newPosition: number
+        if (!prevTask && nextTask) {
+          // Moving to top
+          newPosition = nextTask.position - 1000
+        } else if (prevTask && !nextTask) {
+          // Moving to bottom
+          newPosition = prevTask.position + 1000
+        } else if (prevTask && nextTask) {
+          // Moving between two tasks
+          newPosition = Math.floor((prevTask.position + nextTask.position) / 2)
+        } else {
+          // Only task in list
+          newPosition = 0
+        }
+        
+        // Persist to backend
+        moveMutation.mutate({
+          id: activeId,
+          data: {
+            task_list_id: activeListId,
+            position: newPosition,
+          },
+        })
+        
+        return [...otherTasks, ...reordered]
+      })
+    } else {
+      // Different list: persist move
+      const targetList = visibleLists.find((l) => l.id === overListId)
+      if (!targetList) return
+
+      // Calculate position (put at end)
+      const listTasks = (optimisticTasks || []).filter((t) => t.task_list_id === overListId)
+      const maxPosition = listTasks.length > 0 ? Math.max(...listTasks.map((t) => t.position)) : 0
+      const newPosition = maxPosition + 1000
+
+      moveMutation.mutate({
+        id: activeId,
+        data: {
+          task_list_id: overListId,
+          position: newPosition,
+        },
       })
     }
-  }, [findColumn])
+  }, [activeTask, findListId, moveMutation, optimisticTasks, visibleLists])
 
-  const inProgressCount = tasks.filter((t) => t.status === 'in_progress').length
-  const doneCount = tasks.filter((t) => t.status === 'done').length
+  if (listsLoading || tasksLoading) {
+    return (
+      <div
+        className="min-h-screen px-6 py-8 md:px-11 md:py-10 flex items-center justify-center"
+        style={{ background: moduleBackgrounds.tasks }}
+      >
+        <p style={{ color: 'rgba(255,255,255,0.4)' }}>Loading tasks...</p>
+      </div>
+    )
+  }
+
+  const totalTasks = (optimisticTasks || []).length
+  const completedTasks = (optimisticTasks || []).filter((t) => t.completed_at).length
+  const inProgressList = visibleLists[1]
+  const inProgressCount = inProgressList ? (optimisticTasks || []).filter(
+    (t) => t.task_list_id === inProgressList.id && !t.completed_at
+  ).length : 0
 
   return (
     <div
@@ -165,7 +231,7 @@ function TasksPage() {
             Tasks
           </h1>
           <p className="mt-2" style={{ fontSize: 14, color: 'rgba(255,255,255,0.4)' }}>
-            {tasks.length} tasks · {inProgressCount} in progress · {doneCount} completed
+            {totalTasks} tasks · {inProgressCount} in progress · {completedTasks} completed
           </p>
         </div>
       </div>
@@ -179,15 +245,17 @@ function TasksPage() {
         onDragEnd={handleDragEnd}
       >
         <div className="grid grid-cols-3 gap-4">
-          {COLUMNS.map((col) => {
-            const columnTasks = tasks.filter((t) => t.status === col.id)
+          {columnConfig.map((col) => {
+            const columnTasks = (optimisticTasks || [])
+              .filter((t) => t.task_list_id === col.id)
+              .sort((a, b) => a.position - b.position)
             return (
               <KanbanColumn
                 key={col.id}
-                id={col.id}
-                label={col.label}
-                accent={col.accent}
-                headerBg={col.headerBg}
+                listId={col.id}
+                label={col.name}
+                accent={col.accent!}
+                headerBg={col.headerBg!}
                 count={columnTasks.length}
                 tasks={columnTasks}
               />
@@ -206,21 +274,21 @@ function TasksPage() {
 // ── Kanban Column ───────────────────────────────────────────────
 
 function KanbanColumn({
-  id,
+  listId,
   label,
   accent,
   headerBg,
   count,
   tasks,
 }: {
-  id: Status
+  listId: string
   label: string
   accent: string
   headerBg: string
   count: number
-  tasks: Task[]
+  tasks: TaskWithDetails[]
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id })
+  const { setNodeRef, isOver } = useDroppable({ id: listId })
 
   return (
     <div
@@ -267,7 +335,7 @@ function KanbanColumn({
 
 // ── Sortable Task Card Wrapper ──────────────────────────────────
 
-function SortableTaskCard({ task }: { task: Task }) {
+function SortableTaskCard({ task }: { task: TaskWithDetails }) {
   const {
     attributes,
     listeners,
@@ -292,8 +360,8 @@ function SortableTaskCard({ task }: { task: Task }) {
 
 // ── Task Card ───────────────────────────────────────────────────
 
-function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
-  const isDone = task.status === 'done'
+function TaskCard({ task, isDragging }: { task: TaskWithDetails; isDragging?: boolean }) {
+  const isDone = !!task.completed_at
 
   return (
     <div
@@ -339,25 +407,30 @@ function TaskCard({ task, isDragging }: { task: Task; isDragging?: boolean }) {
             color: 'rgba(255,255,255,0.45)',
           }}
         >
-          {task.project}
+          {task.list_name}
         </span>
-        <span
-          className="text-[11px] font-medium"
-          style={{ color: 'rgba(255,255,255,0.3)' }}
-        >
-          {task.assignee}
-        </span>
+        {task.assignee_name && (
+          <span
+            className="text-[11px] font-medium"
+            style={{ color: 'rgba(255,255,255,0.3)' }}
+          >
+            {task.assignee_name}
+          </span>
+        )}
       </div>
 
       {/* Due date */}
-      <div className="mt-2 ml-[18px]">
-        <span
-          className="text-[10px] font-medium"
-          style={{ color: 'rgba(255,255,255,0.25)', fontFamily: typography.fontMono }}
-        >
-          Due {task.dueDate}
-        </span>
-      </div>
+      {task.due_date && (
+        <div className="mt-2 ml-[18px]">
+          <span
+            className="text-[10px] font-medium"
+            style={{ color: 'rgba(255,255,255,0.25)', fontFamily: typography.fontMono }}
+          >
+            Due {task.due_date}
+          </span>
+        </div>
+      )}
     </div>
   )
 }
+

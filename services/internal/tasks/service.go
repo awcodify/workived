@@ -2,9 +2,11 @@ package tasks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/audit"
 )
@@ -84,6 +86,12 @@ func (s *Service) EnsureDefaultLists(ctx context.Context, orgID uuid.UUID) error
 	for _, name := range defaultLists {
 		_, err := s.repo.CreateTaskList(ctx, orgID, CreateListRequest{Name: name})
 		if err != nil {
+			// Ignore unique constraint violations (race condition - another request created it)
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+				// Unique constraint violation - list already exists from concurrent request
+				continue
+			}
 			return fmt.Errorf("failed to create default list '%s': %w", name, err)
 		}
 	}

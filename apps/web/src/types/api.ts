@@ -500,6 +500,99 @@ export interface OrgChartNode {
   direct_reports?: OrgChartNode[]
 }
 
+// ── Tasks ────────────────────────────────────────────────────
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
+
+export interface TaskList {
+  id: string
+  organisation_id: string
+  name: string
+  position: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface Task {
+  id: string
+  organisation_id: string
+  task_list_id: string
+  title: string
+  description?: string
+  assignee_id?: string
+  created_by: string
+  priority: TaskPriority
+  due_date?: string  // YYYY-MM-DD
+  position: number
+  completed_at?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface TaskWithDetails extends Task {
+  assignee_name?: string
+  creator_name: string
+  list_name: string
+}
+
+export interface TaskComment {
+  id: string
+  organisation_id: string
+  task_id: string
+  author_id: string
+  body: string
+  created_at: string
+  updated_at: string
+}
+
+export interface TaskCommentWithAuthor extends TaskComment {
+  author_name: string
+}
+
+export interface CreateTaskListInput {
+  name: string
+}
+
+export interface UpdateTaskListInput {
+  name?: string
+  position?: number
+}
+
+export interface CreateTaskInput {
+  task_list_id: string
+  title: string
+  description?: string
+  assignee_id?: string
+  priority?: TaskPriority
+  due_date?: string  // YYYY-MM-DD
+}
+
+export interface UpdateTaskInput {
+  title?: string
+  description?: string
+  assignee_id?: string
+  priority?: TaskPriority
+  due_date?: string  // YYYY-MM-DD
+}
+
+export interface MoveTaskInput {
+  task_list_id: string
+  position: number
+}
+
+export interface CreateTaskCommentInput {
+  body: string
+}
+
+export interface TaskFilters {
+  task_list_id?: string
+  assignee_id?: string
+  priority?: TaskPriority
+  status?: 'pending' | 'completed'
+  cursor?: string
+  limit?: number
+}
+
 // ── API wrapper ──────────────────────────────────────────────
 // All API responses are wrapped in {"data": ...}
 export interface ApiResponse<T> {
