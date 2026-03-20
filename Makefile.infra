@@ -1,0 +1,109 @@
+# Workived Infrastructure Makefile
+# Commands for managing production deployments
+
+.PHONY: help setup-vps deploy health-check logs restart backup restore
+
+help: ## Show this help message
+	@echo "Workived Production Infrastructure Commands"
+	@echo ""
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+
+setup-vps: ## Setup a fresh VPS for production (run as root)
+	@echo "Setting up production VPS..."
+	bash scripts/setup-production-vps.sh
+
+deploy: ## Deploy latest changes to production
+	@echo "Deploying to production..."
+	bash scripts/deploy-production.sh
+
+health-check: ## Check production system health
+	@bash scripts/health-check.sh
+
+logs: ## Show production logs (tail -f)
+	docker-compose -f docker-compose.production.yml logs -f
+
+logs-api: ## Show API logs only
+	docker-compose -f docker-compose.production.yml logs -f api
+
+logs-errors: ## Show only error logs (last 100 lines)
+	docker-compose -f docker-compose.production.yml logs --tail=100 | grep -i "error\|fatal\|panic"
+
+restart: ## Restart all production services
+	docker-compose -f docker-compose.production.yml restart
+
+restart-api: ## Restart API service only
+	docker-compose -f docker-compose.production.yml restart api
+
+stop: ## Stop all production services
+	docker-compose -f docker-compose.production.yml stop
+
+start: ## Start all production services
+	docker-compose -f docker-compose.production.yml start
+
+ps: ## Show production container status
+	docker-compose -f docker-compose.production.yml ps
+
+stats: ## Show Docker container resource usage
+	docker stats --format "table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\t{{.MemPerc}}"
+
+backup-redis: ## Backup Redis data
+	@echo "Backing up Redis..."
+	docker exec $$(docker ps -qf "name=redis") redis-cli BGSAVE
+	@echo "Redis backup initiated. Check logs for completion."
+
+clean-docker: ## Clean up old Docker images and containers
+	docker system prune -af --volumes
+
+shell-api: ## Open shell in API container
+	docker-compose -f docker-compose.production.yml exec api /bin/sh
+
+shell-redis: ## Open Redis CLI
+	docker-compose -f docker-compose.production.yml exec redis redis-cli
+
+migrate-up: ## Run database migrations
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set. Export it or add to .env.production"; \
+		exit 1; \
+	fi
+	migrate -path migrations -database "$$DATABASE_URL" up
+
+migrate-down: ## Rollback last database migration
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set. Export it or add to .env.production"; \
+		exit 1; \
+	fi
+	migrate -path migrations -database "$$DATABASE_URL" down 1
+
+migrate-version: ## Show current migration version
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set. Export it or add to .env.production"; \
+		exit 1; \
+	fi
+	migrate -path migrations -database "$$DATABASE_URL" version
+
+ssl-renew: ## Manually renew SSL certificates
+	sudo certbot renew
+
+ssl-check: ## Check SSL certificate expiry
+	@echo "Checking SSL certificates..."
+	@echo "api.workived.com:"
+	@echo | openssl s_client -servername api.workived.com -connect api.workived.com:443 2>/dev/null | openssl x509 -noout -dates
+	@echo ""
+	@echo "app.workived.com:"
+	@echo | openssl s_client -servername app.workived.com -connect app.workived.com:443 2>/dev/null | openssl x509 -noout -dates
+
+monitor: ## Start continuous monitoring (updates every 5s)
+	@watch -n 5 "bash scripts/health-check.sh"
+
+disk-usage: ## Show disk usage breakdown
+	@echo "Disk Usage:"
+	@df -h / | tail -1
+	@echo ""
+	@echo "Docker volumes:"
+	@docker system df -v
+
+memory-usage: ## Show detailed memory usage
+	@free -h
+	@echo ""
+	@echo "Top memory consumers:"
+	@ps aux --sort=-%mem | head -11

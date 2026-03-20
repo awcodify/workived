@@ -69,3 +69,29 @@ test-cover: ## Run unit tests and open HTML coverage report
 	cd $(SERVICES_DIR) && go test ./... -short -coverprofile=coverage.out \
 	  && go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report: $(SERVICES_DIR)/coverage.html"
+
+# ── Production Deployment ─────────────────────────────────────────────────────
+
+prod-setup: ## Setup a fresh VPS for production (run as root on VPS)
+	@echo "Setting up production VPS..."
+	@bash scripts/setup-production-vps.sh
+
+prod-deploy: ## Deploy latest changes to production (run on VPS)
+	@echo "Deploying to production..."
+	@bash scripts/deploy-production.sh
+
+prod-health: ## Check production system health
+	@bash scripts/health-check.sh
+
+prod-logs: ## Show production logs (tail -f)
+	docker-compose -f docker-compose.production.yml logs -f
+
+prod-restart: ## Restart all production services
+	docker-compose -f docker-compose.production.yml restart
+
+prod-migrate: ## Run database migrations on production
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL not set. Export it from .env.production"; \
+		exit 1; \
+	fi
+	migrate -path $(MIGRATIONS_DIR) -database "$$DATABASE_URL" up

@@ -1,0 +1,128 @@
+name: Deploy to Production
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
+    inputs:
+      region:
+        description: 'Region to deploy to'
+        required: true
+        type: choice
+        options:
+          - singapore
+          - germany
+          - both
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run tests
+        run: |
+          cd services
+          go test -v -race -coverprofile=coverage.out ./...
+
+      - name: Check test coverage
+        run: |
+          cd services
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $3}' | sed 's/%//')
+          echo "Total coverage: $COVERAGE%"
+          if (( $(echo "$COVERAGE < 98" | bc -l) )); then
+            echo "Error: Coverage is below 98%"
+            exit 1
+          fi
+
+  deploy-singapore:
+    name: Deploy to Singapore
+    needs: test
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' || 
+      github.event.inputs.region == 'singapore' || 
+      github.event.inputs.region == 'both'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Singapore VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PRODUCTION_HOST_SG }}
+          username: workived
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd /home/workived/app
+            bash scripts/deploy-production.sh
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          curl -f https://api.workived.com/health || exit 1
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Deployment to Singapore failed!"
+
+  deploy-germany:
+    name: Deploy to Germany
+    needs: test
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'push' || 
+      github.event.inputs.region == 'germany' || 
+      github.event.inputs.region == 'both'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Germany VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.PRODUCTION_HOST_DE }}
+          username: workived
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd /home/workived/app
+            bash scripts/deploy-production.sh
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          curl -f https://api-uae.workived.com/health || exit 1
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "Deployment to Germany failed!"
+
+  notify:
+    name: Send Notification
+    needs: [deploy-singapore, deploy-germany]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Get commit info
+        id: commit
+        run: |
+          echo "sha_short=$(echo ${{ github.sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          echo "message=$(git log -1 --pretty=%B)" >> $GITHUB_OUTPUT
+
+      - name: Deployment successful
+        if: ${{ needs.deploy-singapore.result == 'success' || needs.deploy-germany.result == 'success' }}
+        run: |
+          echo "✅ Deployment successful!"
+          echo "Commit: ${{ steps.commit.outputs.sha_short }}"
+          echo "Message: ${{ steps.commit.outputs.message }}"
+
+      - name: Deployment failed
+        if: ${{ needs.deploy-singapore.result == 'failure' || needs.deploy-germany.result == 'failure' }}
+        run: |
+          echo "❌ Deployment failed!"
+          exit 1
