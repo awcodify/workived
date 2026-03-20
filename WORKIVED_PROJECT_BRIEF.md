@@ -16,7 +16,7 @@ Workived is an **attendance and leave management platform for 5–25 person star
 **Domain:** `workived.com`  
 **Tagline:** Attendance done right.
 
-**See:** `docs/adr/004-product-focus-attendance-leave-first.md` for strategic rationale.
+**See:** `docs/adr/002-product-focus-attendance-leave-first.md` for strategic rationale.
 
 ---
 
@@ -666,10 +666,23 @@ FOR EACH active employee × active leave_policy:
 - [x] Year-end rollover job (with tests and documentation)
 - [x] All leave endpoints wired to `/api/v1/leave/*`
 
-### Sprint 5 — Leave (frontend) — READY TO START 🟢
-- [ ] Leave request pages (submit, view, approve/reject)
-- [ ] Leave balance dashboard
-- [ ] Leave policy management (admin)
+### Sprint 5 — Leave (frontend) — DONE ✅
+- [x] Leave request pages (submit, view, approve/reject)
+- [x] Leave balance dashboard  
+- [x] Leave policy management (admin)
+- [x] Leave calendar with public holidays integration
+- [x] Interactive calendar tooltip (click date → shows holidays + employees on leave)
+
+**Calendar Features:**
+- Public holidays API: `GET /api/v1/leave/holidays?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD`
+- Frontend displays holidays from org's country (Indonesia, UAE, Malaysia, Singapore)
+- Click any date cell to see: full date, all public holidays with country, all employees on leave with policy type
+- Visual indicators: red tint for holidays, holiday name badges, leave entries
+- Multiple holidays per date supported (e.g., overlapping religious holidays)
+
+**Testing:**
+- 77 tests passing across all leave components
+- Full E2E flow validated: submit → approve → calendar display
 
 **Available backend endpoints for Sprint 5:**
 - `GET /api/v1/leave/policies` — List leave policies
@@ -685,8 +698,11 @@ FOR EACH active employee × active leave_policy:
 - `POST /api/v1/leave/requests/:id/reject` — Reject request
 - `POST /api/v1/leave/requests/:id/cancel` — Cancel request (employee)
 - `GET /api/v1/leave/calendar?year=2026&month=3` — Calendar view
+- `GET /api/v1/leave/holidays?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` — Public holidays (NEW)
 
 **Year-end rollover:** Automated CLI tool available at `services/cmd/rollover` (see README for cron setup)
+
+**Architectural Decision:** Leave calendar remains at `/leave/calendar` (scoped to leave module). General-purpose calendar (for tasks, claims, events) deferred to Sprint 9+ when multi-module aggregation is needed. See `docs/adr/004-defer-unified-calendar-to-sprint-9.md`.
 
 ### Sprint 6 — Claims (basic flow only)
 - [ ] Claim categories configuration
@@ -709,6 +725,9 @@ FOR EACH active employee × active leave_policy:
 ### Sprint 9+ — Analytics + Tasks (if validated demand)
 - [ ] HR analytics dashboard (Pro feature)
 - [ ] Custom reports
+- [ ] **Unified calendar** — Aggregate view at `/calendar` showing leave, tasks, claims deadlines, company events, public holidays
+  - Replaces module-specific calendars with single source of truth
+  - Click date → see all activities for that day across modules
 - [ ] **Tasks module (CONDITIONAL — build only if customers request it)**
   - Task lists, CRUD, comments
   - Does NOT include: subtasks, dependencies, time tracking, Gantt (avoid feature parity with Trello/Asana)
@@ -771,5 +790,5 @@ API_URL=http://localhost:8080
 
 ---
 
-*Last updated: March 2026*
-*Status: Sprint 3 (Frontend in progress) + Sprint 4 (Leave backend ✅ complete)*
+*Last updated: March 20, 2026*
+*Status: Sprint 5 (Leave frontend) ✅ COMPLETE — Ready for Sprint 6 (Claims)*
