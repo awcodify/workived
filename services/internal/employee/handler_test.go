@@ -23,13 +23,14 @@ func init() {
 // ── Mock service ──────────────────────────────────────────────────────────────
 
 type mockEmpService struct {
-	listFn         func(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error)
-	createFn       func(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest) (*employee.Employee, error)
-	getFn          func(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error)
-	getByUserIDFn  func(ctx context.Context, orgID, userID uuid.UUID) (*employee.Employee, error)
-	updateFn       func(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error)
-	deactivateFn   func(ctx context.Context, orgID, id uuid.UUID) error
-}
+	listFn             func(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error)
+	createFn           func(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest) (*employee.Employee, error)
+	getFn              func(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error)
+	getByUserIDFn      func(ctx context.Context, orgID, userID uuid.UUID) (*employee.Employee, error)
+	updateFn           func(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error)
+	deactivateFn       func(ctx context.Context, orgID, id uuid.UUID) error
+	getDirectReportsFn func(ctx context.Context, orgID, managerID uuid.UUID) ([]employee.Employee, error)
+	getWithManagerNameFn func(ctx context.Context, orgID, id uuid.UUID) (*employee.EmployeeWithManager, error)}
 
 func (m *mockEmpService) List(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error) {
 	return m.listFn(ctx, orgID, f)
@@ -51,6 +52,20 @@ func (m *mockEmpService) Update(ctx context.Context, orgID, id uuid.UUID, req em
 }
 func (m *mockEmpService) Deactivate(ctx context.Context, orgID, id uuid.UUID, _ ...uuid.UUID) error {
 	return m.deactivateFn(ctx, orgID, id)
+}
+
+func (m *mockEmpService) GetDirectReports(ctx context.Context, orgID, managerID uuid.UUID) ([]employee.Employee, error) {
+	if m.getDirectReportsFn != nil {
+		return m.getDirectReportsFn(ctx, orgID, managerID)
+	}
+	return []employee.Employee{}, nil
+}
+
+func (m *mockEmpService) GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*employee.EmployeeWithManager, error) {
+	if m.getWithManagerNameFn != nil {
+		return m.getWithManagerNameFn(ctx, orgID, id)
+	}
+	return nil, nil
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

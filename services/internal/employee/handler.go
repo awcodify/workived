@@ -21,6 +21,8 @@ type ServiceInterface interface {
 	GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error)
 	Deactivate(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
+	GetDirectReports(ctx context.Context, orgID, managerID uuid.UUID) ([]Employee, error)
+	GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error)
 }
 
 type Handler struct {
@@ -36,6 +38,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	emps.GET("", middleware.Require(middleware.PermEmployeeRead), h.List)
 	emps.POST("", middleware.Require(middleware.PermEmployeeWrite), h.Create)
 	emps.GET("/:id", middleware.RequireAny(middleware.PermEmployeeRead, middleware.PermSelfRead), h.getOrMe)
+	emps.GET("/:id/directs", middleware.Require(middleware.PermEmployeeRead), h.GetDirectReports)
 	emps.PUT("/:id", middleware.Require(middleware.PermEmployeeWrite), h.Update)
 	emps.DELETE("/:id", middleware.Require(middleware.PermEmployeeDeactivate), h.Deactivate)
 }
@@ -172,4 +175,22 @@ func (h *Handler) Deactivate(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "employee deactivated"}})
+}
+
+// GetDirectReports returns all employees who report to a given manager.
+func (h *Handler) GetDirectReports(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	managerID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	employees, err := h.service.GetDirectReports(c.Request.Context(), orgID, managerID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": employees})
 }

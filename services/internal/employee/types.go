@@ -21,6 +21,7 @@ type Employee struct {
 	JobTitle       *string         `json:"job_title,omitempty"`
 	EmploymentType string          `json:"employment_type"`
 	Status         string          `json:"status"`
+	ReportingTo    *uuid.UUID      `json:"reporting_to,omitempty"` // Manager (self-ref FK)
 	StartDate      time.Time       `json:"start_date"`
 	EndDate        *time.Time      `json:"end_date,omitempty"`
 	BaseSalary     *int64          `json:"base_salary,omitempty"`
@@ -29,6 +30,12 @@ type Employee struct {
 	IsActive       bool            `json:"is_active"`
 	CreatedAt      time.Time       `json:"created_at"`
 	UpdatedAt      time.Time       `json:"updated_at"`
+}
+
+// EmployeeWithManager includes manager name for API responses.
+type EmployeeWithManager struct {
+	Employee
+	ManagerName *string `json:"manager_name,omitempty"` // Full name of reporting_to employee
 }
 
 // ── Request / Response types ──────────────────────────────────────────────────
@@ -41,6 +48,7 @@ type CreateEmployeeRequest struct {
 	DepartmentID   *uuid.UUID `json:"department_id"    validate:"omitempty"`
 	JobTitle       *string    `json:"job_title"        validate:"omitempty,max=150"`
 	EmploymentType string     `json:"employment_type"  validate:"required,oneof=full_time part_time contract intern"`
+	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`
 	StartDate      string     `json:"start_date"       validate:"required"`
 	EmployeeCode   *string    `json:"employee_code"    validate:"omitempty,max=50"`
 }
@@ -51,6 +59,7 @@ type UpdateEmployeeRequest struct {
 	DepartmentID   *uuid.UUID `json:"department_id"    validate:"omitempty"`
 	JobTitle       *string    `json:"job_title"        validate:"omitempty,max=150"`
 	EmploymentType *string    `json:"employment_type"  validate:"omitempty,oneof=full_time part_time contract intern"`
+	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`
 	Status         *string    `json:"status"           validate:"omitempty,oneof=active on_leave probation inactive"`
 	EndDate        *string    `json:"end_date"         validate:"omitempty"`
 }

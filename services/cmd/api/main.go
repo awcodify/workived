@@ -17,6 +17,7 @@ import (
 	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/auth"
+	"github.com/workived/services/internal/claims"
 	"github.com/workived/services/internal/department"
 	"github.com/workived/services/internal/employee"
 	"github.com/workived/services/internal/leave"
@@ -24,6 +25,7 @@ import (
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/platform/middleware"
+	"github.com/workived/services/internal/platform/storage"
 )
 
 func main() {
@@ -49,6 +51,19 @@ func main() {
 	}
 	defer func() { _ = rdb.Close() }()
 
+	// Storage client (S3/MinIO)
+	storageClient, err := storage.NewClient(ctx, storage.Config{
+		Endpoint:        cfg.S3Endpoint,
+		Region:          cfg.S3Region,
+		Bucket:          cfg.S3Bucket,
+		AccessKeyID:     cfg.AWSAccessKeyID,
+		SecretAccessKey: cfg.AWSSecretAccessKey,
+		UseSSL:          cfg.S3UseSSL,
+	})
+	if err != nil {
+		log.Fatal("connect storage", zap.Error(err))
+	}
+
 	// ── Repositories ─────────────────────────────────────────────────────────
 	authRepo := auth.NewRepository(db)
 	orgRepo := organisation.NewRepository(db)
@@ -56,6 +71,7 @@ func main() {
 	deptRepo := department.NewRepository(db)
 	attRepo := attendance.NewRepository(db)
 	leaveRepo := leave.NewRepository(db)
+	claimsRepo := claims.NewRepository(db)
 	adminRepo := admin.NewRepository(db)
 	auditRepo := audit.NewRepository(db)
 
@@ -65,6 +81,7 @@ func main() {
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo))
 	deptSvc := department.NewService(deptRepo)
 	attSvc := attendance.NewService(attRepo, orgRepo)
+	claimsSvc := claims.NewService(claimsRepo, orgRepo, claims.WithAuditLog(auditRepo))
 	leaveSvc := leave.NewService(leaveRepo, orgRepo)
 	adminSvc := admin.NewService(adminRepo)
 
@@ -92,6 +109,14 @@ func main() {
 		}
 		return emp.ID, nil
 	})
+
+	claimsHandler := claims.NewHandler(claimsSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
+		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		return emp.ID, nil
+	}, storageClient)
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -131,6 +156,7 @@ func main() {
 	deptHandler.RegisterRoutes(authed)
 	attHandler.RegisterRoutes(authed)
 	leaveHandler.RegisterRoutes(authed)
+	claimsHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)

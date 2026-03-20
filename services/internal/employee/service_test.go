@@ -109,6 +109,36 @@ func (f *fakeEmpRepo) SoftDelete(_ context.Context, orgID, id uuid.UUID) error {
 	return nil
 }
 
+func (f *fakeEmpRepo) GetDirectReports(_ context.Context, orgID, managerID uuid.UUID) ([]employee.Employee, error) {
+	var reports []employee.Employee
+	for _, e := range f.employees {
+		if e.OrganisationID == orgID && e.ReportingTo != nil && *e.ReportingTo == managerID && e.IsActive {
+			reports = append(reports, *e)
+		}
+	}
+	return reports, nil
+}
+
+func (f *fakeEmpRepo) GetWithManagerName(_ context.Context, orgID, id uuid.UUID) (*employee.EmployeeWithManager, error) {
+	e, ok := f.employees[id]
+	if !ok || e.OrganisationID != orgID {
+		return nil, apperr.NotFound("employee")
+	}
+
+	result := &employee.EmployeeWithManager{
+		Employee: *e,
+	}
+
+	if e.ReportingTo != nil {
+		if mgr, ok := f.employees[*e.ReportingTo]; ok {
+			name := mgr.FullName
+			result.ManagerName = &name
+		}
+	}
+
+	return result, nil
+}
+
 // ── Fake audit logger ────────────────────────────────────────────────────────
 
 type fakeAuditLogger struct {
@@ -126,7 +156,7 @@ func (f *fakeAuditLogger) Log(_ context.Context, entry audit.LogEntry) error {
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
-func intPtr(i int) *int { return &i }
+func intPtr(i int) *int       { return &i }
 func strPtr(s string) *string { return &s }
 
 func TestEmployeeService_Create_PlanLimit(t *testing.T) {

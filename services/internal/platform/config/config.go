@@ -19,15 +19,17 @@ type Config struct {
 	JWTAccessTTL  time.Duration `mapstructure:"JWT_ACCESS_TTL"`
 	JWTRefreshTTL time.Duration `mapstructure:"JWT_REFRESH_TTL"`
 
-	S3Bucket          string `mapstructure:"S3_BUCKET"`
-	S3Region          string `mapstructure:"S3_REGION"`
-	AWSAccessKeyID    string `mapstructure:"AWS_ACCESS_KEY_ID"`
+	S3Endpoint         string `mapstructure:"S3_ENDPOINT"` // MinIO: http://localhost:9000, AWS: leave empty
+	S3Bucket           string `mapstructure:"S3_BUCKET"`
+	S3Region           string `mapstructure:"S3_REGION"`
+	S3UseSSL           bool   `mapstructure:"S3_USE_SSL"` // false for local MinIO, true for production
+	AWSAccessKeyID     string `mapstructure:"AWS_ACCESS_KEY_ID"`
 	AWSSecretAccessKey string `mapstructure:"AWS_SECRET_ACCESS_KEY"`
 
-	SMTPHost string `mapstructure:"SMTP_HOST"`
-	SMTPPort int    `mapstructure:"SMTP_PORT"`
-	SMTPUser string `mapstructure:"SMTP_USER"`
-	SMTPPass string `mapstructure:"SMTP_PASS"`
+	SMTPHost  string `mapstructure:"SMTP_HOST"`
+	SMTPPort  int    `mapstructure:"SMTP_PORT"`
+	SMTPUser  string `mapstructure:"SMTP_USER"`
+	SMTPPass  string `mapstructure:"SMTP_PASS"`
 	EmailFrom string `mapstructure:"EMAIL_FROM"`
 
 	AppURL string `mapstructure:"APP_URL"`
@@ -43,6 +45,8 @@ func Load() (*Config, error) {
 	v.SetDefault("JWT_REFRESH_TTL", "720h")
 	v.SetDefault("EMAIL_FROM", "noreply@workived.com")
 	v.SetDefault("SMTP_PORT", 587)
+	v.SetDefault("S3_USE_SSL", true) // default true for production S3
+	v.SetDefault("S3_REGION", "ap-southeast-1")
 
 	v.SetConfigName(".env")
 	v.SetConfigType("env")

@@ -477,6 +477,29 @@ paths:
         "404":
           $ref: "#/components/responses/NotFoundError"
 
+  /employees/{id}/directs:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    get:
+      operationId: getDirectReports
+      summary: Get direct reports for a manager
+      description: Returns all employees who report to the specified manager
+      tags: [Employees]
+      responses:
+        "200":
+          description: List of direct reports
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Employee"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
   # ── Departments ───────────────────────────────────────────────────────────
   /departments:
     get:
@@ -965,6 +988,357 @@ paths:
                     properties:
                       count:
                         type: integer
+
+  # ── Claims ────────────────────────────────────────────────────────────────
+  /claims/categories:
+    get:
+      operationId: listClaimCategories
+      summary: List all claim categories
+      tags: [Claims]
+      responses:
+        "200":
+          description: List of claim categories
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClaimCategory"
+
+    post:
+      operationId: createClaimCategory
+      summary: Create a new claim category
+      description: Requires admin role
+      tags: [Claims]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClaimCategoryRequest"
+      responses:
+        "201":
+          description: Category created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ClaimCategory"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /claims/categories/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+
+    put:
+      operationId: updateClaimCategory
+      summary: Update a claim category
+      description: Requires admin role
+      tags: [Claims]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClaimCategoryRequest"
+      responses:
+        "200":
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ClaimCategory"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      operationId: deactivateClaimCategory
+      summary: Deactivate a claim category
+      description: Cannot deactivate if there are pending claims
+      tags: [Claims]
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+  /claims:
+    get:
+      operationId: listClaims
+      summary: List all claims (admin)
+      tags: [Claims]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, cancelled]
+        - name: employee_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: category_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: start_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Paginated claims list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClaimWithDetails"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+
+    post:
+      operationId: submitClaim
+      summary: Submit a new claim
+      description: Supports multipart file upload for receipt
+      tags: [Claims]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [category_id, amount, currency_code, description, claim_date]
+              properties:
+                category_id:
+                  type: string
+                  format: uuid
+                amount:
+                  type: integer
+                  description: Amount in smallest currency unit
+                currency_code:
+                  type: string
+                  minLength: 3
+                  maxLength: 3
+                description:
+                  type: string
+                  maxLength: 500
+                claim_date:
+                  type: string
+                  format: date
+                receipt:
+                  type: string
+                  format: binary
+                  description: Optional receipt file (jpg/png/pdf, max 10MB)
+      responses:
+        "201":
+          description: Claim submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Claim"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /claims/me:
+    get:
+      operationId: listMyClaims
+      summary: Get my claims
+      tags: [Claims]
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: My claims
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClaimWithDetails"
+                  meta:
+                    $ref: "#/components/schemas/PaginationMeta"
+
+  /claims/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+
+    get:
+      operationId: getClaim
+      summary: Get claim details
+      description: Returns presigned URL for receipt if available
+      tags: [Claims]
+      responses:
+        "200":
+          description: Claim details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ClaimWithDetails"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /claims/{id}/approve:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    post:
+      operationId: approveClaim
+      summary: Approve a claim
+      description: Requires claims approval permission
+      tags: [Claims]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                review_note:
+                  type: string
+                  maxLength: 500
+      responses:
+        "200":
+          description: Claim approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Claim"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /claims/{id}/reject:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    post:
+      operationId: rejectClaim
+      summary: Reject a claim
+      description: Requires claims approval permission
+      tags: [Claims]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [review_note]
+              properties:
+                review_note:
+                  type: string
+                  minLength: 1
+                  maxLength: 500
+      responses:
+        "200":
+          description: Claim rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Claim"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /claims/{id}/cancel:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    post:
+      operationId: cancelClaim
+      summary: Cancel own claim
+      description: Can only cancel own pending claims
+      tags: [Claims]
+      responses:
+        "200":
+          description: Claim cancelled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Claim"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /claims/summary:
+    get:
+      operationId: getClaimsSummary
+      summary: Get monthly claims summary
+      description: Returns employee-wise totals for a specific month
+      tags: [Claims]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        "200":
+          description: Monthly claims summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ClaimMonthlySummary"
 
   # ── Attendance ────────────────────────────────────────────────────────────
   /attendance/clock-in:
@@ -1690,6 +2064,11 @@ components:
           type: string
           format: uuid
           nullable: true
+        reporting_to:
+          type: string
+          format: uuid
+          nullable: true
+          description: Manager's employee ID (for org chart and approval routing)
         job_title:
           type: string
           nullable: true
@@ -1746,6 +2125,10 @@ components:
         department_id:
           type: string
           format: uuid
+        reporting_to:
+          type: string
+          format: uuid
+          description: Manager's employee ID
         job_title:
           type: string
           maxLength: 150
@@ -1773,6 +2156,10 @@ components:
         department_id:
           type: string
           format: uuid
+        reporting_to:
+          type: string
+          format: uuid
+          description: Manager's employee ID
         job_title:
           type: string
           maxLength: 150
@@ -2147,6 +2534,150 @@ components:
           format: date
         is_recurring:
           type: boolean
+
+    # ── Claims ────────────────────────────────────────────────────────────
+    ClaimCategory:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        monthly_limit:
+          type: integer
+          nullable: true
+          description: Pro tier monthly limit in smallest currency unit
+        currency_code:
+          type: string
+          nullable: true
+          minLength: 3
+          maxLength: 3
+        requires_receipt:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateClaimCategoryRequest:
+      type: object
+      required: [name, requires_receipt]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        monthly_limit:
+          type: integer
+          description: Pro tier only - monthly limit per employee
+        currency_code:
+          type: string
+          minLength: 3
+          maxLength: 3
+        requires_receipt:
+          type: boolean
+
+    UpdateClaimCategoryRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        monthly_limit:
+          type: integer
+        currency_code:
+          type: string
+          minLength: 3
+          maxLength: 3
+        requires_receipt:
+          type: boolean
+
+    Claim:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        employee_id:
+          type: string
+          format: uuid
+        category_id:
+          type: string
+          format: uuid
+        amount:
+          type: integer
+          description: Amount in smallest currency unit
+        currency_code:
+          type: string
+          minLength: 3
+          maxLength: 3
+        description:
+          type: string
+        claim_date:
+          type: string
+          format: date
+        receipt_url:
+          type: string
+          nullable: true
+          description: Presigned S3 URL (15min expiry) or S3 key
+        status:
+          type: string
+          enum: [pending, approved, rejected, cancelled]
+        reviewed_by:
+          type: string
+          format: uuid
+          nullable: true
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        review_note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ClaimWithDetails:
+      allOf:
+        - $ref: "#/components/schemas/Claim"
+        - type: object
+          properties:
+            employee_name:
+              type: string
+            category_name:
+              type: string
+
+    ClaimMonthlySummary:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        employee_name:
+          type: string
+        total_amount:
+          type: integer
+          description: Total claimed in smallest currency unit
+        claim_count:
+          type: integer
+        currency_code:
+          type: string
 
     # ── Attendance ────────────────────────────────────────────────────────
     AttendanceRecord:

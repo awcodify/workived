@@ -19,6 +19,8 @@ type RepositoryInterface interface {
 	GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest) (*Employee, error)
 	SoftDelete(ctx context.Context, orgID, id uuid.UUID) error
+	GetDirectReports(ctx context.Context, orgID, managerID uuid.UUID) ([]Employee, error)
+	GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error)
 }
 
 // OrgInfoProvider is the narrow interface the employee service needs from organisation.
@@ -109,6 +111,13 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmploye
 		}
 	}
 
+	// Validate reporting_to if provided
+	if req.ReportingTo != nil {
+		if err := s.validateReportingTo(ctx, orgID, uuid.Nil, *req.ReportingTo); err != nil {
+			return nil, err
+		}
+	}
+
 	emp, err := s.repo.Create(ctx, orgID, req)
 	if err != nil {
 		return nil, err
@@ -137,6 +146,13 @@ func (s *Service) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Em
 }
 
 func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error) {
+	// Validate reporting_to if being updated
+	if req.ReportingTo != nil {
+		if err := s.validateReportingTo(ctx, orgID, id, *req.ReportingTo); err != nil {
+			return nil, err
+		}
+	}
+
 	emp, err := s.repo.Update(ctx, orgID, id, req)
 	if err != nil {
 		return nil, err
@@ -169,6 +185,68 @@ func (s *Service) Deactivate(ctx context.Context, orgID, id uuid.UUID, actorUser
 			ResourceType: "employee",
 			ResourceID:   id,
 		})
+	}
+
+	return nil
+}
+
+// GetDirectReports returns all active employees who report to the given manager.
+func (s *Service) GetDirectReports(ctx context.Context, orgID, managerID uuid.UUID) ([]Employee, error) {
+	return s.repo.GetDirectReports(ctx, orgID, managerID)
+}
+
+// GetWithManagerName returns an employee with their manager's name populated.
+func (s *Service) GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error) {
+	return s.repo.GetWithManagerName(ctx, orgID, id)
+}
+
+// validateReportingTo ensures:
+// - Manager exists and belongs to the same organisation
+// - Employee is not reporting to themselves
+// - No circular reporting chains (max depth: 5 levels)
+func (s *Service) validateReportingTo(ctx context.Context, orgID, employeeID, managerID uuid.UUID) error {
+	// Check 1: Self-reference
+	if employeeID != uuid.Nil && employeeID == managerID {
+		return apperr.New(apperr.CodeValidation, "an employee cannot report to themselves")
+	}
+
+	// Check 2: Manager exists in same org
+	manager, err := s.repo.GetByID(ctx, orgID, managerID)
+	if err != nil {
+		return apperr.New(apperr.CodeValidation, "reporting_to employee not found or not in your organisation")
+	}
+	if manager.OrganisationID != orgID {
+		return apperr.New(apperr.CodeValidation, "manager must belong to the same organisation")
+	}
+
+	// Check 3: Circular chain detection (walk up the chain, max 5 levels)
+	if employeeID != uuid.Nil {
+		visited := make(map[uuid.UUID]bool)
+		current := manager.ReportingTo
+		depth := 0
+		const maxDepth = 5
+
+		for current != nil && depth < maxDepth {
+			if *current == employeeID {
+				return apperr.New(apperr.CodeValidation, "circular reporting chain detected")
+			}
+			if visited[*current] {
+				// Cycle detected in the existing chain (shouldn't happen if DB is consistent)
+				return apperr.New(apperr.CodeValidation, "reporting chain contains a cycle")
+			}
+			visited[*current] = true
+
+			parent, err := s.repo.GetByID(ctx, orgID, *current)
+			if err != nil {
+				break // Chain ends here (manager not found or inactive)
+			}
+			current = parent.ReportingTo
+			depth++
+		}
+
+		if depth >= maxDepth {
+			return apperr.New(apperr.CodeValidation, "reporting chain is too deep (max 5 levels)")
+		}
 	}
 
 	return nil
