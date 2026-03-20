@@ -15,7 +15,7 @@ help: ## Show available commands
 # ── Infrastructure ────────────────────────────────────────────────────────────
 
 infra-up: ## Start postgres, redis, and minio (detached)
-	$(DOCKER_COMPOSE) up -d postgres redis minio
+	$(DOCKER_COMPOSE) up -d postgres redis minio mailcatcher
 
 infra-down: ## Stop and remove all infra containers
 	$(DOCKER_COMPOSE) down
