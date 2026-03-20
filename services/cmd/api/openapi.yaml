@@ -183,6 +183,23 @@ paths:
           $ref: "#/components/responses/NotFoundError"
 
   /organisations/invitations:
+    get:
+      operationId: listPendingInvitations
+      summary: List pending invitations
+      tags: [Organisations]
+      responses:
+        "200":
+          description: List of pending invitations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Invitation"
+
     post:
       operationId: inviteMember
       summary: Invite a member to the organisation
@@ -201,6 +218,133 @@ paths:
           $ref: "#/components/responses/ValidationError"
         "403":
           $ref: "#/components/responses/ForbiddenError"
+
+  /organisations/invitations/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    delete:
+      operationId: revokeInvitation
+      summary: Revoke an invitation
+      tags: [Organisations]
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /organisations/members:
+    get:
+      operationId: listMembers
+      summary: List all organisation members
+      tags: [Organisations]
+      responses:
+        "200":
+          description: List of members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Member"
+
+  /organisations/members/unlinked:
+    get:
+      operationId: listUnlinkedMembers
+      summary: List members without linked employee records
+      tags: [Organisations]
+      responses:
+        "200":
+          description: List of unlinked members
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Member"
+
+  /organisations/me/transfer-ownership:
+    post:
+      operationId: transferOwnership
+      summary: Transfer organisation ownership
+      description: Only current owner can perform this action
+      tags: [Organisations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [new_owner_id]
+              properties:
+                new_owner_id:
+                  type: string
+                  format: uuid
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /invitations/accept:
+    post:
+      operationId: acceptInvitation
+      summary: Accept an organisation invitation
+      tags: [Organisations]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token]
+              properties:
+                token:
+                  type: string
+      responses:
+        "200":
+          description: Invitation accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      organisation:
+                        $ref: "#/components/schemas/Organisation"
+                      member:
+                        $ref: "#/components/schemas/Member"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /invitations/mine:
+    get:
+      operationId: getMyInvitations
+      summary: Get my pending invitations
+      tags: [Organisations]
+      responses:
+        "200":
+          description: List of my invitations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Invitation"
 
   # ── Employees ─────────────────────────────────────────────────────────────
   /employees:
@@ -822,6 +966,426 @@ paths:
                       count:
                         type: integer
 
+  # ── Attendance ────────────────────────────────────────────────────────────
+  /attendance/clock-in:
+    post:
+      operationId: clockIn
+      summary: Clock in for work
+      tags: [Attendance]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        "201":
+          description: Clocked in successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AttendanceRecord"
+
+  /attendance/clock-out:
+    post:
+      operationId: clockOut
+      summary: Clock out from work
+      tags: [Attendance]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note:
+                  type: string
+      responses:
+        "200":
+          description: Clocked out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AttendanceRecord"
+
+  /attendance/today/{employee_id}:
+    parameters:
+      - name: employee_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getTodayAttendance
+      summary: Get today's attendance record for an employee
+      tags: [Attendance]
+      responses:
+        "200":
+          description: Today's attendance record
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AttendanceRecord"
+
+  /attendance/daily:
+    get:
+      operationId: getDailyReport
+      summary: Get daily attendance report
+      tags: [Attendance]
+      parameters:
+        - name: date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Daily attendance report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DailyAttendanceEntry"
+
+  /attendance/monthly:
+    get:
+      operationId: getMonthlyReport
+      summary: Get monthly attendance summary
+      tags: [Attendance]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        "200":
+          description: Monthly summary report
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MonthlySummary"
+
+  /attendance/monthly/{employee_id}:
+    parameters:
+      - name: employee_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getEmployeeMonthlySummary
+      summary: Get employee's monthly attendance summary
+      tags: [Attendance]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        "200":
+          description: Employee monthly summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/MonthlySummary"
+
+  # ── Admin ─────────────────────────────────────────────────────────────────
+  /admin/stats:
+    get:
+      operationId: getSystemStats
+      summary: Get system statistics
+      description: Super admin only
+      tags: [Admin]
+      responses:
+        "200":
+          description: System statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/SystemStats"
+
+  /admin/feature-flags:
+    get:
+      operationId: listFeatureFlags
+      summary: List all feature flags
+      description: Super admin only
+      tags: [Admin]
+      responses:
+        "200":
+          description: List of feature flags
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FeatureFlag"
+
+  /admin/feature-flags/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getFeatureFlagByKey
+      summary: Get a feature flag by key
+      description: Super admin only
+      tags: [Admin]
+      responses:
+        "200":
+          description: Feature flag details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FeatureFlag"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    patch:
+      operationId: updateFeatureFlag
+      summary: Update a feature flag
+      description: Super admin only
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFeatureFlagRequest"
+      responses:
+        "200":
+          description: Feature flag updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FeatureFlag"
+
+  /admin/pro-licenses:
+    get:
+      operationId: listProLicenses
+      summary: List all pro licenses
+      description: Super admin only
+      tags: [Admin]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, expired, revoked]
+      responses:
+        "200":
+          description: List of pro licenses
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ProLicense"
+
+    post:
+      operationId: createProLicense
+      summary: Create a pro license
+      description: Super admin only
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProLicenseRequest"
+      responses:
+        "201":
+          description: License created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ProLicense"
+
+  /admin/pro-licenses/org/{orgId}:
+    parameters:
+      - name: orgId
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: getProLicenseByOrg
+      summary: Get pro license for an organisation
+      description: Super admin only
+      tags: [Admin]
+      responses:
+        "200":
+          description: Pro license details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ProLicense"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /admin/pro-licenses/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+    patch:
+      operationId: updateProLicense
+      summary: Update a pro license
+      description: Super admin only
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProLicenseRequest"
+      responses:
+        "200":
+          description: License updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/ProLicense"
+
+  /admin/configs:
+    get:
+      operationId: listAdminConfigs
+      summary: List all admin configurations
+      description: Super admin only
+      tags: [Admin]
+      responses:
+        "200":
+          description: List of admin configs
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AdminConfig"
+
+  /admin/configs/{key}:
+    parameters:
+      - name: key
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      operationId: updateAdminConfig
+      summary: Update an admin configuration
+      description: Super admin only
+      tags: [Admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value:
+                  type: string
+      responses:
+        "200":
+          description: Config updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AdminConfig"
+
+  # ── Features ──────────────────────────────────────────────────────────────
+  /features:
+    get:
+      operationId: getEnabledFeatures
+      summary: Get enabled features for the organisation
+      tags: [Features]
+      responses:
+        "200":
+          description: Enabled features
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    additionalProperties:
+                      type: boolean
+                    example:
+                      reports: true
+                      tasks: false
+
 # ── Components ────────────────────────────────────────────────────────────────
 
 components:
@@ -1270,3 +1834,514 @@ components:
         parent_id:
           type: string
           format: uuid
+
+    # ── Organisation (Additional) ─────────────────────────────────────────
+    Invitation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, hr_admin, employee]
+        invited_by:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, accepted, expired, revoked]
+        token:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+
+    Member:
+      type: object
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        full_name:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, hr_admin, employee]
+        employee_id:
+          type: string
+          format: uuid
+          nullable: true
+        joined_at:
+          type: string
+          format: date-time
+
+    # ── Leave ─────────────────────────────────────────────────────────────
+    LeavePolicy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        days_per_year:
+          type: number
+          format: float
+        is_carry_over_allowed:
+          type: boolean
+        max_carry_over_days:
+          type: number
+          format: float
+        is_accrued:
+          type: boolean
+        requires_approval:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateLeavePolicyRequest:
+      type: object
+      required: [name, days_per_year]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        days_per_year:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 999
+        is_carry_over_allowed:
+          type: boolean
+        max_carry_over_days:
+          type: number
+          format: float
+          minimum: 0
+        is_accrued:
+          type: boolean
+        requires_approval:
+          type: boolean
+
+    UpdateLeavePolicyRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        days_per_year:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 999
+        is_carry_over_allowed:
+          type: boolean
+        max_carry_over_days:
+          type: number
+          format: float
+        is_accrued:
+          type: boolean
+        requires_approval:
+          type: boolean
+
+    LeavePolicyTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        country_code:
+          type: string
+          enum: [ID, AE, MY, SG]
+        name:
+          type: string
+        description:
+          type: string
+        entitled_days_per_year:
+          type: number
+          format: float
+        is_carry_over_allowed:
+          type: boolean
+        max_carry_over_days:
+          type: number
+          format: float
+        is_accrued:
+          type: boolean
+        requires_approval:
+          type: boolean
+        sort_order:
+          type: integer
+
+    ImportPoliciesRequest:
+      type: object
+      required: [template_ids]
+      properties:
+        template_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+
+    LeaveBalanceWithPolicy:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        employee_id:
+          type: string
+          format: uuid
+        employee_name:
+          type: string
+        leave_policy_id:
+          type: string
+          format: uuid
+        policy_name:
+          type: string
+        year:
+          type: integer
+        entitled_days:
+          type: number
+          format: float
+        carried_over_days:
+          type: number
+          format: float
+        used_days:
+          type: number
+          format: float
+        pending_days:
+          type: number
+          format: float
+
+    LeaveRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        employee_id:
+          type: string
+          format: uuid
+        leave_policy_id:
+          type: string
+          format: uuid
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        total_days:
+          type: number
+          format: float
+        reason:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [pending, approved, rejected, cancelled]
+        reviewed_by:
+          type: string
+          format: uuid
+          nullable: true
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        review_note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    LeaveRequestWithDetails:
+      allOf:
+        - $ref: "#/components/schemas/LeaveRequest"
+        - type: object
+          properties:
+            employee_name:
+              type: string
+            policy_name:
+              type: string
+
+    SubmitLeaveRequestInput:
+      type: object
+      required: [leave_policy_id, start_date, end_date]
+      properties:
+        leave_policy_id:
+          type: string
+          format: uuid
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        reason:
+          type: string
+
+    LeaveCalendarEntry:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        employee_name:
+          type: string
+        leave_policy_id:
+          type: string
+          format: uuid
+        policy_name:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        total_days:
+          type: number
+          format: float
+
+    PublicHoliday:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        country_code:
+          type: string
+          enum: [ID, AE, MY, SG]
+        name:
+          type: string
+        date:
+          type: string
+          format: date
+        is_recurring:
+          type: boolean
+
+    # ── Attendance ────────────────────────────────────────────────────────
+    AttendanceRecord:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        employee_id:
+          type: string
+          format: uuid
+        date:
+          type: string
+          format: date
+        clock_in_at:
+          type: string
+          format: date-time
+        clock_out_at:
+          type: string
+          format: date-time
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    DailyAttendanceEntry:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        employee_name:
+          type: string
+        status:
+          type: string
+          enum: [present, late, absent]
+        clock_in_at:
+          type: string
+          format: date-time
+          nullable: true
+        clock_out_at:
+          type: string
+          format: date-time
+          nullable: true
+        note:
+          type: string
+          nullable: true
+
+    MonthlySummary:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        employee_name:
+          type: string
+        year:
+          type: integer
+        month:
+          type: integer
+        total_present:
+          type: integer
+        total_late:
+          type: integer
+        total_absent:
+          type: integer
+        total_working_days:
+          type: integer
+
+    # ── Admin ─────────────────────────────────────────────────────────────
+    SystemStats:
+      type: object
+      properties:
+        total_organisations:
+          type: integer
+        total_users:
+          type: integer
+        total_employees:
+          type: integer
+        active_pro_licenses:
+          type: integer
+
+    FeatureFlag:
+      type: object
+      properties:
+        key:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        is_enabled:
+          type: boolean
+        updated_by:
+          type: string
+          format: uuid
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    UpdateFeatureFlagRequest:
+      type: object
+      required: [is_enabled]
+      properties:
+        is_enabled:
+          type: boolean
+
+    ProLicense:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [active, expired, revoked]
+        valid_from:
+          type: string
+          format: date
+        valid_until:
+          type: string
+          format: date
+        max_employees:
+          type: integer
+        issued_by:
+          type: string
+          format: uuid
+        revoked_by:
+          type: string
+          format: uuid
+          nullable: true
+        revoked_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    CreateProLicenseRequest:
+      type: object
+      required: [organisation_id, valid_from, valid_until, max_employees]
+      properties:
+        organisation_id:
+          type: string
+          format: uuid
+        valid_from:
+          type: string
+          format: date
+        valid_until:
+          type: string
+          format: date
+        max_employees:
+          type: integer
+          minimum: 1
+
+    UpdateProLicenseRequest:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [active, expired, revoked]
+        valid_until:
+          type: string
+          format: date
+        max_employees:
+          type: integer
+          minimum: 1
+
+    AdminConfig:
+      type: object
+      properties:
+        key:
+          type: string
+        value:
+          type: string
+        description:
+          type: string
+        updated_by:
+          type: string
+          format: uuid
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+          nullable: true
+
