@@ -704,6 +704,34 @@ FOR EACH active employee × active leave_policy:
 
 **Architectural Decision:** Leave calendar remains at `/leave/calendar` (scoped to leave module). General-purpose calendar (for tasks, claims, events) deferred to Sprint 9+ when multi-module aggregation is needed. See `docs/adr/004-defer-unified-calendar-to-sprint-9.md`.
 
+### Sprint 5.5 — Leave Policy Templates (Country-Based Import) — NEXT 🟢
+**Problem:** New admins must manually create 4-6 leave policies (Annual, Sick, Maternity, etc.). This is tedious and error-prone.
+
+**Solution:** One-click import of country-specific leave policy templates based on local labor laws.
+
+**Scope:**
+- [ ] Backend: `leave_policy_templates` table with seeded data for ID + UAE
+- [ ] Backend: `GET /api/v1/leave/templates?country_code=ID` endpoint
+- [ ] Backend: `POST /api/v1/leave/policies/import` bulk create from template IDs
+- [ ] Frontend: "Import Country Templates" button on policies page
+- [ ] Frontend: Template preview modal with country selector
+- [ ] Seed templates for Indonesia (Annual, Sick, Maternity, Paternity, Compassionate, Hajj)
+- [ ] Seed templates for UAE (Annual, Sick, Maternity, Paternity, Compassionate, Hajj/Umrah)
+
+**Out of Scope:**
+- Template customization before import (just use defaults, edit after)
+- Template versioning (manual update when laws change)
+- MY/SG templates (Phase 2)
+- Admin-created custom templates
+
+**Value Proposition:**
+- Reduces time-to-first-value from 30 minutes → 2 minutes
+- Compliance-first: Legal defaults built-in
+- Competitive moat: Localized knowledge for each market
+- Pro upsell trigger: Free tier uses templates, Pro customizes them
+
+**Sprint Duration:** 3-4 days (small scope, high impact)
+
 ### Sprint 6 — Claims (basic flow only)
 - [ ] Claim categories configuration
 - [ ] Claim submission + receipt upload (S3)
@@ -791,4 +819,4 @@ API_URL=http://localhost:8080
 ---
 
 *Last updated: March 20, 2026*
-*Status: Sprint 5 (Leave frontend) ✅ COMPLETE — Ready for Sprint 6 (Claims)*
+*Status: Sprint 5 ✅ COMPLETE → Sprint 5.5 (Leave Templates) 🟢 NEXT — Country-based policy import for faster onboarding*
