@@ -21,10 +21,17 @@ type RepositoryInterface interface {
 	UpdateCategory(ctx context.Context, orgID, id uuid.UUID, req UpdateCategoryRequest) (*Category, error)
 	DeactivateCategory(ctx context.Context, orgID, id uuid.UUID) error
 	CountPendingClaimsByCategory(ctx context.Context, orgID, categoryID uuid.UUID) (int, error)
+	CountBalancesByCategory(ctx context.Context, orgID, categoryID uuid.UUID) (int, error)
 
 	// Templates
 	ListTemplates(ctx context.Context, countryCode string) ([]CategoryTemplate, error)
 	ImportCategoriesFromTemplates(ctx context.Context, orgID uuid.UUID, templates []CategoryTemplate) ([]Category, error)
+
+	// Balances
+	GetOrCreateBalance(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int) (*ClaimBalance, error)
+	UpdateBalanceOnApproval(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int, amount int64) error
+	UpdateBalanceOnRejection(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int, amount int64) error
+	ListBalancesByEmployee(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error)
 
 	// Claims
 	CreateClaim(ctx context.Context, orgID uuid.UUID, req SubmitClaimRequest, employeeID uuid.UUID, receiptURL *string) (*Claim, error)
@@ -118,17 +125,32 @@ func (s *Service) UpdateCategory(ctx context.Context, orgID, id uuid.UUID, req U
 }
 
 func (s *Service) DeactivateCategory(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error {
-	// Check for pending claims first
-	count, err := s.repo.CountPendingClaimsByCategory(ctx, orgID, id)
+	// 1. Check for pending claims - cannot delete if any exist
+	pendingCount, err := s.repo.CountPendingClaimsByCategory(ctx, orgID, id)
 	if err != nil {
-		return err
+		return fmt.Errorf("count pending claims: %w", err)
 	}
-	if count > 0 {
-		return apperr.New(apperr.CodeConflict, fmt.Sprintf("cannot delete category with %d pending claims", count))
+	if pendingCount > 0 {
+		return apperr.New(
+			apperr.CodeConflict,
+			fmt.Sprintf("Cannot delete category — %d pending claim(s) exist. Reject or cancel them first.", pendingCount),
+		)
 	}
 
+	// 2. Check for balances - if they exist, we still allow deactivation
+	// Balances are preserved as historical records (ON DELETE RESTRICT protects them)
+	// This is informational only - the deactivation will proceed
+	balanceCount, err := s.repo.CountBalancesByCategory(ctx, orgID, id)
+	if err != nil {
+		return fmt.Errorf("count balances: %w", err)
+	}
+	// Note: Even if balanceCount > 0, we allow deactivation
+	// Historical spending data is preserved by ON DELETE RESTRICT
+	_ = balanceCount
+
+	// 3. Safe to deactivate
 	if err := s.repo.DeactivateCategory(ctx, orgID, id); err != nil {
-		return err
+		return fmt.Errorf("deactivate category: %w", err)
 	}
 
 	if len(actorUserID) > 0 {
@@ -282,19 +304,23 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 		return nil, apperr.New(apperr.CodeValidation, "receipt is required for this claim category")
 	}
 
-	// Pro tier: enforce monthly limit
-	plan, _, err := s.orgRepo.GetOrgPlanInfo(ctx, orgID)
-	if err != nil {
-		return nil, err
-	}
+	// Check monthly limit (if category has one)
+	if category.MonthlyLimit != nil {
+		// Get or create balance for this month
+		year := req.ClaimDate.Year()
+		month := int(req.ClaimDate.Month())
 
-	if plan != "free" && category.MonthlyLimit != nil {
-		spent, err := s.repo.GetMonthlySpent(ctx, orgID, employeeID, req.CategoryID, req.ClaimDate.Format("2006-01-02"))
+		balance, err := s.repo.GetOrCreateBalance(ctx, orgID, employeeID, req.CategoryID, year, month)
 		if err != nil {
 			return nil, err
 		}
-		if spent+req.Amount > *category.MonthlyLimit {
-			return nil, apperr.New(apperr.CodeValidation, fmt.Sprintf("monthly claim limit exceeded for this category (limit: %d, spent: %d)", *category.MonthlyLimit, spent))
+
+		// Check if this claim would exceed the limit
+		if balance.TotalSpent+req.Amount > *category.MonthlyLimit {
+			return nil, apperr.New(apperr.CodeValidation, fmt.Sprintf(
+				"monthly claim limit exceeded for %s (limit: %d, spent: %d, requested: %d)",
+				category.Name, *category.MonthlyLimit, balance.TotalSpent, req.Amount,
+			))
 		}
 	}
 
@@ -323,9 +349,25 @@ func (s *Service) ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, c
 		reviewNote = req.ReviewNote
 	}
 
-	claim, err := s.repo.UpdateStatus(ctx, orgID, claimID, approval.StatusPending, approval.StatusApproved, &reviewerEmployeeID, reviewNote)
+	// Update status to approved
+	approvedClaim, err := s.repo.UpdateStatus(ctx, orgID, claimID, approval.StatusPending, approval.StatusApproved, &reviewerEmployeeID, reviewNote)
 	if err != nil {
 		return nil, err
+	}
+
+	// Update balance - ensure balance exists and increment spent amount
+	year := approvedClaim.ClaimDate.Year()
+	month := int(approvedClaim.ClaimDate.Month())
+
+	_, err = s.repo.GetOrCreateBalance(ctx, orgID, approvedClaim.EmployeeID, approvedClaim.CategoryID, year, month)
+	if err != nil {
+		// Log error but don't fail the approval
+		log.Printf("failed to get/create balance for approved claim %s: %v", claimID, err)
+	} else {
+		err = s.repo.UpdateBalanceOnApproval(ctx, orgID, approvedClaim.EmployeeID, approvedClaim.CategoryID, year, month, approvedClaim.Amount)
+		if err != nil {
+			log.Printf("failed to update balance for approved claim %s: %v", claimID, err)
+		}
 	}
 
 	if len(actorUserID) > 0 {
@@ -335,11 +377,11 @@ func (s *Service) ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, c
 			Action:       "claim.approved",
 			ResourceType: "claim",
 			ResourceID:   claimID,
-			AfterState:   claim,
+			AfterState:   approvedClaim,
 		})
 	}
 
-	return claim, nil
+	return approvedClaim, nil
 }
 
 func (s *Service) RejectClaim(ctx context.Context, orgID, reviewerEmployeeID, claimID uuid.UUID, req RejectClaimRequest, actorUserID ...uuid.UUID) (*Claim, error) {
@@ -393,4 +435,11 @@ func (s *Service) CancelClaim(ctx context.Context, orgID, employeeID, claimID uu
 
 func (s *Service) GetMonthlySummary(ctx context.Context, orgID uuid.UUID, year, month int) ([]MonthlySummary, error) {
 	return s.repo.GetMonthlySummary(ctx, orgID, year, month)
+}
+
+// ── Balance Methods ───────────────────────────────────────────────────────────
+
+// ListBalances returns claim balances for an employee in a specific month.
+func (s *Service) ListBalances(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error) {
+	return s.repo.ListBalancesByEmployee(ctx, orgID, employeeID, year, month)
 }

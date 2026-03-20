@@ -30,6 +30,9 @@ type ServiceInterface interface {
 	ListTemplates(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]CategoryTemplate, error)
 	ImportCategories(ctx context.Context, orgID uuid.UUID, req ImportCategoriesRequest, actorUserID ...uuid.UUID) ([]Category, int, error)
 
+	// Balances
+	ListBalances(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error)
+
 	// Claims
 	ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFilters) (*ListResult, error)
 	GetClaim(ctx context.Context, orgID, id uuid.UUID) (*Claim, error)

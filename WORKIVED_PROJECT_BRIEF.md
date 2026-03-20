@@ -780,13 +780,22 @@ FOR EACH active employee × active leave_policy:
   - Result: Clean UX, historical data preserved for compliance
   - Files: `services/internal/leave/repository.go`
 
-**Deletion Constraint Behavior:**
+**Deletion Constraint Behavior (Leave Policies):**
 | Condition | Allow deactivation? | Action |
 |-----------|---------------------|--------|
 | No balances/requests | ✅ Yes | Deactivate immediately |
 | Has balances, no pending/future requests | ✅ Yes | Deactivate (balances preserved as historical records) |
 | Has pending requests | ❌ Block | Error: "Cannot delete — X pending requests exist" |
 | Has approved future leave | ❌ Block | Error: "Cannot delete — X approved future leaves exist" |
+
+**Deletion Constraint Behavior (Claim Categories):**
+| Condition | Allow deactivation? | Action |
+|-----------|---------------------|--------|
+| No balances/claims | ✅ Yes | Deactivate immediately |
+| Has balances, no pending claims | ✅ Yes | Deactivate (balances preserved as historical records) |
+| Has pending claims | ❌ Block | Error: "Cannot delete — X pending claim(s) exist" |
+
+**Note:** Claim categories follow the same data integrity pattern as leave policies. Historical spending data in `claim_balances` is protected by `ON DELETE RESTRICT`, preventing accidental data loss while allowing category deactivation when no active claims exist.
 
 **Technical Highlights:**
 - Zero breaking changes

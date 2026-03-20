@@ -138,6 +138,17 @@ func (r *Repository) CountPendingClaimsByCategory(ctx context.Context, orgID, ca
 	return count, err
 }
 
+// CountBalancesByCategory returns the number of balances for a category.
+// Used to check if historical data exists before deletion.
+func (r *Repository) CountBalancesByCategory(ctx context.Context, orgID, categoryID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM claim_balances
+		WHERE organisation_id = $1 AND category_id = $2
+	`, orgID, categoryID).Scan(&count)
+	return count, err
+}
+
 // ── Claim Methods ─────────────────────────────────────────────────────────────
 
 func (r *Repository) CreateClaim(ctx context.Context, orgID uuid.UUID, req SubmitClaimRequest, employeeID uuid.UUID, receiptURL *string) (*Claim, error) {
@@ -372,6 +383,125 @@ func (r *Repository) ImportCategoriesFromTemplates(ctx context.Context, orgID uu
 	}
 
 	return created, nil
+}
+
+// ── Balance Methods ───────────────────────────────────────────────────────────
+
+// GetOrCreateBalance returns the balance for a specific employee/category/month.
+// Creates a new balance if it doesn't exist, copying the limit from the category.
+func (r *Repository) GetOrCreateBalance(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int) (*ClaimBalance, error) {
+	// First, try to get existing balance
+	var balance ClaimBalance
+	err := r.db.QueryRow(ctx, `
+		SELECT id, organisation_id, employee_id, category_id, year, month,
+		       total_spent, claim_count, currency_code, monthly_limit,
+		       created_at, updated_at
+		FROM claim_balances
+		WHERE organisation_id = $1 AND employee_id = $2 AND category_id = $3
+		  AND year = $4 AND month = $5
+	`, orgID, employeeID, categoryID, year, month).Scan(
+		&balance.ID, &balance.OrganisationID, &balance.EmployeeID, &balance.CategoryID,
+		&balance.Year, &balance.Month, &balance.TotalSpent, &balance.ClaimCount,
+		&balance.CurrencyCode, &balance.MonthlyLimit, &balance.CreatedAt, &balance.UpdatedAt,
+	)
+
+	if err == nil {
+		return &balance, nil
+	}
+	if err != pgx.ErrNoRows {
+		return nil, err
+	}
+
+	// Balance doesn't exist - create it with category's current limit
+	var currencyCode string
+	var monthlyLimit *int64
+	err = r.db.QueryRow(ctx, `
+		SELECT COALESCE(currency_code, 'IDR'), monthly_limit
+		FROM claim_categories
+		WHERE id = $1 AND organisation_id = $2
+	`, categoryID, orgID).Scan(&currencyCode, &monthlyLimit)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.db.QueryRow(ctx, `
+		INSERT INTO claim_balances (organisation_id, employee_id, category_id, year, month, currency_code, monthly_limit)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING id, organisation_id, employee_id, category_id, year, month,
+		          total_spent, claim_count, currency_code, monthly_limit,
+		          created_at, updated_at
+	`, orgID, employeeID, categoryID, year, month, currencyCode, monthlyLimit).Scan(
+		&balance.ID, &balance.OrganisationID, &balance.EmployeeID, &balance.CategoryID,
+		&balance.Year, &balance.Month, &balance.TotalSpent, &balance.ClaimCount,
+		&balance.CurrencyCode, &balance.MonthlyLimit, &balance.CreatedAt, &balance.UpdatedAt,
+	)
+
+	return &balance, err
+}
+
+// UpdateBalanceOnApproval increments the balance when a claim is approved.
+func (r *Repository) UpdateBalanceOnApproval(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int, amount int64) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE claim_balances
+		SET total_spent = total_spent + $1,
+		    claim_count = claim_count + 1,
+		    updated_at = NOW()
+		WHERE organisation_id = $2 AND employee_id = $3 AND category_id = $4
+		  AND year = $5 AND month = $6
+	`, amount, orgID, employeeID, categoryID, year, month)
+	return err
+}
+
+// UpdateBalanceOnRejection decrements the balance when a claim is rejected/cancelled.
+func (r *Repository) UpdateBalanceOnRejection(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int, amount int64) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE claim_balances
+		SET total_spent = GREATEST(0, total_spent - $1),
+		    claim_count = GREATEST(0, claim_count - 1),
+		    updated_at = NOW()
+		WHERE organisation_id = $2 AND employee_id = $3 AND category_id = $4
+		  AND year = $5 AND month = $6
+	`, amount, orgID, employeeID, categoryID, year, month)
+	return err
+}
+
+// ListBalancesByEmployee returns all balances for an employee in a specific month.
+func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT b.id, b.organisation_id, b.employee_id, b.category_id, b.year, b.month,
+		       b.total_spent, b.claim_count, b.currency_code, b.monthly_limit,
+		       b.created_at, b.updated_at, c.name
+		FROM claim_balances b
+		JOIN claim_categories c ON b.category_id = c.id
+		WHERE b.organisation_id = $1 AND b.employee_id = $2 
+		  AND b.year = $3 AND b.month = $4
+		ORDER BY c.name
+	`, orgID, employeeID, year, month)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var balances []ClaimBalanceWithCategory
+	for rows.Next() {
+		var b ClaimBalanceWithCategory
+		if err := rows.Scan(
+			&b.ID, &b.OrganisationID, &b.EmployeeID, &b.CategoryID, &b.Year, &b.Month,
+			&b.TotalSpent, &b.ClaimCount, &b.CurrencyCode, &b.MonthlyLimit,
+			&b.CreatedAt, &b.UpdatedAt, &b.CategoryName,
+		); err != nil {
+			return nil, err
+		}
+
+		// Calculate remaining if limit exists
+		if b.MonthlyLimit != nil {
+			remaining := *b.MonthlyLimit - b.TotalSpent
+			b.Remaining = &remaining
+		}
+
+		balances = append(balances, b)
+	}
+	return balances, rows.Err()
 }
 
 func nilIfEmpty(s string) *string {

@@ -57,6 +57,29 @@ type ClaimWithDetails struct {
 	CategoryName string `json:"category_name"`
 }
 
+// ClaimBalance tracks monthly spending per employee per category.
+type ClaimBalance struct {
+	ID             uuid.UUID `json:"id"`
+	OrganisationID uuid.UUID `json:"organisation_id"`
+	EmployeeID     uuid.UUID `json:"employee_id"`
+	CategoryID     uuid.UUID `json:"category_id"`
+	Year           int       `json:"year"`
+	Month          int       `json:"month"`
+	TotalSpent     int64     `json:"total_spent"` // Smallest currency unit
+	ClaimCount     int       `json:"claim_count"`
+	CurrencyCode   string    `json:"currency_code"`
+	MonthlyLimit   *int64    `json:"monthly_limit,omitempty"` // Copied from category
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// ClaimBalanceWithCategory includes category name for display.
+type ClaimBalanceWithCategory struct {
+	ClaimBalance
+	CategoryName string `json:"category_name"`
+	Remaining    *int64 `json:"remaining,omitempty"` // monthly_limit - total_spent
+}
+
 // ── Request types ─────────────────────────────────────────────────────────────
 
 type CreateCategoryRequest struct {

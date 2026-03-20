@@ -43,7 +43,7 @@ export const moduleBackgrounds = {
   people:      '#080A12',  // deep midnight navy
   attendance:  '#111214',  // deep charcoal
   leave:       '#F3F2FB',  // soft violet
-  claims:      '#F3F2FB',  // soft violet
+  claims:      '#F0FDF9',  // soft mint green
   tasks:       '#0E0E1A',  // deep dark (dark Kanban board)
   reports:     '#0F0F1A',  // deep indigo night
 } as const
@@ -135,14 +135,14 @@ export const moduleThemes = {
   },
   claims: {
     text:         '#0F0E13',
-    textMuted:    '#72708A',
+    textMuted:    '#6B7280',
     surface:      '#FFFFFF',
-    surfaceHover: '#F3F2FB',
-    accent:       '#6357E8',
+    surfaceHover: '#F9FAFB',
+    accent:       '#10B981',
     accentText:   '#FFFFFF',
-    border:       'rgba(99,87,232,0.10)',
+    border:       'rgba(16,185,129,0.10)',
     input:        '#FFFFFF',
-    inputBorder:  'rgba(99,87,232,0.12)',
+    inputBorder:  'rgba(16,185,129,0.12)',
   },
   tasks: {
     text:         'rgba(255,255,255,0.92)',
@@ -174,7 +174,7 @@ export const logoMarkColors = {
   people:      { bg: '#0D1224', primary: '#FF8AAE', textPrimary: '#FFFFFF', textAccent: '#FF8AAE' },
   attendance:  { bg: '#1E2026', primary: '#5BB8F5', textPrimary: '#FFFFFF', textAccent: '#5BB8F5' },
   leave:       { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
-  claims:      { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
+  claims:      { bg: '#D1FAE5', primary: '#10B981', textPrimary: '#0F0E13', textAccent: '#10B981' },
   tasks:       { bg: '#1E1A3A', primary: '#818CF8', textPrimary: '#FFFFFF', textAccent: '#818CF8' },
   reports:     { bg: '#1A1A2E', primary: '#60A5FA', textPrimary: '#FFFFFF', textAccent: '#60A5FA' },
 } as const
