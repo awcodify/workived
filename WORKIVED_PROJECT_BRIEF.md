@@ -689,4 +689,6 @@ API_URL=http://localhost:8080
 *Last updated: March 21, 2026*  
 *Current Sprint: Sprint 9 (Planning — Workload Intelligence)*  
 *Status: Sprint 8 ✅ COMPLETE (Tasks & Commenting) → Sprint 9 📋 PLANNING*  
-*Detailed sprint docs: [docs/sprint8.md](./docs/sprint8.md) | [docs/sprint9.md](./docs/sprint9.md)*
+*Sprint Documentation:* [sprint8.md](./docs/sprint8.md) | [sprint9.md](./docs/sprint9.md)  
+*Product Roadmap:* [docs/ROADMAP.md](./docs/ROADMAP.md) — Sprint priorities & competitive positioning  
+*Feature Backlog:* [docs/backlog/](./docs/backlog/) — Organized by theme (HR, system, monetization, advanced)
