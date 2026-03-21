@@ -306,24 +306,28 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	// Lock balance row.
-	balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, employeeID, input.LeavePolicyID, year)
-	if err != nil {
-		return nil, fmt.Errorf("get balance for update: %w", err)
-	}
-	if balance.Available() < totalDays {
-		return nil, apperr.New(apperr.CodeUpgradeRequired,
-			fmt.Sprintf("insufficient leave balance: %.1f days available, %.1f requested", balance.Available(), totalDays))
+	// For unlimited policies, skip balance validation
+	if !policy.IsUnlimited {
+		// Lock balance row.
+		balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, employeeID, input.LeavePolicyID, year)
+		if err != nil {
+			return nil, fmt.Errorf("get balance for update: %w", err)
+		}
+		if balance.Available() < totalDays {
+			return nil, apperr.New(apperr.CodeUpgradeRequired,
+				fmt.Sprintf("insufficient leave balance: %.1f days available, %.1f requested", balance.Available(), totalDays))
+		}
+
+		// Update pending balance
+		if err := s.repo.UpdateBalancePending(ctx, tx, balance.ID, totalDays); err != nil {
+			return nil, fmt.Errorf("update pending: %w", err)
+		}
 	}
 
-	// 7. Create request and update balance within the transaction.
+	// 7. Create request (balance update already done above for non-unlimited).
 	req, err := s.repo.CreateRequest(ctx, tx, orgID, employeeID, input.LeavePolicyID, input.StartDate, input.EndDate, totalDays, input.Reason)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
-	}
-
-	if err := s.repo.UpdateBalancePending(ctx, tx, balance.ID, totalDays); err != nil {
-		return nil, fmt.Errorf("update pending: %w", err)
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -415,21 +419,29 @@ func (s *Service) ApproveRequest(ctx context.Context, orgID, reviewerEmployeeID,
 		return nil, apperr.New(apperr.CodeConflict, fmt.Sprintf("request is already %s", existing.Status))
 	}
 
+	// Get policy to check if it's unlimited
+	policy, err := s.repo.GetPolicy(ctx, orgID, existing.LeavePolicyID)
+	if err != nil {
+		return nil, fmt.Errorf("get policy: %w", err)
+	}
+
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	// Lock balance and move days from pending → used.
-	year, _ := time.Parse("2006-01-02", existing.StartDate)
-	balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, existing.EmployeeID, existing.LeavePolicyID, year.Year())
-	if err != nil {
-		return nil, fmt.Errorf("get balance for approval: %w", err)
-	}
+	// For non-unlimited policies, lock balance and move days from pending → used.
+	if !policy.IsUnlimited {
+		year, _ := time.Parse("2006-01-02", existing.StartDate)
+		balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, existing.EmployeeID, existing.LeavePolicyID, year.Year())
+		if err != nil {
+			return nil, fmt.Errorf("get balance for approval: %w", err)
+		}
 
-	if err := s.repo.ApproveBalanceUpdate(ctx, tx, balance.ID, existing.TotalDays); err != nil {
-		return nil, fmt.Errorf("approve balance: %w", err)
+		if err := s.repo.ApproveBalanceUpdate(ctx, tx, balance.ID, existing.TotalDays); err != nil {
+			return nil, fmt.Errorf("approve balance: %w", err)
+		}
 	}
 
 	req, err := s.repo.UpdateRequestStatus(ctx, tx, orgID, requestID, "pending", "approved", &reviewerEmployeeID, nil)
@@ -480,21 +492,29 @@ func (s *Service) RejectRequest(ctx context.Context, orgID, reviewerEmployeeID, 
 		return nil, apperr.New(apperr.CodeConflict, fmt.Sprintf("request is already %s", existing.Status))
 	}
 
+	// Get policy to check if it's unlimited
+	policy, err := s.repo.GetPolicy(ctx, orgID, existing.LeavePolicyID)
+	if err != nil {
+		return nil, fmt.Errorf("get policy: %w", err)
+	}
+
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	// Restore pending days.
-	year, _ := time.Parse("2006-01-02", existing.StartDate)
-	balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, existing.EmployeeID, existing.LeavePolicyID, year.Year())
-	if err != nil {
-		return nil, fmt.Errorf("get balance for rejection: %w", err)
-	}
+	// For non-unlimited policies, restore pending days.
+	if !policy.IsUnlimited {
+		year, _ := time.Parse("2006-01-02", existing.StartDate)
+		balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, existing.EmployeeID, existing.LeavePolicyID, year.Year())
+		if err != nil {
+			return nil, fmt.Errorf("get balance for rejection: %w", err)
+		}
 
-	if err := s.repo.UpdateBalancePending(ctx, tx, balance.ID, -existing.TotalDays); err != nil {
-		return nil, fmt.Errorf("restore pending: %w", err)
+		if err := s.repo.UpdateBalancePending(ctx, tx, balance.ID, -existing.TotalDays); err != nil {
+			return nil, fmt.Errorf("restore pending: %w", err)
+		}
 	}
 
 	req, err := s.repo.UpdateRequestStatus(ctx, tx, orgID, requestID, "pending", "rejected", &reviewerEmployeeID, note)
@@ -556,27 +576,36 @@ func (s *Service) CancelRequest(ctx context.Context, orgID, employeeID, requestI
 		return nil, apperr.New(apperr.CodeConflict, fmt.Sprintf("cannot cancel a %s request", existing.Status))
 	}
 
+	// Get policy to check if it's unlimited
+	policy, err := s.repo.GetPolicy(ctx, orgID, existing.LeavePolicyID)
+	if err != nil {
+		return nil, fmt.Errorf("get policy: %w", err)
+	}
+
 	tx, err := s.repo.BeginTx(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
-	year, _ := time.Parse("2006-01-02", existing.StartDate)
-	balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, existing.EmployeeID, existing.LeavePolicyID, year.Year())
-	if err != nil {
-		return nil, fmt.Errorf("get balance for cancel: %w", err)
-	}
-
-	if existing.Status == "pending" {
-		// Restore pending_days.
-		if err := s.repo.UpdateBalancePending(ctx, tx, balance.ID, -existing.TotalDays); err != nil {
-			return nil, fmt.Errorf("restore pending on cancel: %w", err)
+	// For non-unlimited policies, restore balance
+	if !policy.IsUnlimited {
+		year, _ := time.Parse("2006-01-02", existing.StartDate)
+		balance, err := s.repo.GetBalanceForUpdate(ctx, tx, orgID, existing.EmployeeID, existing.LeavePolicyID, year.Year())
+		if err != nil {
+			return nil, fmt.Errorf("get balance for cancel: %w", err)
 		}
-	} else {
-		// Approved: restore used_days (reverse of approval).
-		if err := s.repo.ApproveBalanceUpdate(ctx, tx, balance.ID, -existing.TotalDays); err != nil {
-			return nil, fmt.Errorf("restore used on cancel: %w", err)
+
+		if existing.Status == "pending" {
+			// Restore pending_days.
+			if err := s.repo.UpdateBalancePending(ctx, tx, balance.ID, -existing.TotalDays); err != nil {
+				return nil, fmt.Errorf("restore pending on cancel: %w", err)
+			}
+		} else {
+			// Approved: restore used_days (reverse of approval).
+			if err := s.repo.ApproveBalanceUpdate(ctx, tx, balance.ID, -existing.TotalDays); err != nil {
+				return nil, fmt.Errorf("restore used on cancel: %w", err)
+			}
 		}
 	}
 

@@ -385,7 +385,12 @@ function NewEmployeePage() {
                 <input
                   type="date"
                   className="form-input-dark"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  style={{ 
+                    background: t.input, 
+                    border: `1px solid ${t.inputBorder}`, 
+                    color: t.text,
+                    colorScheme: 'dark'
+                  }}
                   {...form.register('start_date')}
                 />
               </Field>
@@ -617,7 +622,12 @@ function EditEmployeePage({ id }: { id: string }) {
                 <input
                   type="date"
                   className="form-input-dark"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  style={{ 
+                    background: t.input, 
+                    border: `1px solid ${t.inputBorder}`, 
+                    color: t.text,
+                    colorScheme: 'dark'
+                  }}
                   {...form.register('start_date')}
                 />
               </Field>
@@ -626,7 +636,12 @@ function EditEmployeePage({ id }: { id: string }) {
                 <input
                   type="date"
                   className="form-input-dark"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  style={{ 
+                    background: t.input, 
+                    border: `1px solid ${t.inputBorder}`, 
+                    color: t.text,
+                    colorScheme: 'dark'
+                  }}
                   {...form.register('end_date')}
                 />
                 <p className="text-xs mt-1" style={{ color: t.textMuted }}>

@@ -27,7 +27,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Policy, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
-		       min_tenure_days, requires_approval, is_active, created_at, updated_at
+		       min_tenure_days, requires_approval, is_unlimited, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1
 		  AND is_active = TRUE
@@ -43,7 +43,7 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 		var p Policy
 		if err := rows.Scan(
 			&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
-			&p.MinTenureDays, &p.RequiresApproval, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+			&p.MinTenureDays, &p.RequiresApproval, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan leave policy: %w", err)
 		}
@@ -57,12 +57,12 @@ func (r *Repository) GetPolicy(ctx context.Context, orgID, policyID uuid.UUID) (
 	var p Policy
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
-		       min_tenure_days, requires_approval, is_active, created_at, updated_at
+		       min_tenure_days, requires_approval, is_unlimited, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, policyID).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
-		&p.MinTenureDays, &p.RequiresApproval, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.MinTenureDays, &p.RequiresApproval, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -80,15 +80,20 @@ func (r *Repository) CreatePolicy(ctx context.Context, orgID uuid.UUID, req Crea
 		reqApproval = *req.RequiresApproval
 	}
 
+	isUnlimited := false
+	if req.IsUnlimited != nil {
+		isUnlimited = *req.IsUnlimited
+	}
+
 	var p Policy
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO leave_policies (organisation_id, name, description, days_per_year, carry_over_days, min_tenure_days, requires_approval)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO leave_policies (organisation_id, name, description, days_per_year, carry_over_days, min_tenure_days, requires_approval, is_unlimited)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
-		          min_tenure_days, requires_approval, is_active, created_at, updated_at
-	`, orgID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, reqApproval).Scan(
+		          min_tenure_days, requires_approval, is_unlimited, is_active, created_at, updated_at
+	`, orgID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, reqApproval, isUnlimited).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
-		&p.MinTenureDays, &p.RequiresApproval, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.MinTenureDays, &p.RequiresApproval, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create leave policy: %w", err)
@@ -106,13 +111,14 @@ func (r *Repository) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID
 			days_per_year     = COALESCE($5, days_per_year),
 			carry_over_days   = COALESCE($6, carry_over_days),
 			min_tenure_days   = COALESCE($7, min_tenure_days),
-			requires_approval = COALESCE($8, requires_approval)
+			requires_approval = COALESCE($8, requires_approval),
+			is_unlimited      = COALESCE($9, is_unlimited)
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
-		          min_tenure_days, requires_approval, is_active, created_at, updated_at
-	`, orgID, policyID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, req.RequiresApproval).Scan(
+		          min_tenure_days, requires_approval, is_unlimited, is_active, created_at, updated_at
+	`, orgID, policyID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, req.RequiresApproval, req.IsUnlimited).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
-		&p.MinTenureDays, &p.RequiresApproval, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.MinTenureDays, &p.RequiresApproval, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

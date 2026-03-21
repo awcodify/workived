@@ -385,8 +385,8 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 		return nil, ErrReceiptRequired(category.Name)
 	}
 
-	// 6. Check monthly budget limit (if category has one)
-	if category.MonthlyLimit != nil {
+	// 6. Check monthly budget limit (if category has one and is not unlimited)
+	if category.MonthlyLimit != nil && !category.IsUnlimited {
 		year := req.ClaimDate.Year()
 		month := int(req.ClaimDate.Month())
 

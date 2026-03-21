@@ -18,6 +18,7 @@ type Policy struct {
 	CarryOverDays    float64   `json:"carry_over_days"`
 	MinTenureDays    int       `json:"min_tenure_days"`
 	RequiresApproval bool      `json:"requires_approval"`
+	IsUnlimited      bool      `json:"is_unlimited"`
 	IsActive         bool      `json:"is_active"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
@@ -121,6 +122,7 @@ type CreatePolicyRequest struct {
 	CarryOverDays    float64 `json:"carry_over_days"   validate:"gte=0,lte=365"`
 	MinTenureDays    int     `json:"min_tenure_days"   validate:"gte=0"`
 	RequiresApproval *bool   `json:"requires_approval"`
+	IsUnlimited      *bool   `json:"is_unlimited"`
 }
 
 type UpdatePolicyRequest struct {
@@ -130,6 +132,7 @@ type UpdatePolicyRequest struct {
 	CarryOverDays    *float64 `json:"carry_over_days"   validate:"omitempty,gte=0,lte=365"`
 	MinTenureDays    *int     `json:"min_tenure_days"   validate:"omitempty,gte=0"`
 	RequiresApproval *bool    `json:"requires_approval"`
+	IsUnlimited      *bool    `json:"is_unlimited"`
 }
 
 type SubmitRequestInput struct {

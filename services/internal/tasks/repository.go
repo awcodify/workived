@@ -291,11 +291,12 @@ func (r *Repository) GetTaskByApproval(ctx context.Context, approvalType string,
 }
 
 func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID, req CreateTaskRequest) (*Task, error) {
-	// Verify task list exists and is active
+	// Verify task list exists, is active, and get is_final_state flag
 	var isActive bool
+	var isFinalState bool
 	err := r.db.QueryRow(ctx, `
-		SELECT is_active FROM task_lists WHERE organisation_id = $1 AND id = $2
-	`, orgID, req.TaskListID).Scan(&isActive)
+		SELECT is_active, is_final_state FROM task_lists WHERE organisation_id = $1 AND id = $2
+	`, orgID, req.TaskListID).Scan(&isActive, &isFinalState)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrTaskListNotFound()
@@ -328,16 +329,23 @@ func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID,
 		return nil, apperr.New(apperr.CodeValidation, err.Error())
 	}
 
+	// If list is a final state (e.g., "Done" column), set completed_at to now
+	var completedAt *time.Time
+	if isFinalState {
+		now := time.Now()
+		completedAt = &now
+	}
+
 	var t Task
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO tasks (
 			organisation_id, task_list_id, title, description, assignee_id,
-			created_by, priority, due_date, position, approval_type, approval_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+			created_by, priority, due_date, position, completed_at, approval_type, approval_id
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
 		          created_by, priority, due_date, position, completed_at, approval_type, approval_id, created_at, updated_at
 	`, orgID, req.TaskListID, req.Title, req.Description, req.AssigneeID,
-		createdBy, priority, dueDate, maxPosition+1000, req.ApprovalType, req.ApprovalID).Scan(
+		createdBy, priority, dueDate, maxPosition+1000, completedAt, req.ApprovalType, req.ApprovalID).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
 		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.CreatedAt, &t.UpdatedAt,
 	)
