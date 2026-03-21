@@ -1,8 +1,9 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { Clock, FileText, Settings } from 'lucide-react'
-import { useMyBalances, useAllRequests } from '@/lib/hooks/useLeave'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { AlertCircle, Check, X, Settings } from 'lucide-react'
+import { useMyBalances, useAllRequests, useMyRequests, useAllBalances, useApproveRequest, useRejectRequest, useCancelRequest } from '@/lib/hooks/useLeave'
 import { useCanManageLeave } from '@/lib/hooks/useRole'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
+import { useState } from 'react'
 
 const t = moduleThemes.leave
 
@@ -14,8 +15,14 @@ function LeaveDashboard() {
   const navigate = useNavigate()
   const currentYear = new Date().getFullYear()
   const { data: balances, isLoading } = useMyBalances(currentYear)
+  const { data: allBalances } = useAllBalances(currentYear) // For approval balance context
   const { data: pendingRequests } = useAllRequests({ status: 'pending' })
+  const { data: myRequests } = useMyRequests()
   const canManageLeave = useCanManageLeave()
+  
+  const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>(
+    canManageLeave && (pendingRequests?.length ?? 0) > 0 ? 'approvals' : 'my-requests'
+  )
   
   const pendingCount = pendingRequests?.length ?? 0
 
@@ -31,7 +38,7 @@ function LeaveDashboard() {
     >
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <div>
             <h1
               className="font-extrabold"
@@ -48,406 +55,1080 @@ function LeaveDashboard() {
               {totalAvailable} day{totalAvailable === 1 ? '' : 's'} available
             </p>
           </div>
-        </div>
-
-        {/* Action Toolbar */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <Link
-            to="/leave/requests/pending"
-            className="relative flex items-center gap-2 px-4 py-3 transition-all hover:scale-[1.02]"
-            style={{
-              background: t.surface,
-              borderRadius: 12,
-              border: `1px solid ${t.border}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = t.surfaceHover
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = t.surface
-            }}
-          >
-            <Clock size={18} style={{ color: t.accent }} />
-            <span className="text-sm font-semibold" style={{ color: t.text }}>
-              Pending Approvals
-            </span>
-            {pendingCount > 0 && (
-              <span
-                className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold animate-pulse"
-                style={{
-                  background: '#D44040',
-                  color: '#FFFFFF',
-                  borderRadius: 10,
-                  border: `2px solid ${moduleBackgrounds.leave}`,
-                  boxShadow: '0 2px 8px rgba(212, 64, 64, 0.4)',
-                  animationDuration: '2s',
-                }}
-              >
-                {pendingCount > 99 ? '99+' : pendingCount}
-              </span>
-            )}
-          </Link>
-
-          <Link
-            to="/leave/requests"
-            className="flex items-center gap-2 px-4 py-3 transition-all hover:scale-[1.02]"
-            style={{
-              background: t.surface,
-              borderRadius: 12,
-              border: `1px solid ${t.border}`,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = t.surfaceHover
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = t.surface
-            }}
-          >
-            <FileText size={18} style={{ color: t.accent }} />
-            <span className="text-sm font-semibold" style={{ color: t.text }}>
-              My Requests
-            </span>
-          </Link>
-
+          
+          {/* Settings button for HR managers */}
           {canManageLeave && (
-            <Link
-              to="/leave/policies"
-              className="flex items-center gap-2 px-4 py-3 transition-all hover:scale-[1.02]"
+            <button
+              onClick={() => navigate({ to: '/leave/policies' })}
+              className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all hover:opacity-80"
               style={{
                 background: t.surface,
-                borderRadius: 12,
+                color: t.text,
+                borderRadius: 10,
                 border: `1px solid ${t.border}`,
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = t.surfaceHover
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = t.surface
-              }}
+              title="Manage leave policies"
             >
-              <Settings size={18} style={{ color: t.accent }} />
-              <span className="text-sm font-semibold" style={{ color: t.text }}>
-                Policies
-              </span>
-            </Link>
+              <Settings size={16} />
+              Policies
+            </button>
           )}
         </div>
       </div>
 
-      {/* Balance Cards */}
-      <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2
-            className="font-bold"
-            style={{
-              fontSize: typography.h2.size,
-              letterSpacing: typography.h2.tracking,
-              color: t.text,
-            }}
-          >
-            Your Leave Balances
-          </h2>
-          <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
-            Click a balance to create a request
-          </p>
-        </div>
-
-        {isLoading ? (
-          <BalancesSkeleton />
-        ) : !balances || balances.length === 0 ? (
-          <EmptyBalances />
-        ) : (
-          <div
-            style={{
-              background: t.surface,
-              borderRadius: 14,
-              border: `1px solid ${t.border}`,
-              overflow: 'hidden',
-            }}
-          >
-            {/* Table Header */}
-            <div
+      {/* Two Column Layout - Left wider for visual bars */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
+        {/* LEFT COLUMN: Leave Balances + My Requests */}
+        <div className="space-y-4">
+          {/* Leave Balances */}
+          <div>
+            <h2
+              className="font-bold mb-3"
               style={{
-                display: 'grid',
-                gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr',
-                gap: 16,
-                padding: '14px 20px',
-                background: t.surfaceHover,
-                borderBottom: `1px solid ${t.border}`,
+                fontSize: typography.h2.size,
+                letterSpacing: typography.h2.tracking,
+                color: t.text,
               }}
             >
-              <div
-                className="text-xs font-bold uppercase tracking-wide"
-                style={{ color: t.textMuted }}
-              >
-                Policy
-              </div>
-              <div
-                className="text-xs font-bold uppercase tracking-wide text-center"
-                style={{ color: t.textMuted }}
-              >
-                Available
-              </div>
-              <div
-                className="text-xs font-bold uppercase tracking-wide text-center"
-                style={{ color: t.textMuted }}
-              >
-                Entitled
-              </div>
-              <div
-                className="text-xs font-bold uppercase tracking-wide text-center"
-                style={{ color: t.textMuted }}
-              >
-                Used
-              </div>
-              <div
-                className="text-xs font-bold uppercase tracking-wide text-center"
-                style={{ color: t.textMuted }}
-              >
-                Pending
-              </div>
-              <div
-                className="text-xs font-bold uppercase tracking-wide"
-                style={{ color: t.textMuted }}
-              >
-                Description
-              </div>
-            </div>
+              Your Leave Balances
+            </h2>
 
-            {/* Table Rows */}
-            {balances.map((balance, idx) => {
-              const available =
-                balance.entitled_days +
-                balance.carried_over_days -
-                balance.used_days -
-                balance.pending_days
-              const total = balance.entitled_days + balance.carried_over_days
-              const availablePercentage = total > 0 ? (available / total) * 100 : 0
-              const pendingPercentage = total > 0 ? (balance.pending_days / total) * 100 : 0
-              const isLowBalance = available < total * 0.2 && available > 0
-              const isExhausted = available <= 0
+            {isLoading ? (
+              <BalancesSkeleton />
+            ) : !balances || balances.length === 0 ? (
+              <EmptyBalances />
+            ) : (
+              <div
+                style={{
+                  background: t.surface,
+                  borderRadius: 14,
+                  border: `1px solid ${t.border}`,
+                  overflow: 'hidden',
+                }}
+              >
+                {balances.map((balance, idx) => {
+                  const available =
+                    balance.entitled_days +
+                    balance.carried_over_days -
+                    balance.used_days -
+                    balance.pending_days
+                  const total = balance.entitled_days + balance.carried_over_days
 
-              return (
-                <div
-                  key={balance.id}
-                  onClick={() => {
-                    navigate({
-                      to: '/leave/requests/new',
-                      search: { policyId: balance.leave_policy_id },
-                    })
-                  }}
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1.5fr',
-                    gap: 16,
-                    padding: '18px 20px',
-                    borderBottom:
-                      idx < balances.length - 1 ? `1px solid ${t.border}` : 'none',
-                    transition: 'background 0.15s, transform 0.15s',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = t.surfaceHover
-                    e.currentTarget.style.transform = 'translateX(4px)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent'
-                    e.currentTarget.style.transform = 'translateX(0)'
-                  }}
-                >
-                  {/* Policy Name + Progress Bar */}
-                  <div className="flex flex-col justify-center">
-                    <p
-                      className="font-bold mb-2"
-                      style={{
-                        fontSize: typography.body.size,
-                        color: t.text,
-                      }}
-                    >
-                      {balance.policy_name}
-                    </p>
+                  return (
                     <div
-                      className="relative"
+                      key={balance.id}
+                      onClick={() => {
+                        navigate({
+                          to: '/leave/requests/new',
+                          search: { policyId: balance.leave_policy_id },
+                        })
+                      }}
+                      className="transition-all cursor-pointer"
                       style={{
-                        height: 6,
-                        background: colors.ink100,
-                        borderRadius: 3,
-                        overflow: 'hidden',
+                        padding: '14px 18px',
+                        borderBottom: idx < balances.length - 1 ? `1px solid ${t.border}` : 'none',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = t.surfaceHover
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent'
                       }}
                     >
-                      {/* Available - green fill */}
-                      <div
-                        className="absolute inset-y-0 left-0"
-                        style={{
-                          width: `${Math.min(availablePercentage, 100)}%`,
-                          background: colors.ok,
-                          borderTopLeftRadius: 3,
-                          borderBottomLeftRadius: 3,
-                          transition: 'width 0.3s ease',
-                        }}
-                      />
-                      {/* Pending - striped yellow overlay */}
-                      {pendingPercentage > 0 && (
-                        <div
-                          className="absolute inset-y-0"
-                          style={{
-                            left: `${availablePercentage}%`,
-                            width: `${Math.min(pendingPercentage, 100 - availablePercentage)}%`,
-                            background: `repeating-linear-gradient(
-                              45deg,
-                              ${colors.warn},
-                              ${colors.warn} 3px,
-                              ${colors.warnDim} 3px,
-                              ${colors.warnDim} 6px
-                            )`,
-                            transition: 'width 0.3s ease, left 0.3s ease',
-                          }}
-                        />
+                      <div className="flex items-center justify-between">
+                        {/* Left: Policy name */}
+                        <div className="flex-1">
+                          <p
+                            className="font-bold"
+                            style={{
+                              fontSize: typography.body.size,
+                              color: t.text,
+                            }}
+                          >
+                            {balance.policy_name}
+                          </p>
+                          {balance.policy_description && (
+                            <p
+                              className="text-xs mt-0.5"
+                              style={{ color: t.textMuted }}
+                            >
+                              {balance.policy_description}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Right: Available days (big number) */}
+                        <div className="text-right">
+                          {balance.entitled_days === 999 ? (
+                            <span
+                              className="font-extrabold"
+                              style={{
+                                fontSize: 32,
+                                color: t.accent,
+                                lineHeight: 1,
+                              }}
+                            >
+                              ∞
+                            </span>
+                          ) : (
+                            <>
+                              <span
+                                className="font-extrabold"
+                                style={{
+                                  fontSize: 32,
+                                  fontFamily: typography.fontMono,
+                                  color: available > 0 ? t.accent : colors.ink300,
+                                  lineHeight: 1,
+                                }}
+                              >
+                                {available.toFixed(0)}
+                              </span>
+                              <span
+                                className="text-xs ml-1"
+                                style={{ color: t.textMuted }}
+                              >
+                                / {total}
+                              </span>
+                            </>
+                          )}
+                          <div className="flex items-center gap-2 mt-1 text-xs justify-end" style={{ color: t.textMuted }}>
+                            <span>Used: {balance.used_days}</span>
+                            {balance.pending_days > 0 && (
+                              <span style={{ color: colors.warnText }}>• Pending: {balance.pending_days}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Visual Progress Bar - Green for available */}
+                      {balance.entitled_days !== 999 && (
+                        <div className="mt-3">
+                          <div
+                            style={{
+                              height: 6,
+                              borderRadius: 3,
+                              background: colors.ink100,
+                              overflow: 'hidden',
+                              position: 'relative',
+                            }}
+                          >
+                            {/* Available portion (green) */}
+                            <div
+                              style={{
+                                position: 'absolute',
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                width: `${(available / total) * 100}%`,
+                                background: colors.ok,
+                              }}
+                            />
+                            {/* Pending portion (amber) */}
+                            <div
+                              style={{
+                                position: 'absolute',
+                                left: `${(available / total) * 100}%`,
+                                top: 0,
+                                bottom: 0,
+                                width: `${(balance.pending_days / total) * 100}%`,
+                                background: colors.warn,
+                              }}
+                            />
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
-
-                  {/* Available */}
-                  <div className="flex items-center justify-center">
-                    {available === 999 ? (
-                      <span
-                        className="font-extrabold"
-                        style={{
-                          fontSize: 28,
-                          color: t.accent,
-                          letterSpacing: '-0.01em',
-                        }}
-                      >
-                        ∞
-                      </span>
-                    ) : (
-                      <span
-                        className="font-extrabold"
-                        style={{
-                          fontSize: 24,
-                          fontFamily: typography.fontMono,
-                          color: available > 0 ? t.accent : colors.ink300,
-                          letterSpacing: '-0.01em',
-                        }}
-                      >
-                        {available.toFixed(1)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Entitled */}
-                  <div className="flex items-center justify-center">
-                    <span
-                      className="font-semibold"
-                      style={{
-                        fontSize: typography.body.size,
-                        color: t.text,
-                      }}
-                    >
-                      {balance.entitled_days === 999 ? '∞' : balance.entitled_days}
-                      {balance.carried_over_days > 0 && balance.entitled_days !== 999 && (
-                        <span
-                          style={{
-                            fontSize: 12,
-                            color: t.textMuted,
-                            marginLeft: 4,
-                          }}
-                        >
-                          +{balance.carried_over_days}
-                        </span>
-                      )}
-                    </span>
-                  </div>
-
-                  {/* Used */}
-                  <div className="flex items-center justify-center">
-                    <span
-                      className="font-semibold"
-                      style={{
-                        fontSize: typography.body.size,
-                        color: t.text,
-                      }}
-                    >
-                      {balance.used_days}
-                    </span>
-                  </div>
-
-                  {/* Pending */}
-                  <div className="flex items-center justify-center">
-                    <span
-                      className="font-semibold"
-                      style={{
-                        fontSize: typography.body.size,
-                        color:
-                          balance.pending_days > 0 ? colors.warnText : t.textMuted,
-                      }}
-                    >
-                      {balance.pending_days || '—'}
-                    </span>
-                  </div>
-
-                  {/* Description */}
-                  <div className="flex flex-col justify-center">
-                    {balance.policy_description && (
-                      <p
-                        className="text-xs font-medium leading-relaxed"
-                        style={{ color: t.text }}
-                      >
-                        {balance.policy_description}
-                      </p>
-                    )}
-                    {balance.carried_over_days > 0 && balance.entitled_days !== 999 && (
-                      <p
-                        className="text-xs mt-0.5"
-                        style={{ color: t.textMuted }}
-                      >
-                        +{balance.carried_over_days} carried from {balance.year - 1}
-                      </p>
-                    )}
-                    {isExhausted && (
-                      <p
-                        className="text-xs mt-0.5 font-semibold"
-                        style={{ color: colors.errText }}
-                      >
-                        ⚠ Balance exhausted
-                      </p>
-                    )}
-                    {isLowBalance && !isExhausted && (
-                      <p
-                        className="text-xs mt-0.5 font-semibold"
-                        style={{ color: colors.warnText }}
-                      >
-                        ⚠ Low balance
-                      </p>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+            )}
           </div>
-        )}
+
+          {/* Expandable: My Requests - REMOVED */}
+        </div>
+
+        {/* RIGHT COLUMN: Tabs (Approvals + My Requests) */}
+        <div>
+          {/* Tab Headers */}
+          <div className="flex items-center gap-2 mb-4">
+            {canManageLeave && pendingCount > 0 && (
+              <button
+                onClick={() => setActiveTab('approvals')}
+                className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all"
+                style={{
+                  background: activeTab === 'approvals' ? t.surface : 'transparent',
+                  color: activeTab === 'approvals' ? t.text : t.textMuted,
+                  borderRadius: 10,
+                  border: activeTab === 'approvals' ? `1px solid ${t.border}` : '1px solid transparent',
+                }}
+              >
+                <AlertCircle size={16} style={{ color: colors.warn }} />
+                Need Your Attention
+                {pendingCount > 0 && (
+                  <span
+                    className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold"
+                    style={{
+                      background: colors.warn,
+                      color: '#FFFFFF',
+                      borderRadius: 10,
+                    }}
+                  >
+                    {pendingCount}
+                  </span>
+                )}
+              </button>
+            )}
+            <button
+              onClick={() => setActiveTab('my-requests')}
+              className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all"
+              style={{
+                background: activeTab === 'my-requests' ? t.surface : 'transparent',
+                color: activeTab === 'my-requests' ? t.text : t.textMuted,
+                borderRadius: 10,
+                border: activeTab === 'my-requests' ? `1px solid ${t.border}` : '1px solid transparent',
+              }}
+            >
+              My Requests
+              {myRequests && myRequests.length > 0 && (
+                <span className="text-xs" style={{ color: t.textMuted }}>
+                  ({myRequests.length})
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'approvals' && canManageLeave && (
+            <div>
+              {!pendingRequests || pendingRequests.length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center text-center"
+                  style={{
+                    background: t.surface,
+                    borderRadius: 14,
+                    border: `1px solid ${t.border}`,
+                    padding: 48,
+                    minHeight: 240,
+                  }}
+                >
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ color: '#B0AEBE', marginBottom: 12 }}
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  <p
+                    className="font-bold"
+                    style={{ fontSize: typography.h3.size, color: t.text }}
+                  >
+                    All caught up!
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: t.textMuted }}>
+                    No pending approvals
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {(() => {
+                    // Group requests by employee
+                    const groupedByEmployee = pendingRequests.reduce((acc, request) => {
+                      const key = request.employee_id
+                      if (!acc[key]) {
+                        acc[key] = {
+                          employee_id: request.employee_id,
+                          employee_name: request.employee_name,
+                          requests: [],
+                        }
+                      }
+                      acc[key].requests.push(request)
+                      return acc
+                    }, {} as Record<string, { employee_id: string; employee_name: string; requests: any[] }>)
+
+                    return Object.values(groupedByEmployee).map((group) => (
+                      <EmployeeRequestGroup
+                        key={group.employee_id}
+                        employeeName={group.employee_name}
+                        requests={group.requests}
+                        allBalances={allBalances}
+                      />
+                    ))
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'my-requests' && (
+            <div>
+              {!myRequests || myRequests.length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center text-center"
+                  style={{
+                    background: t.surface,
+                    borderRadius: 14,
+                    border: `1px solid ${t.border}`,
+                    padding: 48,
+                    minHeight: 240,
+                  }}
+                >
+                  <svg
+                    width="48"
+                    height="48"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ color: '#B0AEBE', marginBottom: 12 }}
+                  >
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                  </svg>
+                  <p
+                    className="font-bold"
+                    style={{ fontSize: typography.h3.size, color: t.text }}
+                  >
+                    No requests yet
+                  </p>
+                  <p className="text-sm mt-1" style={{ color: t.textMuted }}>
+                    Click a leave balance to create your first request
+                  </p>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    background: t.surface,
+                    borderRadius: 14,
+                    border: `1px solid ${t.border}`,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {myRequests.slice(0, 10).map((request, idx) => {
+                    // Find matching balance for this request
+                    const matchedBalance = balances?.find(
+                      (b) => b.leave_policy_id === request.leave_policy_id
+                    )
+                    return (
+                      <RequestListItem
+                        key={request.id}
+                        request={request}
+                        variant="my"
+                        balance={matchedBalance}
+                        isLast={idx === Math.min(myRequests.length, 10) - 1}
+                      />
+                    )
+                  })}
+                  {myRequests.length > 10 && (
+                    <div
+                      className="text-center py-3 cursor-pointer transition-all hover:opacity-70"
+                      style={{
+                        borderTop: `1px solid ${t.border}`,
+                        color: t.accent,
+                      }}
+                      onClick={() => navigate({ to: '/leave/requests' })}
+                    >
+                      <span className="text-sm font-medium">
+                        View all {myRequests.length} requests →
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
 }
 
+// Request Details Modal
+interface RequestDetailsModalProps {
+  request: any
+  onClose: () => void
+}
+
+function RequestDetailsModal({ request, onClose }: RequestDetailsModalProps) {
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    })
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-lg w-full mx-4"
+        style={{
+          background: t.surface,
+          borderRadius: 16,
+          border: `1px solid ${t.border}`,
+          padding: 24,
+          maxHeight: '80vh',
+          overflow: 'auto',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 transition-opacity hover:opacity-70"
+          style={{ color: t.textMuted }}
+        >
+          <X size={20} />
+        </button>
+
+        {/* Header */}
+        <h3
+          className="font-bold mb-4"
+          style={{ fontSize: typography.h2.size, color: t.text }}
+        >
+          Leave Request Details
+        </h3>
+
+        {/* Content */}
+        <div className="space-y-3">
+          {request.employee_name && (
+            <div>
+              <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
+                Employee
+              </p>
+              <p className="text-sm font-bold" style={{ color: t.text }}>
+                {request.employee_name}
+              </p>
+            </div>
+          )}
+
+          <div>
+            <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
+              Leave Type
+            </p>
+            <p className="text-sm font-bold" style={{ color: t.text }}>
+              {request.policy_name}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
+              Status
+            </p>
+            <span
+              className="inline-block text-xs font-semibold px-2 py-1 rounded mt-1"
+              style={{
+                background: request.status === 'pending' ? colors.warnDim : 
+                           request.status === 'approved' ? colors.okDim :
+                           request.status === 'rejected' ? colors.errDim : colors.ink100,
+                color: request.status === 'pending' ? colors.warnText :
+                       request.status === 'approved' ? colors.okText :
+                       request.status === 'rejected' ? colors.errText : colors.ink500,
+              }}
+            >
+              {request.status.toUpperCase()}
+            </span>
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
+              Dates
+            </p>
+            <p className="text-sm font-bold" style={{ color: t.text }}>
+              {formatDate(request.start_date)} – {formatDate(request.end_date)}
+            </p>
+            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+              {request.total_days} {request.total_days === 1 ? 'day' : 'days'}
+            </p>
+          </div>
+
+          {request.reason && (
+            <div>
+              <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
+                Reason
+              </p>
+              <p className="text-sm" style={{ color: t.text }}>
+                {request.reason}
+              </p>
+            </div>
+          )}
+
+          {request.status === 'rejected' && request.review_note && (
+            <div>
+              <p className="text-xs font-semibold" style={{ color: colors.errText }}>
+                Rejection Reason
+              </p>
+              <p
+                className="text-sm p-2 rounded mt-1"
+                style={{
+                  background: colors.errDim,
+                  color: colors.errText,
+                }}
+              >
+                {request.review_note}
+              </p>
+            </div>
+          )}
+
+          {request.reviewed_by && (
+            <div>
+              <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
+                Reviewed By
+              </p>
+              <p className="text-sm" style={{ color: t.text }}>
+                {request.reviewed_by}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Employee Request Group Component (for approvals)
+interface EmployeeRequestGroupProps {
+  employeeName: string
+  requests: any[]
+  allBalances?: any[]
+}
+
+function EmployeeRequestGroup({ employeeName, requests, allBalances }: EmployeeRequestGroupProps) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const [showRejectInput, setShowRejectInput] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejectError, setRejectError] = useState('')
+  
+  const approveMutation = useApproveRequest()
+  const rejectMutation = useRejectRequest()
+  
+  const totalDays = requests.reduce((sum, r) => sum + r.total_days, 0)
+  const requestCount = requests.length
+  
+  const handleApproveAll = async () => {
+    // Approve all requests sequentially
+    for (const request of requests) {
+      try {
+        await approveMutation.mutateAsync({ id: request.id })
+      } catch (error) {
+        // Continue even if one fails
+        console.error('Failed to approve request:', request.id, error)
+      }
+    }
+  }
+  
+  const handleRejectAll = async () => {
+    if (!rejectReason || rejectReason.trim().length < 10) {
+      setRejectError('Rejection reason is required (minimum 10 characters)')
+      return
+    }
+    
+    // Reject all requests sequentially with the same reason
+    for (const request of requests) {
+      try {
+        await rejectMutation.mutateAsync({ id: request.id, note: rejectReason.trim() })
+      } catch (error) {
+        console.error('Failed to reject request:', request.id, error)
+      }
+    }
+    
+    setShowRejectInput(false)
+    setRejectReason('')
+    setRejectError('')
+  }
+  
+  return (
+    <div
+      style={{
+        background: t.surface,
+        borderRadius: 14,
+        border: `1px solid ${t.border}`,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Collapsed Header */}
+      <div
+        className="flex items-center justify-between transition-all"
+        style={{
+          padding: '14px 18px',
+          background: 'transparent',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = t.surfaceHover
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent'
+        }}
+      >
+        <div 
+          className="flex-1 cursor-pointer"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <div className="flex items-center gap-2">
+            <p className="font-bold text-sm" style={{ color: t.text }}>
+              {employeeName}
+            </p>
+            <span
+              className="text-[10px] font-medium px-1.5 py-0.5 rounded"
+              style={{
+                background: colors.ink100,
+                color: colors.ink500,
+              }}
+            >
+              {requestCount} {requestCount === 1 ? 'request' : 'requests'}
+            </span>
+          </div>
+          <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+            {totalDays} {totalDays === 1 ? 'day' : 'days'} total
+            {requests.length > 1 && ' • Click to see individual requests'}
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          {!showRejectInput && (
+            <>
+              <button
+                onClick={handleApproveAll}
+                disabled={approveMutation.isPending}
+                className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: colors.ok,
+                  color: '#FFFFFF',
+                  borderRadius: 8,
+                }}
+                title={`Approve all ${requestCount} requests`}
+              >
+                <Check size={16} strokeWidth={3} />
+              </button>
+              
+              <button
+                onClick={() => setShowRejectInput(true)}
+                className="flex items-center justify-center transition-all hover:scale-110"
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: colors.err,
+                  color: '#FFFFFF',
+                  borderRadius: 8,
+                }}
+                title={`Reject all ${requestCount} requests`}
+              >
+                <X size={16} strokeWidth={3} />
+              </button>
+            </>
+          )}
+          
+          {requestCount > 1 && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="flex items-center justify-center transition-all hover:opacity-70"
+              style={{
+                width: 32,
+                height: 32,
+                color: t.textMuted,
+              }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  transition: 'transform 0.2s',
+                }}
+              >
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {/* Reject All Input */}
+      {showRejectInput && (
+        <div
+          style={{
+            padding: '0 18px 14px 18px',
+            borderTop: `1px solid ${t.border}`,
+          }}
+        >
+          <div className="pt-3">
+            <textarea
+              value={rejectReason}
+              onChange={(e) => {
+                setRejectReason(e.target.value)
+                setRejectError('')
+              }}
+              rows={2}
+              className="w-full px-2 py-1.5 text-xs focus:outline-none focus:ring-1 resize-none"
+              style={{
+                background: t.input,
+                border: `1px solid ${rejectError ? colors.err : t.inputBorder}`,
+                borderRadius: 8,
+                color: t.text,
+              }}
+              placeholder="Rejection reason for all requests (required, min 10 chars)..."
+              autoFocus
+            />
+            {rejectError && (
+              <p className="text-xs mt-1" style={{ color: colors.err }}>
+                {rejectError}
+              </p>
+            )}
+            <div className="flex items-center gap-2 mt-2">
+              <button
+                onClick={handleRejectAll}
+                disabled={rejectMutation.isPending}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{
+                  background: colors.err,
+                  color: '#FFFFFF',
+                  borderRadius: 8,
+                }}
+              >
+                <X size={12} />
+                {rejectMutation.isPending ? 'Rejecting...' : `Reject All ${requestCount}`}
+              </button>
+              <button
+                onClick={() => {
+                  setShowRejectInput(false)
+                  setRejectReason('')
+                  setRejectError('')
+                }}
+                className="px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
+                style={{ color: t.textMuted }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Expanded Individual Requests */}
+      {isExpanded && (
+        <div style={{ borderTop: `1px solid ${t.border}` }}>
+          {requests.map((request, idx) => {
+            const balance = allBalances?.find(
+              (b) => b.employee_id === request.employee_id && b.leave_policy_id === request.leave_policy_id
+            )
+            
+            return (
+              <RequestListItem
+                key={request.id}
+                request={request}
+                variant="approval"
+                balance={balance}
+                isLast={idx === requests.length - 1}
+              />
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Request List Item Component (replaces card)
+interface RequestListItemProps {
+  request: any // LeaveRequestWithDetails
+  variant: 'my' | 'approval'
+  balance?: any // LeaveBalanceWithPolicy
+  isLast?: boolean
+}
+
+function RequestListItem({ request, variant, balance, isLast = false }: RequestListItemProps) {
+  const [showRejectInput, setShowRejectInput] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejectError, setRejectError] = useState('')
+  const [showDetails, setShowDetails] = useState(false)
+  
+  const approveMutation = useApproveRequest()
+  const rejectMutation = useRejectRequest()
+  const cancelMutation = useCancelRequest()
+
+  const handleApprove = async () => {
+    try {
+      await approveMutation.mutateAsync({ id: request.id })
+    } catch (error) {
+      // Error is handled by mutation
+    }
+  }
+
+  const handleReject = async () => {
+    if (!rejectReason || rejectReason.trim().length < 10) {
+      setRejectError('Rejection reason is required (minimum 10 characters)')
+      return
+    }
+    
+    try {
+      await rejectMutation.mutateAsync({ id: request.id, note: rejectReason.trim() })
+      setShowRejectInput(false)
+      setRejectReason('')
+      setRejectError('')
+    } catch (error) {
+      // Error is handled by mutation
+    }
+  }
+
+  const handleCancel = async () => {
+    try {
+      await cancelMutation.mutateAsync(request.id)
+    } catch (error) {
+      // Error is handled by mutation
+    }
+  }
+
+  // Calculate balance impact
+  const balanceImpact = balance ? {
+    current: balance.entitled_days + balance.carried_over_days - balance.used_days - balance.pending_days,
+    after: balance.entitled_days + balance.carried_over_days - balance.used_days - balance.pending_days - request.total_days,
+  } : null
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+    })
+  }
+
+  return (
+    <>
+      {showDetails && (
+        <RequestDetailsModal request={request} onClose={() => setShowDetails(false)} />
+      )}
+      
+      <div
+        className="transition-all"
+        style={{
+          padding: '12px 18px',
+          borderBottom: !isLast ? `1px solid ${t.border}` : 'none',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = t.surfaceHover
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'transparent'
+        }}
+      >
+        <div className="flex items-center justify-between">
+          {/* Left: Name + Policy - Clickable for details */}
+          <div 
+            className="flex-1 mr-4 cursor-pointer"
+            onClick={() => setShowDetails(true)}
+          >
+            {variant === 'approval' && (
+              <p className="font-bold text-sm mb-0.5" style={{ color: t.text }}>
+                {request.employee_name}
+              </p>
+            )}
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-sm" style={{ color: t.text }}>
+                {request.policy_name}
+              </p>
+              {/* Only show status badge for 'my' variant or non-pending statuses */}
+              {(variant === 'my' || request.status !== 'pending') && (
+                <span
+                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase"
+                  style={{
+                    background: request.status === 'pending' ? colors.warnDim : 
+                               request.status === 'approved' ? colors.okDim :
+                               request.status === 'rejected' ? colors.errDim : colors.ink100,
+                    color: request.status === 'pending' ? colors.warnText :
+                           request.status === 'approved' ? colors.okText :
+                           request.status === 'rejected' ? colors.errText : colors.ink500,
+                  }}
+                >
+                  {request.status}
+                </span>
+              )}
+            </div>
+            {/* Balance Impact (my variant only) */}
+            {variant === 'my' && balanceImpact && (
+              <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+                Balance: <strong style={{ color: t.text }}>{balanceImpact.current} → {balanceImpact.after}</strong>
+              </p>
+            )}
+          </div>
+
+        {/* Right: Dates + Days + Actions */}
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className="text-xs" style={{ color: t.textMuted }}>
+              {formatDate(request.start_date)} – {formatDate(request.end_date)}
+            </p>
+            <p className="text-xs font-bold mt-0.5" style={{ color: t.text }}>
+              {request.total_days} {request.total_days === 1 ? 'day' : 'days'}
+            </p>
+          </div>
+
+          {/* Action Buttons (approval variant, icon-only) */}
+          {variant === 'approval' && request.status === 'pending' && !showRejectInput && (
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={handleApprove}
+                disabled={approveMutation.isPending}
+                className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: colors.ok,
+                  color: '#FFFFFF',
+                  borderRadius: 8,
+                }}
+                title="Approve"
+              >
+                <Check size={16} strokeWidth={3} />
+              </button>
+              <button
+                onClick={() => setShowRejectInput(true)}
+                className="flex items-center justify-center transition-all hover:scale-110"
+                style={{
+                  width: 32,
+                  height: 32,
+                  background: colors.err,
+                  color: '#FFFFFF',
+                  borderRadius: 8,
+                }}
+                title="Reject"
+              >
+                <X size={16} strokeWidth={3} />
+              </button>
+            </div>
+          )}
+
+          {/* Cancel button (my variant, icon) */}
+          {variant === 'my' && request.status === 'pending' && (
+            <button
+              onClick={handleCancel}
+              disabled={cancelMutation.isPending}
+              className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
+              style={{
+                width: 32,
+                height: 32,
+                background: colors.err,
+                color: '#FFFFFF',
+                borderRadius: 8,
+              }}
+              title="Cancel request"
+            >
+              <X size={16} strokeWidth={3} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Rejection Note (if rejected) */}
+      {request.status === 'rejected' && request.review_note && (
+        <div
+          className="text-xs p-2 rounded mt-2"
+          style={{
+            background: colors.errDim,
+            color: colors.errText,
+          }}
+        >
+          <strong>Rejected:</strong> {request.review_note}
+        </div>
+      )}
+
+      {/* Inline Reject Input */}
+      {variant === 'approval' && showRejectInput && (
+        <div className="mt-2">
+          <textarea
+            value={rejectReason}
+            onChange={(e) => {
+              setRejectReason(e.target.value)
+              setRejectError('')
+            }}
+            rows={2}
+            className="w-full px-2 py-1.5 text-xs focus:outline-none focus:ring-1 resize-none"
+            style={{
+              background: t.input,
+              border: `1px solid ${rejectError ? colors.err : t.inputBorder}`,
+              borderRadius: 8,
+              color: t.text,
+            }}
+            placeholder="Rejection reason (required, min 10 chars)..."
+            autoFocus
+          />
+          {rejectError && (
+            <p className="text-xs mt-1" style={{ color: colors.err }}>
+              {rejectError}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              onClick={handleReject}
+              disabled={rejectMutation.isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{
+                background: colors.err,
+                color: '#FFFFFF',
+                borderRadius: 8,
+              }}
+            >
+              <X size={12} />
+              {rejectMutation.isPending ? 'Rejecting...' : 'Confirm Reject'}
+            </button>
+            <button
+              onClick={() => {
+                setShowRejectInput(false)
+                setRejectReason('')
+                setRejectError('')
+              }}
+              className="px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
+              style={{ color: t.textMuted }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      </div>
+    </>
+  )
+}
+
 function BalancesSkeleton() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {[1, 2].map((i) => (
+    <div
+      style={{
+        background: t.surface,
+        borderRadius: 14,
+        border: `1px solid ${t.border}`,
+        overflow: 'hidden',
+      }}
+    >
+      {[1, 2, 3].map((i, idx) => (
         <div
           key={i}
           className="animate-pulse"
           style={{
-            background: t.surface,
-            borderRadius: 14,
-            border: `1px solid ${t.border}`,
-            padding: 20,
-            height: 140,
+            padding: '14px 18px',
+            borderBottom: idx < 2 ? `1px solid ${t.border}` : 'none',
           }}
         >
-          <div style={{ background: t.surfaceHover, height: 20, width: '60%', borderRadius: 4 }} />
-          <div style={{ background: t.surfaceHover, height: 12, width: '40%', borderRadius: 4, marginTop: 8 }} />
+          <div className="flex items-center justify-between">
+            <div style={{ background: t.surfaceHover, height: 16, width: '40%', borderRadius: 4 }} />
+            <div style={{ background: t.surfaceHover, height: 32, width: '60px', borderRadius: 4 }} />
+          </div>
         </div>
       ))}
     </div>

@@ -2,8 +2,8 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useMyRequests } from '@/lib/hooks/useLeave'
 import { RequestCard } from '@/components/workived/leave/RequestCard'
-import { groupByStatus } from '@/lib/utils/leave'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
+import type { LeaveRequestWithDetails } from '@/types/api'
 
 const t = moduleThemes.leave
 
@@ -11,24 +11,67 @@ export const Route = createFileRoute('/_app/leave/requests/')({
   component: MyRequestsPage,
 })
 
-const STATUS_TABS = [
-  { value: 'all', label: 'All' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'rejected', label: 'Rejected' },
-] as const
+// Group requests by time period
+function groupByTimePeriod(requests: LeaveRequestWithDetails[]) {
+  const now = new Date()
+  const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+
+  const active: LeaveRequestWithDetails[] = []
+  const thisMonth: LeaveRequestWithDetails[] = []
+  const lastMonth: LeaveRequestWithDetails[] = []
+  const older: LeaveRequestWithDetails[] = []
+
+  requests.forEach((req) => {
+    const createdAt = new Date(req.created_at)
+    
+    // Active: pending or future approved requests
+    const startDate = new Date(req.start_date)
+    if (req.status === 'pending' || (req.status === 'approved' && startDate >= now)) {
+      active.push(req)
+    }
+    // This month
+    else if (createdAt >= thisMonthStart) {
+      thisMonth.push(req)
+    }
+    // Last month
+    else if (createdAt >= lastMonthStart) {
+      lastMonth.push(req)
+    }
+    // Older (3+ months)
+    else {
+      older.push(req)
+    }
+  })
+
+  // Sort active by start date (upcoming first)
+  active.sort((a, b) => new Date(a.start_date).getTime() - new Date(b.start_date).getTime())
+  
+  // Sort others by created date (newest first)
+  thisMonth.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  lastMonth.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+  older.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+  return { active, thisMonth, lastMonth, older }
+}
 
 function MyRequestsPage() {
-  const [activeTab, setActiveTab] = useState<string>('all')
   const { data: requests, isLoading } = useMyRequests()
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['active', 'thisMonth']))
 
-  const grouped = requests ? groupByStatus(requests) : null
-  const displayRequests =
-    activeTab === 'all'
-      ? requests
-      : grouped
-      ? grouped[activeTab as keyof typeof grouped]
-      : []
+  const grouped = requests ? groupByTimePeriod(requests) : null
+
+  const toggleSection = (section: string) => {
+    setExpandedSections((prev) => {
+      const next = new Set(prev)
+      if (next.has(section)) {
+        next.delete(section)
+      } else {
+        next.add(section)
+      }
+      return next
+    })
+  }
 
   return (
     <div
@@ -53,42 +96,115 @@ function MyRequestsPage() {
         </p>
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex items-center gap-1 mb-5 overflow-x-auto">
-        {STATUS_TABS.map((tab) => {
-          const isActive = activeTab === tab.value
-          const count =
-            tab.value === 'all'
-              ? requests?.length ?? 0
-              : grouped
-              ? grouped[tab.value as keyof typeof grouped].length
-              : 0
-
-          return (
-            <button
-              key={tab.value}
-              onClick={() => setActiveTab(tab.value)}
-              className="text-sm font-medium px-3.5 py-1.5 transition-colors whitespace-nowrap"
-              style={{
-                borderRadius: 8,
-                background: isActive ? t.surfaceHover : 'transparent',
-                color: isActive ? t.text : t.textMuted,
-              }}
-            >
-              {tab.label} {count > 0 && `(${count})`}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Requests List */}
+      {/* Timeline Feed */}
       {isLoading ? (
         <RequestsSkeleton />
-      ) : !displayRequests || displayRequests.length === 0 ? (
-        <EmptyRequests status={activeTab} />
+      ) : !requests || requests.length === 0 ? (
+        <EmptyRequests />
       ) : (
-        <div className="flex flex-col gap-[3px]">
-          {displayRequests.map((request) => (
+        <div className="space-y-6">
+          {/* Active Requests */}
+          {grouped && grouped.active.length > 0 && (
+            <TimelineSection
+              title="📍 ACTIVE"
+              subtitle={`${grouped.active.length} pending or upcoming`}
+              requests={grouped.active}
+              isExpanded={expandedSections.has('active')}
+              onToggle={() => toggleSection('active')}
+              alwaysExpanded
+            />
+          )}
+
+          {/* This Month */}
+          {grouped && grouped.thisMonth.length > 0 && (
+            <TimelineSection
+              title="📍 THIS MONTH"
+              subtitle={`${grouped.thisMonth.length} request${grouped.thisMonth.length === 1 ? '' : 's'}`}
+              requests={grouped.thisMonth}
+              isExpanded={expandedSections.has('thisMonth')}
+              onToggle={() => toggleSection('thisMonth')}
+            />
+          )}
+
+          {/* Last Month */}
+          {grouped && grouped.lastMonth.length > 0 && (
+            <TimelineSection
+              title="📍 LAST MONTH"
+              subtitle={`${grouped.lastMonth.length} request${grouped.lastMonth.length === 1 ? '' : 's'}`}
+              requests={grouped.lastMonth}
+              isExpanded={expandedSections.has('lastMonth')}
+              onToggle={() => toggleSection('lastMonth')}
+            />
+          )}
+
+          {/* Older */}
+          {grouped && grouped.older.length > 0 && (
+            <TimelineSection
+              title="📍 OLDER"
+              subtitle={`${grouped.older.length} request${grouped.older.length === 1 ? '' : 's'}`}
+              requests={grouped.older}
+              isExpanded={expandedSections.has('older')}
+              onToggle={() => toggleSection('older')}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface TimelineSectionProps {
+  title: string
+  subtitle: string
+  requests: LeaveRequestWithDetails[]
+  isExpanded: boolean
+  onToggle: () => void
+  alwaysExpanded?: boolean
+}
+
+function TimelineSection({ 
+  title, 
+  subtitle, 
+  requests, 
+  isExpanded, 
+  onToggle,
+  alwaysExpanded = false 
+}: TimelineSectionProps) {
+  return (
+    <div>
+      {/* Section Header */}
+      <button
+        onClick={onToggle}
+        disabled={alwaysExpanded}
+        className="w-full flex items-center justify-between mb-3 text-left transition-opacity hover:opacity-70 disabled:opacity-100 disabled:cursor-default"
+      >
+        <div>
+          <h2
+            className="font-bold uppercase tracking-wider text-xs"
+            style={{ color: t.textMuted }}
+          >
+            {title}
+          </h2>
+          <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+            {subtitle}
+          </p>
+        </div>
+        {!alwaysExpanded && (
+          <span className="text-xs font-medium" style={{ color: t.textMuted }}>
+            {isExpanded ? 'Collapse' : 'Expand'}
+          </span>
+        )}
+      </button>
+
+      {/* Section Content */}
+      {isExpanded && (
+        <div 
+          className="grid gap-3"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          }}
+        >
+          {requests.map((request) => (
             <RequestCard key={request.id} request={request} variant="my" />
           ))}
         </div>
@@ -99,8 +215,13 @@ function MyRequestsPage() {
 
 function RequestsSkeleton() {
   return (
-    <div className="flex flex-col gap-[3px]">
-      {[1, 2, 3].map((i) => (
+    <div 
+      className="grid gap-3"
+      style={{
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+      }}
+    >
+      {[1, 2, 3, 4, 5, 6].map((i) => (
         <div
           key={i}
           className="animate-pulse"
@@ -108,24 +229,19 @@ function RequestsSkeleton() {
             background: t.surface,
             borderRadius: 14,
             border: `1px solid ${t.border}`,
-            padding: 20,
+            padding: '14px 16px',
             height: 120,
           }}
         >
-          <div style={{ background: t.surfaceHover, height: 16, width: '30%', borderRadius: 4 }} />
-          <div style={{ background: t.surfaceHover, height: 12, width: '50%', borderRadius: 4, marginTop: 8 }} />
+          <div style={{ background: t.surfaceHover, height: 16, width: '60%', borderRadius: 4 }} />
+          <div style={{ background: t.surfaceHover, height: 12, width: '40%', borderRadius: 4, marginTop: 8 }} />
         </div>
       ))}
     </div>
   )
 }
 
-function EmptyRequests({ status }: { status: string }) {
-  const message =
-    status === 'all'
-      ? 'No leave requests yet'
-      : `No ${status} requests`
-
+function EmptyRequests() {
   return (
     <div
       className="flex flex-col items-center justify-center text-center"
@@ -154,10 +270,10 @@ function EmptyRequests({ status }: { status: string }) {
         className="font-bold"
         style={{ fontSize: typography.h3.size, color: t.text }}
       >
-        {message}
+        No leave requests yet
       </p>
       <p className="text-sm mt-1" style={{ color: t.textMuted }}>
-        {status === 'all' && 'Submit your first request from the dashboard.'}
+        Submit your first request from the dashboard
       </p>
     </div>
   )

@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState } from 'react'
-import { useAllRequests } from '@/lib/hooks/useLeave'
+import { useAllRequests, useAllBalances } from '@/lib/hooks/useLeave'
 import { RequestCard } from '@/components/workived/leave/RequestCard'
 import { ApprovalDialog } from '@/components/workived/leave/ApprovalDialog'
 import type { LeaveRequestWithDetails } from '@/types/api'
@@ -13,7 +13,9 @@ export const Route = createFileRoute('/_app/leave/requests/pending')({
 })
 
 function PendingApprovalsPage() {
+  const currentYear = new Date().getFullYear()
   const { data: requests, isLoading } = useAllRequests({ status: 'pending' })
+  const { data: balances } = useAllBalances(currentYear)
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequestWithDetails | null>(null)
 
   return (
@@ -45,16 +47,28 @@ function PendingApprovalsPage() {
       ) : !requests || requests.length === 0 ? (
         <EmptyPending />
       ) : (
-        <div className="flex flex-col gap-[3px]">
-          {requests.map((request) => (
-            <button
-              key={request.id}
-              onClick={() => setSelectedRequest(request)}
-              className="text-left w-full"
-            >
-              <RequestCard request={request} variant="team" />
-            </button>
-          ))}
+        <div 
+          className="grid gap-3"
+          style={{
+            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          }}
+        >
+          {requests.map((request) => {
+            // Find matching balance for the employee + policy
+            const balance = balances?.find(
+              (b) => b.employee_id === request.employee_id && b.leave_policy_id === request.leave_policy_id
+            )
+            
+            return (
+              <RequestCard
+                key={request.id}
+                request={request}
+                variant="approval"
+                balance={balance}
+                onViewDetails={() => setSelectedRequest(request)}
+              />
+            )
+          })}
         </div>
       )}
 
@@ -71,8 +85,13 @@ function PendingApprovalsPage() {
 
 function RequestsSkeleton() {
   return (
-    <div className="flex flex-col gap-[3px]">
-      {[1, 2, 3].map((i) => (
+    <div 
+      className="grid gap-3"
+      style={{
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+      }}
+    >
+      {[1, 2, 3, 4, 5, 6].map((i) => (
         <div
           key={i}
           className="animate-pulse"
@@ -80,12 +99,13 @@ function RequestsSkeleton() {
             background: t.surface,
             borderRadius: 14,
             border: `1px solid ${t.border}`,
-            padding: 20,
-            height: 120,
+            padding: '14px 16px',
+            height: 140,
           }}
         >
-          <div style={{ background: t.surfaceHover, height: 16, width: '30%', borderRadius: 4 }} />
-          <div style={{ background: t.surfaceHover, height: 12, width: '50%', borderRadius: 4, marginTop: 8 }} />
+          <div style={{ background: t.surfaceHover, height: 16, width: '60%', borderRadius: 4 }} />
+          <div style={{ background: t.surfaceHover, height: 12, width: '40%', borderRadius: 4, marginTop: 8 }} />
+          <div style={{ background: t.surfaceHover, height: 40, width: '100%', borderRadius: 8, marginTop: 12 }} />
         </div>
       ))}
     </div>

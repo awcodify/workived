@@ -1,21 +1,29 @@
-import type { ClaimWithDetails } from '@/types/api'
+import type { ClaimWithDetails, Category } from '@/types/api'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
-import { useCancelClaim } from '@/lib/hooks/useClaims'
-import { moduleThemes, typography } from '@/design/tokens'
+import { useCancelClaim, useApproveClaim, useRejectClaim } from '@/lib/hooks/useClaims'
+import { moduleThemes, typography, colors } from '@/design/tokens'
 import { useState } from 'react'
-import { Calendar, Receipt } from 'lucide-react'
+import { Calendar, Receipt, CheckCircle, XCircle, ExternalLink } from 'lucide-react'
 
 const t = moduleThemes.claims
 
 interface ClaimCardProps {
   claim: ClaimWithDetails
-  variant?: 'my' | 'team' // 'my' shows cancel button, 'team' shows employee name
+  variant?: 'my' | 'team' | 'approval' // 'my' = cancel button, 'team' = employee name, 'approval' = inline approve/reject
+  category?: Category // For approval variant - show budget context
   onView?: (id: string) => void
+  onViewDetails?: () => void // For approval variant - open full dialog
 }
 
-export function ClaimCard({ claim, variant = 'my', onView }: ClaimCardProps) {
+export function ClaimCard({ claim, variant = 'my', category, onView, onViewDetails }: ClaimCardProps) {
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showRejectInput, setShowRejectInput] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
+  const [rejectError, setRejectError] = useState('')
+  
   const cancelMutation = useCancelClaim()
+  const approveMutation = useApproveClaim()
+  const rejectMutation = useRejectClaim()
 
   const handleCancel = async () => {
     try {
