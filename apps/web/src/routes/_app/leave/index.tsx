@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { AlertCircle, Check, X, Settings } from 'lucide-react'
+import { AlertCircle, X, Settings } from 'lucide-react'
 import { useMyBalances, useAllRequests, useMyRequests, useAllBalances, useApproveRequest, useRejectRequest, useCancelRequest, useSubmitRequest, usePolicies } from '@/lib/hooks/useLeave'
 import { useCanManageLeave } from '@/lib/hooks/useRole'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
@@ -9,6 +9,8 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { submitRequestSchema, type SubmitRequestFormData } from '@/lib/validations/leave'
 import { calculateWorkingDays, calculateAvailableDays } from '@/lib/utils/leave'
+import { RequestListItem, EmployeeRequestGroup, type RequestData } from '@/components/workived/shared/requests'
+import { createLeaveRequestConfig, leaveRequestTheme } from '@/components/workived/leave/LeaveRequestConfig'
 
 const t = moduleThemes.leave
 
@@ -25,8 +27,12 @@ function LeaveDashboard() {
   const { data: myRequests } = useMyRequests()
   const canManageLeave = useCanManageLeave()
   
+  const approveMutation = useApproveRequest()
+  const rejectMutation = useRejectRequest()
+  const cancelMutation = useCancelRequest()
+  
   const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>(
-    canManageLeave && (pendingRequests?.length ?? 0) > 0 ? 'approvals' : 'my-requests'
+    canManageLeave ? 'approvals' : 'my-requests'
   )
   
   const [showNewRequestModal, setShowNewRequestModal] = useState(false)
@@ -361,8 +367,43 @@ function LeaveDashboard() {
                       <EmployeeRequestGroup
                         key={group.employee_id}
                         employeeName={group.employee_name}
-                        requests={group.requests}
-                        allBalances={allBalances}
+                        requests={group.requests as RequestData[]}
+                        actions={{
+                          onApproveAll: async (requests) => {
+                            for (const request of requests) {
+                              try {
+                                await approveMutation.mutateAsync({ id: request.id })
+                              } catch (error) {
+                                console.error('Failed to approve request:', request.id, error)
+                              }
+                            }
+                          },
+                          onRejectAll: async (requests, note) => {
+                            for (const request of requests) {
+                              try {
+                                await rejectMutation.mutateAsync({ id: request.id, note })
+                              } catch (error) {
+                                console.error('Failed to reject request:', request.id, error)
+                              }
+                            }
+                          },
+                          onApprove: async (id) => {
+                            await approveMutation.mutateAsync({ id })
+                          },
+                          onReject: async (id, note) => {
+                            await rejectMutation.mutateAsync({ id, note })
+                          },
+                          isPendingApprove: approveMutation.isPending,
+                          isPendingReject: rejectMutation.isPending,
+                        }}
+                        config={createLeaveRequestConfig()}
+                        theme={leaveRequestTheme}
+                        findContextData={(request) => {
+                          const balance = allBalances?.find(
+                            (b: any) => b.employee_id === request.employee_id && b.leave_policy_id === (request as any).leave_policy_id
+                          )
+                          return balance ? { balance } : undefined
+                        }}
                       />
                     ))
                   })()}
@@ -421,12 +462,20 @@ function LeaveDashboard() {
                     const matchedBalance = balances?.find(
                       (b) => b.leave_policy_id === request.leave_policy_id
                     )
+
                     return (
                       <RequestListItem
                         key={request.id}
-                        request={request}
+                        request={request as RequestData}
                         variant="my"
-                        balance={matchedBalance}
+                        config={createLeaveRequestConfig(matchedBalance)}
+                        actions={{
+                          onCancel: async (id) => {
+                            await cancelMutation.mutateAsync(id)
+                          },
+                          isPendingCancel: cancelMutation.isPending,
+                        }}
+                        theme={leaveRequestTheme}
                         isLast={idx === myRequests.length - 1}
                       />
                     )
@@ -913,663 +962,6 @@ function DateRangePicker({ startDate, endDate, onStartDateChange, onEndDateChang
         </p>
       )}
     </div>
-  )
-}
-
-// Request Details Modal
-interface RequestDetailsModalProps {
-  request: any
-  onClose: () => void
-}
-
-function RequestDetailsModal({ request, onClose }: RequestDetailsModalProps) {
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    })
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0, 0, 0, 0.5)' }}
-      onClick={onClose}
-    >
-      <div
-        className="relative max-w-lg w-full mx-4"
-        style={{
-          background: t.surface,
-          borderRadius: 16,
-          border: `1px solid ${t.border}`,
-          padding: 24,
-          maxHeight: '80vh',
-          overflow: 'auto',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 transition-opacity hover:opacity-70"
-          style={{ color: t.textMuted }}
-        >
-          <X size={20} />
-        </button>
-
-        {/* Header */}
-        <h3
-          className="font-bold mb-4"
-          style={{ fontSize: typography.h2.size, color: t.text }}
-        >
-          Leave Request Details
-        </h3>
-
-        {/* Content */}
-        <div className="space-y-3">
-          {request.employee_name && (
-            <div>
-              <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
-                Employee
-              </p>
-              <p className="text-sm font-bold" style={{ color: t.text }}>
-                {request.employee_name}
-              </p>
-            </div>
-          )}
-
-          <div>
-            <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
-              Leave Type
-            </p>
-            <p className="text-sm font-bold" style={{ color: t.text }}>
-              {request.policy_name}
-            </p>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
-              Status
-            </p>
-            <span
-              className="inline-block text-xs font-semibold px-2 py-1 rounded mt-1"
-              style={{
-                background: request.status === 'pending' ? colors.warnDim : 
-                           request.status === 'approved' ? colors.okDim :
-                           request.status === 'rejected' ? colors.errDim : colors.ink100,
-                color: request.status === 'pending' ? colors.warnText :
-                       request.status === 'approved' ? colors.okText :
-                       request.status === 'rejected' ? colors.errText : colors.ink500,
-              }}
-            >
-              {request.status.toUpperCase()}
-            </span>
-          </div>
-
-          <div>
-            <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
-              Dates
-            </p>
-            <p className="text-sm font-bold" style={{ color: t.text }}>
-              {formatDate(request.start_date)} – {formatDate(request.end_date)}
-            </p>
-            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
-              {request.total_days} {request.total_days === 1 ? 'day' : 'days'}
-            </p>
-          </div>
-
-          {request.reason && (
-            <div>
-              <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
-                Reason
-              </p>
-              <p className="text-sm" style={{ color: t.text }}>
-                {request.reason}
-              </p>
-            </div>
-          )}
-
-          {request.status === 'rejected' && request.review_note && (
-            <div>
-              <p className="text-xs font-semibold" style={{ color: colors.errText }}>
-                Rejection Reason
-              </p>
-              <p
-                className="text-sm p-2 rounded mt-1"
-                style={{
-                  background: colors.errDim,
-                  color: colors.errText,
-                }}
-              >
-                {request.review_note}
-              </p>
-            </div>
-          )}
-
-          {(request.reviewed_by_name || request.reviewed_by) && (
-            <div>
-              <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
-                Reviewed By
-              </p>
-              <p className="text-sm" style={{ color: t.text }}>
-                {request.reviewed_by_name || request.reviewed_by}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Employee Request Group Component (for approvals)
-interface EmployeeRequestGroupProps {
-  employeeName: string
-  requests: any[]
-  allBalances?: any[]
-}
-
-function EmployeeRequestGroup({ employeeName, requests, allBalances }: EmployeeRequestGroupProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [showRejectInput, setShowRejectInput] = useState(false)
-  const [rejectReason, setRejectReason] = useState('')
-  const [rejectError, setRejectError] = useState('')
-  
-  const approveMutation = useApproveRequest()
-  const rejectMutation = useRejectRequest()
-  
-  const totalDays = requests.reduce((sum, r) => sum + r.total_days, 0)
-  const requestCount = requests.length
-  
-  const handleApproveAll = async () => {
-    // Approve all requests sequentially
-    for (const request of requests) {
-      try {
-        await approveMutation.mutateAsync({ id: request.id })
-      } catch (error) {
-        // Continue even if one fails
-        console.error('Failed to approve request:', request.id, error)
-      }
-    }
-  }
-  
-  const handleRejectAll = async () => {
-    if (!rejectReason || rejectReason.trim().length < 10) {
-      setRejectError('Rejection reason is required (minimum 10 characters)')
-      return
-    }
-    
-    // Reject all requests sequentially with the same reason
-    for (const request of requests) {
-      try {
-        await rejectMutation.mutateAsync({ id: request.id, note: rejectReason.trim() })
-      } catch (error) {
-        console.error('Failed to reject request:', request.id, error)
-      }
-    }
-    
-    setShowRejectInput(false)
-    setRejectReason('')
-    setRejectError('')
-  }
-  
-  return (
-    <div
-      style={{
-        background: t.surface,
-        borderRadius: 14,
-        border: `1px solid ${t.border}`,
-        overflow: 'hidden',
-      }}
-    >
-      {/* Collapsed Header */}
-      <div
-        className="flex items-center justify-between transition-all"
-        style={{
-          padding: '14px 18px',
-          background: 'transparent',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = t.surfaceHover
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent'
-        }}
-      >
-        <div 
-          className="flex-1 cursor-pointer"
-          onClick={() => setIsExpanded(!isExpanded)}
-        >
-          <div className="flex items-center gap-2">
-            <p className="font-bold text-sm" style={{ color: t.text }}>
-              {employeeName}
-            </p>
-            <span
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded"
-              style={{
-                background: colors.ink100,
-                color: colors.ink500,
-              }}
-            >
-              {requestCount} {requestCount === 1 ? 'request' : 'requests'}
-            </span>
-          </div>
-          <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
-            {totalDays} {totalDays === 1 ? 'day' : 'days'} total
-            {requests.length > 1 && ' • Click to see individual requests'}
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {!showRejectInput && (
-            <>
-              <button
-                onClick={handleApproveAll}
-                disabled={approveMutation.isPending}
-                className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
-                style={{
-                  width: 32,
-                  height: 32,
-                  background: colors.ok,
-                  color: '#FFFFFF',
-                  borderRadius: 8,
-                }}
-                title={`Approve all ${requestCount} requests`}
-              >
-                <Check size={16} strokeWidth={3} />
-              </button>
-              
-              <button
-                onClick={() => setShowRejectInput(true)}
-                className="flex items-center justify-center transition-all hover:scale-110"
-                style={{
-                  width: 32,
-                  height: 32,
-                  background: colors.err,
-                  color: '#FFFFFF',
-                  borderRadius: 8,
-                }}
-                title={`Reject all ${requestCount} requests`}
-              >
-                <X size={16} strokeWidth={3} />
-              </button>
-            </>
-          )}
-          
-          {requestCount > 1 && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center justify-center transition-all hover:opacity-70"
-              style={{
-                width: 32,
-                height: 32,
-                color: t.textMuted,
-              }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                style={{
-                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
-                  transition: 'transform 0.2s',
-                }}
-              >
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </button>
-          )}
-        </div>
-      </div>
-      
-      {/* Reject All Input */}
-      {showRejectInput && (
-        <div
-          style={{
-            padding: '0 18px 14px 18px',
-            borderTop: `1px solid ${t.border}`,
-          }}
-        >
-          <div className="pt-3">
-            <textarea
-              value={rejectReason}
-              onChange={(e) => {
-                setRejectReason(e.target.value)
-                setRejectError('')
-              }}
-              rows={2}
-              className="w-full px-2 py-1.5 text-xs focus:outline-none focus:ring-1 resize-none"
-              style={{
-                background: t.input,
-                border: `1px solid ${rejectError ? colors.err : t.inputBorder}`,
-                borderRadius: 8,
-                color: t.text,
-              }}
-              placeholder="Rejection reason for all requests (required, min 10 chars)..."
-              autoFocus
-            />
-            {rejectError && (
-              <p className="text-xs mt-1" style={{ color: colors.err }}>
-                {rejectError}
-              </p>
-            )}
-            <div className="flex items-center gap-2 mt-2">
-              <button
-                onClick={handleRejectAll}
-                disabled={rejectMutation.isPending}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
-                style={{
-                  background: colors.err,
-                  color: '#FFFFFF',
-                  borderRadius: 8,
-                }}
-              >
-                <X size={12} />
-                {rejectMutation.isPending ? 'Rejecting...' : `Reject All ${requestCount}`}
-              </button>
-              <button
-                onClick={() => {
-                  setShowRejectInput(false)
-                  setRejectReason('')
-                  setRejectError('')
-                }}
-                className="px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
-                style={{ color: t.textMuted }}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Expanded Individual Requests */}
-      {isExpanded && (
-        <div style={{ borderTop: `1px solid ${t.border}` }}>
-          {requests.map((request, idx) => {
-            const balance = allBalances?.find(
-              (b) => b.employee_id === request.employee_id && b.leave_policy_id === request.leave_policy_id
-            )
-            
-            return (
-              <RequestListItem
-                key={request.id}
-                request={request}
-                variant="approval"
-                balance={balance}
-                isLast={idx === requests.length - 1}
-              />
-            )
-          })}
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Request List Item Component (replaces card)
-interface RequestListItemProps {
-  request: any // LeaveRequestWithDetails
-  variant: 'my' | 'approval'
-  balance?: any // LeaveBalanceWithPolicy
-  isLast?: boolean
-}
-
-function RequestListItem({ request, variant, balance, isLast = false }: RequestListItemProps) {
-  const [showRejectInput, setShowRejectInput] = useState(false)
-  const [rejectReason, setRejectReason] = useState('')
-  const [rejectError, setRejectError] = useState('')
-  const [showDetails, setShowDetails] = useState(false)
-  
-  const approveMutation = useApproveRequest()
-  const rejectMutation = useRejectRequest()
-  const cancelMutation = useCancelRequest()
-
-  const handleApprove = async () => {
-    try {
-      await approveMutation.mutateAsync({ id: request.id })
-    } catch (error) {
-      // Error is handled by mutation
-    }
-  }
-
-  const handleReject = async () => {
-    if (!rejectReason || rejectReason.trim().length < 10) {
-      setRejectError('Rejection reason is required (minimum 10 characters)')
-      return
-    }
-    
-    try {
-      await rejectMutation.mutateAsync({ id: request.id, note: rejectReason.trim() })
-      setShowRejectInput(false)
-      setRejectReason('')
-      setRejectError('')
-    } catch (error) {
-      // Error is handled by mutation
-    }
-  }
-
-  const handleCancel = async () => {
-    try {
-      await cancelMutation.mutateAsync(request.id)
-    } catch (error) {
-      // Error is handled by mutation
-    }
-  }
-
-  // Calculate balance impact
-  const balanceImpact = balance ? {
-    current: balance.entitled_days + balance.carried_over_days - balance.used_days - balance.pending_days,
-    after: balance.entitled_days + balance.carried_over_days - balance.used_days - balance.pending_days - request.total_days,
-  } : null
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: 'short',
-    })
-  }
-
-  return (
-    <>
-      {showDetails && (
-        <RequestDetailsModal request={request} onClose={() => setShowDetails(false)} />
-      )}
-      
-      <div
-        className="transition-all"
-        style={{
-          padding: '12px 18px',
-          borderBottom: !isLast ? `1px solid ${t.border}` : 'none',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = t.surfaceHover
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'transparent'
-        }}
-      >
-        <div className="flex items-center justify-between">
-          {/* Left: Name + Policy - Clickable for details */}
-          <div 
-            className="flex-1 mr-4 cursor-pointer"
-            onClick={() => setShowDetails(true)}
-          >
-            {variant === 'approval' && (
-              <p className="font-bold text-sm mb-0.5" style={{ color: t.text }}>
-                {request.employee_name}
-              </p>
-            )}
-            <div className="flex items-center gap-2">
-              <p className="font-semibold text-sm" style={{ color: t.text }}>
-                {request.policy_name}
-              </p>
-              {/* Only show status badge for 'my' variant or non-pending statuses */}
-              {(variant === 'my' || request.status !== 'pending') && (
-                <span
-                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase"
-                  style={{
-                    background: request.status === 'pending' ? colors.warnDim : 
-                               request.status === 'approved' ? colors.okDim :
-                               request.status === 'rejected' ? colors.errDim : colors.ink100,
-                    color: request.status === 'pending' ? colors.warnText :
-                           request.status === 'approved' ? colors.okText :
-                           request.status === 'rejected' ? colors.errText : colors.ink500,
-                  }}
-                >
-                  {request.status}
-                </span>
-              )}
-            </div>
-            {/* Balance Impact (my variant only) */}
-            {variant === 'my' && balanceImpact && (
-              <p className="text-xs mt-1" style={{ color: t.textMuted }}>
-                Balance: <strong style={{ color: t.text }}>{balanceImpact.current} → {balanceImpact.after}</strong>
-              </p>
-            )}
-          </div>
-
-        {/* Right: Dates + Days + Actions */}
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-xs" style={{ color: t.textMuted }}>
-              {formatDate(request.start_date)} – {formatDate(request.end_date)}
-            </p>
-            <p className="text-xs font-bold mt-0.5" style={{ color: t.text }}>
-              {request.total_days} {request.total_days === 1 ? 'day' : 'days'}
-            </p>
-          </div>
-
-          {/* Action Buttons (approval variant, icon-only) */}
-          {variant === 'approval' && request.status === 'pending' && !showRejectInput && (
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={handleApprove}
-                disabled={approveMutation.isPending}
-                className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
-                style={{
-                  width: 32,
-                  height: 32,
-                  background: colors.ok,
-                  color: '#FFFFFF',
-                  borderRadius: 8,
-                }}
-                title="Approve"
-              >
-                <Check size={16} strokeWidth={3} />
-              </button>
-              <button
-                onClick={() => setShowRejectInput(true)}
-                className="flex items-center justify-center transition-all hover:scale-110"
-                style={{
-                  width: 32,
-                  height: 32,
-                  background: colors.err,
-                  color: '#FFFFFF',
-                  borderRadius: 8,
-                }}
-                title="Reject"
-              >
-                <X size={16} strokeWidth={3} />
-              </button>
-            </div>
-          )}
-
-          {/* Cancel button (my variant, icon) */}
-          {variant === 'my' && request.status === 'pending' && (
-            <button
-              onClick={handleCancel}
-              disabled={cancelMutation.isPending}
-              className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
-              style={{
-                width: 32,
-                height: 32,
-                background: colors.err,
-                color: '#FFFFFF',
-                borderRadius: 8,
-              }}
-              title="Cancel request"
-            >
-              <X size={16} strokeWidth={3} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Rejection Note (if rejected) */}
-      {request.status === 'rejected' && request.review_note && (
-        <div
-          className="text-xs p-2 rounded mt-2"
-          style={{
-            background: colors.errDim,
-            color: colors.errText,
-          }}
-        >
-          <strong>Rejected:</strong> {request.review_note}
-        </div>
-      )}
-
-      {/* Inline Reject Input */}
-      {variant === 'approval' && showRejectInput && (
-        <div className="mt-2">
-          <textarea
-            value={rejectReason}
-            onChange={(e) => {
-              setRejectReason(e.target.value)
-              setRejectError('')
-            }}
-            rows={2}
-            className="w-full px-2 py-1.5 text-xs focus:outline-none focus:ring-1 resize-none"
-            style={{
-              background: t.input,
-              border: `1px solid ${rejectError ? colors.err : t.inputBorder}`,
-              borderRadius: 8,
-              color: t.text,
-            }}
-            placeholder="Rejection reason (required, min 10 chars)..."
-            autoFocus
-          />
-          {rejectError && (
-            <p className="text-xs mt-1" style={{ color: colors.err }}>
-              {rejectError}
-            </p>
-          )}
-          <div className="flex items-center gap-2 mt-2">
-            <button
-              onClick={handleReject}
-              disabled={rejectMutation.isPending}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{
-                background: colors.err,
-                color: '#FFFFFF',
-                borderRadius: 8,
-              }}
-            >
-              <X size={12} />
-              {rejectMutation.isPending ? 'Rejecting...' : 'Confirm Reject'}
-            </button>
-            <button
-              onClick={() => {
-                setShowRejectInput(false)
-                setRejectReason('')
-                setRejectError('')
-              }}
-              className="px-3 py-1.5 text-xs font-medium transition-opacity hover:opacity-70"
-              style={{ color: t.textMuted }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
-      </div>
-    </>
   )
 }
 
