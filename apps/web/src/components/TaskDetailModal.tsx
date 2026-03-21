@@ -60,7 +60,8 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   const [description, setDescription] = useState(task?.description || '')
   const [assigneeId, setAssigneeId] = useState(task?.assignee_id || '')
   const [priority, setPriority] = useState(task?.priority || 'medium')
-  const [dueDate, setDueDate] = useState(task?.due_date || '')
+  // Extract YYYY-MM-DD from ISO datetime for date input
+  const [dueDate, setDueDate] = useState(task?.due_date ? task.due_date.split('T')[0] : '')
   const [listId, setListId] = useState(initialListId || task?.task_list_id || '')
   const [commentText, setCommentText] = useState('')
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
@@ -73,6 +74,20 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   const { data: commentsData } = useTaskComments(task?.id || '')
   const createCommentMutation = useCreateTaskComment()
   const deleteCommentMutation = useDeleteTaskComment()
+  
+  // Sync form state when task prop changes (e.g., after auto-save refetch)
+  useEffect(() => {
+    if (task) {
+      // Extract YYYY-MM-DD from ISO datetime (e.g., '2026-03-06T00:00:00Z' -> '2026-03-06')
+      const dueDateValue = task.due_date ? task.due_date.split('T')[0] : ''
+      setTitle(task.title || '')
+      setDescription(task.description || '')
+      setAssigneeId(task.assignee_id || '')
+      setPriority(task.priority || 'medium')
+      setDueDate(dueDateValue)
+      setListId(task.task_list_id || '')
+    }
+  }, [task])
   
   // Build hierarchical comment structure from flat list
   const comments = useMemo(() => {
