@@ -32,7 +32,7 @@ import {
   useDeleteTask,
   useTaskComments,
   useCreateTaskComment,
-  useToggleTaskCompletion
+  useDeleteTaskComment,
 } from '@/lib/hooks/useTasks'
 import { useEmployees } from '@/lib/hooks/useEmployees'
 import type { TaskWithDetails, TaskPriority, Employee } from '@/types/api'
@@ -441,6 +441,7 @@ function TasksPage() {
         <TaskDetailModal
           task={selectedTask}
           employees={employees}
+          taskLists={visibleLists}
           onClose={() => setSelectedTask(null)}
         />
       )}
@@ -500,28 +501,40 @@ function StatusColumn({
       {/* Hand-drawn Column Header */}
       <div className="px-2 py-4 mb-4">
         <div className="inline-block">
-          <h3
-            className="text-xl font-bold mb-1"
-            style={{
-              color: '#2C3E50',
-              fontFamily: "'Permanent Marker', 'Marker Felt', cursive",
-              letterSpacing: '1px',
-              transform: `rotate(${isFinalState ? -1 : 0}deg)`,
-            }}
-          >
-            {label}
-            {isFinalState && (
-              <span
-                style={{
-                  marginLeft: '8px',
-                  fontSize: '16px',
-                  color: '#27AE60',
-                }}
-              >
-                ✓
-              </span>
-            )}
-          </h3>
+          {/* Task count on the left */}
+          <div className="flex items-baseline gap-2">
+            <span
+              className="text-sm font-bold"
+              style={{
+                color: '#7F8C8D',
+                fontFamily: typography.fontFamily,
+              }}
+            >
+              {count}
+            </span>
+            <h3
+              className="text-xl font-bold"
+              style={{
+                color: '#2C3E50',
+                fontFamily: "'Permanent Marker', 'Marker Felt', cursive",
+                letterSpacing: '1px',
+                transform: `rotate(${isFinalState ? -1 : 0}deg)`,
+              }}
+            >
+              {label}
+              {isFinalState && (
+                <span
+                  style={{
+                    marginLeft: '8px',
+                    fontSize: '16px',
+                    color: '#27AE60',
+                  }}
+                >
+                  ✓
+                </span>
+              )}
+            </h3>
+          </div>
           {/* Hand-drawn underline */}
           <svg width="100%" height="8" style={{ overflow: 'visible' }}>
             <path
@@ -532,15 +545,6 @@ function StatusColumn({
               opacity="0.8"
             />
           </svg>
-          <span
-            className="text-sm font-medium ml-2"
-            style={{
-              color: '#95A5A6',
-              fontFamily: typography.fontFamily,
-            }}
-          >
-            {count}
-          </span>
         </div>
       </div>
 
@@ -963,31 +967,27 @@ function TaskCard({
 interface TaskDetailModalProps {
   task: TaskWithDetails
   employees: Employee[]
+  taskLists: any[]
   onClose: () => void
 }
 
-function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
+function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModalProps) {
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description || '')
   const [assigneeId, setAssigneeId] = useState(task.assignee_id || '')
   const [priority, setPriority] = useState(task.priority || 'medium')
   const [dueDate, setDueDate] = useState(task.due_date || '')
+  const [listId, setListId] = useState(task.task_list_id)
   const [commentText, setCommentText] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
 
   const updateTaskMutation = useUpdateTask()
   const deleteTaskMutation = useDeleteTask()
-  const toggleTaskMutation = useToggleTaskCompletion()
+  const moveMutation = useMoveTask()
   const { data: commentsData } = useTaskComments(task.id)
   const createCommentMutation = useCreateTaskComment()
+  const deleteCommentMutation = useDeleteTaskComment()
   const comments = commentsData || []
-
-  const isDone = !!task.completed_at
-  const hasChanges =
-    title !== task.title ||
-    description !== (task.description || '') ||
-    assigneeId !== (task.assignee_id || '') ||
-    priority !== (task.priority || 'medium') ||
-    dueDate !== (task.due_date || '')
 
   // Close on Escape key
   useEffect(() => {
@@ -998,26 +998,78 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
     return () => document.removeEventListener('keydown', handleEscape)
   }, [onClose])
 
-  const handleSave = () => {
-    if (!title.trim()) return
+  // Auto-save helpers
+  const autoSave = useCallback((field: string, value: any) => {
+    if (!title.trim()) return // Don't save if title is empty
+
+    setIsSaving(true)
+    const saveStartTime = Date.now()
+    const data: any = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      assignee_id: assigneeId || undefined,
+      priority: priority as 'low' | 'medium' | 'high' | 'urgent',
+      due_date: dueDate || undefined,
+    }
+
+    // Override with the specific field being changed
+    if (field === 'title') data.title = value.trim()
+    if (field === 'description') data.description = value.trim() || undefined
+    if (field === 'assignee_id') data.assignee_id = value || undefined
+    if (field === 'priority') data.priority = value
+    if (field === 'due_date') data.due_date = value || undefined
 
     updateTaskMutation.mutate(
-      {
-        id: task.id,
-        data: {
-          title: title.trim(),
-          description: description.trim() || undefined,
-          assignee_id: assigneeId || undefined,
-          priority: priority as 'low' | 'medium' | 'high' | 'urgent',
-          due_date: dueDate || undefined,
-        },
-      },
+      { id: task.id, data },
       {
         onSuccess: () => {
-          onClose()
+          // Minimum 500ms delay so user can see saving animation
+          const elapsed = Date.now() - saveStartTime
+          const remainingDelay = Math.max(0, 500 - elapsed)
+          setTimeout(() => setIsSaving(false), remainingDelay)
+        },
+        onError: () => {
+          const elapsed = Date.now() - saveStartTime
+          const remainingDelay = Math.max(0, 500 - elapsed)
+          setTimeout(() => setIsSaving(false), remainingDelay)
         },
       }
     )
+  }, [title, description, assigneeId, priority, dueDate, task.id, updateTaskMutation])
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value)
+  }
+
+  const handleTitleBlur = () => {
+    if (title !== task.title && title.trim()) {
+      autoSave('title', title)
+    }
+  }
+
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value)
+  }
+
+  const handleDescriptionBlur = () => {
+    if (description !== (task.description || '')) {
+      autoSave('description', description)
+    }
+  }
+
+  const handleAssigneeChange = (value: string) => {
+    setAssigneeId(value)
+    autoSave('assignee_id', value)
+  }
+
+  const handlePriorityChange = (value: string) => {
+    setPriority(value as 'low' | 'medium' | 'high' | 'urgent')
+    autoSave('priority', value)
+  }
+
+  const handleDueDateChange = (value: string) => {
+    setDueDate(value)
+    autoSave('due_date', value)
   }
 
   const handleDelete = () => {
@@ -1028,10 +1080,6 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
         onClose()
       },
     })
-  }
-
-  const handleToggleComplete = () => {
-    toggleTaskMutation.mutate(task.id)
   }
 
   const handleAddComment = () => {
@@ -1045,6 +1093,52 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
       {
         onSuccess: () => {
           setCommentText('')
+        },
+      }
+    )
+  }
+
+  const handleDeleteComment = (commentId: string) => {
+    if (!confirm('Delete this comment?')) return
+    
+    deleteCommentMutation.mutate(
+      { taskId: task.id, commentId },
+      {
+        onError: (error) => {
+          console.error('Failed to delete comment:', error)
+          alert('Failed to delete comment. You can only delete your own comments.')
+        },
+      }
+    )
+  }
+
+  const handleListChange = (newListId: string) => {
+    if (newListId === task.task_list_id) return
+
+    setIsSaving(true)
+    const saveStartTime = Date.now()
+    const newPosition = 1000 // Backend will adjust
+
+    moveMutation.mutate(
+      {
+        id: task.id,
+        data: {
+          task_list_id: newListId,
+          position: newPosition,
+        },
+      },
+      {
+        onSuccess: () => {
+          setListId(newListId)
+          // Minimum 500ms delay so user can see saving animation
+          const elapsed = Date.now() - saveStartTime
+          const remainingDelay = Math.max(0, 500 - elapsed)
+          setTimeout(() => setIsSaving(false), remainingDelay)
+        },
+        onError: () => {
+          const elapsed = Date.now() - saveStartTime
+          const remainingDelay = Math.max(0, 500 - elapsed)
+          setTimeout(() => setIsSaving(false), remainingDelay)
         },
       }
     )
@@ -1173,12 +1267,35 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
             ×
           </button>
 
+          {/* Saving indicator */}
+          {isSaving && (
+            <div
+              className="absolute top-4 right-16 flex items-center gap-2 text-xs font-semibold"
+              style={{ color: colors.text, opacity: 0.7 }}
+            >
+              <svg
+                className="animate-spin"
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="3"
+              >
+                <circle cx="12" cy="12" r="10" opacity="0.25" />
+                <path d="M12 2a10 10 0 0 1 10 10" opacity="0.75" />
+              </svg>
+              Saving...
+            </div>
+          )}
+
           {/* Header */}
           <div className="mb-6">
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => handleTitleChange(e.target.value)}
+              onBlur={handleTitleBlur}
               className="text-2xl font-bold w-full bg-transparent border-none outline-none mb-2"
               style={{ 
                 color: colors.text,
@@ -1268,16 +1385,45 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
                   }}
                 />
               </div>
-              <span
-                className="text-xs font-semibold px-2 py-1 rounded"
-                style={{
-                  background: `${colors.text}15`,
-                  color: colors.text,
-                  fontFamily: typography.fontFamily,
-                }}
-              >
-                📋 {task.list_name}
-              </span>
+              {/* Status dropdown badge */}
+              <div className="relative inline-block">
+                <select
+                  value={listId}
+                  onChange={(e) => handleListChange(e.target.value)}
+                  disabled={moveMutation.isPending}
+                  className="text-xs font-semibold px-2 py-1 rounded appearance-none cursor-pointer pr-6"
+                  style={{
+                    background: `${colors.text}15`,
+                    color: colors.text,
+                    fontFamily: typography.fontFamily,
+                    border: 'none',
+                    outline: 'none',
+                  }}
+                >
+                  {taskLists.map((list) => (
+                    <option key={list.id} value={list.id}>
+                      📋 {list.name}
+                    </option>
+                  ))}
+                </select>
+                <svg
+                  className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none"
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  style={{ opacity: 0.5 }}
+                >
+                  <path
+                    d="M3 5l3 3 3-3"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    style={{ color: colors.text }}
+                  />
+                </svg>
+              </div>
               {task.completed_at && (
                 <span
                   className="text-xs font-bold px-2 py-1 rounded"
@@ -1303,7 +1449,8 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
             </label>
             <textarea
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => handleDescriptionChange(e.target.value)}
+              onBlur={handleDescriptionBlur}
               rows={4}
               className="w-full rounded-lg px-4 py-3 text-sm outline-none resize-none font-medium"
               style={{
@@ -1328,7 +1475,7 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
               </label>
               <select
                 value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
+                onChange={(e) => handleAssigneeChange(e.target.value)}
                 className="w-full rounded-lg px-3 py-2 text-sm outline-none font-semibold"
                 style={{
                   background: `${colors.text}08`,
@@ -1356,7 +1503,7 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
               </label>
               <select
                 value={priority}
-                onChange={(e) => setPriority(e.target.value as 'low' | 'medium' | 'high' | 'urgent')}
+                onChange={(e) => handlePriorityChange(e.target.value)}
                 className="w-full rounded-lg px-3 py-2 text-sm outline-none font-semibold"
                 style={{
                   background: `${colors.text}08`,
@@ -1383,7 +1530,7 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
               <input
                 type="date"
                 value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                onChange={(e) => handleDueDateChange(e.target.value)}
                 className="w-full rounded-lg px-3 py-2 text-sm outline-none font-semibold"
                 style={{
                   background: `${colors.text}08`,
@@ -1400,40 +1547,9 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
             style={{ borderColor: `${colors.text}20` }}
           >
             <button
-              onClick={handleSave}
-              disabled={!hasChanges || !title.trim() || updateTaskMutation.isPending}
-              className="px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 hover:scale-105"
-              style={{
-                background: hasChanges ? colors.text : `${colors.text}30`,
-                color: colors.bg,
-                fontFamily: typography.fontFamily,
-              }}
-            >
-              {updateTaskMutation.isPending ? 'Saving...' : '💾 Save Changes'}
-            </button>
-
-            <button
-              onClick={handleToggleComplete}
-              disabled={toggleTaskMutation.isPending}
-              className="px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 hover:scale-105"
-              style={{
-                background: `${colors.text}15`,
-                color: colors.text,
-                border: `2px solid ${colors.text}30`,
-                fontFamily: typography.fontFamily,
-              }}
-            >
-              {toggleTaskMutation.isPending
-                ? '...'
-                : isDone
-                  ? '↩️ Mark Incomplete'
-                  : '✓ Mark Complete'}
-            </button>
-
-            <button
               onClick={handleDelete}
               disabled={deleteTaskMutation.isPending}
-              className="ml-auto px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 hover:scale-105"
+              className="px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 hover:scale-105"
               style={{
                 background: '#EF444415',
                 color: '#EF4444',
@@ -1459,12 +1575,26 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
               {comments.map((comment: any) => (
                 <div
                   key={comment.id}
-                  className="rounded-lg p-3"
+                  className="rounded-lg p-3 relative group"
                   style={{
                     background: `${colors.text}08`,
                     border: `2px solid ${colors.text}15`,
                   }}
                 >
+                  {/* Delete button - shows on hover */}
+                  <button
+                    onClick={() => handleDeleteComment(comment.id)}
+                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+                    style={{
+                      background: '#EF444415',
+                      color: '#EF4444',
+                    }}
+                    title="Delete comment"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                      <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                    </svg>
+                  </button>
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className="text-xs font-bold"
@@ -1483,7 +1613,7 @@ function TaskDetailModal({ task, employees, onClose }: TaskDetailModalProps) {
                     className="text-sm font-medium"
                     style={{ color: colors.text, opacity: 0.85, fontFamily: typography.fontFamily }}
                   >
-                    {comment.content}
+                    {comment.body}
                   </p>
                 </div>
               ))}

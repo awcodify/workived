@@ -353,9 +353,123 @@ func (s *Service) ToggleTaskCompletion(ctx context.Context, orgID, taskID uuid.U
 		return nil, err
 	}
 
+	// Toggle completion status
 	task, err := s.repo.ToggleTaskCompletion(ctx, orgID, taskID)
 	if err != nil {
 		return nil, err
+	}
+
+	s.log.Info().
+		Str("task_id", taskID.String()).
+		Bool("is_now_complete", task.CompletedAt != nil).
+		Str("current_list_id", task.TaskListID.String()).
+		Msg("task completion toggled")
+
+	// Auto-move task based on completion status
+	currentList, err := s.repo.GetTaskList(ctx, orgID, task.TaskListID)
+	if err != nil {
+		s.log.Error().Err(err).
+			Str("task_id", taskID.String()).
+			Str("list_id", task.TaskListID.String()).
+			Msg("failed to get current list for auto-move - skipping auto-move")
+		// Continue without auto-move
+	} else {
+		s.log.Info().
+			Str("current_list", currentList.Name).
+			Bool("is_final_state", currentList.IsFinalState).
+			Msg("current list state")
+
+		if task.CompletedAt != nil && !currentList.IsFinalState {
+			// Task was marked complete but not in final state - move to first final state list
+			s.log.Info().Msg("task marked complete in non-final state, searching for final state list")
+			lists, err := s.repo.ListTaskLists(ctx, orgID)
+			if err == nil {
+				for _, list := range lists {
+					if list.IsFinalState {
+						s.log.Info().
+							Str("target_list", list.Name).
+							Str("target_list_id", list.ID.String()).
+							Msg("found final state list, moving task")
+
+						// Get max position in target list
+						listIDStr := list.ID.String()
+						tasksInList, err := s.repo.ListTasks(ctx, orgID, TaskFilters{TaskListID: &listIDStr})
+						if err != nil {
+							s.log.Warn().Err(err).Msg("failed to get tasks for auto-move")
+							break
+						}
+						maxPos := 0
+						for _, t := range tasksInList {
+							if t.Position > maxPos {
+								maxPos = t.Position
+							}
+						}
+						newPos := maxPos + 1000
+
+						// Move task to final state list
+						task, err = s.repo.MoveTask(ctx, orgID, taskID, list.ID, newPos)
+						if err != nil {
+							s.log.Error().Err(err).Str("target_list", list.ID.String()).Msg("FAILED to auto-move completed task")
+						} else {
+							s.log.Info().
+								Str("task_id", taskID.String()).
+								Str("list_id", list.ID.String()).
+								Int("position", newPos).
+								Msg("SUCCESS: task auto-moved to final state list")
+						}
+						break
+					}
+				}
+			} else {
+				s.log.Error().Err(err).Msg("failed to list task lists for auto-move")
+			}
+		} else if task.CompletedAt == nil && currentList.IsFinalState {
+			// Task was marked incomplete but in final state - move to first non-final state list
+			s.log.Info().Msg("task marked incomplete in final state, searching for non-final state list")
+			lists, err := s.repo.ListTaskLists(ctx, orgID)
+			if err == nil {
+				for _, list := range lists {
+					if !list.IsFinalState {
+						s.log.Info().
+							Str("target_list", list.Name).
+							Str("target_list_id", list.ID.String()).
+							Msg("found non-final state list, moving task")
+
+						// Get max position in target list
+						listIDStr := list.ID.String()
+						tasksInList, err := s.repo.ListTasks(ctx, orgID, TaskFilters{TaskListID: &listIDStr})
+						if err != nil {
+							s.log.Warn().Err(err).Msg("failed to get tasks for auto-move")
+							break
+						}
+						maxPos := 0
+						for _, t := range tasksInList {
+							if t.Position > maxPos {
+								maxPos = t.Position
+							}
+						}
+						newPos := maxPos + 1000
+
+						// Move task to non-final state list
+						task, err = s.repo.MoveTask(ctx, orgID, taskID, list.ID, newPos)
+						if err != nil {
+							s.log.Error().Err(err).Str("target_list", list.ID.String()).Msg("FAILED to auto-move reopened task")
+						} else {
+							s.log.Info().
+								Str("task_id", taskID.String()).
+								Str("list_id", list.ID.String()).
+								Int("position", newPos).
+								Msg("SUCCESS: task auto-moved out of final state list")
+						}
+						break
+					}
+				}
+			} else {
+				s.log.Error().Err(err).Msg("failed to list task lists for auto-move")
+			}
+		} else {
+			s.log.Info().Msg("no auto-move needed - task already in appropriate list")
+		}
 	}
 
 	action := "task.completed"
