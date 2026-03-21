@@ -1,6 +1,7 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
+import { TaskFilters } from '@/components/TaskFilters'
 import {
   DndContext,
   DragOverlay,
@@ -36,7 +37,23 @@ import { useApproveRequest, useRejectRequest } from '@/lib/hooks/useLeave'
 import { useApproveClaim, useRejectClaim } from '@/lib/hooks/useClaims'
 import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload } from '@/types/api'
 
+// URL search params for filters
+type TasksSearch = {
+  search?: string
+  assignee?: string
+  priority?: string
+  showCompleted: boolean
+}
+
 export const Route = createFileRoute('/_app/tasks')({
+  validateSearch: (search: Record<string, unknown>): TasksSearch => {
+    return {
+      search: typeof search.search === 'string' ? search.search : undefined,
+      assignee: typeof search.assignee === 'string' ? search.assignee : undefined,
+      priority: typeof search.priority === 'string' ? search.priority : undefined,
+      showCompleted: search.showCompleted === false || search.showCompleted === 'false' ? false : true,
+    }
+  },
   loader: async () => {
     try {
       const { data } = await apiClient.get<{ data: Record<string, boolean> }>('/api/v1/features')
@@ -54,11 +71,38 @@ export const Route = createFileRoute('/_app/tasks')({
 // ── Main Component ──────────────────────────────────────────────
 
 function TasksPage() {
+  const navigate = useNavigate({ from: Route.fullPath })
+  const searchParams = Route.useSearch()
+  
   const { data: taskLists = [], isLoading: listsLoading } = useTaskLists()
   const { data: tasks = [], isLoading: tasksLoading } = useTasks()
   const { data: employeesData } = useEmployees({ status: 'active' })
   const employees = employeesData?.data || []
   const { data: workloadData = [] } = useEmployeeWorkload()
+  
+  // Filter state from URL
+  const searchQuery = searchParams.search || ''
+  const selectedAssignee = searchParams.assignee || ''
+  const selectedPriority = searchParams.priority || ''
+  const showCompleted = searchParams.showCompleted
+  
+  // Update URL params
+  const updateSearchParam = useCallback((key: keyof TasksSearch, value: string | boolean) => {
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        [key]: typeof value === 'boolean' ? value : (value || undefined), // Handle booleans separately
+      }),
+      replace: true, // Don't create history entries for filters
+    })
+  }, [navigate])
+  
+  const clearAllFilters = useCallback(() => {
+    navigate({
+      search: { showCompleted: true },
+      replace: true,
+    })
+  }, [navigate])
   
   const moveMutation = useMoveTask()
   const createMutation = useCreateTask()
@@ -75,10 +119,46 @@ function TasksPage() {
   const [createModalListId, setCreateModalListId] = useState<string | null>(null)
   const [expandedWorkloadStatus, setExpandedWorkloadStatus] = useState<string | null>(null)
 
-  // Sync with server data (ensure we always have an array)
+  // Apply filters to tasks
+  const filteredTasks = useMemo(() => {
+    let filtered = tasks || []
+    
+    // Search filter (title + description)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter((task) => {
+        const matchTitle = task.title.toLowerCase().includes(query)
+        const matchDesc = task.description?.toLowerCase().includes(query)
+        return matchTitle || matchDesc
+      })
+    }
+    
+    // Assignee filter
+    if (selectedAssignee) {
+      if (selectedAssignee === 'unassigned') {
+        filtered = filtered.filter((task) => !task.assignee_id)
+      } else {
+        filtered = filtered.filter((task) => task.assignee_id === selectedAssignee)
+      }
+    }
+    
+    // Priority filter
+    if (selectedPriority) {
+      filtered = filtered.filter((task) => task.priority === selectedPriority)
+    }
+    
+    // Show/hide completed
+    if (!showCompleted) {
+      filtered = filtered.filter((task) => !task.completed_at)
+    }
+    
+    return filtered
+  }, [tasks, searchQuery, selectedAssignee, selectedPriority, showCompleted])
+  
+  // Sync with server data and apply filters
   useEffect(() => {
-    setOptimisticTasks(tasks || [])
-  }, [tasks])
+    setOptimisticTasks(filteredTasks || [])
+  }, [filteredTasks])
 
   // Close workload dropdown when clicking outside
   useEffect(() => {
@@ -88,7 +168,7 @@ function TasksPage() {
     document.addEventListener('click', handleClickOutside)
     return () => document.removeEventListener('click', handleClickOutside)
   }, [expandedWorkloadStatus])
-
+  
   // Only render first 3 lists (To Do, In Progress, Done)
   const visibleLists = useMemo(() => {
     const lists = taskLists || []
@@ -97,6 +177,9 @@ function TasksPage() {
       .sort((a, b) => a.position - b.position)
       .slice(0, 3)
   }, [taskLists])
+  
+  // Check if any filters are active (showCompleted=true is the default, so only count it if false)
+  const hasActiveFilters = !!(searchQuery || selectedAssignee || selectedPriority || showCompleted === false)
 
   // Visual column config
   const columnConfig = useMemo(() => {
@@ -346,6 +429,7 @@ function TasksPage() {
   }
 
   const totalTasks = (optimisticTasks || []).length
+  const allTasksCount = (tasks || []).length
   const completedTasks = (optimisticTasks || []).filter((t) => t.completed_at).length
   const inProgressList = visibleLists[1]
   const inProgressCount = inProgressList ? (optimisticTasks || []).filter(
@@ -358,7 +442,7 @@ function TasksPage() {
       style={{ background: moduleBackgrounds.tasks }}  // Use design tokens
     >
       {/* Header */}
-      <div className="flex items-start justify-between mb-8 gap-6">
+      <div className="mb-6">
         <div>
           <h1
             className="font-extrabold"
@@ -381,10 +465,16 @@ function TasksPage() {
               fontWeight: 500,
             }}
           >
-            {totalTasks} total · {inProgressCount} in progress · {completedTasks} done
+            {hasActiveFilters && totalTasks !== allTasksCount
+              ? `${totalTasks} of ${allTasksCount} tasks`
+              : `${totalTasks} total`} · {inProgressCount} in progress · {completedTasks} done
           </p>
         </div>
+      </div>
 
+      {/* Unified control row: Team + Search/Filters */}
+      <div className="mb-6 relative">
+        <div className="flex items-center justify-between gap-6 flex-wrap">
         {/* Team Workload - Compact View */}
         {workloadData.length > 0 && (() => {
           const counts = {
@@ -401,18 +491,18 @@ function TasksPage() {
           ]
 
           return (
-            <div className="flex flex-col items-end gap-2 relative">
-              <h2
+            <div className="flex items-center gap-2 relative">
+              <span
                 className="text-xs font-bold"
                 style={{
                   color: '#64748B',
-                  fontFamily: "'Permanent Marker', 'Marker Felt', cursive",
+                  fontFamily: typography.fontFamily,
                   letterSpacing: '0.3px',
                 }}
               >
                 Team ({workloadData.length})
-              </h2>
-              <div className="flex flex-wrap gap-2 justify-end">
+              </span>
+              <div className="flex items-center gap-2">
                 {statusConfig.map((status, idx) => {
                   const count = counts[status.key as keyof typeof counts]
                   if (count === 0) return null
@@ -466,7 +556,7 @@ function TasksPage() {
                       {isExpanded && (
                         <div
                           onClick={(e) => e.stopPropagation()}
-                          className="absolute right-0 top-full mt-3 z-50 min-w-[260px] max-w-[340px]"
+                          className="absolute left-0 top-full mt-3 z-50 min-w-[260px] max-w-[340px]"
                           style={{
                             background: '#FFF9E6',
                             borderLeft: `3px solid ${status.color}25`,
@@ -572,6 +662,23 @@ function TasksPage() {
             </div>
           )
         })()}
+        
+        {/* Search + Filters - Inline controls */}
+        <TaskFilters
+        searchQuery={searchQuery}
+        onSearchChange={(value) => updateSearchParam('search', value)}
+        selectedAssignee={selectedAssignee}
+        onAssigneeChange={(value) => updateSearchParam('assignee', value)}
+        selectedPriority={selectedPriority}
+        onPriorityChange={(value) => updateSearchParam('priority', value)}
+        showCompleted={showCompleted}
+        onShowCompletedChange={(value) => updateSearchParam('showCompleted', value)}
+        employees={employees}
+        getEmployeeWorkload={getEmployeeWorkload}
+        onClearFilters={clearAllFilters}
+        hasActiveFilters={hasActiveFilters}
+      />
+        </div>
       </div>
 
       {/* Unique Vertical Board */}

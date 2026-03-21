@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { RichTextEditor } from './RichTextEditor'
 import { ApprovalTaskView } from './ApprovalTaskView'
+import { EmployeeSelector } from './EmployeeSelector'
 import { typography } from '@/design/tokens'
 import type { TaskWithDetails, Employee, EmployeeWorkload, TaskPriority } from '@/types/api'
 import {
@@ -117,18 +118,6 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
 
     return rootComments
   }, [commentsData])
-
-  // Sort employees by workload: available first, on leave last
-  const sortedEmployees = useMemo(() => {
-    const statusOrder = { available: 1, warning: 2, overloaded: 3, on_leave: 4 }
-    return [...employees].sort((a, b) => {
-      const aWorkload = getEmployeeWorkload(a.id)
-      const bWorkload = getEmployeeWorkload(b.id)
-      const aOrder = aWorkload ? statusOrder[aWorkload.workload.status] || 5 : 5
-      const bOrder = bWorkload ? statusOrder[bWorkload.workload.status] || 5 : 5
-      return aOrder - bOrder
-    })
-  }, [employees, getEmployeeWorkload])
 
   // Close on Escape key
   useEffect(() => {
@@ -634,45 +623,22 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
 
           {/* Properties Grid */}
           <div className="grid grid-cols-3 gap-4 mb-6">
-            {/* Assignee */}
-            <div>
-              <label
-                className="block text-sm font-bold mb-2"
-                style={{ color: '#64748B', fontFamily: typography.fontFamily }}
-              >
-                👤 Assignee
-              </label>
-              <select
-                value={assigneeId}
-                onChange={(e) => handleAssigneeChange(e.target.value)}
-                className="w-full rounded-lg px-3 py-2 text-sm outline-none font-semibold"
-                style={{
-                  background: `${colors.text}08`,
-                  border: `2px solid ${colors.text}20`,
-                  color: colors.text,
-                  fontFamily: typography.fontFamily,
-                }}
-              >
-                <option value="">Unassigned</option>
-                {sortedEmployees.map((emp) => {
-                  const workload = getEmployeeWorkload(emp.id)
-                  const badge = workload 
-                    ? workload.workload.status === 'on_leave' 
-                      ? '🏖️ On Leave' 
-                      : workload.workload.status === 'overloaded' 
-                        ? `🔴 ${workload.workload.active_tasks} tasks` 
-                        : workload.workload.status === 'warning'
-                          ? `⚠️ ${workload.workload.active_tasks} tasks`
-                          : '✅'
-                    : ''
-                  return (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.full_name} {badge}
-                    </option>
-                  )
-                })}
-              </select>
-            </div>
+            {/* Assignee with workload indicators */}
+            <EmployeeSelector
+              value={assigneeId}
+              onChange={handleAssigneeChange}
+              employees={employees}
+              getEmployeeWorkload={getEmployeeWorkload}
+              label="👤 Assignee"
+              placeholder="Unassigned"
+              showUnassigned={true}
+              style={{
+                background: `${colors.text}08`,
+                border: `2px solid ${colors.text}20`,
+                color: colors.text,
+                fontSize: '14px',
+              }}
+            />
 
             {/* Priority */}
             <div>
