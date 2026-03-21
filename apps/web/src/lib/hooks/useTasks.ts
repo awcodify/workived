@@ -21,6 +21,7 @@ export const tasksKeys = {
   taskDetail: (id: string) => [...tasksKeys.tasks(), id] as const,
 
   comments: (taskId: string) => [...tasksKeys.all, 'comments', taskId] as const,
+  reactions: (commentId: string) => [...tasksKeys.all, 'reactions', commentId] as const,
 }
 
 // ── Task List Hooks ──────────────────────────────────────────
@@ -168,5 +169,26 @@ export function useDeleteTaskComment() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: tasksKeys.comments(variables.taskId) })
     },
+  })
+}
+
+// ── Reaction Hooks ───────────────────────────────────────────
+export function useToggleReaction() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ taskId, commentId, emoji }: { taskId: string; commentId: string; emoji: string }) =>
+      tasksApi.toggleReaction(taskId, commentId, emoji).then((r) => r.data.data),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: tasksKeys.reactions(variables.commentId) })
+      qc.invalidateQueries({ queryKey: tasksKeys.comments(variables.taskId) })
+    },
+  })
+}
+
+export function useCommentReactions(taskId: string, commentId: string) {
+  return useQuery({
+    queryKey: tasksKeys.reactions(commentId),
+    queryFn: () => tasksApi.listReactions(taskId, commentId).then((r) => r.data.data || []),
+    staleTime: 10 * 1000, // 10 sec — reactions change frequently
   })
 }

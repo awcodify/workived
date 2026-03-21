@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import { RichTextEditor } from '@/components/RichTextEditor'
 import {
   DndContext,
   DragOverlay,
@@ -979,6 +980,7 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
   const [dueDate, setDueDate] = useState(task.due_date || '')
   const [listId, setListId] = useState(task.task_list_id)
   const [commentText, setCommentText] = useState('')
+  const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
   const updateTaskMutation = useUpdateTask()
@@ -987,7 +989,35 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
   const { data: commentsData } = useTaskComments(task.id)
   const createCommentMutation = useCreateTaskComment()
   const deleteCommentMutation = useDeleteTaskComment()
-  const comments = commentsData || []
+  
+  // Build hierarchical comment structure from flat list
+  const comments = useMemo(() => {
+    const flatComments = commentsData || []
+    const commentMap = new Map<string, any>()
+    const rootComments: any[] = []
+
+    // First pass: create map of all comments
+    flatComments.forEach((comment: any) => {
+      commentMap.set(comment.id, { ...comment, replies: [] })
+    })
+
+    // Second pass: build hierarchy
+    flatComments.forEach((comment: any) => {
+      const commentWithReplies = commentMap.get(comment.id)
+      if (!comment.parent_id) {
+        // Root comment
+        rootComments.push(commentWithReplies)
+      } else {
+        // Nested comment - attach to parent
+        const parent = commentMap.get(comment.parent_id)
+        if (parent) {
+          parent.replies.push(commentWithReplies)
+        }
+      }
+    })
+
+    return rootComments
+  }, [commentsData])
 
   // Close on Escape key
   useEffect(() => {
@@ -1088,11 +1118,16 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
     createCommentMutation.mutate(
       {
         taskId: task.id,
-        data: { body: commentText.trim() },
+        data: { 
+          body: commentText.trim(),
+          content_type: 'markdown',
+          parent_id: replyingToId || undefined,
+        },
       },
       {
         onSuccess: () => {
           setCommentText('')
+          setReplyingToId(null)
         },
       }
     )
@@ -1153,9 +1188,161 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
   }
   const colors = stickyColors[priority as TaskPriority]
 
-  // Subtle variations based on task ID
-  const seed = task.id.charCodeAt(0) + task.id.charCodeAt(task.id.length - 1)
-  const hasGrid = seed % 3 === 0
+  // Recursive comment renderer with nesting support
+  const renderComment = (comment: any, depth: number = 0): React.ReactNode => {
+    const marginLeft = depth * 24
+    const maxDepth = 2
+    const isReplyingToThis = replyingToId === comment.id
+    
+    return (
+      <div key={comment.id} style={{ marginLeft: `${marginLeft}px` }} className="mb-3">
+        <div
+          className="rounded-lg p-3 relative group"
+          style={{
+            background: depth === 0 ? '#F8FAFC' : '#FFFFFF',
+            border: '2px solid #E2E8F0',
+          }}
+        >
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span
+                  className="text-xs font-bold"
+                  style={{ color: '#1E293B', fontFamily: typography.fontFamily }}
+                >
+                  {comment.author_name}
+                </span>
+                <span
+                  className="text-xs font-semibold"
+                  style={{ color: '#64748B', fontFamily: typography.fontFamily }}
+                >
+                  {new Date(comment.created_at).toLocaleDateString()}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {depth < maxDepth && (
+                <button
+                  onClick={() => {
+                    if (isReplyingToThis) {
+                      setReplyingToId(null)
+                      setCommentText('')
+                    } else {
+                      setReplyingToId(comment.id)
+                      setCommentText(`@${comment.author_name} `)
+                    }
+                  }}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold px-2 py-1 rounded"
+                  style={{
+                    background: isReplyingToThis ? '#DBEAFE' : '#EFF6FF',
+                    color: '#2563EB',
+                    fontFamily: typography.fontFamily,
+                  }}
+                  title={isReplyingToThis ? 'Cancel Reply' : 'Reply'}
+                >
+                  {isReplyingToThis ? '✕ Cancel' : '↩️ Reply'}
+                </button>
+              )}
+              <button
+                onClick={() => handleDeleteComment(comment.id)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+                style={{
+                  background: '#FEE2E2',
+                  color: '#EF4444',
+                }}
+                title="Delete comment"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
+                  <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div
+            className="text-sm prose prose-sm max-w-none"
+            style={{ 
+              color: '#334155',
+              fontFamily: typography.fontFamily,
+            }}
+            dangerouslySetInnerHTML={{ 
+              __html: comment.content_type === 'markdown' ? comment.body : `<p>${comment.body}</p>` 
+            }}
+          />
+        </div>
+
+        {/* Inline Reply Editor */}
+        {isReplyingToThis && (
+          <div className="mt-2" style={{ marginLeft: '0px' }}>
+            <div
+              className="px-3 py-2 rounded-t-lg"
+              style={{
+                background: '#EFF6FF',
+                border: '2px solid #BFDBFE',
+                borderBottom: 'none',
+              }}
+            >
+              <span
+                className="text-xs font-bold"
+                style={{ color: '#1E40AF', fontFamily: typography.fontFamily }}
+              >
+                💬 Replying to {comment.author_name}
+              </span>
+            </div>
+            <div
+              className="p-3 rounded-b-lg"
+              style={{
+                background: '#FFFFFF',
+                border: '2px solid #BFDBFE',
+              }}
+            >
+              <RichTextEditor
+                value={commentText}
+                onChange={setCommentText}
+                placeholder="Write a reply..."
+                textColor="#1E293B"
+                bgColor="#F8FAFC"
+                minHeight="80px"
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={handleAddComment}
+                  disabled={!commentText.trim() || createCommentMutation.isPending}
+                  className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-40"
+                  style={{
+                    background: commentText.trim() ? '#2563EB' : '#CBD5E1',
+                    color: '#FFFFFF',
+                    fontFamily: typography.fontFamily,
+                  }}
+                >
+                  {createCommentMutation.isPending ? 'Posting...' : 'Post Reply'}
+                </button>
+                <button
+                  onClick={() => {
+                    setReplyingToId(null)
+                    setCommentText('')
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-bold"
+                  style={{
+                    background: '#FEE2E2',
+                    color: '#EF4444',
+                    fontFamily: typography.fontFamily,
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {comment.replies && comment.replies.length > 0 && (
+          <div className="mt-2">
+            {comment.replies.map((reply: any) => renderComment(reply, depth + 1))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div
@@ -1169,100 +1356,22 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
       <div
         className="w-full max-w-3xl overflow-y-auto max-h-[90vh] relative"
         style={{
-          background: colors.bg,
+          background: '#FFFFFF',
           boxShadow: `
-            0 12px 24px rgba(0,0,0,0.2),
-            0 20px 40px rgba(0,0,0,0.15),
-            inset 0 1px 0 rgba(255,255,255,0.3)
+            0 24px 48px rgba(0,0,0,0.12),
+            0 12px 24px rgba(0,0,0,0.08),
+            0 0 0 1px rgba(0,0,0,0.05)
           `,
-          transform: 'rotate(-0.5deg)',
-          borderRadius: '4px',
-          // Torn edges effect
-          clipPath: `polygon(
-            0% 2%, 1% 0%, 2% 1.5%, 3% 0.5%, 4% 2%, 5% 1%, 6% 2.5%, 7% 1.5%, 8% 2%, 9% 0.5%, 10% 2%,
-            11% 1%, 12% 2%, 13% 0.5%, 14% 1.5%, 15% 2%, 16% 1%, 17% 2.5%, 18% 1%, 19% 2%, 20% 0.5%,
-            21% 1.5%, 22% 2%, 23% 1%, 24% 2%, 25% 1.5%, 26% 2%, 27% 1%, 28% 2.5%, 29% 1.5%, 30% 2%,
-            31% 1%, 32% 2%, 33% 0.5%, 34% 1.5%, 35% 2%, 36% 1%, 37% 2%, 38% 1.5%, 39% 2%, 40% 1%,
-            41% 2%, 42% 1.5%, 43% 2%, 44% 1%, 45% 2%, 46% 1.5%, 47% 2%, 48% 0.5%, 49% 1.5%, 50% 2%,
-            51% 1%, 52% 2%, 53% 1.5%, 54% 2%, 55% 1%, 56% 2%, 57% 1.5%, 58% 2%, 59% 1%, 60% 2%,
-            61% 1.5%, 62% 2%, 63% 1%, 64% 2%, 65% 1.5%, 66% 2%, 67% 1%, 68% 2%, 69% 1.5%, 70% 2%,
-            71% 1%, 72% 2%, 73% 1.5%, 74% 2%, 75% 1%, 76% 2%, 77% 1.5%, 78% 2%, 79% 1%, 80% 2%,
-            81% 1.5%, 82% 2%, 83% 1%, 84% 2%, 85% 1.5%, 86% 2%, 87% 1%, 88% 2%, 89% 1.5%, 90% 2%,
-            91% 1%, 92% 2%, 93% 1.5%, 94% 2%, 95% 1%, 96% 2%, 97% 1.5%, 98% 2%, 99% 1%, 100% 2%,
-            100% 98%, 99% 100%, 98% 98.5%, 97% 99.5%, 96% 98%, 95% 99%, 94% 98%, 93% 99.5%, 92% 98.5%, 91% 99%, 90% 98%,
-            89% 99%, 88% 98.5%, 87% 99.5%, 86% 98%, 85% 99%, 84% 98%, 83% 99%, 82% 98.5%, 81% 99%, 80% 98%,
-            79% 99%, 78% 98.5%, 77% 99%, 76% 98%, 75% 99%, 74% 98.5%, 73% 99%, 72% 98%, 71% 99%, 70% 98.5%,
-            69% 99%, 68% 98%, 67% 99%, 66% 98.5%, 65% 99%, 64% 98%, 63% 99%, 62% 98.5%, 61% 99%, 60% 98%,
-            59% 99%, 58% 98.5%, 57% 99%, 56% 98%, 55% 99%, 54% 98.5%, 53% 99%, 52% 98%, 51% 99%, 50% 98.5%,
-            49% 99%, 48% 98%, 47% 99%, 46% 98.5%, 45% 99%, 44% 98%, 43% 99%, 42% 98.5%, 41% 99%, 40% 98%,
-            39% 99%, 38% 98.5%, 37% 99%, 36% 98%, 35% 99%, 34% 98.5%, 33% 99%, 32% 98%, 31% 99%, 30% 98.5%,
-            29% 99%, 28% 98%, 27% 99%, 26% 98.5%, 25% 99%, 24% 98%, 23% 99%, 22% 98.5%, 21% 99%, 20% 98%,
-            19% 99%, 18% 98.5%, 17% 99%, 16% 98%, 15% 99%, 14% 98.5%, 13% 99%, 12% 98%, 11% 99%, 10% 98.5%,
-            9% 99%, 8% 98%, 7% 99%, 6% 98.5%, 5% 99%, 4% 98%, 3% 99%, 2% 98.5%, 1% 99%, 0% 98%
-          )`,
+          borderRadius: '16px',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Pin at top */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '-8px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 20,
-          }}
-        >
-          <div
-            style={{
-              width: '16px',
-              height: '16px',
-              borderRadius: '50%',
-              background: `radial-gradient(circle at 30% 30%, ${colors.pin}DD, ${colors.pin})`,
-              boxShadow: `
-                0 2px 4px rgba(0,0,0,0.3),
-                inset -1px -1px 2px rgba(0,0,0,0.2),
-                inset 1px 1px 2px rgba(255,255,255,0.3)
-              `,
-            }}
-          />
-        </div>
-
-        {/* Paper texture overlay */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 'inherit',
-            background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.015) 2px, rgba(0,0,0,0.015) 4px)',
-            pointerEvents: 'none',
-            opacity: 0.4,
-          }}
-        />
-
-        {/* Grid pattern overlay (conditionally) */}
-        {hasGrid && (
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: 'inherit',
-              backgroundImage: `
-                linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px)
-              `,
-              backgroundSize: '16px 16px',
-              pointerEvents: 'none',
-            }}
-          />
-        )}
-
         <div className="p-8 relative">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-3xl leading-none transition-opacity hover:opacity-70"
-            style={{ color: colors.text, opacity: 0.5 }}
+            className="absolute top-6 right-6 text-3xl leading-none transition-opacity hover:opacity-70"
+            style={{ color: '#64748B', opacity: 0.6 }}
           >
             ×
           </button>
@@ -1270,8 +1379,8 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
           {/* Saving indicator */}
           {isSaving && (
             <div
-              className="absolute top-4 right-16 flex items-center gap-2 text-xs font-semibold"
-              style={{ color: colors.text, opacity: 0.7 }}
+              className="absolute top-6 right-16 flex items-center gap-2 text-xs font-semibold"
+              style={{ color: '#64748B' }}
             >
               <svg
                 className="animate-spin"
@@ -1296,94 +1405,25 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
               onBlur={handleTitleBlur}
-              className="text-2xl font-bold w-full bg-transparent border-none outline-none mb-2"
+              className="text-3xl font-bold w-full bg-transparent border-none outline-none mb-4"
               style={{ 
-                color: colors.text,
-                fontFamily: "'Permanent Marker', 'Marker Felt', cursive",
-                fontWeight: 700,
+                color: '#1E293B',
+                fontFamily: typography.fontFamily,
               }}
               placeholder="Task title"
             />
-            {/* Hand-drawn underline */}
-            <svg width="100%" height="6" style={{ overflow: 'visible', marginBottom: '8px' }}>
-              <path
-                d={`M 0 3 Q ${Math.random() * 40 + 80} ${Math.random() * 2 + 2}, ${Math.random() * 40 + 160} 3 T ${Math.random() * 40 + 320} 3 T ${Math.random() * 40 + 480} 3`}
-                stroke={colors.text}
-                strokeWidth="2"
-                fill="none"
-                opacity="0.3"
-              />
-            </svg>
             
-            <div className="flex items-center gap-2 mt-3">
-              {/* Tape label in modal */}
+            <div className="flex items-center gap-3 flex-wrap">
+              {/* Priority badge */}
               <div
-                className="text-xs font-bold px-5 py-2 uppercase relative"
+                className="text-xs font-bold px-3 py-1.5 uppercase rounded-full"
                 style={{
-                  background: colors.tape,
+                  background: colors.bg,
                   color: colors.text,
-                  letterSpacing: '1px',
-                  transform: 'rotate(-1deg)',
-                  boxShadow: `0 2px 4px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.08)`,
-                  clipPath: `polygon(
-                    3% 0%, 
-                    97% 0%, 
-                    100% 8%, 
-                    98% 18%, 
-                    100% 35%, 
-                    97% 50%, 
-                    100% 65%, 
-                    98% 82%, 
-                    100% 92%, 
-                    97% 100%, 
-                    3% 100%, 
-                    0% 92%, 
-                    2% 82%, 
-                    0% 65%, 
-                    3% 50%, 
-                    0% 35%, 
-                    2% 18%, 
-                    0% 8%
-                  )`,
+                  letterSpacing: '0.5px',
                 }}
               >
                 {priority}
-                {/* Paper fiber texture */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    background: `
-                      repeating-linear-gradient(
-                        0deg,
-                        transparent,
-                        transparent 1px,
-                        rgba(0,0,0,0.015) 1px,
-                        rgba(0,0,0,0.015) 2px
-                      ),
-                      repeating-linear-gradient(
-                        90deg,
-                        transparent,
-                        transparent 1px,
-                        rgba(255,255,255,0.03) 1px,
-                        rgba(255,255,255,0.03) 2px
-                      )
-                    `,
-                    pointerEvents: 'none',
-                    opacity: 0.8,
-                  }}
-                />
-                {/* Subtle paper grain */}
-                <div
-                  style={{
-                    position: 'absolute',
-                    inset: 0,
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-                    opacity: 0.05,
-                    mixBlendMode: 'multiply',
-                    pointerEvents: 'none',
-                  }}
-                />
               </div>
               {/* Status dropdown badge */}
               <div className="relative inline-block">
@@ -1443,23 +1483,18 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
           <div className="mb-6">
             <label
               className="block text-sm font-bold mb-2"
-              style={{ color: colors.text, opacity: 0.7, fontFamily: typography.fontFamily }}
+              style={{ color: '#64748B', fontFamily: typography.fontFamily }}
             >
               Description
             </label>
-            <textarea
+            <RichTextEditor
               value={description}
-              onChange={(e) => handleDescriptionChange(e.target.value)}
+              onChange={handleDescriptionChange}
               onBlur={handleDescriptionBlur}
-              rows={4}
-              className="w-full rounded-lg px-4 py-3 text-sm outline-none resize-none font-medium"
-              style={{
-                background: `${colors.text}08`,
-                border: `2px solid ${colors.text}20`,
-                color: colors.text,
-                fontFamily: typography.fontFamily,
-              }}
               placeholder="Add a description..."
+              textColor={colors.text}
+              bgColor={`${colors.text}08`}
+              minHeight="120px"
             />
           </div>
 
@@ -1469,7 +1504,7 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
             <div>
               <label
                 className="block text-sm font-bold mb-2"
-                style={{ color: colors.text, opacity: 0.7, fontFamily: typography.fontFamily }}
+                style={{ color: '#64748B', fontFamily: typography.fontFamily }}
               >
                 👤 Assignee
               </label>
@@ -1523,7 +1558,7 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
             <div>
               <label
                 className="block text-sm font-bold mb-2"
-                style={{ color: colors.text, opacity: 0.7, fontFamily: typography.fontFamily }}
+                style={{ color: '#64748B', fontFamily: typography.fontFamily }}
               >
                 📅 Due Date
               </label>
@@ -1572,87 +1607,34 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
 
             {/* Comment List */}
             <div className="space-y-3 mb-4">
-              {comments.map((comment: any) => (
-                <div
-                  key={comment.id}
-                  className="rounded-lg p-3 relative group"
-                  style={{
-                    background: `${colors.text}08`,
-                    border: `2px solid ${colors.text}15`,
-                  }}
-                >
-                  {/* Delete button - shows on hover */}
-                  <button
-                    onClick={() => handleDeleteComment(comment.id)}
-                    className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
-                    style={{
-                      background: '#EF444415',
-                      color: '#EF4444',
-                    }}
-                    title="Delete comment"
-                  >
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                      <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                    </svg>
-                  </button>
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className="text-xs font-bold"
-                      style={{ color: colors.text, fontFamily: typography.fontFamily }}
-                    >
-                      {comment.author_name}
-                    </span>
-                    <span
-                      className="text-xs font-semibold"
-                      style={{ color: colors.text, opacity: 0.5, fontFamily: typography.fontFamily }}
-                    >
-                      {new Date(comment.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <p
-                    className="text-sm font-medium"
-                    style={{ color: colors.text, opacity: 0.85, fontFamily: typography.fontFamily }}
-                  >
-                    {comment.body}
-                  </p>
-                </div>
-              ))}
+              {comments.map((comment: any) => renderComment(comment, 0))}
             </div>
 
-            {/* Add Comment */}
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault()
-                    handleAddComment()
-                  }
-                }}
-                placeholder="Add a comment..."
-                className="flex-1 rounded-lg px-4 py-2.5 text-sm outline-none font-medium"
-                style={{
-                  background: `${colors.text}08`,
-                  border: `2px solid ${colors.text}20`,
-                  color: colors.text,
-                  fontFamily: typography.fontFamily,
-                }}
-              />
-              <button
-                onClick={handleAddComment}
-                disabled={!commentText.trim() || createCommentMutation.isPending}
-                className="px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 hover:scale-105"
-                style={{
-                  background: commentText.trim() ? colors.text : `${colors.text}20`,
-                  color: colors.bg,
-                  fontFamily: typography.fontFamily,
-                }}
-              >
-                {createCommentMutation.isPending ? '...' : 'Add'}
-              </button>
-            </div>
+            {/* Add Root Comment - Only show when not replying */}
+            {!replyingToId && (
+              <div>
+                <RichTextEditor
+                  value={commentText}
+                  onChange={setCommentText}
+                  placeholder="Add a comment..."
+                  textColor={colors.text}
+                  bgColor={`${colors.text}08`}
+                  minHeight="100px"
+                />
+                <button
+                  onClick={handleAddComment}
+                  disabled={!commentText.trim() || createCommentMutation.isPending}
+                  className="mt-2 w-full px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 hover:scale-105"
+                  style={{
+                    background: commentText.trim() ? colors.text : `${colors.text}20`,
+                    color: colors.bg,
+                    fontFamily: typography.fontFamily,
+                  }}
+                >
+                  {createCommentMutation.isPending ? 'Posting...' : 'Add Comment'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

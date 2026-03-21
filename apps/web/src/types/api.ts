@@ -541,13 +541,22 @@ export interface TaskComment {
   organisation_id: string
   task_id: string
   author_id: string
+  parent_id?: string
   body: string
+  content_type: 'plain' | 'markdown'
   created_at: string
   updated_at: string
 }
 
 export interface TaskCommentWithAuthor extends TaskComment {
   author_name: string
+  replies?: TaskCommentWithAuthor[]
+}
+
+export interface CommentReactionSummary {
+  emoji: string
+  count: number
+  user_reacted: boolean
 }
 
 export interface CreateTaskListInput {
@@ -582,7 +591,9 @@ export interface MoveTaskInput {
 }
 
 export interface CreateTaskCommentInput {
+  parent_id?: string
   body: string
+  content_type?: 'plain' | 'markdown'
 }
 
 export interface TaskFilters {

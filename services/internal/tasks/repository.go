@@ -440,7 +440,6 @@ func (r *Repository) ListComments(ctx context.Context, orgID, taskID uuid.UUID) 
 
 	// Build flat list with all comments
 	var allComments []TaskCommentWithAuthor
-	commentMap := make(map[uuid.UUID]*TaskCommentWithAuthor)
 
 	for rows.Next() {
 		var tc TaskCommentWithAuthor
@@ -451,28 +450,13 @@ func (r *Repository) ListComments(ctx context.Context, orgID, taskID uuid.UUID) 
 			return nil, err
 		}
 		allComments = append(allComments, tc)
-		commentMap[tc.ID] = &allComments[len(allComments)-1]
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
-	// Build hierarchical structure: attach replies to their parents
-	var rootComments []TaskCommentWithAuthor
-	for i := range allComments {
-		comment := &allComments[i]
-		if comment.ParentID == nil {
-			// Root comment
-			rootComments = append(rootComments, *comment)
-		} else {
-			// Reply - attach to parent
-			if parent, exists := commentMap[*comment.ParentID]; exists {
-				parent.Replies = append(parent.Replies, *comment)
-			}
-		}
-	}
-
-	return rootComments, nil
+	// Return flat list - let frontend build hierarchy
+	return allComments, nil
 }
 
 func (r *Repository) CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, parentID *uuid.UUID, body, contentType string) (*TaskComment, error) {

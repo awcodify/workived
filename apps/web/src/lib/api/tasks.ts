@@ -5,6 +5,7 @@ import type {
   TaskWithDetails,
   TaskComment,
   TaskCommentWithAuthor,
+  CommentReactionSummary,
   CreateTaskListInput,
   UpdateTaskListInput,
   CreateTaskInput,
