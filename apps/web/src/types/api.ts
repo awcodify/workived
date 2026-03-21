@@ -551,6 +551,8 @@ export interface Task {
   due_date?: string  // YYYY-MM-DD
   position: number
   completed_at?: string
+  approval_type?: 'leave' | 'claim'
+  approval_id?: string
   created_at: string
   updated_at: string
 }

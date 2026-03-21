@@ -172,7 +172,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 		SELECT 
 			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
-			t.completed_at, t.created_at, t.updated_at,
+			t.completed_at, t.approval_type, t.approval_id, t.created_at, t.updated_at,
 			assignee.full_name AS assignee_name,
 			creator.full_name AS creator_name,
 			tl.name AS list_name
@@ -182,7 +182,12 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 		LEFT JOIN employees assignee ON t.assignee_id = assignee.id
 		WHERE t.organisation_id = $1
 		  AND ($2::uuid IS NULL OR t.task_list_id = $2::uuid)
-		  AND ($3::uuid IS NULL OR t.assignee_id = $3::uuid)
+		  AND ($3::uuid IS NULL OR (
+			  -- Regular tasks: assignee only
+			  (t.approval_type IS NULL AND t.assignee_id = $3::uuid)
+			  -- Approval tasks: assignee OR creator
+			  OR (t.approval_type IS NOT NULL AND (t.assignee_id = $3::uuid OR t.created_by = $3::uuid))
+		  ))
 		  AND ($4::varchar IS NULL OR t.priority = $4)
 		  AND ($5::varchar IS NULL OR (
 			  CASE WHEN $5 = 'completed' THEN t.completed_at IS NOT NULL
@@ -214,7 +219,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 		if err := rows.Scan(
 			&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
 			&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
-			&t.CompletedAt, &t.CreatedAt, &t.UpdatedAt,
+			&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.CreatedAt, &t.UpdatedAt,
 			&t.AssigneeName, &t.CreatorName, &t.ListName,
 		); err != nil {
 			return nil, err
@@ -230,7 +235,7 @@ func (r *Repository) GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWit
 		SELECT 
 			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
-			t.completed_at, t.created_at, t.updated_at,
+			t.completed_at, t.approval_type, t.approval_id, t.created_at, t.updated_at,
 			assignee.full_name AS assignee_name,
 			creator.full_name AS creator_name,
 			tl.name AS list_name
@@ -242,7 +247,38 @@ func (r *Repository) GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWit
 	`, orgID, id).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
 		&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
-		&t.CompletedAt, &t.CreatedAt, &t.UpdatedAt,
+		&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.CreatedAt, &t.UpdatedAt,
+		&t.AssigneeName, &t.CreatorName, &t.ListName,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrTaskNotFound()
+		}
+		return nil, err
+	}
+	return &t, nil
+}
+
+func (r *Repository) GetTaskByApproval(ctx context.Context, approvalType string, approvalID uuid.UUID) (*TaskWithDetails, error) {
+	var t TaskWithDetails
+	err := r.db.QueryRow(ctx, `
+		SELECT 
+			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
+			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
+			t.completed_at, t.approval_type, t.approval_id, t.created_at, t.updated_at,
+			assignee.full_name AS assignee_name,
+			creator.full_name AS creator_name,
+			tl.name AS list_name
+		FROM tasks t
+		JOIN employees creator ON t.created_by = creator.id
+		JOIN task_lists tl ON t.task_list_id = tl.id
+		LEFT JOIN employees assignee ON t.assignee_id = assignee.id
+		WHERE t.approval_type = $1 AND t.approval_id = $2
+		LIMIT 1
+	`, approvalType, approvalID).Scan(
+		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
+		&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
+		&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.CreatedAt, &t.UpdatedAt,
 		&t.AssigneeName, &t.CreatorName, &t.ListName,
 	)
 	if err != nil {
@@ -296,14 +332,14 @@ func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID,
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO tasks (
 			organisation_id, task_list_id, title, description, assignee_id,
-			created_by, priority, due_date, position
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			created_by, priority, due_date, position, approval_type, approval_id
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
-		          created_by, priority, due_date, position, completed_at, created_at, updated_at
+		          created_by, priority, due_date, position, completed_at, approval_type, approval_id, created_at, updated_at
 	`, orgID, req.TaskListID, req.Title, req.Description, req.AssigneeID,
-		createdBy, priority, dueDate, maxPosition+1000).Scan(
+		createdBy, priority, dueDate, maxPosition+1000, req.ApprovalType, req.ApprovalID).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
-		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.CreatedAt, &t.UpdatedAt,
+		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -344,7 +380,7 @@ func (r *Repository) UpdateTask(ctx context.Context, orgID, id uuid.UUID, req Up
 		}
 		updates = append(updates, fmt.Sprintf("due_date = $%d", argIdx))
 		args = append(args, dueDate)
-		argIdx++
+		// argIdx++ // Not needed as this is the last field
 	}
 
 	if len(updates) == 0 {

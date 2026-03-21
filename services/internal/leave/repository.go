@@ -380,17 +380,22 @@ func (r *Repository) CreateRequest(ctx context.Context, tx pgx.Tx, orgID, employ
 func (r *Repository) GetRequest(ctx context.Context, orgID, requestID uuid.UUID) (*Request, error) {
 	var req Request
 	err := r.db.QueryRow(ctx, `
-		SELECT id, organisation_id, employee_id, leave_policy_id,
-		       start_date::text, end_date::text, total_days, reason,
-		       status, reviewed_by, reviewed_at, review_note,
-		       created_at, updated_at
-		FROM leave_requests
-		WHERE organisation_id = $1 AND id = $2
+		SELECT lr.id, lr.organisation_id, lr.employee_id, lr.leave_policy_id,
+		       lr.start_date::text, lr.end_date::text, lr.total_days, lr.reason,
+		       lr.status, lr.reviewed_by, lr.reviewed_at, lr.review_note,
+		       lr.created_at, lr.updated_at,
+		       e.full_name AS employee_name,
+		       lp.name AS policy_name
+		FROM leave_requests lr
+		JOIN employees e ON lr.employee_id = e.id
+		JOIN leave_policies lp ON lr.leave_policy_id = lp.id
+		WHERE lr.organisation_id = $1 AND lr.id = $2
 	`, orgID, requestID).Scan(
 		&req.ID, &req.OrganisationID, &req.EmployeeID, &req.LeavePolicyID,
 		&req.StartDate, &req.EndDate, &req.TotalDays, &req.Reason,
 		&req.Status, &req.ReviewedBy, &req.ReviewedAt, &req.ReviewNote,
 		&req.CreatedAt, &req.UpdatedAt,
+		&req.EmployeeName, &req.PolicyName,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

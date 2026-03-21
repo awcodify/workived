@@ -88,11 +88,15 @@ type fakeService struct {
 	ensureDefaultListsFn   func(ctx context.Context, orgID uuid.UUID) error
 	listTasksFn            func(ctx context.Context, orgID uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error)
 	getTaskFn              func(ctx context.Context, orgID, id uuid.UUID) (*tasks.TaskWithDetails, error)
+	getTaskByApprovalFn    func(ctx context.Context, approvalType string, approvalID uuid.UUID) (*tasks.TaskWithDetails, error)
 	createTaskFn           func(ctx context.Context, orgID, createdBy uuid.UUID, req tasks.CreateTaskRequest, actorUserID ...uuid.UUID) (*tasks.Task, error)
 	updateTaskFn           func(ctx context.Context, orgID, id uuid.UUID, req tasks.UpdateTaskRequest, actorUserID ...uuid.UUID) (*tasks.Task, error)
 	moveTaskFn             func(ctx context.Context, orgID, taskID uuid.UUID, req tasks.MoveTaskRequest, actorUserID ...uuid.UUID) (*tasks.Task, error)
 	toggleTaskCompletionFn func(ctx context.Context, orgID, taskID uuid.UUID, actorUserID ...uuid.UUID) (*tasks.Task, error)
 	deleteTaskFn           func(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
+	createApprovalTaskFn   func(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, assigneeID uuid.UUID, dueDate *string) error
+	completeApprovalTaskFn func(ctx context.Context, approvalType string, approvalID uuid.UUID) error
+	deleteApprovalTaskFn   func(ctx context.Context, approvalType string, approvalID uuid.UUID) error
 	listCommentsFn         func(ctx context.Context, orgID, taskID uuid.UUID) ([]tasks.TaskCommentWithAuthor, error)
 	createCommentFn        func(ctx context.Context, orgID, taskID, authorID uuid.UUID, parentID *uuid.UUID, body, contentType string, actorUserID ...uuid.UUID) (*tasks.TaskComment, error)
 	deleteCommentFn        func(ctx context.Context, orgID, commentID, authorID uuid.UUID, actorUserID ...uuid.UUID) error
@@ -185,6 +189,27 @@ func (f *fakeService) ToggleTaskCompletion(ctx context.Context, orgID, taskID uu
 func (f *fakeService) DeleteTask(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error {
 	if f.deleteTaskFn != nil {
 		return f.deleteTaskFn(ctx, orgID, id, actorUserID...)
+	}
+	return nil
+}
+
+func (f *fakeService) CreateApprovalTask(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, assigneeID uuid.UUID, dueDate *string) error {
+	if f.createApprovalTaskFn != nil {
+		return f.createApprovalTaskFn(ctx, orgID, approvalType, approvalID, title, description, assigneeID, dueDate)
+	}
+	return nil
+}
+
+func (f *fakeService) CompleteApprovalTask(ctx context.Context, approvalType string, approvalID uuid.UUID) error {
+	if f.completeApprovalTaskFn != nil {
+		return f.completeApprovalTaskFn(ctx, approvalType, approvalID)
+	}
+	return nil
+}
+
+func (f *fakeService) DeleteApprovalTask(ctx context.Context, approvalType string, approvalID uuid.UUID) error {
+	if f.deleteApprovalTaskFn != nil {
+		return f.deleteApprovalTaskFn(ctx, approvalType, approvalID)
 	}
 	return nil
 }

@@ -75,6 +75,13 @@ type EmployeeInfoProvider interface {
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
+// TasksServiceInterface provides task management for approval workflows.
+type TasksServiceInterface interface {
+	CreateApprovalTask(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, assigneeID uuid.UUID, dueDate *string) error
+	CompleteApprovalTask(ctx context.Context, approvalType string, approvalID uuid.UUID) error
+	DeleteApprovalTask(ctx context.Context, approvalType string, approvalID uuid.UUID) error
+}
+
 // ── Service ─────────────────────────────────────────────────────────────────
 
 type ServiceOption func(*Service)
@@ -83,6 +90,7 @@ type Service struct {
 	repo         RepositoryInterface
 	orgRepo      OrgInfoProvider
 	employeeRepo EmployeeInfoProvider
+	tasksService TasksServiceInterface
 	auditLog     audit.Logger
 	log          zerolog.Logger
 	email        email.Sender
@@ -120,6 +128,13 @@ func WithLogger(log zerolog.Logger) ServiceOption {
 func WithEmailSender(e email.Sender) ServiceOption {
 	return func(s *Service) {
 		s.email = e
+	}
+}
+
+// WithTasksService sets the tasks service for managing approval tasks.
+func WithTasksService(ts TasksServiceInterface) ServiceOption {
+	return func(s *Service) {
+		s.tasksService = ts
 	}
 }
 
@@ -336,7 +351,56 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 		go s.sendLeavePendingEmail(context.Background(), orgID, employeeID, req.ID, policy.Name, req.StartDate, req.EndDate, req.TotalDays, input.Reason)
 	}
 
+	// Create approval task (best effort - don't fail if task creation fails)
+	if s.tasksService != nil {
+		go s.createLeaveApprovalTask(context.Background(), orgID, employeeID, req, policy.Name)
+	}
+
 	return req, nil
+}
+
+// createLeaveApprovalTask creates an approval task for the leave request
+func (s *Service) createLeaveApprovalTask(ctx context.Context, orgID, employeeID uuid.UUID, req *Request, policyName string) {
+	// Skip if tasks service not wired up
+	if s.tasksService == nil {
+		s.log.Debug().Msg("tasks service not configured, skipping approval task creation")
+		return
+	}
+
+	// Get employee name and manager ID for task title and assignment
+	employeeName, _, managerID, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("org_id", orgID.String()).Msg("failed to get employee profile for approval task")
+		return
+	}
+
+	// Manager is required to assign approval task
+	if managerID == nil {
+		s.log.Warn().Str("employee_id", employeeID.String()).Msg("employee has no manager, cannot create approval task")
+		return
+	}
+
+	// Calculate due date (3 days from now)
+	dueDate := time.Now().AddDate(0, 0, 3).Format("2006-01-02")
+
+	title := fmt.Sprintf("Approve Leave: %s (%s — %s)", employeeName, req.StartDate, req.EndDate)
+	description := fmt.Sprintf("Leave request for %.1f days\nType: %s\nReason: %s",
+		req.TotalDays,
+		policyName,
+		func() string {
+			if req.Reason != nil {
+				return *req.Reason
+			}
+			return "Not provided"
+		}())
+
+	err = s.tasksService.CreateApprovalTask(ctx, orgID, "leave", req.ID, title, description, *managerID, &dueDate)
+	if err != nil {
+		s.log.Warn().Err(err).
+			Str("org_id", orgID.String()).
+			Str("request_id", req.ID.String()).
+			Msg("failed to create leave approval task")
+	}
 }
 
 // ── Approve / Reject / Cancel ───────────────────────────────────────────────
@@ -393,6 +457,15 @@ func (s *Service) ApproveRequest(ctx context.Context, orgID, reviewerEmployeeID,
 	// Send email notification to employee (best effort - don't fail if email fails)
 	if s.email != nil {
 		go s.sendLeaveApprovedEmail(context.Background(), orgID, req.EmployeeID, reviewerEmployeeID, requestID, nil)
+	}
+
+	// Complete approval task (best effort)
+	if s.tasksService != nil {
+		go func() {
+			if err := s.tasksService.CompleteApprovalTask(context.Background(), "leave", requestID); err != nil {
+				s.log.Warn().Err(err).Str("request_id", requestID.String()).Msg("failed to complete approval task")
+			}
+		}()
 	}
 
 	return req, nil
@@ -455,6 +528,15 @@ func (s *Service) RejectRequest(ctx context.Context, orgID, reviewerEmployeeID, 
 		go s.sendLeaveRejectedEmail(context.Background(), orgID, req.EmployeeID, reviewerEmployeeID, requestID, note)
 	}
 
+	// Complete approval task (best effort)
+	if s.tasksService != nil {
+		go func() {
+			if err := s.tasksService.CompleteApprovalTask(context.Background(), "leave", requestID); err != nil {
+				s.log.Warn().Err(err).Str("request_id", requestID.String()).Msg("failed to complete approval task")
+			}
+		}()
+	}
+
 	return req, nil
 }
 
@@ -511,6 +593,16 @@ func (s *Service) CancelRequest(ctx context.Context, orgID, employeeID, requestI
 		OrgID: orgID, ActorUserID: uuid.Nil, Action: "leave_request.cancelled",
 		ResourceType: "leave_request", ResourceID: requestID, AfterState: req,
 	})
+
+	// Delete approval task (best effort)
+	if s.tasksService != nil {
+		go func() {
+			if err := s.tasksService.DeleteApprovalTask(context.Background(), "leave", requestID); err != nil {
+				s.log.Warn().Err(err).Str("request_id", requestID.String()).Msg("failed to delete approval task")
+			}
+		}()
+	}
+
 	return req, nil
 }
 

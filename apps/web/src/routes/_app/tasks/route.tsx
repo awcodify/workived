@@ -32,6 +32,8 @@ import {
   useCreateTask,
 } from '@/lib/hooks/useTasks'
 import { useEmployees, useEmployeeWorkload } from '@/lib/hooks/useEmployees'
+import { useApproveRequest, useRejectRequest } from '@/lib/hooks/useLeave'
+import { useApproveClaim, useRejectClaim } from '@/lib/hooks/useClaims'
 import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload } from '@/types/api'
 
 export const Route = createFileRoute('/_app/tasks')({
@@ -60,6 +62,8 @@ function TasksPage() {
   
   const moveMutation = useMoveTask()
   const createMutation = useCreateTask()
+  const approveLeaveRequest = useApproveRequest()
+  const approveClaimMutation = useApproveClaim()
 
   const [activeTask, setActiveTask] = useState<TaskWithDetails | null>(null)
   const [activeTaskOriginalListId, setActiveTaskOriginalListId] = useState<string | null>(null)
@@ -266,6 +270,18 @@ function TasksPage() {
       const targetList = visibleLists.find((l) => l.id === overListId)
       const shouldUncomplete = sourceList?.is_final_state && !targetList?.is_final_state
 
+      // Auto-approve approval tasks when moved to Done (final state)
+      if (draggedTask.approval_type && targetList?.is_final_state && !draggedTask.completed_at) {
+        const approvalId = draggedTask.approval_id
+        if (approvalId) {
+          if (draggedTask.approval_type === 'leave') {
+            approveLeaveRequest.mutate({ id: approvalId })
+          } else if (draggedTask.approval_type === 'claim') {
+            approveClaimMutation.mutate({ id: approvalId })
+          }
+        }
+      }
+
       // Update the task with new list and position
       const updated = (optimisticTasks || []).map(t => 
         t.id === activeId 
@@ -297,7 +313,7 @@ function TasksPage() {
         }
       )
     }
-  }, [activeTask, activeTaskOriginalListId, findListId, moveMutation, optimisticTasks, visibleLists])
+  }, [activeTask, activeTaskOriginalListId, findListId, moveMutation, optimisticTasks, visibleLists, approveLeaveRequest, approveClaimMutation])
 
   const handleCreateTask = useCallback((listId: string) => {
     if (!newTaskTitle.trim()) return
@@ -570,7 +586,17 @@ function TasksPage() {
           {columnConfig.map((col, idx) => {
             const columnTasks = (optimisticTasks || [])
               .filter((t) => t.task_list_id === col.id)
-              .sort((a, b) => a.position - b.position)
+              .sort((a, b) => {
+                // Pin approval tasks to the top
+                const aIsApproval = a.approval_type && !a.completed_at
+                const bIsApproval = b.approval_type && !b.completed_at
+                
+                if (aIsApproval && !bIsApproval) return -1
+                if (!aIsApproval && bIsApproval) return 1
+                
+                // Within same group (both approval or both regular), sort by position
+                return a.position - b.position
+              })
             return (
               <React.Fragment key={col.id}>
                 <StatusColumn
@@ -1033,7 +1059,7 @@ function TaskCard({
         />
       )}
       
-      {/* Tape label at top center */}
+      {/* Tape label at top center - Always shows priority */}
       <div
         style={{
           position: 'absolute',
@@ -1130,6 +1156,48 @@ function TaskCard({
             pointerEvents: 'none',
           }}
         />
+      )}
+      
+      {/* Approval ribbon - Bottom right corner */}
+      {task.approval_type && !task.completed_at && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '8px',
+            right: '-4px',
+            zIndex: 11,
+          }}
+        >
+          <div
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold uppercase"
+            style={{
+              background: '#6357E8',
+              color: '#FFFFFF',
+              fontFamily: typography.fontFamily,
+              letterSpacing: '0.5px',
+              transform: 'rotate(2deg)',
+              boxShadow: '0 2px 6px rgba(99,87,232,0.4), 0 4px 8px rgba(0,0,0,0.15)',
+              borderRadius: '3px 0 0 3px',
+              border: '1.5px solid #4A3FBF',
+              borderRight: 'none',
+            }}
+          >
+            <span style={{ fontSize: '12px' }}>📋</span>
+            Approval
+          </div>
+          {/* Triangle fold effect */}
+          <div
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: '100%',
+              width: 0,
+              height: 0,
+              borderLeft: '6px solid #2E2580',
+              borderBottom: '6px solid transparent',
+            }}
+          />
+        </div>
       )}
       
       <div className="px-4 py-3.5 h-full flex flex-col justify-between relative">

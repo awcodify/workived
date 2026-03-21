@@ -505,6 +505,11 @@ func (s *Service) DeleteTask(ctx context.Context, orgID, id uuid.UUID, actorUser
 		return err
 	}
 
+	// Prevent deletion of pending approval tasks
+	if task.ApprovalType != nil && task.CompletedAt == nil {
+		return ErrCannotDeleteApprovalTask()
+	}
+
 	if err := s.repo.DeleteTask(ctx, orgID, id); err != nil {
 		return err
 	}
@@ -524,6 +529,154 @@ func (s *Service) DeleteTask(ctx context.Context, orgID, id uuid.UUID, actorUser
 		Str("org_id", orgID.String()).
 		Str("task_id", id.String()).
 		Msg("task.deleted")
+
+	return nil
+}
+
+// ── Approval Task Helpers ────────────────────────────────────────────────────
+// These methods are called by leave and claims services to manage approval tasks
+
+// CreateApprovalTask creates a task for an approval workflow (leave or claim).
+// CreateApprovalTask creates a task for a pending approval (leave or claim).
+// Returns error if task creation fails.
+func (s *Service) CreateApprovalTask(
+	ctx context.Context,
+	orgID uuid.UUID,
+	approvalType string, // "leave" or "claim"
+	approvalID uuid.UUID,
+	title string,
+	description string,
+	assigneeID uuid.UUID,
+	dueDate *string, // YYYY-MM-DD format, optional
+) error {
+	// Get "Approvals" list (or first available list as fallback)
+	lists, err := s.repo.ListTaskLists(ctx, orgID)
+	if err != nil {
+		return fmt.Errorf("list task lists: %w", err)
+	}
+	if len(lists) == 0 {
+		return fmt.Errorf("no task lists available")
+	}
+
+	// Find "Approvals" list or use first list
+	var targetList uuid.UUID
+	for _, list := range lists {
+		if list.Name == "Approvals" {
+			targetList = list.ID
+			break
+		}
+	}
+	if targetList == uuid.Nil {
+		// Fallback to first list if "Approvals" doesn't exist
+		targetList = lists[0].ID
+	}
+
+	// Validate approval type
+	if approvalType != "leave" && approvalType != "claim" {
+		return fmt.Errorf("invalid approval_type: %s", approvalType)
+	}
+
+	req := CreateTaskRequest{
+		TaskListID:   targetList,
+		Title:        title,
+		Description:  &description,
+		AssigneeID:   &assigneeID,
+		Priority:     "urgent",
+		DueDate:      dueDate,
+		ApprovalType: &approvalType,
+		ApprovalID:   &approvalID,
+	}
+
+	task, err := s.repo.CreateTask(ctx, orgID, assigneeID, req)
+	if err != nil {
+		return fmt.Errorf("create approval task: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("task_id", task.ID.String()).
+		Str("approval_type", approvalType).
+		Str("approval_id", approvalID.String()).
+		Msg("approval_task.created")
+
+	return nil
+}
+
+// CompleteApprovalTask marks an approval task as completed.
+// Called when the underlying approval is processed (approved/rejected).
+func (s *Service) CompleteApprovalTask(
+	ctx context.Context,
+	approvalType string,
+	approvalID uuid.UUID,
+) error {
+	task, err := s.repo.GetTaskByApproval(ctx, approvalType, approvalID)
+	if err != nil {
+		// If task not found, it may have been manually deleted - log and continue
+		if errors.Is(err, ErrTaskNotFound()) {
+			s.log.Warn().
+				Str("approval_type", approvalType).
+				Str("approval_id", approvalID.String()).
+				Msg("approval_task.not_found_for_completion")
+			return nil
+		}
+		return fmt.Errorf("get approval task: %w", err)
+	}
+
+	// If already completed, skip
+	if task.CompletedAt != nil {
+		s.log.Debug().
+			Str("task_id", task.ID.String()).
+			Str("approval_type", approvalType).
+			Msg("approval_task.already_completed")
+		return nil
+	}
+
+	// Toggle completion (will mark as complete)
+	_, err = s.repo.ToggleTaskCompletion(ctx, task.OrganisationID, task.ID)
+	if err != nil {
+		return fmt.Errorf("complete approval task: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", task.OrganisationID.String()).
+		Str("task_id", task.ID.String()).
+		Str("approval_type", approvalType).
+		Str("approval_id", approvalID.String()).
+		Msg("approval_task.completed")
+
+	return nil
+}
+
+// DeleteApprovalTask deletes an approval task when the underlying request is cancelled.
+func (s *Service) DeleteApprovalTask(
+	ctx context.Context,
+	approvalType string,
+	approvalID uuid.UUID,
+) error {
+	task, err := s.repo.GetTaskByApproval(ctx, approvalType, approvalID)
+	if err != nil {
+		// If task not found, it may have been manually deleted - log and continue
+		if errors.Is(err, ErrTaskNotFound()) {
+			s.log.Warn().
+				Str("approval_type", approvalType).
+				Str("approval_id", approvalID.String()).
+				Msg("approval_task.not_found_for_deletion")
+			return nil
+		}
+		return fmt.Errorf("get approval task: %w", err)
+	}
+
+	err = s.repo.DeleteTask(ctx, task.OrganisationID, task.ID)
+	if err != nil {
+		return fmt.Errorf("delete approval task: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", task.OrganisationID.String()).
+		Str("task_id", task.ID.String()).
+		Str("approval_type", approvalType).
+		Str("approval_id", approvalID.String()).
+		Msg("approval_task.deleted")
 
 	return nil
 }

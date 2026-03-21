@@ -60,6 +60,9 @@ type Request struct {
 	ReviewNote     *string    `json:"review_note,omitempty"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
+	// Populated when fetching with joins
+	EmployeeName string `json:"employee_name,omitempty"`
+	PolicyName   string `json:"policy_name,omitempty"`
 }
 
 // BalanceWithPolicy combines a balance row with its policy name for display.

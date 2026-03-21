@@ -110,6 +110,15 @@ export function useAllRequests(params?: { status?: string; year?: number }) {
   })
 }
 
+export function useLeaveRequest(id: string) {
+  return useQuery({
+    queryKey: [...leaveKeys.requests(), id],
+    queryFn: () => leaveApi.getRequest(id).then((r) => r.data.data),
+    staleTime: 2 * 60 * 1000, // 2 min
+    enabled: !!id,
+  })
+}
+
 export function useSubmitRequest() {
   const qc = useQueryClient()
   return useMutation({

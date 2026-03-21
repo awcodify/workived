@@ -70,6 +70,9 @@ export const leaveApi = {
   submitRequest: (data: SubmitRequestInput) =>
     apiClient.post<ApiResponse<LeaveRequest>>('/api/v1/leave/requests', data),
 
+  getRequest: (id: string) =>
+    apiClient.get<ApiResponse<LeaveRequestWithDetails>>(`/api/v1/leave/requests/${id}`),
+
   listRequests: (params?: { status?: string; year?: number }) =>
     apiClient.get<RequestListResponse>('/api/v1/leave/requests', {
       params,

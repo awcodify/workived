@@ -106,9 +106,10 @@ func main() {
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithLogger(log))
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log))
 	attSvc := attendance.NewService(attRepo, orgRepo, log)
-	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender))
-	leaveSvc := leave.NewService(leaveRepo, orgRepo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender))
+	// Tasks service must be created before leave/claims to wire up approval task creation
 	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log))
+	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender), claims.WithTasksService(tasksSvc))
+	leaveSvc := leave.NewService(leaveRepo, orgRepo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender), leave.WithTasksService(tasksSvc))
 	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log))
 
 	// ── Handlers ─────────────────────────────────────────────────────────────

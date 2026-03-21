@@ -81,6 +81,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	leave.POST("/requests", middleware.Require(middleware.PermSelfLeave), h.SubmitRequest)
 	leave.GET("/requests", middleware.RequireAny(middleware.PermLeaveApprove, middleware.PermLeaveWrite, middleware.PermTeamLeaveApprove), h.ListRequests)
 	leave.GET("/requests/me", middleware.Require(middleware.PermSelfLeave), h.ListMyRequests)
+	leave.GET("/requests/:id", middleware.Require(middleware.PermSelfLeave), h.GetRequest)
 	leave.POST("/requests/:id/cancel", middleware.Require(middleware.PermSelfLeave), h.CancelRequest)
 
 	// Notifications — pending approvals count (approvers + admins)
@@ -250,6 +251,24 @@ func (h *Handler) SubmitRequest(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, gin.H{"data": req})
+}
+
+func (h *Handler) GetRequest(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	id, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	req, err := h.service.GetRequest(c.Request.Context(), orgID, id)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": req})
 }
 
 func (h *Handler) ListRequests(c *gin.Context) {

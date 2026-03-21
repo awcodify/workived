@@ -4,6 +4,116 @@ Platform improvements, UX polish, and operational excellence features.
 
 ---
 
+## ⭐⭐⭐⭐⭐ Task Board View Filtering (Tasks vs Approvals)
+**Status:** 📋 Backlog (Post-Sprint 10)  
+**Effort:** S (1-2 days)  
+**Value:** Reduce cognitive load by separating project work from HR approvals
+
+**Description:**
+Add view controls to task board to filter between project tasks and approval tasks.
+
+**Problem:**
+Sprint 10 unified project tasks and HR approvals on one kanban board. While this prevents missed approvals, it creates cognitive overhead:
+- **Project tasks:** Ongoing work, strategic planning, team coordination (flow state)
+- **HR approvals:** Quick 2-minute decisions, compliance-driven (interruption work)
+
+Mixing these forces context switching and reduces focus.
+
+**User Story:**
+> As a manager, I want to toggle between "Tasks Only" and "Approvals Only" views, so I can focus on project work without HR approval noise, but still have a unified view when I need it.
+
+**Solution: Smart Filtering**
+
+Add view controls to task board header:
+```
+[Task Board Header]
+View: [All Work ▾] [Tasks Only] [Approvals Only]
+```
+
+**Features:**
+- **Three view modes:**
+  - **All Work** — Shows everything (tasks + approvals) [default for admins]
+  - **Tasks Only** — Hides approval tasks [default for team members]
+  - **Approvals Only** — Shows only pending leave/claim approvals
+
+- **Smart defaults:**
+  - Admins/managers → "All Work" (need visibility)
+  - Team members → "Tasks Only" (can't act on approvals anyway)
+
+- **Persistent preference:**
+  - Remember user's last selection in localStorage
+  - Restore on page load
+
+- **URL state:**
+  - `/tasks?view=approvals` (shareable, bookmarkable)
+  - Deep linking support
+
+- **Empty states:**
+  - "Tasks Only" + no regular tasks → "No tasks yet. Create one to get started."
+  - "Approvals Only" + no approvals → "🎉 All caught up! No pending approvals."
+
+**Technical Implementation:**
+
+**Frontend (1-2 days):**
+
+1. **Add filter control component:**
+   ```tsx
+   <FilterDropdown value={view} onChange={setView}>
+     <option value="all">📋 All Work</option>
+     <option value="tasks">✅ Tasks Only</option>
+     <option value="approvals">⏰ Approvals Only</option>
+   </FilterDropdown>
+   ```
+
+2. **Filter logic in task list:**
+   ```tsx
+   const filteredTasks = useMemo(() => {
+     return tasks.filter(task => {
+       if (view === 'tasks') return !task.approval_type
+       if (view === 'approvals') return task.approval_type
+       return true // 'all'
+     })
+   }, [tasks, view])
+   ```
+
+3. **URL state management:**
+   ```tsx
+   const [searchParams, setSearchParams] = useSearchParams()
+   const view = searchParams.get('view') || defaultView
+   ```
+
+4. **Persist preference:**
+   ```tsx
+   useEffect(() => {
+     localStorage.setItem('taskBoardView', view)
+   }, [view])
+   ```
+
+**Why This Approach (vs Separate Boards):**
+- ✅ Preserves Sprint 10 work (no waste)
+- ✅ User choice (flexibility)
+- ✅ Minimal implementation (1-2 days vs 3-4 for separate boards)
+- ✅ No double infrastructure (one board, multiple views)
+
+**Testing:**
+- [ ] View switcher renders correctly
+- [ ] "Tasks Only" hides approval tasks
+- [ ] "Approvals Only" shows only approval tasks
+- [ ] "All Work" shows everything
+- [ ] URL state updates on view change
+- [ ] Preference persists across sessions
+- [ ] Smart defaults work for different roles
+
+**Dependencies:**
+- Requires Sprint 10 (approval tasks) to be complete ✅
+
+**Follow-up (Future):**
+- Add badge counts: "Tasks (12) | Approvals (3)"
+- Keyboard shortcuts: `T` for tasks, `A` for approvals
+- Role-based hiding: Team members never see "Approvals" option
+
+---
+
 ## ⭐⭐⭐⭐ System Transparency (Changelog + Known Issues)
 **Status:** 📋 Backlog (Sprint 10+)  
 **Effort:** M (5 days)  

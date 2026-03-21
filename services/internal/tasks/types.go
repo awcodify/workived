@@ -34,6 +34,8 @@ type Task struct {
 	DueDate        *time.Time `json:"due_date,omitempty"`
 	Position       int        `json:"position"`
 	CompletedAt    *time.Time `json:"completed_at,omitempty"`
+	ApprovalType   *string    `json:"approval_type,omitempty"` // 'leave' | 'claim' | NULL
+	ApprovalID     *uuid.UUID `json:"approval_id,omitempty"`   // FK to leave_requests.id or claims.id
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 }
@@ -94,12 +96,14 @@ type UpdateListRequest struct {
 }
 
 type CreateTaskRequest struct {
-	TaskListID  uuid.UUID  `json:"task_list_id" binding:"required"`
-	Title       string     `json:"title" binding:"required,max=500"`
-	Description *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
-	AssigneeID  *uuid.UUID `json:"assignee_id,omitempty"`
-	Priority    string     `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
-	DueDate     *string    `json:"due_date,omitempty"` // YYYY-MM-DD format
+	TaskListID   uuid.UUID  `json:"task_list_id" binding:"required"`
+	Title        string     `json:"title" binding:"required,max=500"`
+	Description  *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
+	AssigneeID   *uuid.UUID `json:"assignee_id,omitempty"`
+	Priority     string     `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
+	DueDate      *string    `json:"due_date,omitempty"` // YYYY-MM-DD format
+	ApprovalType *string    `json:"approval_type,omitempty" binding:"omitempty,oneof=leave claim"`
+	ApprovalID   *uuid.UUID `json:"approval_id,omitempty"`
 }
 
 type UpdateTaskRequest struct {
@@ -150,6 +154,7 @@ type RepositoryInterface interface {
 	// Tasks
 	ListTasks(ctx context.Context, orgID uuid.UUID, filters TaskFilters) ([]TaskWithDetails, error)
 	GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWithDetails, error)
+	GetTaskByApproval(ctx context.Context, approvalType string, approvalID uuid.UUID) (*TaskWithDetails, error)
 	CreateTask(ctx context.Context, orgID, createdBy uuid.UUID, req CreateTaskRequest) (*Task, error)
 	UpdateTask(ctx context.Context, orgID, id uuid.UUID, req UpdateTaskRequest) (*Task, error)
 	MoveTask(ctx context.Context, orgID, taskID uuid.UUID, newListID uuid.UUID, newPosition int) (*Task, error)
@@ -219,4 +224,8 @@ func ErrUnauthorizedCommentDelete() *apperr.AppError {
 
 func ErrInvalidPriority(priority string) *apperr.AppError {
 	return apperr.New(apperr.CodeValidation, fmt.Sprintf("invalid priority: %s (must be low, medium, high, or urgent)", priority))
+}
+
+func ErrCannotDeleteApprovalTask() *apperr.AppError {
+	return apperr.New(apperr.CodeConflict, "cannot delete pending approval task")
 }

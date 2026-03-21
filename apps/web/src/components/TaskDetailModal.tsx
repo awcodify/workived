@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { RichTextEditor } from './RichTextEditor'
+import { ApprovalTaskView } from './ApprovalTaskView'
 import { typography } from '@/design/tokens'
 import type { TaskWithDetails, Employee, EmployeeWorkload, TaskPriority } from '@/types/api'
 import {
@@ -24,6 +25,37 @@ interface TaskDetailModalProps {
 
 export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, employees, taskLists, getEmployeeWorkload, onClose }: TaskDetailModalProps) {
   const isCreateMode = mode === 'create'
+  const isApprovalTask = task?.approval_type && task?.approval_id && !task?.completed_at
+
+  // If it's an approval task, show the approval view
+  if (isApprovalTask && task) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+        }}
+        onClick={onClose}
+      >
+        <div
+          className="w-full max-w-3xl overflow-y-auto max-h-[90vh] relative"
+          style={{
+            background: '#FFFFFF',
+            boxShadow: `
+              0 24px 48px rgba(0,0,0,0.12),
+              0 12px 24px rgba(0,0,0,0.08),
+              0 0 0 1px rgba(0,0,0,0.05)
+            `,
+            borderRadius: '16px',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ApprovalTaskView task={task} onClose={onClose} />
+        </div>
+      </div>
+    )
+  }
   const [title, setTitle] = useState(task?.title || '')
   const [description, setDescription] = useState(task?.description || '')
   const [assigneeId, setAssigneeId] = useState(task?.assignee_id || '')

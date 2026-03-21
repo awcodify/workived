@@ -55,10 +55,18 @@ type EmployeeInfoProvider interface {
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
+// TasksServiceInterface provides task management for approval workflows.
+type TasksServiceInterface interface {
+	CreateApprovalTask(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, assigneeID uuid.UUID, dueDate *string) error
+	CompleteApprovalTask(ctx context.Context, approvalType string, approvalID uuid.UUID) error
+	DeleteApprovalTask(ctx context.Context, approvalType string, approvalID uuid.UUID) error
+}
+
 type Service struct {
 	repo         RepositoryInterface
 	orgRepo      OrgInfoProvider
 	employeeRepo EmployeeInfoProvider
+	tasksService TasksServiceInterface
 	auditLog     audit.Logger
 	log          zerolog.Logger
 	email        email.Sender
@@ -95,6 +103,13 @@ func WithLogger(log zerolog.Logger) ServiceOption {
 func WithEmailSender(e email.Sender) ServiceOption {
 	return func(s *Service) {
 		s.email = e
+	}
+}
+
+// WithTasksService sets the tasks service for managing approval tasks.
+func WithTasksService(ts TasksServiceInterface) ServiceOption {
+	return func(s *Service) {
+		s.tasksService = ts
 	}
 }
 
@@ -431,7 +446,61 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 		go s.sendClaimPendingEmail(context.Background(), orgID, employeeID, claim.ID, category.Name, claim.Amount, claim.CurrencyCode, claim.ClaimDate, &claim.Description)
 	}
 
+	// 11. Create approval task (best effort)
+	if s.tasksService != nil {
+		go s.createClaimApprovalTask(context.Background(), orgID, employeeID, claim, category.Name)
+	}
+
 	return claim, nil
+}
+
+// createClaimApprovalTask creates an approval task for the claim
+func (s *Service) createClaimApprovalTask(ctx context.Context, orgID, employeeID uuid.UUID, claim *Claim, categoryName string) {
+	// Skip if tasks service not wired up
+	if s.tasksService == nil {
+		s.log.Debug().Msg("tasks service not configured, skipping approval task creation")
+		return
+	}
+
+	// Get employee name and manager ID for task title and assignment
+	employeeName, _, managerID, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("org_id", orgID.String()).Msg("failed to get employee profile for approval task")
+		return
+	}
+
+	// Manager is required to assign approval task
+	if managerID == nil {
+		s.log.Warn().Str("employee_id", employeeID.String()).Msg("employee has no manager, cannot create approval task")
+		return
+	}
+
+	// Calculate due date (3 days from now)
+	dueDate := time.Now().AddDate(0, 0, 3).Format("2006-01-02")
+
+	// Determine title based on category
+	amountStr := formatMoney(claim.Amount, claim.CurrencyCode)
+	title := fmt.Sprintf("Approve Claim: %s — %s (%s)", employeeName, categoryName, amountStr)
+	description := fmt.Sprintf("Claim submitted on %s\nCategory: %s\nAmount: %s\nDescription: %s",
+		claim.ClaimDate.Format("2006-01-02"),
+		categoryName,
+		amountStr,
+		claim.Description)
+
+	err = s.tasksService.CreateApprovalTask(ctx, orgID, "claim", claim.ID, title, description, *managerID, &dueDate)
+	if err != nil {
+		s.log.Warn().Err(err).
+			Str("org_id", orgID.String()).
+			Str("claim_id", claim.ID.String()).
+			Msg("failed to create claim approval task")
+	}
+}
+
+// formatMoney formats a money amount with currency
+func formatMoney(amount int64, currencyCode string) string {
+	// Convert smallest unit to decimal
+	decimal := float64(amount) / 100.0
+	return fmt.Sprintf("%s %.2f", currencyCode, decimal)
 }
 
 func (s *Service) ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, claimID uuid.UUID, req *ApproveClaimRequest, actorUserID ...uuid.UUID) (*Claim, error) {
@@ -486,6 +555,15 @@ func (s *Service) ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, c
 		go s.sendClaimApprovedEmail(context.Background(), orgID, approvedClaim.EmployeeID, reviewerEmployeeID, approvedClaim.ID, reviewNote)
 	}
 
+	// Complete approval task (best effort)
+	if s.tasksService != nil {
+		go func() {
+			if err := s.tasksService.CompleteApprovalTask(context.Background(), "claim", claimID); err != nil {
+				s.log.Warn().Err(err).Str("claim_id", claimID.String()).Msg("failed to complete approval task")
+			}
+		}()
+	}
+
 	return approvedClaim, nil
 }
 
@@ -519,6 +597,15 @@ func (s *Service) RejectClaim(ctx context.Context, orgID, reviewerEmployeeID, cl
 		go s.sendClaimRejectedEmail(context.Background(), orgID, claim.EmployeeID, reviewerEmployeeID, claim.ID, &req.ReviewNote)
 	}
 
+	// Complete approval task (best effort)
+	if s.tasksService != nil {
+		go func() {
+			if err := s.tasksService.CompleteApprovalTask(context.Background(), "claim", claimID); err != nil {
+				s.log.Warn().Err(err).Str("claim_id", claimID.String()).Msg("failed to complete approval task")
+			}
+		}()
+	}
+
 	return claim, nil
 }
 
@@ -546,6 +633,15 @@ func (s *Service) CancelClaim(ctx context.Context, orgID, employeeID, claimID uu
 			ResourceID:   claimID,
 			AfterState:   claim,
 		})
+	}
+
+	// Delete approval task (best effort)
+	if s.tasksService != nil {
+		go func() {
+			if err := s.tasksService.DeleteApprovalTask(context.Background(), "claim", claimID); err != nil {
+				s.log.Warn().Err(err).Str("claim_id", claimID.String()).Msg("failed to delete approval task")
+			}
+		}()
 	}
 
 	return claim, nil
