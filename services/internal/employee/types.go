@@ -118,3 +118,13 @@ type EmployeeWorkload struct {
 	Workload     WorkloadInfo `json:"workload"`
 	Leave        LeaveInfo    `json:"leave"`
 }
+
+// PerformanceMetrics contains task completion statistics for an employee.
+type PerformanceMetrics struct {
+	CompletedTasks           int     `json:"completed_tasks"`
+	AvgCompletionTimeHours   float64 `json:"avg_completion_time_hours"`
+	OnTimeCompletionRate     float64 `json:"on_time_completion_rate"` // Percentage (0-100)
+	TotalTasksCreated        int     `json:"total_tasks_created"`
+	OverdueTasksCompleted    int     `json:"overdue_tasks_completed"`
+	AvgDaysBeforeDueComplete float64 `json:"avg_days_before_due_complete"` // Negative = late, positive = early
+}

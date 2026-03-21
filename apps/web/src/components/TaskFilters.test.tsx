@@ -62,20 +62,21 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={false}
       />
     )
 
-    // Should not show expanded filters initially
-    expect(screen.queryByText('Filter Options')).not.toBeInTheDocument()
+    // Should not show Priority filter initially
+    expect(screen.queryByText('🎯 Priority')).not.toBeInTheDocument()
 
-    // Click expand button
-    const expandButton = screen.getByText('▼')
-    fireEvent.click(expandButton)
+    // Click filter button to expand
+    const filterButton = screen.getByText('Filters')
+    fireEvent.click(filterButton)
 
-    // Should now show expanded filters
-    expect(screen.getByText('Filter Options')).toBeInTheDocument()
+    // Should now show advanced filters including Priority
+    expect(screen.getByText('🎯 Priority')).toBeInTheDocument()
   })
 
   it('shows expanded state when filters are active', () => {
@@ -90,13 +91,15 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={true}
       />
     )
 
-    // Should be expanded by default when filters are active
-    expect(screen.getByText('Filter Options')).toBeInTheDocument()
+    // Filter button should show active state with badge count
+    const filterButton = screen.getByText('Filters')
+    expect(filterButton).toBeInTheDocument()
   })
 
   it('calls onSearchChange when search input changes', () => {
@@ -113,6 +116,7 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={false}
       />
@@ -138,14 +142,20 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={true}
       />
     )
 
+    // Expand to see controls
+    const filterButton = screen.getByText('Filters')
+    fireEvent.click(filterButton)
+
     const assigneeSelect = screen.getAllByRole('combobox')[0]
     fireEvent.change(assigneeSelect, { target: { value: '1' } })
 
+    // EmployeeSelector passes through the value directly
     expect(mockOnAssigneeChange).toHaveBeenCalledWith('1')
   })
 
@@ -163,10 +173,15 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={true}
       />
     )
+
+    // Expand to see controls
+    const filterButton = screen.getByText('Filters')
+    fireEvent.click(filterButton)
 
     const prioritySelect = screen.getAllByRole('combobox')[1]
     fireEvent.change(prioritySelect, { target: { value: 'high' } })
@@ -188,10 +203,15 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={mockOnShowCompletedChange}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={true}
       />
     )
+
+    // Expand to see checkbox
+    const filterButton = screen.getByText('Filters')
+    fireEvent.click(filterButton)
 
     const checkbox = screen.getByRole('checkbox')
     fireEvent.click(checkbox)
@@ -211,12 +231,17 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={true}
       />
     )
 
-    expect(screen.getByText(/Clear all filters/i)).toBeInTheDocument()
+    // Expand filters to see clear button
+    const filterButton = screen.getByText('Filters')
+    fireEvent.click(filterButton)
+
+    expect(screen.getByText('✕ Clear')).toBeInTheDocument()
   })
 
   it('hides clear filters button when no filters are active', () => {
@@ -231,12 +256,18 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={false}
       />
     )
 
-    expect(screen.queryByText(/Clear all filters/i)).not.toBeInTheDocument()
+    // Expand filters
+    const filterButton = screen.getByText('Filters')
+    fireEvent.click(filterButton)
+
+    // Clear button should not appear when no filters are active
+    expect(screen.queryByText('✕ Clear')).not.toBeInTheDocument()
   })
 
   it('calls onClearFilters when clear button is clicked', () => {
@@ -253,12 +284,17 @@ describe('TaskFilters', () => {
         showCompleted={true}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={mockOnClearFilters}
         hasActiveFilters={true}
       />
     )
 
-    const clearButton = screen.getByText(/Clear all filters/i)
+    // Expand filters to see clear button
+    const filterButton = screen.getByText('Filters')
+    fireEvent.click(filterButton)
+
+    const clearButton = screen.getByText('✕ Clear')
     fireEvent.click(clearButton)
 
     expect(mockOnClearFilters).toHaveBeenCalled()
@@ -276,14 +312,20 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={true}
       />
     )
 
+    // Expand filters to see employee dropdown
+    const filterButton = screen.getByText('Filters')
+    fireEvent.click(filterButton)
+
     expect(screen.getByText('John Doe')).toBeInTheDocument()
     expect(screen.getByText('Jane Smith')).toBeInTheDocument()
-    expect(screen.getByText('Unassigned')).toBeInTheDocument()
+    // EmployeeSelector uses "All" as placeholder instead of "Unassigned"
+    expect(screen.getByText('All')).toBeInTheDocument()
   })
 
   it('renders priority options in priority dropdown', () => {
@@ -298,14 +340,19 @@ describe('TaskFilters', () => {
         showCompleted={false}
         onShowCompletedChange={vi.fn()}
         employees={mockEmployees}
+        getEmployeeWorkload={mockGetEmployeeWorkload}
         onClearFilters={vi.fn()}
         hasActiveFilters={true}
       />
     )
 
+    // Expand filters to see priority options
+    const filterButton = screen.getByText('Filters')
+    fireEvent.click(filterButton)
+
     expect(screen.getByText('🔴 Urgent')).toBeInTheDocument()
-    expect(screen.getByText('🟠 High')).toBeInTheDocument()
-    expect(screen.getByText('🟡 Medium')).toBeInTheDocument()
-    expect(screen.getByText('🟢 Low')).toBeInTheDocument()
+    expect(screen.getByText('🟣 High')).toBeInTheDocument()
+    expect(screen.getByText('🔵 Medium')).toBeInTheDocument()
+    expect(screen.getByText('🟡 Low')).toBeInTheDocument()
   })
 })

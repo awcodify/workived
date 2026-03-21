@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from 'react'
 import { RichTextEditor } from './RichTextEditor'
 import { ApprovalTaskView } from './ApprovalTaskView'
 import { EmployeeSelector } from './EmployeeSelector'
+import { ReactionPicker } from './ReactionPicker'
 import { typography } from '@/design/tokens'
 import type { TaskWithDetails, Employee, EmployeeWorkload, TaskPriority } from '@/types/api'
 import {
@@ -12,6 +13,8 @@ import {
   useTaskComments,
   useCreateTaskComment,
   useDeleteTaskComment,
+  useCommentReactions,
+  useToggleReaction,
 } from '@/lib/hooks/useTasks'
 
 interface TaskDetailModalProps {
@@ -75,6 +78,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   const { data: commentsData } = useTaskComments(task?.id || '')
   const createCommentMutation = useCreateTaskComment()
   const deleteCommentMutation = useDeleteTaskComment()
+  const toggleReactionMutation = useToggleReaction()
   
   // Sync form state when task prop changes (e.g., after auto-save refetch)
   useEffect(() => {
@@ -309,6 +313,24 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   }
   const colors = stickyColors[priority as TaskPriority]
 
+  // Comment reactions component
+  const CommentReactions = ({ taskId, commentId }: { taskId: string; commentId: string }) => {
+    const { data: reactions = [] } = useCommentReactions(taskId, commentId)
+    
+    const handleToggleReaction = (emoji: string) => {
+      if (!taskId || !commentId) return
+      toggleReactionMutation.mutate({ taskId, commentId, emoji })
+    }
+
+    return (
+      <ReactionPicker
+        reactions={reactions}
+        onToggle={handleToggleReaction}
+        isLoading={toggleReactionMutation.isPending}
+      />
+    )
+  }
+
   // Recursive comment renderer with nesting support
   const renderComment = (comment: any, depth: number = 0): React.ReactNode => {
     const marginLeft = depth * 24
@@ -389,6 +411,9 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               __html: comment.content_type === 'markdown' ? comment.body : `<p>${comment.body}</p>` 
             }}
           />
+
+          {/* Emoji Reactions */}
+          <CommentReactions taskId={task?.id || ''} commentId={comment.id} />
         </div>
 
         {/* Inline Reply Editor */}
