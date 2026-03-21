@@ -416,7 +416,7 @@ function LeaveDashboard() {
                     overflow: 'hidden',
                   }}
                 >
-                  {myRequests.slice(0, 10).map((request, idx) => {
+                  {myRequests.map((request, idx) => {
                     // Find matching balance for this request
                     const matchedBalance = balances?.find(
                       (b) => b.leave_policy_id === request.leave_policy_id
@@ -427,24 +427,10 @@ function LeaveDashboard() {
                         request={request}
                         variant="my"
                         balance={matchedBalance}
-                        isLast={idx === Math.min(myRequests.length, 10) - 1}
+                        isLast={idx === myRequests.length - 1}
                       />
                     )
                   })}
-                  {myRequests.length > 10 && (
-                    <div
-                      className="text-center py-3 cursor-pointer transition-all hover:opacity-70"
-                      style={{
-                        borderTop: `1px solid ${t.border}`,
-                        color: t.accent,
-                      }}
-                      onClick={() => navigate({ to: '/leave/requests' })}
-                    >
-                      <span className="text-sm font-medium">
-                        View all {myRequests.length} requests →
-                      </span>
-                    </div>
-                  )}
                 </div>
               )}
             </div>

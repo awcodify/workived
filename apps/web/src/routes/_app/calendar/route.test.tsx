@@ -102,16 +102,3 @@ describe('Calendar in Dock', () => {
     expect(screen.getByText('Calendar')).toBeInTheDocument()
   })
 })
-
-// Test the redirect from /leave/calendar
-describe('Leave Calendar Redirect', () => {
-  it('old leave/calendar route file exports a Route', async () => {
-    // Reset the router mock to include createFileRoute for this test
-    vi.doMock('@tanstack/react-router', () => ({
-      createFileRoute: () => (opts: Record<string, unknown>) => ({ ...opts }),
-      redirect: (opts: Record<string, unknown>) => opts,
-    }))
-    const mod = await import('@/routes/_app/leave/calendar')
-    expect(mod.Route).toBeDefined()
-  })
-})
