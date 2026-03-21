@@ -104,7 +104,7 @@ function LeaveDashboard() {
                 color: t.text,
               }}
             >
-              Your Leave Balances
+              Want a day off? Click a balance to request leave
             </h2>
 
             {isLoading ? (
