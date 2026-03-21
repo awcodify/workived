@@ -78,7 +78,8 @@ type clockHTTPRequest struct {
 }
 
 type DailyReportFilters struct {
-	Date string // YYYY-MM-DD
+	Date       string     // YYYY-MM-DD
+	EmployeeID *uuid.UUID // Optional: filter by employee (for non-admins)
 }
 
 type MonthlyReportFilters struct {

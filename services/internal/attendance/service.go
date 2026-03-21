@@ -177,6 +177,18 @@ func (s *Service) DailyReport(ctx context.Context, orgID uuid.UUID, filters Dail
 		return nil, err
 	}
 
+	// Filter to specific employee if provided (non-admin view)
+	if filters.EmployeeID != nil {
+		filteredEmployees := make([]ActiveEmployee, 0, 1)
+		for _, emp := range employees {
+			if emp.ID == *filters.EmployeeID {
+				filteredEmployees = append(filteredEmployees, emp)
+				break
+			}
+		}
+		employees = filteredEmployees
+	}
+
 	records, err := s.repo.ListByDate(ctx, orgID, filters.Date)
 	if err != nil {
 		return nil, err

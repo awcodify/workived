@@ -51,7 +51,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	att.POST("/clock-in", middleware.Require(middleware.PermSelfAttendance), h.ClockIn)
 	att.POST("/clock-out", middleware.Require(middleware.PermSelfAttendance), h.ClockOut)
 	att.GET("/today/:employee_id", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.GetToday)
-	att.GET("/daily", middleware.Require(middleware.PermAttendanceRead), h.DailyReport)
+	att.GET("/daily", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.DailyReport)
 	att.GET("/monthly", middleware.Require(middleware.PermAttendanceRead), h.MonthlySummaryReport)
 	att.GET("/monthly/:employee_id", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.EmployeeMonthlySummary)
 }
@@ -138,6 +138,7 @@ func (h *Handler) GetToday(c *gin.Context) {
 
 func (h *Handler) DailyReport(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
 
 	date := c.Query("date")
 	if date == "" {
@@ -145,7 +146,26 @@ func (h *Handler) DailyReport(c *gin.Context) {
 		return
 	}
 
-	entries, err := h.service.DailyReport(c.Request.Context(), orgID, DailyReportFilters{Date: date})
+	// Check if user has admin permission
+	role := middleware.RoleFromCtx(c)
+	hasAdminPerm := role == "admin" || role == "owner"
+
+	filters := DailyReportFilters{Date: date}
+
+	// Non-admin users can only see their own attendance
+	if !hasAdminPerm {
+		employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+		if err != nil {
+			h.logAndRespondError(c, err, "failed to lookup employee", map[string]string{
+				"org_id":  orgID.String(),
+				"user_id": userID.String(),
+			})
+			return
+		}
+		filters.EmployeeID = &employeeID
+	}
+
+	entries, err := h.service.DailyReport(c.Request.Context(), orgID, filters)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return

@@ -8,19 +8,25 @@ const mockEmployees: Employee[] = [
     id: '1',
     full_name: 'John Doe',
     email: 'john@example.com',
-    employment_status: 'active',
-    join_date: '2024-01-01',
+    employment_type: 'full_time',
+    status: 'active',
+    start_date: '2024-01-01',
+    is_active: true,
     organisation_id: 'org-1',
     created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
   },
   {
     id: '2',
     full_name: 'Jane Smith',
     email: 'jane@example.com',
-    employment_status: 'active',
-    join_date: '2024-01-01',
+    employment_type: 'full_time',
+    status: 'active',
+    start_date: '2024-01-01',
+    is_active: true,
     organisation_id: 'org-1',
     created_at: '2024-01-01T00:00:00Z',
+    updated_at: '2024-01-01T00:00:00Z',
   },
 ]
 
@@ -153,7 +159,9 @@ describe('TaskFilters', () => {
     fireEvent.click(filterButton)
 
     const assigneeSelect = screen.getAllByRole('combobox')[0]
-    fireEvent.change(assigneeSelect, { target: { value: '1' } })
+    if (assigneeSelect) {
+      fireEvent.change(assigneeSelect, { target: { value: '1' } })
+    }
 
     // EmployeeSelector passes through the value directly
     expect(mockOnAssigneeChange).toHaveBeenCalledWith('1')
@@ -184,7 +192,9 @@ describe('TaskFilters', () => {
     fireEvent.click(filterButton)
 
     const prioritySelect = screen.getAllByRole('combobox')[1]
-    fireEvent.change(prioritySelect, { target: { value: 'high' } })
+    if (prioritySelect) {
+      fireEvent.change(prioritySelect, { target: { value: 'high' } })
+    }
 
     expect(mockOnPriorityChange).toHaveBeenCalledWith('high')
   })
