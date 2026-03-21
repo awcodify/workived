@@ -100,7 +100,6 @@ func (r *Repository) UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, re
 	if req.Position != nil {
 		updates = append(updates, fmt.Sprintf("position = $%d", argIdx))
 		args = append(args, *req.Position)
-		argIdx++
 	}
 
 	if len(updates) == 0 {
@@ -317,7 +316,6 @@ func (r *Repository) UpdateTask(ctx context.Context, orgID, id uuid.UUID, req Up
 	if req.DueDate != nil {
 		updates = append(updates, fmt.Sprintf("due_date = $%d", argIdx))
 		args = append(args, *req.DueDate)
-		argIdx++
 	}
 
 	if len(updates) == 0 {

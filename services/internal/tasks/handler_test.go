@@ -414,3 +414,158 @@ func TestDeleteComment(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assertStatus(t, w, http.StatusNoContent)
 }
+
+// ── Nested Comments Tests ────────────────────────────────────────────────────
+
+func TestCreateNestedComment(t *testing.T) {
+	parentID := testCommentID
+	svc := &fakeService{
+		createCommentFn: func(_ context.Context, orgID, taskID, authorID uuid.UUID, pID *uuid.UUID, body, contentType string, _ ...uuid.UUID) (*tasks.TaskComment, error) {
+			if pID == nil || *pID != parentID {
+				t.Errorf("expected parent_id = %s, got %v", parentID, pID)
+			}
+			return &tasks.TaskComment{
+				ID:       uuid.New(),
+				ParentID: pID,
+				Body:     body,
+			}, nil
+		},
+	}
+	r := newRouter(svc)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/tasks/"+testTaskID.String()+"/comments", jsonBody(t, map[string]any{
+		"body":      "Nested reply",
+		"parent_id": parentID.String(),
+	}))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	assertStatus(t, w, http.StatusCreated)
+	assertHasDataKey(t, w)
+}
+
+func TestCreateMarkdownComment(t *testing.T) {
+	svc := &fakeService{
+		createCommentFn: func(_ context.Context, orgID, taskID, authorID uuid.UUID, pID *uuid.UUID, body, contentType string, _ ...uuid.UUID) (*tasks.TaskComment, error) {
+			if contentType != "markdown" {
+				t.Errorf("expected content_type = markdown, got %s", contentType)
+			}
+			return &tasks.TaskComment{
+				ID:          uuid.New(),
+				Body:        body,
+				ContentType: contentType,
+			}, nil
+		},
+	}
+	r := newRouter(svc)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/tasks/"+testTaskID.String()+"/comments", jsonBody(t, map[string]any{
+		"body":         "**Bold** text",
+		"content_type": "markdown",
+	}))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	assertStatus(t, w, http.StatusCreated)
+	assertHasDataKey(t, w)
+}
+
+func TestListCommentsWithReplies(t *testing.T) {
+	parentComment := tasks.TaskCommentWithAuthor{
+		TaskComment: tasks.TaskComment{
+			ID:   testCommentID,
+			Body: "Parent comment",
+		},
+		AuthorName: "John Doe",
+		Replies: []tasks.TaskCommentWithAuthor{
+			{
+				TaskComment: tasks.TaskComment{
+					ID:       uuid.New(),
+					ParentID: &testCommentID,
+					Body:     "Nested reply",
+				},
+				AuthorName: "Jane Doe",
+			},
+		},
+	}
+
+	svc := &fakeService{
+		listCommentsFn: func(_ context.Context, orgID, taskID uuid.UUID) ([]tasks.TaskCommentWithAuthor, error) {
+			return []tasks.TaskCommentWithAuthor{parentComment}, nil
+		},
+	}
+	r := newRouter(svc)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/tasks/"+testTaskID.String()+"/comments", nil)
+	r.ServeHTTP(w, req)
+	assertStatus(t, w, http.StatusOK)
+	assertHasDataKey(t, w)
+
+	var resp map[string][]tasks.TaskCommentWithAuthor
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+	if len(resp["data"]) == 0 {
+		t.Fatal("expected comments in response")
+	}
+	if len(resp["data"][0].Replies) != 1 {
+		t.Errorf("expected 1 reply, got %d", len(resp["data"][0].Replies))
+	}
+}
+
+// ── Reactions Tests ──────────────────────────────────────────────────────────
+
+func TestToggleReaction(t *testing.T) {
+	emoji := "👍"
+	svc := &fakeService{
+		toggleReactionFn: func(_ context.Context, orgID, commentID, employeeID uuid.UUID, e string, _ ...uuid.UUID) (bool, error) {
+			if e != emoji {
+				t.Errorf("expected emoji = %s, got %s", emoji, e)
+			}
+			return true, nil // added
+		},
+	}
+	r := newRouter(svc)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/tasks/"+testTaskID.String()+"/comments/"+testCommentID.String()+"/reactions", jsonBody(t, map[string]string{
+		"emoji": emoji,
+	}))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	assertStatus(t, w, http.StatusOK)
+	assertHasDataKey(t, w)
+
+	var resp map[string]map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+	if !resp["data"]["added"].(bool) {
+		t.Error("expected added = true")
+	}
+}
+
+func TestListReactions(t *testing.T) {
+	svc := &fakeService{
+		listReactionsFn: func(_ context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]tasks.CommentReactionSummary, error) {
+			return []tasks.CommentReactionSummary{
+				{Emoji: "👍", Count: 3, UserReacted: true},
+				{Emoji: "❤️", Count: 1, UserReacted: false},
+			}, nil
+		},
+	}
+	r := newRouter(svc)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/tasks/"+testTaskID.String()+"/comments/"+testCommentID.String()+"/reactions", nil)
+	r.ServeHTTP(w, req)
+	assertStatus(t, w, http.StatusOK)
+	assertHasDataKey(t, w)
+
+	var resp map[string][]tasks.CommentReactionSummary
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to unmarshal response: %v", err)
+	}
+	if len(resp["data"]) != 2 {
+		t.Errorf("expected 2 reactions, got %d", len(resp["data"]))
+	}
+	if resp["data"][0].Count != 3 {
+		t.Errorf("expected first reaction count = 3, got %d", resp["data"][0].Count)
+	}
+}

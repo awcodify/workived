@@ -1785,6 +1785,74 @@ paths:
         "403":
           $ref: "#/components/responses/ForbiddenError"
 
+  /tasks/{id}/comments/{cid}/reactions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: Task ID
+        schema:
+          type: string
+          format: uuid
+      - name: cid
+        in: path
+        required: true
+        description: Comment ID
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      operationId: listCommentReactions
+      summary: List reactions on a comment
+      tags: [Tasks]
+      responses:
+        "200":
+          description: List of reactions with counts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/CommentReactionSummary"
+
+    post:
+      operationId: toggleCommentReaction
+      summary: Toggle a reaction on a comment
+      description: Adds the reaction if it doesn't exist, removes it if it does
+      tags: [Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emoji]
+              properties:
+                emoji:
+                  type: string
+                  description: Emoji character to use as reaction
+                  example: "👍"
+      responses:
+        "200":
+          description: Reaction toggled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      added:
+                        type: boolean
+                        description: True if reaction was added, false if it was removed
+                      emoji:
+                        type: string
+
   # ── Attendance ────────────────────────────────────────────────────────────
   /attendance/clock-in:
     post:
@@ -3408,8 +3476,18 @@ components:
         author_id:
           type: string
           format: uuid
+        parent_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID of parent comment (for nested replies)
         body:
           type: string
+        content_type:
+          type: string
+          enum: [plain, markdown]
+          default: plain
+          description: Content type of the comment body
         created_at:
           type: string
           format: date-time
@@ -3424,6 +3502,11 @@ components:
           properties:
             author_name:
               type: string
+            replies:
+              type: array
+              items:
+                $ref: "#/components/schemas/TaskCommentWithAuthor"
+              description: Nested reply comments (max depth 2)
 
     CreateTaskCommentRequest:
       type: object
@@ -3433,6 +3516,30 @@ components:
           type: string
           minLength: 1
           maxLength: 5000
+        parent_id:
+          type: string
+          format: uuid
+          description: ID of parent comment (for nested replies, max depth 2)
+        content_type:
+          type: string
+          enum: [plain, markdown]
+          default: plain
+          description: Content type of the comment body
+
+    CommentReactionSummary:
+      type: object
+      properties:
+        emoji:
+          type: string
+          description: The emoji character
+          example: "👍"
+        count:
+          type: integer
+          minimum: 1
+          description: Number of users who reacted with this emoji
+        user_reacted:
+          type: boolean
+          description: Whether the current user has reacted with this emoji
 
     # ── Attendance ────────────────────────────────────────────────────────
     AttendanceRecord:
