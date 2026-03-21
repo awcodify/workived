@@ -69,11 +69,21 @@ function TasksPage() {
   const [newTaskAssignee, setNewTaskAssignee] = useState<string>('')
   const [selectedTask, setSelectedTask] = useState<TaskWithDetails | null>(null)
   const [createModalListId, setCreateModalListId] = useState<string | null>(null)
+  const [expandedWorkloadStatus, setExpandedWorkloadStatus] = useState<string | null>(null)
 
   // Sync with server data (ensure we always have an array)
   useEffect(() => {
     setOptimisticTasks(tasks || [])
   }, [tasks])
+
+  // Close workload dropdown when clicking outside
+  useEffect(() => {
+    if (!expandedWorkloadStatus) return
+    
+    const handleClickOutside = () => setExpandedWorkloadStatus(null)
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [expandedWorkloadStatus])
 
   // Only render first 3 lists (To Do, In Progress, Done)
   const visibleLists = useMemo(() => {
@@ -332,7 +342,7 @@ function TasksPage() {
       style={{ background: moduleBackgrounds.tasks }}  // Use design tokens
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-start justify-between mb-8 gap-6">
         <div>
           <h1
             className="font-extrabold"
@@ -358,6 +368,194 @@ function TasksPage() {
             {totalTasks} total · {inProgressCount} in progress · {completedTasks} done
           </p>
         </div>
+
+        {/* Team Workload - Compact View */}
+        {workloadData.length > 0 && (() => {
+          const counts = {
+            available: workloadData.filter(e => e.workload.status === 'available').length,
+            warning: workloadData.filter(e => e.workload.status === 'warning').length,
+            overloaded: workloadData.filter(e => e.workload.status === 'overloaded').length,
+            on_leave: workloadData.filter(e => e.workload.status === 'on_leave').length,
+          }
+          const statusConfig = [
+            { key: 'available', icon: '?', label: 'available', color: '#10B981' },
+            { key: 'warning', icon: '⚡', label: 'busy', color: '#F59E0B' },
+            { key: 'overloaded', icon: '🔥', label: 'overloaded', color: '#EF4444' },
+            { key: 'on_leave', icon: '✈', label: 'onleave', color: '#8B5CF6' },
+          ]
+
+          return (
+            <div className="flex flex-col items-end gap-2 relative">
+              <h2
+                className="text-xs font-bold"
+                style={{
+                  color: '#64748B',
+                  fontFamily: "'Permanent Marker', 'Marker Felt', cursive",
+                  letterSpacing: '0.3px',
+                }}
+              >
+                Team ({workloadData.length})
+              </h2>
+              <div className="flex flex-wrap gap-2 justify-end">
+                {statusConfig.map((status, idx) => {
+                  const count = counts[status.key as keyof typeof counts]
+                  if (count === 0) return null
+                  const rotation = ((idx * 3) % 4) - 2
+                  const isExpanded = expandedWorkloadStatus === status.key
+                  const employeesInStatus = workloadData.filter(e => e.workload.status === status.key)
+
+                  return (
+                    <div key={status.key} className="relative">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setExpandedWorkloadStatus(isExpanded ? null : status.key)
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 transition-all"
+                        style={{
+                          background: isExpanded ? `${status.color}20` : `${status.color}10`,
+                          borderRadius: '4px',
+                          transform: isExpanded ? 'rotate(0deg) scale(1.05)' : `rotate(${rotation}deg)`,
+                          boxShadow: isExpanded ? `3px 3px 0 ${status.color}30` : 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <span
+                          className="text-sm"
+                          style={{ fontFamily: typography.fontFamily }}
+                        >
+                          {status.icon}
+                        </span>
+                        <span
+                          className="text-xs font-bold"
+                          style={{
+                            color: status.color,
+                            fontFamily: typography.fontFamily,
+                          }}
+                        >
+                          {count}
+                        </span>
+                        <span
+                          className="text-xs"
+                          style={{
+                            color: '#64748B',
+                            fontFamily: typography.fontFamily,
+                          }}
+                        >
+                          {status.label}
+                        </span>
+                      </button>
+
+                      {/* Dropdown with employee list */}
+                      {isExpanded && (
+                        <div
+                          onClick={(e) => e.stopPropagation()}
+                          className="absolute right-0 top-full mt-3 z-50 min-w-[260px] max-w-[340px]"
+                          style={{
+                            background: '#FFF9E6',
+                            borderLeft: `3px solid ${status.color}25`,
+                            borderTop: `1px solid #E5DCC5`,
+                            borderRight: `1px solid #E5DCC5`,
+                            borderBottom: `2px solid #D4CAB3`,
+                            boxShadow: '0 8px 16px rgba(0,0,0,0.08)',
+                            transform: 'rotate(-0.8deg)',
+                            padding: '18px 16px',
+                          }}
+                        >
+                          {/* Notebook header */}
+                          <div
+                            className="text-xs font-bold mb-4 pb-2"
+                            style={{
+                              color: status.color,
+                              fontFamily: typography.fontFamily,
+                              borderBottom: `1px solid ${status.color}20`,
+                              textTransform: 'uppercase',
+                              letterSpacing: '1px',
+                              transform: 'rotate(0.5deg)',
+                            }}
+                          >
+                            {status.icon} {status.label} — {count} people
+                          </div>
+                          
+                          {/* Handwritten-style entries */}
+                          <div className="max-h-[380px] overflow-y-auto">
+                            {employeesInStatus.map((emp, idx) => (
+                              <div
+                                key={emp.employee_id}
+                                className="mb-3"
+                                style={{
+                                  transform: `rotate(${((idx % 3) - 1) * 0.4}deg)`,
+                                  marginLeft: `${(idx % 2) * 4}px`,
+                                }}
+                              >
+                                <div
+                                  className="text-sm font-bold"
+                                  style={{
+                                    color: '#2C3E50',
+                                    fontFamily: typography.fontFamily,
+                                    letterSpacing: '0.3px',
+                                  }}
+                                >
+                                  {emp.full_name}
+                                </div>
+                                {emp.workload.status !== 'on_leave' && (
+                                  <div
+                                    className="text-xs mt-1"
+                                    style={{
+                                      color: '#64748B',
+                                      fontFamily: typography.fontFamily,
+                                      fontStyle: 'italic',
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        color: status.color,
+                                        fontWeight: 600,
+                                        textDecoration: 'underline',
+                                        textDecorationStyle: 'wavy',
+                                        textDecorationColor: `${status.color}40`,
+                                      }}
+                                    >
+                                      {emp.workload.active_tasks} tasks
+                                    </span>
+                                    {emp.workload.overdue_tasks > 0 && (
+                                      <span
+                                        style={{
+                                          color: '#DC2626',
+                                          fontWeight: 600,
+                                          marginLeft: '8px',
+                                        }}
+                                      >
+                                        ({emp.workload.overdue_tasks} overdue!)
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                                {emp.leave.is_on_leave && emp.leave.leave_end && (
+                                  <div
+                                    className="text-xs mt-1"
+                                    style={{
+                                      color: status.color,
+                                      fontFamily: typography.fontFamily,
+                                      fontStyle: 'italic',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    back on {new Date(emp.leave.leave_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Unique Vertical Board */}
