@@ -44,7 +44,20 @@ Before writing code, read the CLAUDE.md for your layer:
 - **React frontend** → `apps/web/CLAUDE.md`
 - **Database** → `migrations/CLAUDE.md`
 
-Full product context → `WORKIVED_PROJECT_BRIEF.md` (650 lines — consult when needed, don't load upfront)
+## Documentation pattern (established March 21, 2026)
+
+**For current sprint work:** Read `docs/sprint{N}.md` (focused, 200-300 lines)
+**For product context:** Consult `WORKIVED_PROJECT_BRIEF.md` (650 lines — only when needed)
+
+**Sprint files structure:**
+- Previous sprint summary (what was done)
+- Current sprint details (goals, technical decisions, progress tracking)
+- Next sprint plan (roadmap, dependencies)
+
+**When to create sprint files:**
+- Sprint planning: Create `docs/sprint{N}.md` from template
+- Sprint in progress: Update checklist progress
+- Sprint complete: Mark as ✅ COMPLETE, update PROJECT_BRIEF with summary paragraph
 
 ---
 
@@ -71,10 +84,14 @@ Full product context → `WORKIVED_PROJECT_BRIEF.md` (650 lines — consult when
 
 ---
 
-## Project context (Sprint 3)
+## Project context (Sprint 9)
 
 **Product:** Workived — HR ops for 5–25 person startups (Indonesia + UAE)
 **Tech:** Go monolith + Vite/React SPA + PostgreSQL + Redis
-**Current:** Frontend (auth + employees + attendance)
+**Current sprint:** Sprint 9 — Workload Intelligence (see `docs/sprint9.md` for details)
+**Last completed:** Sprint 8 — Tasks & Advanced Commenting (sticky note kanban, nested comments, reactions)
 
-Full brief → `WORKIVED_PROJECT_BRIEF.md` (consult for schema, compliance, product modules)
+**Documentation:**
+- Current work → `docs/sprint9.md`
+- Product overview → `WORKIVED_PROJECT_BRIEF.md`
+- Sprint history → `docs/sprint8.md`, `docs/sprint7-completion.md`, etc.
