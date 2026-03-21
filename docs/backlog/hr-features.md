@@ -5,8 +5,8 @@ Features that leverage employee data to create competitive differentiation.
 ---
 
 ## ⭐⭐⭐⭐⭐ Workload Intelligence
-**Status:** 🎯 Planned (Sprint 9)  
-**Effort:** M (4 days)  
+**Status:** ✅ Done (Sprint 9 - March 21, 2026)  
+**Effort:** M (4 days → Completed in 1 day)  
 **Value:** Only kanban that shows employee availability during task assignment
 
 **Description:**
@@ -15,28 +15,28 @@ Show employee workload, leave status, and task count in assignment dropdown.
 **User Story:**
 > As a manager, I want to see who's available and not overloaded when assigning tasks, so I don't accidentally assign work to someone on leave or already swamped.
 
-**Features:**
-- Task count per employee
-- Leave status indicator (on leave, upcoming leave)
-- Workload badges (available, warning, overloaded)
-- Sort by availability
+**Features Shipped:**
+- Task count per employee (active + overdue)
+- Leave status indicator (on leave with dates, upcoming leave)
+- Workload badges (available 0-5, warning 6-10, overloaded 11+, on_leave)
+- Sort by availability (available first, on leave last)
+- Team Capacity panel on task board
+- Real-time calculation with 5-minute cache
+- Notebook-style UI design
 
 **Why it matters:**
 - Prevents burnout
 - Respects leave
 - Fair work distribution
-- Competitors don't have this (Asana, Monday, Trello)
+- **Competitive advantage:** Asana, Monday, Trello don't have this
 
-**Dependencies:**
-- Tasks module (✅ Done in Sprint 8)
-- Leave module (✅ Done)
+**Implementation:**
+- Backend: GET /api/v1/employees/workload with CTE-based query
+- Frontend: Enhanced employee selector + team capacity panel
+- Tests: 22 tests (100% coverage)
+- Performance: <50ms query time for 25 employees
 
-**Technical scope:**
-- Backend: `GET /api/v1/employees/workload` endpoint
-- Frontend: Enhanced employee selector component
-- No new migrations needed
-
-See [docs/sprint9.md](../sprint9.md) for detailed implementation plan.
+See [docs/sprint9.md](../sprint9.md) for full implementation details.
 
 ---
 
