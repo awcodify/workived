@@ -31,8 +31,26 @@ export function formatClaimAmount(amount: number, currencyCode: string): string 
   return formatter.format(amount)
 }
 
+function formatCompactMoney(amount: number, currencyCode: string): string {
+  const absAmount = Math.abs(amount)
+  if (absAmount >= 1_000_000) {
+    const millions = amount / 1_000_000
+    return `Rp ${millions.toFixed(1)}M`
+  } else if (absAmount >= 1_000) {
+    const thousands = Math.floor(amount / 1_000)
+    return `Rp ${thousands}K`
+  }
+  return `Rp ${amount.toLocaleString()}`
+}
+
 export function createClaimRequestConfig(balance?: ClaimBalanceWithCategory): RequestListItemConfig {
   return {
+    getSummaryText: (requests: RequestData[]) => {
+      const claims = requests as unknown as ClaimWithDetails[]
+      const totalAmount = claims.reduce((sum, c) => sum + (c.amount || 0), 0)
+      const currencyCode = claims[0]?.currency_code || 'IDR'
+      return `${formatClaimAmount(totalAmount, currencyCode)} total`
+    },
     getTitle: (request: RequestData) => {
       const claim = request as unknown as ClaimWithDetails
       return claim.category_name
@@ -58,6 +76,24 @@ export function createClaimRequestConfig(balance?: ClaimBalanceWithCategory): Re
         }
       }
       return null
+    },
+    getRightContent: (request: RequestData) => {
+      const claim = request as unknown as ClaimWithDetails
+      const formattedDate = new Date(claim.claim_date).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+      return (
+        <div className="text-right">
+          <p className="text-xs" style={{ color: theme.textMuted }}>
+            {formattedDate}
+          </p>
+          <p className="text-sm font-bold mt-0.5" style={{ color: theme.text }}>
+            {formatCompactMoney(claim.amount, claim.currency_code)}
+          </p>
+        </div>
+      )
     },
     DetailsModal: (props) => {
       const claim = props.request as unknown as ClaimWithDetails

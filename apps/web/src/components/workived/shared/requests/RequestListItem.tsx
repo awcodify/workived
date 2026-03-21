@@ -42,6 +42,10 @@ export interface RequestListItemConfig {
   getSubtitle?: (request: RequestData) => string | null
   // Optional extra info below title (e.g., balance impact)
   getExtraInfo?: (request: RequestData, variant: 'my' | 'approval') => React.ReactNode
+  // Summary text for grouped requests (e.g., "5 days total" or "Rp 500K total")
+  getSummaryText?: (requests: RequestData[]) => string
+  // Optional custom content for right side (defaults to date + days)
+  getRightContent?: (request: RequestData, variant: 'my' | 'approval') => React.ReactNode
   // Custom details modal component
   DetailsModal: React.ComponentType<{ request: RequestData; onClose: () => void }>
 }
@@ -168,16 +172,20 @@ export function RequestListItem({
             {config.getExtraInfo && config.getExtraInfo(request, variant)}
           </div>
 
-          {/* Right: Dates + Days + Actions */}
+          {/* Right: Custom Content or Dates + Days + Actions */}
           <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-xs" style={{ color: theme.textMuted }}>
-                {formatDate(request.start_date)} – {formatDate(request.end_date)}
-              </p>
-              <p className="text-xs font-bold mt-0.5" style={{ color: theme.text }}>
-                {request.total_days} {request.total_days === 1 ? 'day' : 'days'}
-              </p>
-            </div>
+            {config.getRightContent ? (
+              config.getRightContent(request, variant)
+            ) : (
+              <div className="text-right">
+                <p className="text-xs" style={{ color: theme.textMuted }}>
+                  {formatDate(request.start_date)} – {formatDate(request.end_date)}
+                </p>
+                <p className="text-xs font-bold mt-0.5" style={{ color: theme.text }}>
+                  {request.total_days} {request.total_days === 1 ? 'day' : 'days'}
+                </p>
+              </div>
+            )}
 
             {/* Action Buttons (approval variant, icon-only) */}
             {variant === 'approval' && request.status === 'pending' && !showRejectInput && (

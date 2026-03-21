@@ -14,7 +14,7 @@ import { useCanManageClaims } from '@/lib/hooks/useRole'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 import type { ClaimBalanceWithCategory, ClaimWithDetails } from '@/types/api'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { RequestListItem, EmployeeRequestGroup, type RequestData } from '@/components/workived/shared/requests'
 import { createClaimRequestConfig, claimRequestTheme } from '@/components/workived/claims/ClaimRequestConfig'
@@ -42,9 +42,7 @@ function ClaimsDashboard() {
   const rejectMutation = useRejectClaim()
   const cancelMutation = useCancelClaim()
   
-  const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>(
-    canManageClaims ? 'approvals' : 'my-requests'
-  )
+  const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>('my-requests')
   
   const [showNewClaimModal, setShowNewClaimModal] = useState(false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('')
@@ -55,6 +53,13 @@ function ClaimsDashboard() {
 
   const totalSpent = balances?.reduce((sum: number, b: ClaimBalanceWithCategory) => sum + b.total_spent, 0) ?? 0
   const totalLimit = balances?.reduce((sum: number, b: ClaimBalanceWithCategory) => sum + (b.monthly_limit ?? 0), 0) ?? 0
+
+  // Smart default: show approvals only if manager AND has pending items
+  useEffect(() => {
+    if (canManageClaims && pendingCount > 0) {
+      setActiveTab('approvals')
+    }
+  }, [canManageClaims, pendingCount])
 
   return (
     <div
@@ -133,20 +138,20 @@ function ClaimsDashboard() {
             >
               {balances.map((balance: ClaimBalanceWithCategory, idx: number) => {
                 const limit = balance.monthly_limit ?? 0
-                const spent = balance.total_spent
                 const remaining = balance.remaining ?? 0
                 const remainingPercentage = limit > 0 ? (remaining / limit) * 100 : 0
                 const isLowBalance = limit > 0 && remainingPercentage <= 20 && remainingPercentage > 0
                 const isExhausted = remaining <= 0 && limit > 0
 
-                // Format currency
+                // Format currency - compact version (K for thousands, M for millions)
                 const formatMoney = (amount: number) => {
-                  return new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: balance.currency_code || 'IDR',
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 0,
-                  }).format(amount)
+                  const absAmount = Math.abs(amount)
+                  if (absAmount >= 1000000) {
+                    return `Rp ${(amount / 1000000).toFixed(1)}M`
+                  } else if (absAmount >= 1000) {
+                    return `Rp ${Math.round(amount / 1000)}K`
+                  }
+                  return `Rp ${amount.toLocaleString('id-ID')}`
                 }
 
                 return (
@@ -160,7 +165,7 @@ function ClaimsDashboard() {
                     }}
                     className="transition-all"
                     style={{
-                      padding: '14px 18px',
+                      padding: '16px 18px',
                       borderBottom: idx < balances.length - 1 ? `1px solid ${t.border}` : 'none',
                       cursor: isExhausted ? 'not-allowed' : 'pointer',
                       opacity: isExhausted ? 0.5 : 1,
@@ -174,68 +179,53 @@ function ClaimsDashboard() {
                       e.currentTarget.style.background = 'transparent'
                     }}
                   >
-                    <div className="flex items-center justify-between">
-                      {/* Left: Category name */}
-                      <div className="flex-1">
-                        <p
-                          className="font-bold"
-                          style={{
-                            fontSize: typography.body.size,
-                            color: t.text,
-                          }}
-                        >
-                          {balance.category_name}
-                        </p>
-                      </div>
+                    {/* Header: Category name + Budget info */}
+                    <div className="flex items-start justify-between mb-2">
+                      <p
+                        className="font-bold flex-1"
+                        style={{
+                          fontSize: typography.body.size,
+                          color: t.text,
+                        }}
+                      >
+                        {balance.category_name}
+                      </p>
 
-                      {/* Right: Remaining amount (big number) */}
                       <div className="text-right">
                         {limit > 0 ? (
-                          <>
-                            <span
-                              className="font-extrabold"
-                              style={{
-                                fontSize: 32,
-                                fontFamily: typography.fontMono,
-                                color: isExhausted
-                                  ? colors.err
-                                  : isLowBalance
-                                    ? colors.warn
-                                    : colors.ok,
-                                lineHeight: 1,
-                              }}
-                            >
-                              {formatMoney(remaining)}
-                            </span>
-                            <span
-                              className="text-xs ml-1"
-                              style={{ color: t.textMuted }}
-                            >
-                              / {formatMoney(limit)}
-                            </span>
-                          </>
+                          <div>
+                            <p className="text-base font-bold" style={{ 
+                              color: isExhausted
+                                ? colors.err
+                                : isLowBalance
+                                  ? colors.warn
+                                  : colors.ok,
+                              fontFamily: typography.fontMono,
+                              lineHeight: 1.2,
+                            }}>
+                              {formatMoney(remaining)} left
+                            </p>
+                            <p className="text-xs" style={{ color: t.textMuted, marginTop: 2 }}>
+                              of {formatMoney(limit)}
+                            </p>
+                          </div>
                         ) : (
-                          <span
-                            className="font-extrabold"
-                            style={{
-                              fontSize: 32,
-                              color: t.accent,
-                              lineHeight: 1,
-                            }}
+                          <p
+                            className="text-2xl font-extrabold"
+                            style={{ color: t.accent }}
                           >
                             ∞
-                          </span>
+                          </p>
                         )}
-                        <div className="flex items-center gap-2 mt-1 text-xs justify-end" style={{ color: t.textMuted }}>
-                          <span>Spent: {formatMoney(spent)}</span>
-                        </div>
                       </div>
                     </div>
 
-                    {/* Visual Progress Bar - Green for available */}
+                    {/* Progress Bar + Status */}
                     {limit > 0 && (
-                      <div className="mt-3">
+                      <div className="flex items-center gap-3">
+                        {/* Progress bar */}
                         <div
+                          className="flex-1"
                           style={{
                             height: 6,
                             borderRadius: 3,
@@ -244,7 +234,6 @@ function ClaimsDashboard() {
                             position: 'relative',
                           }}
                         >
-                          {/* Remaining portion (green) */}
                           <div
                             style={{
                               position: 'absolute',
@@ -257,9 +246,32 @@ function ClaimsDashboard() {
                                 : isLowBalance
                                   ? colors.warn
                                   : colors.ok,
+                              transition: 'width 0.3s ease',
                             }}
                           />
                         </div>
+                        
+                        {/* Percentage badge */}
+                        <span
+                          className="text-xs font-bold px-2 py-0.5"
+                          style={{
+                            color: isExhausted
+                              ? colors.errText
+                              : isLowBalance
+                                ? colors.warnText
+                                : colors.okText,
+                            background: isExhausted
+                              ? colors.errDim
+                              : isLowBalance
+                                ? colors.warnDim
+                                : colors.okDim,
+                            borderRadius: 6,
+                            minWidth: 52,
+                            textAlign: 'center',
+                          }}
+                        >
+                          {Math.floor(remainingPercentage)}% left
+                        </span>
                       </div>
                     )}
                   </div>

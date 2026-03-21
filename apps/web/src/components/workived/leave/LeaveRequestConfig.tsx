@@ -23,8 +23,10 @@ export const leaveRequestTheme: RequestListItemTheme = {
 }
 
 export function createLeaveRequestConfig(balance?: LeaveBalanceWithPolicy): RequestListItemConfig {
-  return {
-    getTitle: (request: RequestData) => {
+  return {    getSummaryText: (requests: RequestData[]) => {
+      const totalDays = requests.reduce((sum, r) => sum + (r.total_days || 0), 0)
+      return `${totalDays} ${totalDays === 1 ? 'day' : 'days'} total`
+    },    getTitle: (request: RequestData) => {
       const leaveRequest = request as LeaveRequestWithDetails
       return leaveRequest.policy_name
     },

@@ -35,8 +35,8 @@ export function EmployeeRequestGroup({
   const [rejectReason, setRejectReason] = useState('')
   const [rejectError, setRejectError] = useState('')
   
-  const totalDays = requests.reduce((sum, r) => sum + r.total_days, 0)
   const requestCount = requests.length
+  const summaryText = config.getSummaryText ? config.getSummaryText(requests) : `${requests.reduce((sum, r) => sum + (r.total_days || 0), 0)} days total`
   
   const handleApproveAll = async () => {
     try {
@@ -104,7 +104,7 @@ export function EmployeeRequestGroup({
             </span>
           </div>
           <p className="text-xs mt-0.5" style={{ color: theme.textMuted }}>
-            {totalDays} {totalDays === 1 ? 'day' : 'days'} total
+            {summaryText}
             {requests.length > 1 && ' • Click to see individual requests'}
           </p>
         </div>
