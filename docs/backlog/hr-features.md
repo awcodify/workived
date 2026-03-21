@@ -40,6 +40,72 @@ See [docs/sprint9.md](../sprint9.md) for detailed implementation plan.
 
 ---
 
+## ⭐⭐⭐⭐⭐ Auto-Task for Pending Approvals
+**Status:** 📋 Backlog  
+**Effort:** M (4-5 days)  
+**Value:** Unified work inbox - No more checking multiple places for approvals
+
+**Description:**
+Automatically create tasks for managers when leave/claim requests need approval. Approvals sync back to task completion.
+
+**User Story:**
+> As a manager, I want pending approvals to show up as tasks on my kanban, so I have a single place to manage all my work (tasks + approvals) instead of checking leaves and claims separately.
+
+**Features:**
+- Auto-create task when leave/claim submitted
+- Task title: "Approve Leave: John Doe (Mar 25-27)" or "Approve Claim: Jane Smith – Travel ($250)"
+- Assign to organization admin (current approval flow)
+- Link back: Click task → Opens approval modal directly
+- Two-way sync: Approved/rejected in modal → Task auto-completes
+- Cancelled request → Task deleted
+- Due date: 3 days from submission (configurable)
+- Priority: urgent if due date approaching
+
+**Why it matters:**
+- **Single inbox:** No more context switching between Tasks/Leaves/Claims
+- **Nothing missed:** Approvals visible on daily kanban view
+- **Better metrics:** Track approval bottlenecks with task time data
+- **Workload-aware:** Approval work now counted in team capacity
+- **Accountability:** Activity log shows when manager saw/acted on request
+- **Competitive edge:** No other tool unifies HR approvals with task management
+
+**Dependencies:**
+- Workload intelligence (Sprint 9) - Approvals count toward manager workload
+- Leave requests module (✅ Done)
+- Claims module (✅ Done)
+- Tasks module (✅ Done in Sprint 8)
+
+**Technical scope:**
+- Backend:
+  - Hook into leave/claim creation service
+  - Auto-create task with `approval_type`, `approval_id` metadata
+  - Hook into approval service to sync task completion
+  - Add `tasks.approval_type` and `tasks.approval_id` nullable fields
+- Frontend:
+  - Task card recognizes approval tasks (distinct icon/styling)
+  - Click opens approval modal instead of task detail
+  - Show approval status in task card
+- Effort: 2 days backend hooks, 2 days frontend integration, 1 day testing
+
+**Edge cases to handle:**
+- Manager deletes task but request still pending → Prevent deletion (show warning)
+- Request cancelled after task created → Auto-delete task
+- Multiple admins → Assign to all? Or first to act completes?
+- Task reassigned to non-admin → Prevent or allow with warning?
+
+**Future enhancements (Phase 2):**
+- Batch approval from kanban (approve multiple at once)
+- Department head assignment (not just org admin)
+- Approval templates for recurring approvals
+- Average approval time metric per manager
+
+**Validation needed:**
+- Ask 5 current users: "How do you remember to approve requests?"
+- If "I check every morning" or "I forget" → High priority
+- If "Slack notifications work fine" → Lower priority
+
+---
+
 ## ⭐⭐⭐⭐ Time Zone Aware Due Dates
 **Status:** 📋 Backlog (proposed for Sprint 10)  
 **Effort:** S (3 days)  
