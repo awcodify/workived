@@ -42,8 +42,6 @@ import { Route as AppLeaveRequestsIndexRouteImport } from './routes/_app/leave/r
 import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/policies/index'
 import { Route as AppClaimsRequestsIndexRouteImport } from './routes/_app/claims/requests/index'
 import { Route as AppClaimsCategoriesIndexRouteImport } from './routes/_app/claims/categories/index'
-import { Route as AppLeaveRequestsPendingRouteImport } from './routes/_app/leave/requests/pending'
-import { Route as AppLeaveRequestsNewRouteImport } from './routes/_app/leave/requests/new'
 import { Route as AppLeavePoliciesNewRouteImport } from './routes/_app/leave/policies/new'
 import { Route as AppLeavePoliciesIdRouteImport } from './routes/_app/leave/policies/$id'
 import { Route as AppClaimsRequestsPendingRouteImport } from './routes/_app/claims/requests/pending'
@@ -213,16 +211,6 @@ const AppClaimsCategoriesIndexRoute =
     path: '/categories/',
     getParentRoute: () => AppClaimsRouteRoute,
   } as any)
-const AppLeaveRequestsPendingRoute = AppLeaveRequestsPendingRouteImport.update({
-  id: '/requests/pending',
-  path: '/requests/pending',
-  getParentRoute: () => AppLeaveRouteRoute,
-} as any)
-const AppLeaveRequestsNewRoute = AppLeaveRequestsNewRouteImport.update({
-  id: '/requests/new',
-  path: '/requests/new',
-  getParentRoute: () => AppLeaveRouteRoute,
-} as any)
 const AppLeavePoliciesNewRoute = AppLeavePoliciesNewRouteImport.update({
   id: '/policies/new',
   path: '/policies/new',
@@ -271,8 +259,6 @@ export interface FileRoutesByFullPath {
   '/claims/requests/pending': typeof AppClaimsRequestsPendingRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
-  '/leave/requests/new': typeof AppLeaveRequestsNewRoute
-  '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
   '/claims/categories/': typeof AppClaimsCategoriesIndexRoute
   '/claims/requests/': typeof AppClaimsRequestsIndexRoute
   '/leave/policies/': typeof AppLeavePoliciesIndexRoute
@@ -305,8 +291,6 @@ export interface FileRoutesByTo {
   '/claims/requests/pending': typeof AppClaimsRequestsPendingRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
-  '/leave/requests/new': typeof AppLeaveRequestsNewRoute
-  '/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
   '/claims/categories': typeof AppClaimsCategoriesIndexRoute
   '/claims/requests': typeof AppClaimsRequestsIndexRoute
   '/leave/policies': typeof AppLeavePoliciesIndexRoute
@@ -346,8 +330,6 @@ export interface FileRoutesById {
   '/_app/claims/requests/pending': typeof AppClaimsRequestsPendingRoute
   '/_app/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/_app/leave/policies/new': typeof AppLeavePoliciesNewRoute
-  '/_app/leave/requests/new': typeof AppLeaveRequestsNewRoute
-  '/_app/leave/requests/pending': typeof AppLeaveRequestsPendingRoute
   '/_app/claims/categories/': typeof AppClaimsCategoriesIndexRoute
   '/_app/claims/requests/': typeof AppClaimsRequestsIndexRoute
   '/_app/leave/policies/': typeof AppLeavePoliciesIndexRoute
@@ -386,8 +368,6 @@ export interface FileRouteTypes {
     | '/claims/requests/pending'
     | '/leave/policies/$id'
     | '/leave/policies/new'
-    | '/leave/requests/new'
-    | '/leave/requests/pending'
     | '/claims/categories/'
     | '/claims/requests/'
     | '/leave/policies/'
@@ -420,8 +400,6 @@ export interface FileRouteTypes {
     | '/claims/requests/pending'
     | '/leave/policies/$id'
     | '/leave/policies/new'
-    | '/leave/requests/new'
-    | '/leave/requests/pending'
     | '/claims/categories'
     | '/claims/requests'
     | '/leave/policies'
@@ -460,8 +438,6 @@ export interface FileRouteTypes {
     | '/_app/claims/requests/pending'
     | '/_app/leave/policies/$id'
     | '/_app/leave/policies/new'
-    | '/_app/leave/requests/new'
-    | '/_app/leave/requests/pending'
     | '/_app/claims/categories/'
     | '/_app/claims/requests/'
     | '/_app/leave/policies/'
@@ -707,20 +683,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClaimsCategoriesIndexRouteImport
       parentRoute: typeof AppClaimsRouteRoute
     }
-    '/_app/leave/requests/pending': {
-      id: '/_app/leave/requests/pending'
-      path: '/requests/pending'
-      fullPath: '/leave/requests/pending'
-      preLoaderRoute: typeof AppLeaveRequestsPendingRouteImport
-      parentRoute: typeof AppLeaveRouteRoute
-    }
-    '/_app/leave/requests/new': {
-      id: '/_app/leave/requests/new'
-      path: '/requests/new'
-      fullPath: '/leave/requests/new'
-      preLoaderRoute: typeof AppLeaveRequestsNewRouteImport
-      parentRoute: typeof AppLeaveRouteRoute
-    }
     '/_app/leave/policies/new': {
       id: '/_app/leave/policies/new'
       path: '/policies/new'
@@ -785,8 +747,6 @@ interface AppLeaveRouteRouteChildren {
   AppLeaveIndexRoute: typeof AppLeaveIndexRoute
   AppLeavePoliciesIdRoute: typeof AppLeavePoliciesIdRoute
   AppLeavePoliciesNewRoute: typeof AppLeavePoliciesNewRoute
-  AppLeaveRequestsNewRoute: typeof AppLeaveRequestsNewRoute
-  AppLeaveRequestsPendingRoute: typeof AppLeaveRequestsPendingRoute
   AppLeavePoliciesIndexRoute: typeof AppLeavePoliciesIndexRoute
   AppLeaveRequestsIndexRoute: typeof AppLeaveRequestsIndexRoute
 }
@@ -796,8 +756,6 @@ const AppLeaveRouteRouteChildren: AppLeaveRouteRouteChildren = {
   AppLeaveIndexRoute: AppLeaveIndexRoute,
   AppLeavePoliciesIdRoute: AppLeavePoliciesIdRoute,
   AppLeavePoliciesNewRoute: AppLeavePoliciesNewRoute,
-  AppLeaveRequestsNewRoute: AppLeaveRequestsNewRoute,
-  AppLeaveRequestsPendingRoute: AppLeaveRequestsPendingRoute,
   AppLeavePoliciesIndexRoute: AppLeavePoliciesIndexRoute,
   AppLeaveRequestsIndexRoute: AppLeaveRequestsIndexRoute,
 }
