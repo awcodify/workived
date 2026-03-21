@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -21,6 +22,22 @@ type Repository struct {
 
 func NewRepository(db *pgxpool.Pool, log zerolog.Logger) *Repository {
 	return &Repository{db: db, log: log}
+}
+
+// parseDateString parses a date string in "YYYY-MM-DD" format to *time.Time
+// Returns nil if input is nil or empty string
+// Uses UTC for deterministic date extraction regardless of server timezone
+func parseDateString(dateStr *string) (*time.Time, error) {
+	if dateStr == nil || *dateStr == "" {
+		return nil, nil
+	}
+	// Parse in UTC to ensure the date is always what the user intended
+	// When PostgreSQL extracts DATE from time.Time, UTC ensures correct date
+	parsed, err := time.ParseInLocation("2006-01-02", *dateStr, time.UTC)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date format, expected YYYY-MM-DD: %w", err)
+	}
+	return &parsed, nil
 }
 
 // ── Task Lists ───────────────────────────────────────────────────────────────
@@ -269,6 +286,12 @@ func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID,
 		priority = "medium"
 	}
 
+	// Parse due date string to time.Time
+	dueDate, err := parseDateString(req.DueDate)
+	if err != nil {
+		return nil, apperr.New(apperr.CodeValidation, err.Error())
+	}
+
 	var t Task
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO tasks (
@@ -278,7 +301,7 @@ func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID,
 		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
 		          created_by, priority, due_date, position, completed_at, created_at, updated_at
 	`, orgID, req.TaskListID, req.Title, req.Description, req.AssigneeID,
-		createdBy, priority, req.DueDate, maxPosition+1000).Scan(
+		createdBy, priority, dueDate, maxPosition+1000).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
 		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.CreatedAt, &t.UpdatedAt,
 	)
@@ -314,8 +337,14 @@ func (r *Repository) UpdateTask(ctx context.Context, orgID, id uuid.UUID, req Up
 		argIdx++
 	}
 	if req.DueDate != nil {
+		// Parse date string
+		dueDate, err := parseDateString(req.DueDate)
+		if err != nil {
+			return nil, apperr.New(apperr.CodeValidation, err.Error())
+		}
 		updates = append(updates, fmt.Sprintf("due_date = $%d", argIdx))
-		args = append(args, *req.DueDate)
+		args = append(args, dueDate)
+		argIdx++
 	}
 
 	if len(updates) == 0 {

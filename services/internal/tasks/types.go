@@ -99,7 +99,7 @@ type CreateTaskRequest struct {
 	Description *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
 	AssigneeID  *uuid.UUID `json:"assignee_id,omitempty"`
 	Priority    string     `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
-	DueDate     *time.Time `json:"due_date,omitempty"`
+	DueDate     *string    `json:"due_date,omitempty"` // YYYY-MM-DD format
 }
 
 type UpdateTaskRequest struct {
@@ -107,7 +107,7 @@ type UpdateTaskRequest struct {
 	Description *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
 	AssigneeID  *uuid.UUID `json:"assignee_id,omitempty"`
 	Priority    *string    `json:"priority,omitempty" binding:"omitempty,oneof=low medium high urgent"`
-	DueDate     *time.Time `json:"due_date,omitempty"`
+	DueDate     *string    `json:"due_date,omitempty"` // YYYY-MM-DD format
 }
 
 type MoveTaskRequest struct {

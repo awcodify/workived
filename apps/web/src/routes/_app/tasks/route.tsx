@@ -24,6 +24,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { useDroppable } from '@dnd-kit/core'
 import { moduleBackgrounds, typography } from '@/design/tokens'
 import { apiClient } from '@/lib/api/client'
+import { formatDateLocal } from '@/lib/utils/date'
 import { 
   useTaskLists, 
   useTasks, 
@@ -951,7 +952,7 @@ function TaskCard({
                       fontFamily: typography.fontFamily,
                     }}
                   >
-                    📅 {task.due_date}
+                    📅 {formatDateLocal(task.due_date)}
                   </span>
                 )}
               </>
