@@ -1,9 +1,14 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, Check, X, Settings } from 'lucide-react'
-import { useMyBalances, useAllRequests, useMyRequests, useAllBalances, useApproveRequest, useRejectRequest, useCancelRequest } from '@/lib/hooks/useLeave'
+import { useMyBalances, useAllRequests, useMyRequests, useAllBalances, useApproveRequest, useRejectRequest, useCancelRequest, useSubmitRequest, usePolicies } from '@/lib/hooks/useLeave'
 import { useCanManageLeave } from '@/lib/hooks/useRole'
+import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { submitRequestSchema, type SubmitRequestFormData } from '@/lib/validations/leave'
+import { calculateWorkingDays, calculateAvailableDays } from '@/lib/utils/leave'
 
 const t = moduleThemes.leave
 
@@ -23,6 +28,9 @@ function LeaveDashboard() {
   const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>(
     canManageLeave && (pendingRequests?.length ?? 0) > 0 ? 'approvals' : 'my-requests'
   )
+  
+  const [showNewRequestModal, setShowNewRequestModal] = useState(false)
+  const [selectedPolicyId, setSelectedPolicyId] = useState<string>('')
   
   const pendingCount = pendingRequests?.length ?? 0
 
@@ -118,10 +126,8 @@ function LeaveDashboard() {
                     <div
                       key={balance.id}
                       onClick={() => {
-                        navigate({
-                          to: '/leave/requests/new',
-                          search: { policyId: balance.leave_policy_id },
-                        })
+                        setSelectedPolicyId(balance.leave_policy_id)
+                        setShowNewRequestModal(true)
                       }}
                       className="transition-all cursor-pointer"
                       style={{
@@ -445,6 +451,481 @@ function LeaveDashboard() {
           )}
         </div>
       </div>
+      
+      {/* New Request Modal */}
+      {showNewRequestModal && selectedPolicyId && (
+        <NewRequestModal
+          policyId={selectedPolicyId}
+          onClose={() => {
+            setShowNewRequestModal(false)
+            setSelectedPolicyId('')
+          }}
+        />
+      )}
+    </div>
+  )
+}
+
+// New Request Modal Component
+interface NewRequestModalProps {
+  policyId: string
+  onClose: () => void
+}
+
+function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
+  const { data: org } = useOrganisation()
+  const { data: policies } = usePolicies()
+  const currentYear = new Date().getFullYear()
+  const { data: balances } = useMyBalances(currentYear)
+  const submitMutation = useSubmitRequest()
+
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
+  const [workingDays, setWorkingDays] = useState<number>(0)
+  const [availableDays, setAvailableDays] = useState<number | null>(null)
+  const [hasInsufficientBalance, setHasInsufficientBalance] = useState(false)
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<SubmitRequestFormData>({
+    resolver: zodResolver(submitRequestSchema),
+    defaultValues: {
+      leave_policy_id: policyId,
+      start_date: '',
+      end_date: '',
+      reason: '',
+    },
+  })
+
+  // Sync form values with state
+  useEffect(() => {
+    setValue('start_date', startDate)
+    setValue('end_date', endDate)
+  }, [startDate, endDate, setValue])
+
+  // Calculate working days when dates change
+  useEffect(() => {
+    if (startDate && endDate && org) {
+      try {
+        const days = calculateWorkingDays({
+          startDate,
+          endDate,
+          workDays: org.work_days,
+          publicHolidays: [],
+        })
+        setWorkingDays(days)
+      } catch {
+        setWorkingDays(0)
+      }
+    } else {
+      setWorkingDays(0)
+    }
+  }, [startDate, endDate, org])
+
+  // Check available balance
+  useEffect(() => {
+    if (policyId && balances && workingDays > 0) {
+      const balance = balances.find((b) => b.leave_policy_id === policyId)
+      if (balance) {
+        const available = calculateAvailableDays(balance)
+        setAvailableDays(available)
+        setHasInsufficientBalance(workingDays > available)
+      } else {
+        setAvailableDays(null)
+        setHasInsufficientBalance(false)
+      }
+    } else {
+      setAvailableDays(null)
+      setHasInsufficientBalance(false)
+    }
+  }, [policyId, balances, workingDays])
+
+  const onSubmit = async (data: SubmitRequestFormData) => {
+    try {
+      const payload: any = {
+        leave_policy_id: data.leave_policy_id,
+        start_date: data.start_date,
+        end_date: data.end_date,
+      }
+      if (data.reason?.trim()) {
+        payload.reason = data.reason.trim()
+      }
+      await submitMutation.mutateAsync(payload)
+      onClose()
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2"
+      style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+      onClick={onClose}
+    >
+      <div
+        className="relative max-w-xl w-full"
+        style={{
+          background: t.surface,
+          borderRadius: 16,
+          border: `1px solid ${t.border}`,
+          height: '80vh',
+          overflow: 'auto',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 transition-opacity hover:opacity-70 z-10"
+          style={{ color: t.textMuted }}
+        >
+          <X size={20} />
+        </button>
+
+        {/* Header */}
+        <div style={{ padding: '24px 24px 20px' }}>
+          <h3
+            className="font-bold"
+            style={{ fontSize: typography.h2.size, color: t.text }}
+          >
+            New <span style={{ color: t.accent }}>
+              {policies?.find((p) => p.id === policyId)?.name || 'Leave'}
+            </span> Request
+          </h3>
+        </div>
+
+        {/* Error Display */}
+        {submitMutation.error && (
+          <div
+            className="mx-6 mb-4 p-3"
+            style={{
+              background: colors.errDim,
+              border: `1px solid ${colors.err}`,
+              borderRadius: 10,
+            }}
+          >
+            <p className="text-xs font-semibold" style={{ color: colors.errText }}>
+              {(submitMutation.error as any)?.response?.data?.error?.message ||
+                submitMutation.error.message ||
+                'Failed to submit request'}
+            </p>
+          </div>
+        )}
+
+        {/* Form */}
+        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '0 24px 24px' }}>
+          {/* Date Range Picker */}
+          <DateRangePicker
+            startDate={startDate}
+            endDate={endDate}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            error={errors.start_date?.message || errors.end_date?.message}
+            workingDays={workingDays}
+            availableDays={availableDays}
+            hasInsufficientBalance={hasInsufficientBalance}
+          />
+
+          {/* Reason */}
+          <div className="mb-5">
+            <label
+              htmlFor="modal-reason"
+              className="block mb-2 text-sm font-semibold"
+              style={{ color: t.text }}
+            >
+              Reason (optional)
+            </label>
+            <textarea
+              id="modal-reason"
+              {...register('reason')}
+              rows={1}
+              className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none"
+              style={{
+                background: t.input,
+                border: errors.reason ? `2px solid ${colors.err}` : `1px solid ${t.inputBorder}`,
+                borderRadius: 10,
+                color: t.text,
+              }}
+              placeholder="Please provide a reason for your leave..."
+            />
+            {errors.reason && (
+              <p className="text-xs mt-1" style={{ color: colors.err }}>
+                {errors.reason.message}
+              </p>
+            )}
+          </div>
+
+          {/* Buttons */}
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={submitMutation.isPending || hasInsufficientBalance || workingDays === 0}
+              className="flex-1 font-semibold py-3 transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{
+                background: t.accent,
+                color: t.accentText,
+                borderRadius: 10,
+                fontSize: typography.body.size,
+              }}
+            >
+              {submitMutation.isPending ? 'Submitting...' : 'Submit Request'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-3 font-medium transition-opacity hover:opacity-70"
+              style={{ color: t.textMuted, fontSize: typography.body.size }}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+// Date Range Picker Component
+interface DateRangePickerProps {
+  startDate: string
+  endDate: string
+  onStartDateChange: (date: string) => void
+  onEndDateChange: (date: string) => void
+  error?: string
+  workingDays?: number
+  availableDays?: number | null
+  hasInsufficientBalance?: boolean
+}
+
+function DateRangePicker({ startDate, endDate, onStartDateChange, onEndDateChange, error, workingDays = 0, availableDays = null, hasInsufficientBalance = false }: DateRangePickerProps) {
+  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [selectingStart, setSelectingStart] = useState(true)
+  const [tempStartDate, setTempStartDate] = useState<Date | null>(startDate ? new Date(startDate) : null)
+  const [tempEndDate, setTempEndDate] = useState<Date | null>(endDate ? new Date(endDate) : null)
+
+  const handleDateClick = (date: Date) => {
+    const isoDate = date.toISOString().split('T')[0]
+    if (!isoDate) return
+    
+    if (selectingStart) {
+      // First click - set start date
+      setTempStartDate(date)
+      onStartDateChange(isoDate)
+      
+      // If clicking same date again, set as single day
+      if (tempStartDate && tempStartDate.toDateString() === date.toDateString()) {
+        setTempEndDate(date)
+        onEndDateChange(isoDate)
+        setSelectingStart(true)
+      } else {
+        // Clear end date and wait for second selection
+        setTempEndDate(null)
+        onEndDateChange('')
+        setSelectingStart(false)
+      }
+    } else {
+      // Second click - set end date
+      if (tempStartDate && date < tempStartDate) {
+        // If end date is before start, swap them
+        const startIso = tempStartDate.toISOString().split('T')[0]
+        setTempEndDate(tempStartDate)
+        setTempStartDate(date)
+        if (startIso) onEndDateChange(startIso)
+        onStartDateChange(isoDate)
+      } else {
+        setTempEndDate(date)
+        onEndDateChange(isoDate)
+      }
+      setSelectingStart(true)
+    }
+  }
+
+  const formatDisplayDate = (date: string) => {
+    if (!date) return ''
+    return new Date(date).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
+
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear()
+    const month = date.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const daysInMonth = lastDay.getDate()
+    const startingDayOfWeek = firstDay.getDay()
+
+    const days: (Date | null)[] = []
+
+    // Add empty slots for days before month starts
+    for (let i = 0; i < startingDayOfWeek; i++) {
+      days.push(null)
+    }
+
+    // Add actual days
+    for (let day = 1; day <= daysInMonth; day++) {
+      days.push(new Date(year, month, day))
+    }
+
+    return days
+  }
+
+  const isDateInRange = (date: Date) => {
+    if (!tempStartDate || !tempEndDate) return false
+    return date >= tempStartDate && date <= tempEndDate
+  }
+
+  const isDateSelected = (date: Date) => {
+    if (tempStartDate && date.toDateString() === tempStartDate.toDateString()) return true
+    if (tempEndDate && date.toDateString() === tempEndDate.toDateString()) return true
+    return false
+  }
+
+  const days = getDaysInMonth(currentMonth)
+  const monthYear = currentMonth.toLocaleDateString('en-GB', {
+    month: 'long',
+    year: 'numeric',
+  })
+
+  return (
+    <div className="mb-5">
+      {/* Calendar - Always visible, not popup */}
+      <div
+        style={{
+          background: t.surface,
+          border: `1px solid ${t.border}`,
+          borderRadius: 12,
+          padding: 16,
+        }}
+      >
+        {/* Month Navigation */}
+        <div className="flex items-center justify-between mb-3">
+          <button
+            type="button"
+            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
+            className="p-1 transition-opacity hover:opacity-70"
+            style={{ color: t.text }}
+          >
+            ←
+          </button>
+          <span className="font-semibold text-sm" style={{ color: t.text }}>
+            {monthYear}
+          </span>
+          <button
+            type="button"
+            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+            className="p-1 transition-opacity hover:opacity-70"
+            style={{ color: t.text }}
+          >
+            →
+          </button>
+        </div>
+
+        {/* Day Headers */}
+        <div className="grid grid-cols-7 gap-1 mb-2">
+          {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map((day) => (
+            <div
+              key={day}
+              className="text-center text-xs font-semibold"
+              style={{ color: t.textMuted, padding: '4px 0' }}
+            >
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="grid grid-cols-7 gap-1">
+          {days.map((date, idx) => {
+            if (!date) {
+              return <div key={`empty-${idx}`} />
+            }
+
+            const isSelected = isDateSelected(date)
+            const isInRange = isDateInRange(date)
+            const isToday = date.toDateString() === new Date().toDateString()
+
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => handleDateClick(date)}
+                className="text-center text-sm transition-all hover:opacity-80"
+                style={{
+                  padding: '8px 4px',
+                  borderRadius: 6,
+                  background: isSelected ? t.accent : isInRange ? t.surfaceHover : 'transparent',
+                  color: isSelected ? t.accentText : isToday ? t.accent : t.text,
+                  fontWeight: isToday || isSelected ? 600 : 400,
+                }}
+              >
+                {date.getDate()}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Selected dates display */}
+        {(startDate || endDate) && (
+          <div className="mt-3 pt-3 border-t" style={{ borderColor: t.border }}>
+            <p className="text-xs font-semibold mb-1" style={{ color: t.textMuted }}>
+              Selected:
+            </p>
+            <p className="text-sm font-bold" style={{ color: t.text }}>
+              {startDate && endDate ? (
+                <>
+                  {formatDisplayDate(startDate)}
+                  {startDate !== endDate && ` – ${formatDisplayDate(endDate)}`}
+                </>
+              ) : startDate ? (
+                <>{formatDisplayDate(startDate)} (select end date)</>
+              ) : (
+                'Select dates'
+              )}
+            </p>
+
+            {/* Working Days Info */}
+            {workingDays > 0 && (
+              <div
+                className="mt-2 p-2.5"
+                style={{
+                  background: hasInsufficientBalance ? colors.warnDim : colors.okDim,
+                  border: hasInsufficientBalance ? `1px solid ${colors.warn}` : `1px solid ${colors.ok}`,
+                  borderRadius: 8,
+                }}
+              >
+                <div className="flex items-center gap-2 text-xs font-semibold" style={{ color: hasInsufficientBalance ? colors.warnText : colors.okText }}>
+                  <span>{hasInsufficientBalance ? '⚠' : '✓'}</span>
+                  <span>Working days: {workingDays} day{workingDays === 1 ? '' : 's'}</span>
+                </div>
+                {availableDays !== null && (
+                  <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>
+                    Available: {availableDays} day{availableDays === 1 ? '' : 's'}
+                    {hasInsufficientBalance && ' (insufficient)'}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Helper Text */}
+        <p className="text-xs mt-3 text-center" style={{ color: t.textMuted }}>
+          {selectingStart ? 'Select start date (or click same date twice for single day)' : 'Select end date'}
+        </p>
+      </div>
+
+      {error && (
+        <p className="text-xs mt-2" style={{ color: colors.err }}>
+          {error}
+        </p>
+      )}
     </div>
   )
 }
@@ -580,13 +1061,13 @@ function RequestDetailsModal({ request, onClose }: RequestDetailsModalProps) {
             </div>
           )}
 
-          {request.reviewed_by && (
+          {(request.reviewed_by_name || request.reviewed_by) && (
             <div>
               <p className="text-xs font-semibold" style={{ color: t.textMuted }}>
                 Reviewed By
               </p>
               <p className="text-sm" style={{ color: t.text }}>
-                {request.reviewed_by}
+                {request.reviewed_by_name || request.reviewed_by}
               </p>
             </div>
           )}

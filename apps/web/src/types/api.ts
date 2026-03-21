@@ -335,6 +335,7 @@ export interface LeaveRequest {
 export interface LeaveRequestWithDetails extends LeaveRequest {
   employee_name: string
   policy_name: string
+  reviewed_by_name?: string  // Name of person who reviewed (if reviewed)
 }
 
 export interface PolicyTemplate {

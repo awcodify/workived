@@ -391,17 +391,19 @@ func (r *Repository) GetRequest(ctx context.Context, orgID, requestID uuid.UUID)
 		       lr.status, lr.reviewed_by, lr.reviewed_at, lr.review_note,
 		       lr.created_at, lr.updated_at,
 		       e.full_name AS employee_name,
-		       lp.name AS policy_name
+		       lp.name AS policy_name,
+		       reviewer.full_name AS reviewed_by_name
 		FROM leave_requests lr
 		JOIN employees e ON lr.employee_id = e.id
 		JOIN leave_policies lp ON lr.leave_policy_id = lp.id
+		LEFT JOIN employees reviewer ON lr.reviewed_by = reviewer.id
 		WHERE lr.organisation_id = $1 AND lr.id = $2
 	`, orgID, requestID).Scan(
 		&req.ID, &req.OrganisationID, &req.EmployeeID, &req.LeavePolicyID,
 		&req.StartDate, &req.EndDate, &req.TotalDays, &req.Reason,
 		&req.Status, &req.ReviewedBy, &req.ReviewedAt, &req.ReviewNote,
 		&req.CreatedAt, &req.UpdatedAt,
-		&req.EmployeeName, &req.PolicyName,
+		&req.EmployeeName, &req.PolicyName, &req.ReviewedByName,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -451,10 +453,12 @@ func (r *Repository) ListRequests(ctx context.Context, orgID uuid.UUID, filter L
 		       lr.start_date::text, lr.end_date::text, lr.total_days, lr.reason,
 		       lr.status, lr.reviewed_by, lr.reviewed_at, lr.review_note,
 		       lr.created_at, lr.updated_at,
-		       e.full_name, lp.name
+		       e.full_name, lp.name,
+		       reviewer.full_name AS reviewed_by_name
 		FROM leave_requests lr
 		JOIN employees e ON e.id = lr.employee_id
 		JOIN leave_policies lp ON lp.id = lr.leave_policy_id
+		LEFT JOIN employees reviewer ON lr.reviewed_by = reviewer.id
 		WHERE lr.organisation_id = $1
 		  AND ($2::varchar IS NULL OR lr.status = $2)
 		  AND ($3::uuid IS NULL OR lr.employee_id = $3)
@@ -475,7 +479,7 @@ func (r *Repository) ListRequests(ctx context.Context, orgID uuid.UUID, filter L
 			&rd.StartDate, &rd.EndDate, &rd.TotalDays, &rd.Reason,
 			&rd.Status, &rd.ReviewedBy, &rd.ReviewedAt, &rd.ReviewNote,
 			&rd.CreatedAt, &rd.UpdatedAt,
-			&rd.EmployeeName, &rd.PolicyName,
+			&rd.EmployeeName, &rd.PolicyName, &rd.ReviewedByName,
 		); err != nil {
 			return nil, fmt.Errorf("scan leave request: %w", err)
 		}
