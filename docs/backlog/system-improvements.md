@@ -4,6 +4,117 @@ Platform improvements, UX polish, and operational excellence features.
 
 ---
 
+## ⭐⭐⭐⭐ Comprehensive Audit Logging
+**Status:** 📋 Backlog (Sprint 11 or 12)  
+**Effort:** M (3-5 days)  
+**Value:** System-wide compliance (GDPR, labor law) + security forensics
+
+**Description:**
+Expand existing `audit_logs` table to capture ALL state-changing actions across all modules. Used for compliance (GDPR Article 15, labor inspections), security forensics, and debugging.
+
+**User Story:**
+> As an HR admin, I need to see who changed an employee's salary history or deleted a leave policy, so I can audit changes during labor inspections or investigate security incidents.
+
+**Problem:**
+- Currently: Only some modules log audit events (ad-hoc implementation)
+- Missing: Attendance, employees, leave policies, claim categories, departments, work schedules
+- Compliance risk: Cannot prove who changed what for GDPR/labor law audits
+
+**Features:**
+- **Log all state changes** across modules:
+  - Employees: created, updated (salary, job title, department), deactivated
+  - Attendance: clock-in/out corrections (any change to attendance_records)
+  - Leave: policy created/updated/deleted, request submitted/approved/rejected/cancelled
+  - Claims: category created/updated/deleted, claim submitted/approved/rejected
+  - Departments: created, updated, deleted
+  - Work schedules: created, updated, deleted
+  - Public holidays: created, updated, deleted
+  - Tasks: created, completed, deleted, assignee changed
+  - Users: invited, role changed, deactivated
+
+- **Capture:**
+  - Event type (e.g., "employee_salary_updated", "leave_request_approved")
+  - Timestamp (UTC)
+  - Actor: Who did it (user_id, employee_id if applicable)
+  - Subject: What was changed (employee_id, leave_request_id, etc.)
+  - Before/after values (JSON): {"old": {"salary": 5000000}, "new": {"salary": 5500000}}
+  - Reason (optional): Manager explanation for sensitive changes
+  - IP address + user agent (security forensics)
+
+- **Query API:**
+  - GET /api/v1/audit-logs?entity_type=employee&entity_id=xxx (all changes to one employee)
+  - GET /api/v1/audit-logs?user_id=xxx (all actions by one user)
+  - GET /api/v1/audit-logs?event_type=salary_updated (all salary changes)
+  - GET /api/v1/audit-logs?start_date=2026-01-01&end_date=2026-03-31 (Q1 audit)
+  - Pagination, filtering, CSV export
+
+- **UI:**
+  - Employee detail page → "Audit History" tab
+  - Leave request detail → "Change Log" section
+  - Admin panel → "Audit Logs" (system-wide search)
+  - Revision timeline component (reusable across modules)
+
+**Why it matters:**
+- **Compliance:** GDPR Article 15 (right to access), Indonesia/UAE labor law (audit trail for wage changes)
+- **Security:** Forensics after data breach or unauthorized access
+- **Accountability:** Prevents "who deleted this?" mysteries
+- **Debugging:** Trace why data changed unexpectedly
+
+**Dependencies:**
+- `audit_logs` table already exists (Sprint 6) — needs expansion
+- Centralized audit service (services/internal/audit package exists)
+
+**Technical scope:**
+- **Database:**
+  - Expand `audit_logs` table:
+    - Add: ip_address, user_agent, before_value, after_value (JSONB)
+    - Index: (entity_type, entity_id), (user_id, created_at DESC)
+- **Backend:**
+  - Centralized AuditService.Log() method (already exists, needs standardization)
+  - Hook into all service methods that change state:
+    - attendance.UpdateAttendance() → log attendance_updated
+    - employees.Update() → log employee_updated
+    - leave.ApproveRequest() → log leave_request_approved
+    - etc.
+  - GET /api/v1/audit-logs endpoint (filtering, pagination, CSV export)
+- **Frontend:**
+  - Reusable AuditTimeline component (timeline UI)
+  - Employee page → Audit History tab
+  - Admin panel → Audit Logs search (table with filters)
+- **Testing:**
+  - 20+ backend tests (one per service hook, query endpoint)
+  - 10 frontend tests (timeline component, filters, export)
+
+**Effort breakdown:**
+- 2 days backend (service hooks, query API, tests)
+- 2 days frontend (timeline component, audit logs page, tests)
+- 1 day testing + CSV export
+
+**Edge cases:**
+- Bulk updates (e.g., annual leave allocation for all employees) → Log one summary event or 25 individual events?
+- Soft deletes → Log as "deactivated" not "deleted"
+- Automated system changes (cron jobs) → Log with system user_id
+- Large JSON values (e.g., document content) → Truncate or summarize
+
+**Security considerations:**
+- Audit logs are IMMUTABLE (no UPDATE/DELETE operations allowed)
+- Only admins can view audit logs
+- Sensitive fields (passwords, API keys) → Never log, show as "[REDACTED]"
+- Data retention: Keep audit logs for 3 years (compliance requirement)
+
+**Future enhancements:**
+- Real-time audit dashboard (anomaly detection)
+- Slack alerts for sensitive changes (salary > 20% increase)
+- Compliance reports (export for labor inspections)
+- Diff visualization (side-by-side before/after)
+
+**Implementation priority:**
+- Phase 1 (Sprint 11): Employees, attendance, leave (highest compliance risk)
+- Phase 2 (Sprint 12): Claims, tasks, departments (medium risk)
+- Phase 3 (Sprint 13): Admin panel UI + CSV export
+
+---
+
 ## ⭐⭐⭐⭐⭐ Task Board View Filtering (Tasks vs Approvals)
 **Status:** 📋 Backlog (Post-Sprint 10)  
 **Effort:** S (1-2 days)  

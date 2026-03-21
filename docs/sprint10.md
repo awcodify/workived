@@ -276,41 +276,74 @@
 
 ---
 
-## 🚀 Next Sprint Plan (Sprint 11)
+## 🚀 Next Sprint Plan (Sprint 10.5 → Sprint 11)
 
-### Proposed Features
+### Sprint 10.5: Bug Fixes & Critical Gaps (Immediate) ⚠️
 
-1. **Performance Insights** ⭐⭐⭐⭐⭐ (moved from Sprint 10)
-   - Effort: 8 days (L)
-   - Value: Task completion stats for performance reviews
-   - Dependencies: Privacy policy review, legal approval
+**Trigger:** First full production readiness review identified critical blockers
 
-2. **Landing Page** ⭐⭐⭐⭐⭐
-   - Effort: 1-2 weeks
-   - Value: Marketing site for acquisition
-   - Dependencies: Pricing finalized, screenshots ready
+**Duration:** 3-4 days  
+**Focus:** Fix P0-P1 bugs + compliance gaps before infrastructure deployment
 
-3. **Pro Feature Gating** ⭐⭐⭐⭐⭐
-   - Effort: 2 days
-   - Value: Enable monetization (26+ employee limit)
-   - Dependencies: Billing system design
+**Critical Work:**
+1. **Fix 5 production bugs** (5 hours)
+   - Non-admin attendance API 403 (P0)
+   - Sick leave unlimited not supported (P0)
+   - TaskFilters test compilation errors (P1)
+   - Calendar icon invisible (P1)
+   - Done column task not autocomplete (P2)
 
-4. **Mobile Responsiveness** ⭐⭐⭐⭐
-   - Effort: 1 week
-   - Value: Task board usable on tablets/phones
-   - Dependencies: None
+**Note:** Attendance revision feature originally planned for Sprint 10.5 was **removed** after clarification.
+- **Clarification:** This is a **new feature** (employee requests correction → manager approves), not a compliance requirement
+- **Moved to:** `docs/backlog/hr-features.md` as "Attendance Correction Workflow"
+- **Sprint 10.5 scope:** Pure bug fixes only (5 hours total)
+
+**See:** [Sprint 10.5 Details](./sprint10.5.md)
+
+---
+
+### Sprint 11: Infrastructure & Beta Launch (After 10.5)
+
+**Duration:** 1-2 weeks  
+**Focus:** Deploy to production + beta testing
+
+**Proposed Features:**
+
+1. **Infrastructure Deployment** (3 days)
+   - Deploy to Railway (PostgreSQL, Redis, S3)
+   - Configure monitoring (Sentry + Railway metrics)
+   - Set up CI/CD pipeline (GitHub Actions)
+   - Database backups (daily automated)
+
+2. **E2E Testing** (3 days)
+   - Playwright setup
+   - 5 critical user flows
+   - Load testing (100 concurrent users)
+
+3. **Beta Prep** (2 days)
+   - Onboarding checklist widget
+   - Empty states for all pages
+   - User guide documentation
+
+4. **Beta Launch** 🚀
+   - Invite 3 companies (Indonesia focus)
+   - Collect feedback
+   - Monitor for issues
 
 ### Risks & Dependencies
 
-**Performance Insights Risks:**
-- Legal risk: Performance tracking may require consent (GDPR, employment law)
-- Privacy risk: Employees may feel surveilled
-- Mitigation: Opt-in only, clear communication, no real-time tracking
+**Sprint 10.5 Risks:**
+- Bug fixes may uncover additional issues
+- Test fixes may require updates to other components
 
-**Technical Debt to Address:**
-- Bundle size warning (1.27 MB) — Consider code splitting
-- Test warning: localStorage file path (non-blocking)
-- OpenAPI docs not updated for new features
+**Sprint 11 Risks:**
+- Railway deployment may have unexpected issues
+- Beta customers may not be ready
+
+**Technical Debt Deferred to Sprint 12:**
+- Bundle size warning (1.27 MB) — Code splitting needed
+- Performance Insights feature (moved from Sprint 10)
+- Mobile responsiveness improvements
 - Remove unused migration #000061 (performance indexes)
 
 ---

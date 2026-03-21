@@ -4,6 +4,78 @@ Features that leverage employee data to create competitive differentiation.
 
 ---
 
+## ⭐⭐⭐ Attendance Correction Workflow
+**Status:** 📋 Backlog (Sprint 12+)  
+**Effort:** L (1-2 weeks)  
+**Value:** Employee self-service for forgotten clock-in/clock-out
+
+**Description:**
+Allow employees to request corrections to their attendance records when they forget to clock in/out. Manager approves/rejects with reason. All changes audited.
+
+**User Story:**
+> As an employee, I sometimes forget to clock in when I arrive at work. I want to submit a correction request to my manager, so my attendance record is accurate for payroll.
+
+**Features:**
+- Employee submits correction request (clock-in/clock-out time)
+- Reason required (min 10 chars): "Forgot to clock in, arrived at 9 AM"
+- Manager notification: "John Doe submitted attendance correction"
+- Manager reviews:
+  - Before: "No clock-in record"
+  - After: "Clock in at 2026-03-22 09:00"
+  - Reason: "Forgot to clock in, arrived at 9 AM"
+- Manager approves/rejects
+- If approved: Attendance record updated + revision audit trail created
+- If rejected: Employee notified with manager's rejection reason
+- All changes tracked in `attendance_revisions` table
+
+**Why it matters:**
+- **Self-service:** Reduces manager burden (employees don't need to ping manager on Slack)
+- **Compliance:** Audit trail for labor inspections (GDPR, Indonesia/UAE law)
+- **Accuracy:** Prevents payroll disputes (missing clock-ins corrected)
+- **Workflow support:** Approval process instead of direct edit (reduces fraud)
+
+**Dependencies:**
+- Attendance module (✅ Done in Sprint 1)
+- Notifications system (✅ Done in Sprint 6)
+- Approval workflow pattern (can reuse from leave/claims)
+
+**Technical scope:**
+- **Database:**
+  - `attendance_correction_requests` table (pending/approved/rejected requests)
+  - `attendance_revisions` table (audit trail of approved changes)
+- **Backend:**
+  - POST /api/v1/attendance/:id/corrections (employee submits request)
+  - GET /api/v1/attendance/corrections (manager sees pending)
+  - PUT /api/v1/attendance/corrections/:id/approve (manager approves)
+  - PUT /api/v1/attendance/corrections/:id/reject (manager rejects)
+  - Service logic: Create revision record when approved
+  - Notification: Manager when request submitted, employee when reviewed
+- **Frontend:**
+  - Attendance list → "Request Correction" button
+  - Correction form modal (datetime picker, reason textarea)
+  - Manager: Pending corrections badge on Dock
+  - Approval modal (before/after, reason, approve/reject)
+  - Revision history timeline
+- **Testing:**
+  - 15 backend tests + 12 frontend tests
+
+**Effort:** 8 days (3 backend + 3 frontend + 2 testing)
+
+**Edge cases:**
+- Multiple corrections for same record → Show all pending
+- Attendance deleted before approval → Auto-reject request
+- Manager on leave → Delegate to department head
+- Future date correction → Prevent (only past dates)
+- Hours > 24h → Validation warning
+
+**Future enhancements:**
+- Bulk correction for week
+- Auto-approval for minor corrections (<15 min)
+- Monthly correction limit (prevent abuse)
+- Department head approval for manager corrections
+
+---
+
 ## ⭐⭐⭐⭐⭐ Workload Intelligence
 **Status:** ✅ Done (Sprint 9 - March 21, 2026)  
 **Effort:** M (4 days → Completed in 1 day)  
