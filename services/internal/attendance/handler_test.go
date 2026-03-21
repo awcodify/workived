@@ -557,7 +557,7 @@ func TestHandler_ClockOut_WithNote(t *testing.T) {
 
 // ── DailyReport role-based access tests ──────────────────────────────────────
 
-func TestHandler_DailyReport_AdminCanSeeAllEmployees(t *testing.T) {
+func TestHandler_DailyReport_OrgWideVisibility(t *testing.T) {
 	var capturedFilters attendance.DailyReportFilters
 	svc := &mockAttService{
 		dailyReportFn: func(_ context.Context, _ uuid.UUID, f attendance.DailyReportFilters) ([]attendance.DailyEntry, error) {
@@ -575,96 +575,15 @@ func TestHandler_DailyReport_AdminCanSeeAllEmployees(t *testing.T) {
 
 	hAssertStatus(t, w, http.StatusOK)
 
-	// Verify no employee filter was applied (admin sees all)
+	// Verify no employee filter applied (org-wide visibility)
 	if capturedFilters.EmployeeID != nil {
-		t.Errorf("Expected no employee filter for admin, but got filter for employee %s", *capturedFilters.EmployeeID)
+		t.Errorf("Expected no employee filter (org-wide access), but got filter for employee %s", *capturedFilters.EmployeeID)
 	}
 
-	// Verify response contains multiple employees
+	// Verify response contains all org employees
 	var resp map[string][]attendance.DailyEntry
 	json.Unmarshal(w.Body.Bytes(), &resp)
 	if len(resp["data"]) != 2 {
 		t.Errorf("Expected 2 employees in response, got %d", len(resp["data"]))
 	}
-}
-
-func TestHandler_DailyReport_TeamMemberCanSeeOwnOnly(t *testing.T) {
-	var capturedFilters attendance.DailyReportFilters
-	svc := &mockAttService{
-		dailyReportFn: func(_ context.Context, _ uuid.UUID, f attendance.DailyReportFilters) ([]attendance.DailyEntry, error) {
-			capturedFilters = f
-			// Return only the employee that matches the filter
-			if f.EmployeeID != nil && *f.EmployeeID == hTestEmpID {
-				return []attendance.DailyEntry{
-					{EmployeeID: hTestEmpID, EmployeeName: "Test Employee", Status: "present"},
-				}, nil
-			}
-			return []attendance.DailyEntry{}, nil
-		},
-	}
-
-	// Create router with team_member role
-	r := gin.New()
-	r.Use(func(c *gin.Context) {
-		c.Set("org_id", hTestOrgID)
-		c.Set("user_id", hTestUserID)
-		c.Set("role", middleware.RoleMember) // Non-admin role
-		c.Next()
-	})
-	h := attendance.NewHandler(svc, defaultEmpLookup, zerolog.Nop())
-	h.RegisterRoutes(r.Group("/api/v1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/attendance/daily?date=2026-03-21", nil)
-	r.ServeHTTP(w, req)
-
-	hAssertStatus(t, w, http.StatusOK)
-
-	// Verify employee filter was applied
-	if capturedFilters.EmployeeID == nil {
-		t.Error("Expected employee filter for team member, but got none")
-	} else if *capturedFilters.EmployeeID != hTestEmpID {
-		t.Errorf("Expected filter for employee %s, got %s", hTestEmpID, *capturedFilters.EmployeeID)
-	}
-
-	// Verify response contains only one employee
-	var resp map[string][]attendance.DailyEntry
-	json.Unmarshal(w.Body.Bytes(), &resp)
-	if len(resp["data"]) != 1 {
-		t.Errorf("Expected 1 employee in response, got %d", len(resp["data"]))
-	}
-	if len(resp["data"]) > 0 && resp["data"][0].EmployeeID != hTestEmpID {
-		t.Errorf("Expected employee %s in response, got %s", hTestEmpID, resp["data"][0].EmployeeID)
-	}
-}
-
-func TestHandler_DailyReport_TeamMemberWithoutEmployee(t *testing.T) {
-	svc := &mockAttService{
-		dailyReportFn: func(_ context.Context, _ uuid.UUID, f attendance.DailyReportFilters) ([]attendance.DailyEntry, error) {
-			return []attendance.DailyEntry{}, nil
-		},
-	}
-
-	// Employee lookup fails (user not linked to employee)
-	failingLookup := attendance.EmployeeLookupFunc(func(_ context.Context, _, _ uuid.UUID) (uuid.UUID, error) {
-		return uuid.Nil, apperr.NotFound("employee")
-	})
-
-	// Create router with team_member role
-	r := gin.New()
-	r.Use(func(c *gin.Context) {
-		c.Set("org_id", hTestOrgID)
-		c.Set("user_id", hTestUserID)
-		c.Set("role", middleware.RoleMember) // Non-admin role
-		c.Next()
-	})
-	h := attendance.NewHandler(svc, failingLookup, zerolog.Nop())
-	h.RegisterRoutes(r.Group("/api/v1"))
-
-	w := httptest.NewRecorder()
-	req, _ := http.NewRequest(http.MethodGet, "/api/v1/attendance/daily?date=2026-03-21", nil)
-	r.ServeHTTP(w, req)
-
-	// Should return 404 when user is not linked to an employee
-	hAssertStatus(t, w, http.StatusNotFound)
 }

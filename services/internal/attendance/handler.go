@@ -138,7 +138,6 @@ func (h *Handler) GetToday(c *gin.Context) {
 
 func (h *Handler) DailyReport(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
-	userID := middleware.UserIDFromCtx(c)
 
 	date := c.Query("date")
 	if date == "" {
@@ -146,24 +145,8 @@ func (h *Handler) DailyReport(c *gin.Context) {
 		return
 	}
 
-	// Check if user has admin permission
-	role := middleware.RoleFromCtx(c)
-	hasAdminPerm := role == "admin" || role == "owner"
-
+	// All users can see org-wide attendance (org-scoped by middleware)
 	filters := DailyReportFilters{Date: date}
-
-	// Non-admin users can only see their own attendance
-	if !hasAdminPerm {
-		employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
-		if err != nil {
-			h.logAndRespondError(c, err, "failed to lookup employee", map[string]string{
-				"org_id":  orgID.String(),
-				"user_id": userID.String(),
-			})
-			return
-		}
-		filters.EmployeeID = &employeeID
-	}
 
 	entries, err := h.service.DailyReport(c.Request.Context(), orgID, filters)
 	if err != nil {
