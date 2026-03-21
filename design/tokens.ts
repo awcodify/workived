@@ -44,7 +44,7 @@ export const moduleBackgrounds = {
   attendance:  '#111214',  // deep charcoal
   leave:       '#F3F2FB',  // soft violet
   claims:      '#F0FDF9',  // soft mint green
-  tasks:       '#0E0E1A',  // deep dark (dark Kanban board)
+  tasks:       '#F5F5F0',  // warm paper beige (kanban board)
   reports:     '#0F0F1A',  // deep indigo night
   calendar:    '#FFF8F3',  // warm amber cream
 } as const
@@ -52,18 +52,18 @@ export const moduleBackgrounds = {
 // ── DOCK THEMES ───────────────────────────────────────────────
 // The floating dock adapts its colour to the current module
 const _dock = {
-  bg:     'rgba(255,255,255,0.09)',
-  border: 'rgba(255,255,255,0.12)',
-  icon:   'rgba(255,255,255,0.45)',
-  label:  'rgba(255,255,255,0.28)',
+  bg:     'rgba(20,20,25,0.75)',
+  border: 'rgba(255,255,255,0.15)',
+  icon:   'rgba(255,255,255,0.50)',
+  label:  'rgba(255,255,255,0.35)',
   active: {
-    bg:    'rgba(255,255,255,0.16)',
+    bg:    'rgba(255,255,255,0.18)',
     icon:  '#FFFFFF',
-    label: 'rgba(255,255,255,0.85)',
+    label: 'rgba(255,255,255,0.95)',
   },
 } as const
 
-// Dock theme for light backgrounds (leave, claims)
+// Dock theme for light backgrounds (leave, claims, tasks, calendar)
 const _dockLight = {
   bg:     'rgba(0,0,0,0.04)',
   border: 'rgba(0,0,0,0.08)',
@@ -82,7 +82,7 @@ export const dockThemes = {
   attendance: _dock,
   leave:      _dockLight,
   claims:     _dockLight,
-  tasks:      _dock,
+  tasks:      _dockLight,  // Light dock for light background
   reports:    _dock,
   calendar:   _dockLight,
 } as const

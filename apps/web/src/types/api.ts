@@ -508,6 +508,7 @@ export interface TaskList {
   organisation_id: string
   name: string
   position: number
+  is_final_state: boolean  // Auto-mark tasks as complete when moved to this list
   is_active: boolean
   created_at: string
   updated_at: string

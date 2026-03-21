@@ -16,6 +16,7 @@ type TaskList struct {
 	OrganisationID uuid.UUID `json:"organisation_id"`
 	Name           string    `json:"name"`
 	Position       int       `json:"position"`
+	IsFinalState   bool      `json:"is_final_state"` // Auto-mark tasks as complete when moved to this list
 	IsActive       bool      `json:"is_active"`
 	CreatedAt      time.Time `json:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at"`

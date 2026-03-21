@@ -110,9 +110,10 @@ export function useMoveTask() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: MoveTaskInput }) =>
       tasksApi.moveTask(id, data).then((r) => r.data.data),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
+      // Only invalidate the tasks list query
+      // Individual task details don't need refresh since we use optimistic updates
       qc.invalidateQueries({ queryKey: tasksKeys.tasks() })
-      qc.invalidateQueries({ queryKey: tasksKeys.taskDetail(variables.id) })
     },
   })
 }

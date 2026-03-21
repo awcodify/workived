@@ -26,7 +26,7 @@ func NewRepository(db *pgxpool.Pool, log zerolog.Logger) *Repository {
 
 func (r *Repository) ListTaskLists(ctx context.Context, orgID uuid.UUID) ([]TaskList, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, name, position, is_active, created_at, updated_at
+		SELECT id, organisation_id, name, position, is_final_state, is_active, created_at, updated_at
 		FROM task_lists
 		WHERE organisation_id = $1 AND is_active = TRUE
 		ORDER BY position ASC, created_at ASC
@@ -39,7 +39,7 @@ func (r *Repository) ListTaskLists(ctx context.Context, orgID uuid.UUID) ([]Task
 	var lists []TaskList
 	for rows.Next() {
 		var tl TaskList
-		if err := rows.Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt); err != nil {
+		if err := rows.Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt); err != nil {
 			return nil, err
 		}
 		lists = append(lists, tl)
@@ -50,10 +50,10 @@ func (r *Repository) ListTaskLists(ctx context.Context, orgID uuid.UUID) ([]Task
 func (r *Repository) GetTaskList(ctx context.Context, orgID, id uuid.UUID) (*TaskList, error) {
 	var tl TaskList
 	err := r.db.QueryRow(ctx, `
-		SELECT id, organisation_id, name, position, is_active, created_at, updated_at
+		SELECT id, organisation_id, name, position, is_final_state, is_active, created_at, updated_at
 		FROM task_lists
 		WHERE organisation_id = $1 AND id = $2
-	`, orgID, id).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
+	`, orgID, id).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrTaskListNotFound()
@@ -77,8 +77,8 @@ func (r *Repository) CreateTaskList(ctx context.Context, orgID uuid.UUID, req Cr
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO task_lists (organisation_id, name, position)
 		VALUES ($1, $2, $3)
-		RETURNING id, organisation_id, name, position, is_active, created_at, updated_at
-	`, orgID, req.Name, maxPosition+1000).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
+		RETURNING id, organisation_id, name, position, is_final_state, is_active, created_at, updated_at
+	`, orgID, req.Name, maxPosition+1000).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}
@@ -110,10 +110,10 @@ func (r *Repository) UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, re
 	query := fmt.Sprintf(`
 		UPDATE task_lists SET %s
 		WHERE organisation_id = $1 AND id = $2
-		RETURNING id, organisation_id, name, position, is_active, created_at, updated_at
+		RETURNING id, organisation_id, name, position, is_final_state, is_active, created_at, updated_at
 	`, strings.Join(updates, ", "))
 
-	err := r.db.QueryRow(ctx, query, args...).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
+	err := r.db.QueryRow(ctx, query, args...).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrTaskListNotFound()

@@ -280,9 +280,49 @@ func (s *Service) MoveTask(ctx context.Context, orgID, taskID uuid.UUID, req Mov
 		return nil, err
 	}
 
+	// Check source and target list states
+	sourceList, err := s.repo.GetTaskList(ctx, orgID, before.TaskListID)
+	if err != nil {
+		return nil, err
+	}
+
+	targetList, err := s.repo.GetTaskList(ctx, orgID, req.TaskListID)
+	if err != nil {
+		return nil, err
+	}
+
+	// First move the task
 	task, err := s.repo.MoveTask(ctx, orgID, taskID, req.TaskListID, req.Position)
 	if err != nil {
 		return nil, err
+	}
+
+	// Auto-complete if moving TO a final state and task is not already complete
+	if targetList.IsFinalState && task.CompletedAt == nil {
+		task, err = s.repo.ToggleTaskCompletion(ctx, orgID, taskID)
+		if err != nil {
+			s.log.Warn().Err(err).Str("task_id", taskID.String()).Msg("failed to auto-complete task")
+			// Don't fail the move operation if auto-complete fails
+		} else {
+			s.log.Info().
+				Str("task_id", taskID.String()).
+				Str("list_id", req.TaskListID.String()).
+				Msg("task auto-completed")
+		}
+	}
+
+	// Auto-uncomplete if moving FROM a final state and task is currently complete
+	if sourceList.IsFinalState && !targetList.IsFinalState && task.CompletedAt != nil {
+		task, err = s.repo.ToggleTaskCompletion(ctx, orgID, taskID)
+		if err != nil {
+			s.log.Warn().Err(err).Str("task_id", taskID.String()).Msg("failed to auto-uncomplete task")
+			// Don't fail the move operation if auto-uncomplete fails
+		} else {
+			s.log.Info().
+				Str("task_id", taskID.String()).
+				Str("source_list_id", sourceList.ID.String()).
+				Msg("task auto-uncompleted")
+		}
 	}
 
 	if len(actorUserID) > 0 {

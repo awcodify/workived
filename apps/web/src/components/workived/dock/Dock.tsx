@@ -71,7 +71,7 @@ export function Dock() {
         style={{
           background: theme.bg,
           borderColor: theme.border,
-          filter: 'drop-shadow(0 8px 32px rgba(0, 0, 0, 0.4))',
+          filter: 'drop-shadow(0 8px 32px rgba(0, 0, 0, 0.4)) drop-shadow(0 4px 16px rgba(0, 0, 0, 0.2))',
         }}
       >
         {/* Navigation Items */}
@@ -93,15 +93,18 @@ export function Dock() {
                 )}
                 style={{
                   background: isActive ? theme.active.bg : 'transparent',
+                  boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.1)' : 'none',
                 }}
                 onMouseEnter={(e) => {
                   if (!isActive) {
                     e.currentTarget.style.background = theme.active.bg
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.1)'
                   }
                 }}
                 onMouseLeave={(e) => {
                   if (!isActive) {
                     e.currentTarget.style.background = 'transparent'
+                    e.currentTarget.style.boxShadow = 'none'
                   }
                 }}
               >
