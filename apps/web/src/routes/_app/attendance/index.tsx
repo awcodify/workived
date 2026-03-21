@@ -79,6 +79,7 @@ function AttendancePage() {
             border: `1px solid ${t.inputBorder}`,
             borderRadius: 10,
             color: t.text,
+            colorScheme: 'dark',
           }}
         />
       </div>

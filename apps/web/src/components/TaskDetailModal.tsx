@@ -709,6 +709,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
                   border: `2px solid ${colors.text}20`,
                   color: colors.text,
                   fontFamily: typography.fontFamily,
+                  colorScheme: 'dark',
                 }}
               />
             </div>

@@ -327,6 +327,7 @@ function NewClaimPage() {
                 border: errors.claim_date ? '2px solid #D44040' : `1px solid ${t.inputBorder}`,
                 borderRadius: 10,
                 color: t.text,
+                colorScheme: 'dark',
               }}
             />
             {errors.claim_date && (

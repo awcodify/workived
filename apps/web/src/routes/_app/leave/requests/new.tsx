@@ -250,6 +250,7 @@ function NewRequestPage() {
                 border: errors.start_date ? '2px solid #D44040' : `1px solid ${t.inputBorder}`,
                 borderRadius: 10,
                 color: t.text,
+                colorScheme: 'dark',
               }}
             />
             {errors.start_date && (
@@ -283,6 +284,7 @@ function NewRequestPage() {
                 border: errors.end_date ? '2px solid #D44040' : `1px solid ${t.inputBorder}`,
                 borderRadius: 10,
                 color: t.text,
+                colorScheme: 'dark',
               }}
             />
             {errors.end_date && (
