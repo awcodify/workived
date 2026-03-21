@@ -47,19 +47,39 @@ type TaskWithDetails struct {
 }
 
 type TaskComment struct {
-	ID             uuid.UUID `json:"id"`
-	OrganisationID uuid.UUID `json:"organisation_id"`
-	TaskID         uuid.UUID `json:"task_id"`
-	AuthorID       uuid.UUID `json:"author_id"`
-	Body           string    `json:"body"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID             uuid.UUID  `json:"id"`
+	OrganisationID uuid.UUID  `json:"organisation_id"`
+	TaskID         uuid.UUID  `json:"task_id"`
+	AuthorID       uuid.UUID  `json:"author_id"`
+	ParentID       *uuid.UUID `json:"parent_id,omitempty"` // For nested replies
+	Body           string     `json:"body"`
+	ContentType    string     `json:"content_type"` // "plain" or "markdown"
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
-// TaskCommentWithAuthor includes author name
+// TaskCommentWithAuthor includes author name and nested replies
 type TaskCommentWithAuthor struct {
 	TaskComment
-	AuthorName string `json:"author_name"`
+	AuthorName string                  `json:"author_name"`
+	Replies    []TaskCommentWithAuthor `json:"replies,omitempty"` // Nested comments
+}
+
+// CommentReaction represents an emoji reaction to a comment
+type CommentReaction struct {
+	ID             uuid.UUID `json:"id"`
+	OrganisationID uuid.UUID `json:"organisation_id"`
+	CommentID      uuid.UUID `json:"comment_id"`
+	EmployeeID     uuid.UUID `json:"employee_id"`
+	Emoji          string    `json:"emoji"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+// CommentReactionSummary represents aggregated reaction counts
+type CommentReactionSummary struct {
+	Emoji       string `json:"emoji"`
+	Count       int    `json:"count"`
+	UserReacted bool   `json:"user_reacted"` // Whether current user reacted with this emoji
 }
 
 // ── Request DTOs ─────────────────────────────────────────────────────────────
@@ -96,7 +116,13 @@ type MoveTaskRequest struct {
 }
 
 type CreateCommentRequest struct {
-	Body string `json:"body" binding:"required,max=5000"`
+	ParentID    *uuid.UUID `json:"parent_id,omitempty"`
+	Body        string     `json:"body" binding:"required,max=5000"`
+	ContentType string     `json:"content_type,omitempty" binding:"omitempty,oneof=plain markdown"`
+}
+
+type ToggleReactionRequest struct {
+	Emoji string `json:"emoji" binding:"required,max=10"`
 }
 
 // ── Filter types ─────────────────────────────────────────────────────────────
@@ -132,8 +158,12 @@ type RepositoryInterface interface {
 
 	// Comments
 	ListComments(ctx context.Context, orgID, taskID uuid.UUID) ([]TaskCommentWithAuthor, error)
-	CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, body string) (*TaskComment, error)
+	CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, parentID *uuid.UUID, body, contentType string) (*TaskComment, error)
 	DeleteComment(ctx context.Context, orgID, commentID, authorID uuid.UUID) error
+
+	// Reactions
+	ToggleReaction(ctx context.Context, orgID, commentID, employeeID uuid.UUID, emoji string) (added bool, err error)
+	ListReactions(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]CommentReactionSummary, error)
 }
 
 // ── Service Interface ────────────────────────────────────────────────────────
@@ -157,8 +187,12 @@ type ServiceInterface interface {
 
 	// Comments
 	ListComments(ctx context.Context, orgID, taskID uuid.UUID) ([]TaskCommentWithAuthor, error)
-	CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, body string, actorUserID ...uuid.UUID) (*TaskComment, error)
+	CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, parentID *uuid.UUID, body, contentType string, actorUserID ...uuid.UUID) (*TaskComment, error)
 	DeleteComment(ctx context.Context, orgID, commentID, authorID uuid.UUID, actorUserID ...uuid.UUID) error
+
+	// Reactions
+	ToggleReaction(ctx context.Context, orgID, commentID, employeeID uuid.UUID, emoji string, actorUserID ...uuid.UUID) (added bool, err error)
+	ListReactions(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]CommentReactionSummary, error)
 }
 
 // ── Error Constructors ───────────────────────────────────────────────────────

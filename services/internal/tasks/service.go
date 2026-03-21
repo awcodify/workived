@@ -540,8 +540,8 @@ func (s *Service) ListComments(ctx context.Context, orgID, taskID uuid.UUID) ([]
 	return s.repo.ListComments(ctx, orgID, taskID)
 }
 
-func (s *Service) CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, body string, actorUserID ...uuid.UUID) (*TaskComment, error) {
-	comment, err := s.repo.CreateComment(ctx, orgID, taskID, authorID, body)
+func (s *Service) CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, parentID *uuid.UUID, body, contentType string, actorUserID ...uuid.UUID) (*TaskComment, error) {
+	comment, err := s.repo.CreateComment(ctx, orgID, taskID, authorID, parentID, body, contentType)
 	if err != nil {
 		return nil, err
 	}
@@ -561,6 +561,8 @@ func (s *Service) CreateComment(ctx context.Context, orgID, taskID, authorID uui
 		Str("org_id", orgID.String()).
 		Str("task_id", taskID.String()).
 		Str("comment_id", comment.ID.String()).
+		Bool("is_reply", parentID != nil).
+		Str("content_type", contentType).
 		Msg("task_comment.created")
 
 	return comment, nil
@@ -587,4 +589,46 @@ func (s *Service) DeleteComment(ctx context.Context, orgID, commentID, authorID 
 		Msg("task_comment.deleted")
 
 	return nil
+}
+
+// ── Reactions ────────────────────────────────────────────────────────────────
+
+func (s *Service) ToggleReaction(ctx context.Context, orgID, commentID, employeeID uuid.UUID, emoji string, actorUserID ...uuid.UUID) (added bool, err error) {
+	added, err = s.repo.ToggleReaction(ctx, orgID, commentID, employeeID, emoji)
+	if err != nil {
+		return false, err
+	}
+
+	action := "comment_reaction.removed"
+	if added {
+		action = "comment_reaction.added"
+	}
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       action,
+			ResourceType: "comment_reaction",
+			ResourceID:   commentID,
+			AfterState: map[string]any{
+				"emoji":       emoji,
+				"employee_id": employeeID,
+				"added":       added,
+			},
+		})
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("comment_id", commentID.String()).
+		Str("emoji", emoji).
+		Bool("added", added).
+		Msg(action)
+
+	return added, nil
+}
+
+func (s *Service) ListReactions(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]CommentReactionSummary, error) {
+	return s.repo.ListReactions(ctx, orgID, commentID, currentEmployeeID)
 }

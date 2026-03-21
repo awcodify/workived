@@ -81,4 +81,16 @@ export const tasksApi = {
 
   deleteComment: (taskId: string, commentId: string) =>
     apiClient.delete(`/api/v1/tasks/${taskId}/comments/${commentId}`),
+
+  // ── Reactions ──────────────────────────────────────────────
+  toggleReaction: (taskId: string, commentId: string, emoji: string) =>
+    apiClient.post<ApiResponse<{ added: boolean; emoji: string }>>(
+      `/api/v1/tasks/${taskId}/comments/${commentId}/reactions`,
+      { emoji },
+    ),
+
+  listReactions: (taskId: string, commentId: string) =>
+    apiClient.get<ApiResponse<CommentReactionSummary[]>>(
+      `/api/v1/tasks/${taskId}/comments/${commentId}/reactions`,
+    ),
 }

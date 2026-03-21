@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rs/zerolog"
+	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/paginate"
 )
 
@@ -424,8 +425,8 @@ func (r *Repository) DeleteTask(ctx context.Context, orgID, id uuid.UUID) error 
 func (r *Repository) ListComments(ctx context.Context, orgID, taskID uuid.UUID) ([]TaskCommentWithAuthor, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT 
-			tc.id, tc.organisation_id, tc.task_id, tc.author_id, tc.body,
-			tc.created_at, tc.updated_at,
+			tc.id, tc.organisation_id, tc.task_id, tc.author_id, tc.parent_id,
+			tc.body, tc.content_type, tc.created_at, tc.updated_at,
 			e.full_name AS author_name
 		FROM task_comments tc
 		JOIN employees e ON tc.author_id = e.id
@@ -437,21 +438,44 @@ func (r *Repository) ListComments(ctx context.Context, orgID, taskID uuid.UUID) 
 	}
 	defer rows.Close()
 
-	var comments []TaskCommentWithAuthor
+	// Build flat list with all comments
+	var allComments []TaskCommentWithAuthor
+	commentMap := make(map[uuid.UUID]*TaskCommentWithAuthor)
+
 	for rows.Next() {
 		var tc TaskCommentWithAuthor
 		if err := rows.Scan(
-			&tc.ID, &tc.OrganisationID, &tc.TaskID, &tc.AuthorID, &tc.Body,
-			&tc.CreatedAt, &tc.UpdatedAt, &tc.AuthorName,
+			&tc.ID, &tc.OrganisationID, &tc.TaskID, &tc.AuthorID, &tc.ParentID,
+			&tc.Body, &tc.ContentType, &tc.CreatedAt, &tc.UpdatedAt, &tc.AuthorName,
 		); err != nil {
 			return nil, err
 		}
-		comments = append(comments, tc)
+		allComments = append(allComments, tc)
+		commentMap[tc.ID] = &allComments[len(allComments)-1]
 	}
-	return comments, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// Build hierarchical structure: attach replies to their parents
+	var rootComments []TaskCommentWithAuthor
+	for i := range allComments {
+		comment := &allComments[i]
+		if comment.ParentID == nil {
+			// Root comment
+			rootComments = append(rootComments, *comment)
+		} else {
+			// Reply - attach to parent
+			if parent, exists := commentMap[*comment.ParentID]; exists {
+				parent.Replies = append(parent.Replies, *comment)
+			}
+		}
+	}
+
+	return rootComments, nil
 }
 
-func (r *Repository) CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, body string) (*TaskComment, error) {
+func (r *Repository) CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, parentID *uuid.UUID, body, contentType string) (*TaskComment, error) {
 	// Verify task exists
 	var exists bool
 	err := r.db.QueryRow(ctx, `
@@ -464,13 +488,34 @@ func (r *Repository) CreateComment(ctx context.Context, orgID, taskID, authorID 
 		return nil, ErrTaskNotFound()
 	}
 
+	// Verify parent comment exists and belongs to same task (if parentID provided)
+	if parentID != nil {
+		err := r.db.QueryRow(ctx, `
+			SELECT EXISTS(
+				SELECT 1 FROM task_comments 
+				WHERE organisation_id = $1 AND id = $2 AND task_id = $3
+			)
+		`, orgID, *parentID, taskID).Scan(&exists)
+		if err != nil {
+			return nil, err
+		}
+		if !exists {
+			return nil, apperr.New(apperr.CodeNotFound, "parent comment not found")
+		}
+	}
+
+	// Default to 'plain' if not specified
+	if contentType == "" {
+		contentType = "plain"
+	}
+
 	var tc TaskComment
 	err = r.db.QueryRow(ctx, `
-		INSERT INTO task_comments (organisation_id, task_id, author_id, body)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, organisation_id, task_id, author_id, body, created_at, updated_at
-	`, orgID, taskID, authorID, body).Scan(
-		&tc.ID, &tc.OrganisationID, &tc.TaskID, &tc.AuthorID, &tc.Body, &tc.CreatedAt, &tc.UpdatedAt,
+		INSERT INTO task_comments (organisation_id, task_id, author_id, parent_id, body, content_type)
+		VALUES ($1, $2, $3, $4, $5, $6)
+		RETURNING id, organisation_id, task_id, author_id, parent_id, body, content_type, created_at, updated_at
+	`, orgID, taskID, authorID, parentID, body, contentType).Scan(
+		&tc.ID, &tc.OrganisationID, &tc.TaskID, &tc.AuthorID, &tc.ParentID, &tc.Body, &tc.ContentType, &tc.CreatedAt, &tc.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -490,6 +535,65 @@ func (r *Repository) DeleteComment(ctx context.Context, orgID, commentID, author
 		return ErrUnauthorizedCommentDelete()
 	}
 	return nil
+}
+
+// ── Reactions ────────────────────────────────────────────────────────────────
+
+func (r *Repository) ToggleReaction(ctx context.Context, orgID, commentID, employeeID uuid.UUID, emoji string) (added bool, err error) {
+	// Check if reaction already exists
+	var exists bool
+	err = r.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM comment_reactions 
+			WHERE organisation_id = $1 AND comment_id = $2 AND employee_id = $3 AND emoji = $4
+		)
+	`, orgID, commentID, employeeID, emoji).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	if exists {
+		// Remove reaction
+		_, err = r.db.Exec(ctx, `
+			DELETE FROM comment_reactions 
+			WHERE organisation_id = $1 AND comment_id = $2 AND employee_id = $3 AND emoji = $4
+		`, orgID, commentID, employeeID, emoji)
+		return false, err
+	}
+
+	// Add reaction
+	_, err = r.db.Exec(ctx, `
+		INSERT INTO comment_reactions (organisation_id, comment_id, employee_id, emoji)
+		VALUES ($1, $2, $3, $4)
+	`, orgID, commentID, employeeID, emoji)
+	return true, err
+}
+
+func (r *Repository) ListReactions(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]CommentReactionSummary, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT 
+			emoji,
+			COUNT(*) as count,
+			BOOL_OR(employee_id = $3) as user_reacted
+		FROM comment_reactions
+		WHERE organisation_id = $1 AND comment_id = $2
+		GROUP BY emoji
+		ORDER BY count DESC, emoji ASC
+	`, orgID, commentID, currentEmployeeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var reactions []CommentReactionSummary
+	for rows.Next() {
+		var r CommentReactionSummary
+		if err := rows.Scan(&r.Emoji, &r.Count, &r.UserReacted); err != nil {
+			return nil, err
+		}
+		reactions = append(reactions, r)
+	}
+	return reactions, rows.Err()
 }
 
 // ── Helper Functions ─────────────────────────────────────────────────────────

@@ -51,6 +51,10 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	tasks.GET("/:id/comments", middleware.Require(middleware.PermTasksRead), h.ListComments)
 	tasks.POST("/:id/comments", middleware.Require(middleware.PermTasksRead), h.CreateComment)
 	tasks.DELETE("/:id/comments/:cid", middleware.Require(middleware.PermTasksRead), h.DeleteComment)
+
+	// Reactions
+	tasks.POST("/:id/comments/:cid/reactions", middleware.Require(middleware.PermTasksRead), h.ToggleReaction)
+	tasks.GET("/:id/comments/:cid/reactions", middleware.Require(middleware.PermTasksRead), h.ListReactions)
 }
 
 // logAndRespondError logs error with context and responds with proper HTTP status
@@ -394,7 +398,12 @@ func (h *Handler) CreateComment(c *gin.Context) {
 		return
 	}
 
-	comment, err := h.service.CreateComment(c.Request.Context(), orgID, taskID, employeeID, req.Body, userID)
+	// Default to 'plain' if not specified
+	if req.ContentType == "" {
+		req.ContentType = "plain"
+	}
+
+	comment, err := h.service.CreateComment(c.Request.Context(), orgID, taskID, employeeID, req.ParentID, req.Body, req.ContentType, userID)
 	if err != nil {
 		h.logAndRespondError(c, err, "failed to create comment", map[string]string{
 			"org_id":      orgID.String(),
@@ -436,4 +445,82 @@ func (h *Handler) DeleteComment(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
+}
+
+// ── Reactions ────────────────────────────────────────────────────────────────
+
+func (h *Handler) ToggleReaction(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	commentID, err := uuid.Parse(c.Param("cid"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	// Resolve user to employee
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to resolve employee", map[string]string{
+			"org_id":  orgID.String(),
+			"user_id": userID.String(),
+		})
+		return
+	}
+
+	var req ToggleReactionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	added, err := h.service.ToggleReaction(c.Request.Context(), orgID, commentID, employeeID, req.Emoji, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to toggle reaction", map[string]string{
+			"org_id":     orgID.String(),
+			"comment_id": commentID.String(),
+			"emoji":      req.Emoji,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data": gin.H{
+			"added": added,
+			"emoji": req.Emoji,
+		},
+	})
+}
+
+func (h *Handler) ListReactions(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	commentID, err := uuid.Parse(c.Param("cid"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	// Resolve user to employee
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to resolve employee", map[string]string{
+			"org_id":  orgID.String(),
+			"user_id": userID.String(),
+		})
+		return
+	}
+
+	reactions, err := h.service.ListReactions(c.Request.Context(), orgID, commentID, employeeID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to list reactions", map[string]string{
+			"org_id":     orgID.String(),
+			"comment_id": commentID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": reactions})
 }

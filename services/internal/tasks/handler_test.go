@@ -94,8 +94,10 @@ type fakeService struct {
 	toggleTaskCompletionFn func(ctx context.Context, orgID, taskID uuid.UUID, actorUserID ...uuid.UUID) (*tasks.Task, error)
 	deleteTaskFn           func(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
 	listCommentsFn         func(ctx context.Context, orgID, taskID uuid.UUID) ([]tasks.TaskCommentWithAuthor, error)
-	createCommentFn        func(ctx context.Context, orgID, taskID, authorID uuid.UUID, body string, actorUserID ...uuid.UUID) (*tasks.TaskComment, error)
+	createCommentFn        func(ctx context.Context, orgID, taskID, authorID uuid.UUID, parentID *uuid.UUID, body, contentType string, actorUserID ...uuid.UUID) (*tasks.TaskComment, error)
 	deleteCommentFn        func(ctx context.Context, orgID, commentID, authorID uuid.UUID, actorUserID ...uuid.UUID) error
+	toggleReactionFn       func(ctx context.Context, orgID, commentID, employeeID uuid.UUID, emoji string, actorUserID ...uuid.UUID) (bool, error)
+	listReactionsFn        func(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]tasks.CommentReactionSummary, error)
 }
 
 func (f *fakeService) ListTaskLists(ctx context.Context, orgID uuid.UUID) ([]tasks.TaskList, error) {
@@ -194,11 +196,11 @@ func (f *fakeService) ListComments(ctx context.Context, orgID, taskID uuid.UUID)
 	return []tasks.TaskCommentWithAuthor{}, nil
 }
 
-func (f *fakeService) CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, body string, actorUserID ...uuid.UUID) (*tasks.TaskComment, error) {
+func (f *fakeService) CreateComment(ctx context.Context, orgID, taskID, authorID uuid.UUID, parentID *uuid.UUID, body, contentType string, actorUserID ...uuid.UUID) (*tasks.TaskComment, error) {
 	if f.createCommentFn != nil {
-		return f.createCommentFn(ctx, orgID, taskID, authorID, body, actorUserID...)
+		return f.createCommentFn(ctx, orgID, taskID, authorID, parentID, body, contentType, actorUserID...)
 	}
-	return &tasks.TaskComment{ID: testCommentID, TaskID: taskID, Body: body}, nil
+	return &tasks.TaskComment{ID: testCommentID, Body: body, ContentType: contentType}, nil
 }
 
 func (f *fakeService) DeleteComment(ctx context.Context, orgID, commentID, authorID uuid.UUID, actorUserID ...uuid.UUID) error {
@@ -206,6 +208,20 @@ func (f *fakeService) DeleteComment(ctx context.Context, orgID, commentID, autho
 		return f.deleteCommentFn(ctx, orgID, commentID, authorID, actorUserID...)
 	}
 	return nil
+}
+
+func (f *fakeService) ToggleReaction(ctx context.Context, orgID, commentID, employeeID uuid.UUID, emoji string, actorUserID ...uuid.UUID) (bool, error) {
+	if f.toggleReactionFn != nil {
+		return f.toggleReactionFn(ctx, orgID, commentID, employeeID, emoji, actorUserID...)
+	}
+	return true, nil
+}
+
+func (f *fakeService) ListReactions(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]tasks.CommentReactionSummary, error) {
+	if f.listReactionsFn != nil {
+		return f.listReactionsFn(ctx, orgID, commentID, currentEmployeeID)
+	}
+	return []tasks.CommentReactionSummary{}, nil
 }
 
 // ── Task Lists Tests ─────────────────────────────────────────────────────────
@@ -398,4 +414,3 @@ func TestDeleteComment(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assertStatus(t, w, http.StatusNoContent)
 }
-
