@@ -31,6 +31,7 @@ type mockEmpService struct {
 	deactivateFn         func(ctx context.Context, orgID, id uuid.UUID) error
 	getDirectReportsFn   func(ctx context.Context, orgID, managerID uuid.UUID) ([]employee.Employee, error)
 	getWithManagerNameFn func(ctx context.Context, orgID, id uuid.UUID) (*employee.EmployeeWithManager, error)
+	getWorkloadFn        func(ctx context.Context, orgID uuid.UUID) ([]employee.EmployeeWorkload, error)
 }
 
 func (m *mockEmpService) List(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error) {
@@ -71,6 +72,13 @@ func (m *mockEmpService) GetWithManagerName(ctx context.Context, orgID, id uuid.
 
 func (m *mockEmpService) GetOrgChart(ctx context.Context, orgID uuid.UUID) ([]*employee.OrgChartNode, error) {
 	return nil, nil
+}
+
+func (m *mockEmpService) GetWorkload(ctx context.Context, orgID uuid.UUID) ([]employee.EmployeeWorkload, error) {
+	if m.getWorkloadFn != nil {
+		return m.getWorkloadFn(ctx, orgID)
+	}
+	return []employee.EmployeeWorkload{}, nil
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -384,6 +392,95 @@ func TestEmployeeHandler_Deactivate(t *testing.T) {
 			req, _ := http.NewRequest(http.MethodDelete, "/api/v1/employees/"+tt.id, nil)
 			newEmpRouter(svc).ServeHTTP(w, req)
 			assertStatus(t, w, tt.wantStatus)
+		})
+	}
+}
+
+// ── GetWorkload tests ─────────────────────────────────────────────────────────
+
+func TestEmployeeHandler_GetWorkload(t *testing.T) {
+	emp1ID := uuid.MustParse("00000000-0000-0000-0000-000000000010")
+	emp2ID := uuid.MustParse("00000000-0000-0000-0000-000000000011")
+
+	email1 := "sarah@example.com"
+	email2 := "ahmad@example.com"
+
+	tests := []struct {
+		name       string
+		workloads  []employee.EmployeeWorkload
+		serviceErr error
+		wantStatus int
+		wantCount  int
+	}{
+		{
+			name: "success",
+			workloads: []employee.EmployeeWorkload{
+				{
+					ID:       emp1ID,
+					FullName: "Sarah Chen",
+					Email:    &email1,
+					Workload: employee.WorkloadInfo{
+						ActiveTasks:  3,
+						OverdueTasks: 0,
+						Status:       employee.WorkloadAvailable,
+					},
+					Leave: employee.LeaveInfo{
+						IsOnLeave:       false,
+						IsUpcomingLeave: false,
+					},
+				},
+				{
+					ID:       emp2ID,
+					FullName: "Ahmad Rizki",
+					Email:    &email2,
+					Workload: employee.WorkloadInfo{
+						ActiveTasks:  8,
+						OverdueTasks: 1,
+						Status:       employee.WorkloadWarning,
+					},
+					Leave: employee.LeaveInfo{
+						IsOnLeave:       true,
+						IsUpcomingLeave: false,
+					},
+				},
+			},
+			wantStatus: http.StatusOK,
+			wantCount:  2,
+		},
+		{
+			name:       "empty result",
+			workloads:  []employee.EmployeeWorkload{},
+			wantStatus: http.StatusOK,
+			wantCount:  0,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &mockEmpService{
+				getWorkloadFn: func(_ context.Context, _ uuid.UUID) ([]employee.EmployeeWorkload, error) {
+					if tt.serviceErr != nil {
+						return nil, tt.serviceErr
+					}
+					return tt.workloads, nil
+				},
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(http.MethodGet, "/api/v1/employees/workload", nil)
+			newEmpRouter(svc).ServeHTTP(w, req)
+			assertStatus(t, w, tt.wantStatus)
+
+			if tt.wantStatus == http.StatusOK {
+				var resp struct {
+					Data []employee.EmployeeWorkload `json:"data"`
+				}
+				if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+					t.Fatalf("unmarshal response: %v", err)
+				}
+				if len(resp.Data) != tt.wantCount {
+					t.Errorf("got %d workloads, want %d", len(resp.Data), tt.wantCount)
+				}
+			}
 		})
 	}
 }

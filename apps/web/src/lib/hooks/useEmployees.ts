@@ -61,3 +61,11 @@ export function useOrgChart() {
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
 }
+
+export function useEmployeeWorkload() {
+  return useQuery({
+    queryKey: ['employees', 'workload'],
+    queryFn: () => employeesApi.workload().then((r) => r.data.data),
+    staleTime: 5 * 60 * 1000, // 5 minutes — workload changes slowly
+  })
+}

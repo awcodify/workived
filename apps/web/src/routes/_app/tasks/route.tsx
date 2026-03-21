@@ -36,8 +36,8 @@ import {
   useCreateTaskComment,
   useDeleteTaskComment,
 } from '@/lib/hooks/useTasks'
-import { useEmployees } from '@/lib/hooks/useEmployees'
-import type { TaskWithDetails, TaskPriority, Employee } from '@/types/api'
+import { useEmployees, useEmployeeWorkload } from '@/lib/hooks/useEmployees'
+import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload } from '@/types/api'
 
 export const Route = createFileRoute('/_app/tasks')({
   loader: async () => {
@@ -61,6 +61,7 @@ function TasksPage() {
   const { data: tasks = [], isLoading: tasksLoading } = useTasks()
   const { data: employeesData } = useEmployees({ status: 'active' })
   const employees = employeesData?.data || []
+  const { data: workloadData = [] } = useEmployeeWorkload()
   
   const moveMutation = useMoveTask()
   const createMutation = useCreateTask()
@@ -99,6 +100,11 @@ function TasksPage() {
       ...(configs[idx] || configs[0]), // Fallback to first config if index out of bounds
     }))
   }, [visibleLists])
+
+  // Helper: Get workload for an employee
+  const getEmployeeWorkload = useCallback((employeeId: string) => {
+    return workloadData.find((w) => w.employee_id === employeeId)
+  }, [workloadData])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { 
@@ -379,6 +385,7 @@ function TasksPage() {
                   count={columnTasks.length}
                   tasks={columnTasks}
                   employees={employees}
+                  getEmployeeWorkload={getEmployeeWorkload}
                   creatingInListId={creatingInListId}
                   newTaskTitle={newTaskTitle}
                   newTaskAssignee={newTaskAssignee}
@@ -444,6 +451,7 @@ function TasksPage() {
           task={selectedTask}
           employees={employees}
           taskLists={visibleLists}
+          getEmployeeWorkload={getEmployeeWorkload}
           onClose={() => setSelectedTask(null)}
         />
       )}
@@ -459,6 +467,7 @@ function StatusColumn({
   count,
   tasks,
   employees,
+  getEmployeeWorkload,
   creatingInListId,
   newTaskTitle,
   newTaskAssignee,
@@ -475,6 +484,7 @@ function StatusColumn({
   count: number
   tasks: TaskWithDetails[]
   employees: Employee[]
+  getEmployeeWorkload: (employeeId: string) => EmployeeWorkload | undefined
   creatingInListId: string | null
   newTaskTitle: string
   newTaskAssignee: string
@@ -488,6 +498,18 @@ function StatusColumn({
 }) {
   const { setNodeRef } = useDroppable({ id: listId })
   const isCreating = creatingInListId === listId
+
+  // Sort employees by workload: available first, on leave last
+  const sortedEmployees = useMemo(() => {
+    const statusOrder = { available: 1, warning: 2, overloaded: 3, on_leave: 4 }
+    return [...employees].sort((a, b) => {
+      const aWorkload = getEmployeeWorkload(a.id)
+      const bWorkload = getEmployeeWorkload(b.id)
+      const aOrder = aWorkload ? statusOrder[aWorkload.workload.status] || 5 : 5
+      const bOrder = bWorkload ? statusOrder[bWorkload.workload.status] || 5 : 5
+      return aOrder - bOrder
+    })
+  }, [employees, getEmployeeWorkload])
 
   return (
     <div
@@ -606,11 +628,23 @@ function StatusColumn({
                 <option value="" style={{ background: '#FFFFFF' }}>
                   Assign to...
                 </option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id} style={{ background: '#FFFFFF' }}>
-                    {emp.full_name}
-                  </option>
-                ))}
+                {sortedEmployees.map((emp) => {
+                  const workload = getEmployeeWorkload(emp.id)
+                  const badge = workload 
+                    ? workload.workload.status === 'on_leave' 
+                      ? '🏖️ On Leave' 
+                      : workload.workload.status === 'overloaded' 
+                        ? `🔴 ${workload.workload.active_tasks} tasks` 
+                        : workload.workload.status === 'warning'
+                          ? `⚠️ ${workload.workload.active_tasks} tasks`
+                          : '✅'
+                    : ''
+                  return (
+                    <option key={emp.id} value={emp.id} style={{ background: '#FFFFFF' }}>
+                      {emp.full_name} {badge}
+                    </option>
+                  )
+                })}
               </select>
 
               <div className="flex gap-2">
@@ -970,10 +1004,11 @@ interface TaskDetailModalProps {
   task: TaskWithDetails
   employees: Employee[]
   taskLists: any[]
+  getEmployeeWorkload: (employeeId: string) => EmployeeWorkload | undefined
   onClose: () => void
 }
 
-function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModalProps) {
+function TaskDetailModal({ task, employees, taskLists, getEmployeeWorkload, onClose }: TaskDetailModalProps) {
   const [title, setTitle] = useState(task.title)
   const [description, setDescription] = useState(task.description || '')
   const [assigneeId, setAssigneeId] = useState(task.assignee_id || '')
@@ -1019,6 +1054,18 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
 
     return rootComments
   }, [commentsData])
+
+  // Sort employees by workload: available first, on leave last
+  const sortedEmployees = useMemo(() => {
+    const statusOrder = { available: 1, warning: 2, overloaded: 3, on_leave: 4 }
+    return [...employees].sort((a, b) => {
+      const aWorkload = getEmployeeWorkload(a.id)
+      const bWorkload = getEmployeeWorkload(b.id)
+      const aOrder = aWorkload ? statusOrder[aWorkload.workload.status] || 5 : 5
+      const bOrder = bWorkload ? statusOrder[bWorkload.workload.status] || 5 : 5
+      return aOrder - bOrder
+    })
+  }, [employees, getEmployeeWorkload])
 
   // Close on Escape key
   useEffect(() => {
@@ -1521,11 +1568,23 @@ function TaskDetailModal({ task, employees, taskLists, onClose }: TaskDetailModa
                 }}
               >
                 <option value="">Unassigned</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.full_name}
-                  </option>
-                ))}
+                {sortedEmployees.map((emp) => {
+                  const workload = getEmployeeWorkload(emp.id)
+                  const badge = workload 
+                    ? workload.workload.status === 'on_leave' 
+                      ? '🏖️ On Leave' 
+                      : workload.workload.status === 'overloaded' 
+                        ? `🔴 ${workload.workload.active_tasks} tasks` 
+                        : workload.workload.status === 'warning'
+                          ? `⚠️ ${workload.workload.active_tasks} tasks`
+                          : '✅'
+                    : ''
+                  return (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.full_name} {badge}
+                    </option>
+                  )
+                })}
               </select>
             </div>
 

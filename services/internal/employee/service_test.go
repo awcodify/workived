@@ -149,6 +149,31 @@ func (f *fakeEmpRepo) ListAllActive(_ context.Context, orgID uuid.UUID) ([]emplo
 	return result, nil
 }
 
+func (f *fakeEmpRepo) GetWorkload(_ context.Context, orgID uuid.UUID) ([]employee.EmployeeWorkload, error) {
+	var workloads []employee.EmployeeWorkload
+	for _, e := range f.employees {
+		if e.OrganisationID == orgID && e.IsActive {
+			workload := employee.EmployeeWorkload{
+				ID:           e.ID,
+				FullName:     e.FullName,
+				Email:        e.Email,
+				DepartmentID: e.DepartmentID,
+				Workload: employee.WorkloadInfo{
+					ActiveTasks:  0, // Default to 0 for fake
+					OverdueTasks: 0,
+					Status:       employee.WorkloadAvailable,
+				},
+				Leave: employee.LeaveInfo{
+					IsOnLeave:       false,
+					IsUpcomingLeave: false,
+				},
+			}
+			workloads = append(workloads, workload)
+		}
+	}
+	return workloads, nil
+}
+
 // ── Fake audit logger ────────────────────────────────────────────────────────
 
 type fakeAuditLogger struct {
@@ -560,5 +585,50 @@ func TestEmployeeService_AuditLog_ErrorDoesNotBreakOperation(t *testing.T) {
 	}, actorID)
 	if err != nil {
 		t.Fatalf("create should succeed despite audit error: %v", err)
+	}
+}
+
+func TestEmployeeService_GetWorkload(t *testing.T) {
+	fakeRepo := newFakeEmpRepo()
+	svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "free", limit: intPtr(25)})
+	orgID := uuid.New()
+
+	// Create some employees
+	emp1, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Sarah Chen", Email: strPtr("sarah@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
+	})
+	emp2, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+		FullName: "Ahmad Rizki", Email: strPtr("ahmad@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
+	})
+
+	// Deactivate one employee (should not appear in workload)
+	_ = svc.Deactivate(context.Background(), orgID, emp2.ID)
+
+	// Get workload
+	workloads, err := svc.GetWorkload(context.Background(), orgID)
+	if err != nil {
+		t.Fatalf("get workload: %v", err)
+	}
+
+	// Should only include active employees
+	if len(workloads) != 1 {
+		t.Fatalf("expected 1 workload, got %d", len(workloads))
+	}
+
+	if workloads[0].ID != emp1.ID {
+		t.Errorf("workload employee ID = %v, want %v", workloads[0].ID, emp1.ID)
+	}
+
+	if workloads[0].FullName != "Sarah Chen" {
+		t.Errorf("workload full name = %q, want %q", workloads[0].FullName, "Sarah Chen")
+	}
+
+	// Fake repo returns default workload status
+	if workloads[0].Workload.Status != employee.WorkloadAvailable {
+		t.Errorf("workload status = %q, want %q", workloads[0].Workload.Status, employee.WorkloadAvailable)
+	}
+
+	if workloads[0].Leave.IsOnLeave {
+		t.Errorf("should not be on leave")
 	}
 }

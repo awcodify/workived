@@ -192,6 +192,31 @@ export type UpdateEmployeeInput = Partial<CreateEmployeeInput> & {
   reporting_to?: string
 }
 
+// Workload Intelligence Types
+export type WorkloadStatus = 'available' | 'warning' | 'overloaded' | 'on_leave'
+
+export interface WorkloadInfo {
+  active_tasks: number
+  overdue_tasks: number
+  status: WorkloadStatus
+}
+
+export interface LeaveInfo {
+  is_on_leave: boolean
+  is_upcoming_leave: boolean
+  leave_start?: string
+  leave_end?: string
+}
+
+export interface EmployeeWorkload {
+  employee_id: string
+  full_name: string
+  email?: string
+  department_id?: string
+  workload: WorkloadInfo
+  leave: LeaveInfo
+}
+
 // ── Departments ──────────────────────────────────────────────
 export interface Department {
   id: string

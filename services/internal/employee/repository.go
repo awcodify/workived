@@ -3,6 +3,7 @@ package employee
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -341,6 +342,105 @@ func (r *Repository) GetWithManagerName(ctx context.Context, orgID, id uuid.UUID
 		return nil, err
 	}
 	return result, nil
+}
+
+// GetWorkload returns workload information for all active employees in an organization.
+// It aggregates task counts and leave status for workload-aware task assignment.
+func (r *Repository) GetWorkload(ctx context.Context, orgID uuid.UUID) ([]EmployeeWorkload, error) {
+	rows, err := r.db.Query(ctx, `
+		WITH task_counts AS (
+			SELECT 
+				assignee_id,
+				COUNT(*) as active_tasks,
+				COUNT(*) FILTER (WHERE due_date < NOW() AND completed_at IS NULL) as overdue_tasks
+			FROM tasks
+			WHERE organisation_id = $1 
+			  AND completed_at IS NULL
+			  AND assignee_id IS NOT NULL
+			GROUP BY assignee_id
+		),
+		leave_status AS (
+			SELECT 
+				employee_id,
+				MIN(start_date) as next_start,
+				MAX(end_date) as last_end,
+				BOOL_OR(NOW()::date BETWEEN start_date AND end_date) as is_on_leave
+			FROM leave_requests
+			WHERE organisation_id = $1 
+			  AND status = 'approved'
+			  AND end_date >= NOW()::date
+			GROUP BY employee_id
+		)
+		SELECT 
+			e.id,
+			e.full_name,
+			e.email,
+			e.department_id,
+			COALESCE(t.active_tasks, 0) as active_tasks,
+			COALESCE(t.overdue_tasks, 0) as overdue_tasks,
+			COALESCE(l.is_on_leave, FALSE) as is_on_leave,
+			l.next_start,
+			l.last_end
+		FROM employees e
+		LEFT JOIN task_counts t ON t.assignee_id = e.id
+		LEFT JOIN leave_status l ON l.employee_id = e.id
+		WHERE e.organisation_id = $1 
+		  AND e.is_active = TRUE
+		ORDER BY e.full_name ASC
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var workloads []EmployeeWorkload
+	for rows.Next() {
+		var w EmployeeWorkload
+		var nextStart, lastEnd *time.Time
+		var isOnLeave bool
+
+		if err := rows.Scan(
+			&w.ID,
+			&w.FullName,
+			&w.Email,
+			&w.DepartmentID,
+			&w.Workload.ActiveTasks,
+			&w.Workload.OverdueTasks,
+			&isOnLeave,
+			&nextStart,
+			&lastEnd,
+		); err != nil {
+			return nil, err
+		}
+
+		// Determine workload status
+		if isOnLeave {
+			w.Workload.Status = WorkloadOnLeave
+			w.Leave.IsOnLeave = true
+			w.Leave.LeaveStart = nextStart
+			w.Leave.LeaveEnd = lastEnd
+		} else if w.Workload.ActiveTasks >= 11 {
+			w.Workload.Status = WorkloadOverloaded
+		} else if w.Workload.ActiveTasks >= 6 {
+			w.Workload.Status = WorkloadWarning
+		} else {
+			w.Workload.Status = WorkloadAvailable
+		}
+
+		// Check for upcoming leave (next 7 days)
+		if nextStart != nil && !isOnLeave {
+			daysUntilLeave := int(nextStart.Sub(time.Now()).Hours() / 24)
+			if daysUntilLeave >= 0 && daysUntilLeave <= 7 {
+				w.Leave.IsUpcomingLeave = true
+				w.Leave.LeaveStart = nextStart
+				w.Leave.LeaveEnd = lastEnd
+			}
+		}
+
+		workloads = append(workloads, w)
+	}
+
+	return workloads, rows.Err()
 }
 
 func nilIfEmpty(s string) *string {

@@ -7,6 +7,7 @@ import type {
   CursorMeta,
   ApiResponse,
   OrgChartNode,
+  EmployeeWorkload,
 } from '@/types/api'
 
 // Employee list response: {"data": Employee[], "meta": {next_cursor, has_more, limit}}
@@ -24,6 +25,9 @@ export const employeesApi = {
 
   me: () =>
     apiClient.get<ApiResponse<Employee>>('/api/v1/employees/me'),
+
+  workload: () =>
+    apiClient.get<ApiResponse<EmployeeWorkload[]>>('/api/v1/employees/workload'),
 
   get: (id: string) =>
     apiClient.get<ApiResponse<Employee>>(`/api/v1/employees/${id}`),

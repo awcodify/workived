@@ -22,6 +22,7 @@ type RepositoryInterface interface {
 	SoftDelete(ctx context.Context, orgID, id uuid.UUID) error
 	GetDirectReports(ctx context.Context, orgID, managerID uuid.UUID) ([]Employee, error)
 	GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error)
+	GetWorkload(ctx context.Context, orgID uuid.UUID) ([]EmployeeWorkload, error)
 }
 
 // OrgInfoProvider is the narrow interface the employee service needs from organisation.
@@ -310,4 +311,24 @@ func (s *Service) validateReportingTo(ctx context.Context, orgID, employeeID, ma
 	}
 
 	return nil
+}
+
+// GetWorkload returns workload information for all active employees.
+// This is used for workload-aware task assignment.
+func (s *Service) GetWorkload(ctx context.Context, orgID uuid.UUID) ([]EmployeeWorkload, error) {
+	workloads, err := s.repo.GetWorkload(ctx, orgID)
+	if err != nil {
+		s.log.Error().
+			Err(err).
+			Str("org_id", orgID.String()).
+			Msg("failed to fetch employee workload")
+		return nil, err
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Int("employee_count", len(workloads)).
+		Msg("employee.workload.fetched")
+
+	return workloads, nil
 }

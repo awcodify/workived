@@ -500,6 +500,27 @@ paths:
         "404":
           $ref: "#/components/responses/NotFoundError"
 
+  /employees/workload:
+    get:
+      operationId: getEmployeeWorkload
+      summary: Get workload information for all active employees
+      description: |
+        Returns workload intelligence for workload-aware task assignment.
+        Includes task counts, overdue tasks, leave status, and workload level.
+      tags: [Employees]
+      responses:
+        "200":
+          description: Workload information for all active employees
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/EmployeeWorkload"
+
   /employees/org-chart:
     get:
       operationId: getOrgChart
@@ -2726,6 +2747,72 @@ components:
           items:
             $ref: "#/components/schemas/OrgChartNode"
 
+    EmployeeWorkload:
+      type: object
+      description: Employee workload information for task assignment
+      required: [employee_id, full_name, workload, leave]
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        full_name:
+          type: string
+        email:
+          type: string
+          format: email
+          nullable: true
+        department_id:
+          type: string
+          format: uuid
+          nullable: true
+        workload:
+          $ref: "#/components/schemas/WorkloadInfo"
+        leave:
+          $ref: "#/components/schemas/LeaveInfo"
+
+    WorkloadInfo:
+      type: object
+      description: Task workload metrics
+      required: [active_tasks, overdue_tasks, status]
+      properties:
+        active_tasks:
+          type: integer
+          description: Count of incomplete tasks assigned to employee
+        overdue_tasks:
+          type: integer
+          description: Count of tasks past due date and not completed
+        status:
+          type: string
+          enum: [available, warning, overloaded, on_leave]
+          description: |
+            Workload level:
+            - available: 0-5 active tasks
+            - warning: 6-10 active tasks
+            - overloaded: 11+ active tasks
+            - on_leave: Currently on approved leave
+
+    LeaveInfo:
+      type: object
+      description: Current and upcoming leave information
+      required: [is_on_leave, is_upcoming_leave]
+      properties:
+        is_on_leave:
+          type: boolean
+          description: True if employee is currently on approved leave
+        is_upcoming_leave:
+          type: boolean
+          description: True if employee has approved leave in the next 7 days
+        leave_start:
+          type: string
+          format: date-time
+          nullable: true
+          description: Start date of current or upcoming leave
+        leave_end:
+          type: string
+          format: date-time
+          nullable: true
+          description: End date of current or upcoming leave
+
     # ── Department ────────────────────────────────────────────────────────
     Department:
       type: object
@@ -3429,6 +3516,7 @@ components:
         due_date:
           type: string
           format: date
+          description: Due date in YYYY-MM-DD format (e.g., "2026-03-27")
 
     UpdateTaskRequest:
       type: object
@@ -3449,6 +3537,7 @@ components:
         due_date:
           type: string
           format: date
+          description: Due date in YYYY-MM-DD format (e.g., "2026-03-27")
 
     MoveTaskRequest:
       type: object

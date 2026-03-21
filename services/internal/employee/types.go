@@ -83,3 +83,38 @@ type ListFilters struct {
 	Cursor       string
 	Limit        int
 }
+
+// WorkloadStatus represents an employee's current workload level.
+type WorkloadStatus string
+
+const (
+	WorkloadAvailable  WorkloadStatus = "available"  // 0-5 active tasks
+	WorkloadWarning    WorkloadStatus = "warning"    // 6-10 active tasks
+	WorkloadOverloaded WorkloadStatus = "overloaded" // 11+ active tasks
+	WorkloadOnLeave    WorkloadStatus = "on_leave"   // Currently on approved leave
+)
+
+// WorkloadInfo contains task and leave information for an employee.
+type WorkloadInfo struct {
+	ActiveTasks  int            `json:"active_tasks"`
+	OverdueTasks int            `json:"overdue_tasks"`
+	Status       WorkloadStatus `json:"status"`
+}
+
+// LeaveInfo contains current and upcoming leave information.
+type LeaveInfo struct {
+	IsOnLeave       bool       `json:"is_on_leave"`
+	IsUpcomingLeave bool       `json:"is_upcoming_leave"`
+	LeaveStart      *time.Time `json:"leave_start,omitempty"`
+	LeaveEnd        *time.Time `json:"leave_end,omitempty"`
+}
+
+// EmployeeWorkload combines employee info with workload and leave status.
+type EmployeeWorkload struct {
+	ID           uuid.UUID    `json:"employee_id"`
+	FullName     string       `json:"full_name"`
+	Email        *string      `json:"email,omitempty"`
+	DepartmentID *uuid.UUID   `json:"department_id,omitempty"`
+	Workload     WorkloadInfo `json:"workload"`
+	Leave        LeaveInfo    `json:"leave"`
+}

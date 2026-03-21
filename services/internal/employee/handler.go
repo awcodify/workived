@@ -24,6 +24,7 @@ type ServiceInterface interface {
 	GetDirectReports(ctx context.Context, orgID, managerID uuid.UUID) ([]Employee, error)
 	GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error)
 	GetOrgChart(ctx context.Context, orgID uuid.UUID) ([]*OrgChartNode, error)
+	GetWorkload(ctx context.Context, orgID uuid.UUID) ([]EmployeeWorkload, error)
 }
 
 type Handler struct {
@@ -38,6 +39,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	emps := rg.Group("/employees")
 	emps.GET("", middleware.Require(middleware.PermEmployeeRead), h.List)
 	emps.POST("", middleware.Require(middleware.PermEmployeeWrite), h.Create)
+	emps.GET("/workload", middleware.Require(middleware.PermEmployeeRead), h.GetWorkload)
 	emps.GET("/org-chart", middleware.Require(middleware.PermEmployeeRead), h.GetOrgChart)
 	emps.GET("/:id", middleware.RequireAny(middleware.PermEmployeeRead, middleware.PermSelfRead), h.getOrMe)
 	emps.GET("/:id/directs", middleware.Require(middleware.PermEmployeeRead), h.GetDirectReports)
@@ -208,4 +210,18 @@ func (h *Handler) GetOrgChart(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": tree})
+}
+
+// GetWorkload returns workload information for all active employees.
+// Used for workload-aware task assignment.
+func (h *Handler) GetWorkload(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	workloads, err := h.service.GetWorkload(c.Request.Context(), orgID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": workloads})
 }
