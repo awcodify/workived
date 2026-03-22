@@ -647,7 +647,6 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
               <span className="text-[10px] font-medium" style={{ 
                 color: dayData.status === 'overtime' ? colors.accentText : colors.okText 
               }}>
-                Clocked In
               </span>
             </div>
           ) : (
@@ -659,9 +658,6 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
               }}
             >
               <Clock size={16} style={{ color: t.textMuted, opacity: 0.4 }} />
-              <span className="text-[10px] font-medium" style={{ color: t.textMuted }}>
-                No clock in
-              </span>
             </div>
           )}
         </div>
@@ -681,9 +677,6 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
                   {clockOutTime}
                 </span>
               </div>
-              <span className="text-[10px] font-medium" style={{ color: colors.ink500 }}>
-                Clocked Out
-              </span>
             </div>
           ) : clockInTime ? (
             <div 
@@ -707,25 +700,28 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
               }}
             >
               <Clock size={16} style={{ color: t.textMuted, opacity: 0.4 }} />
-              <span className="text-[10px] font-medium" style={{ color: t.textMuted }}>
-                No clock out
-              </span>
             </div>
           )}
         </div>
 
         {/* Note */}
         <div className="w-40">
-          <input
-            type="text"
-            placeholder="Add note..."
-            className="w-full px-3 py-2 text-xs rounded-lg transition-all focus:outline-none focus:ring-2"
-            style={{
-              background: t.input,
-              border: `1px solid ${t.border}`,
-              color: t.text,
-            }}
-          />
+          {dayData?.note ? (
+            <div 
+              className="w-full px-3 py-2 text-xs rounded-lg"
+              style={{
+                background: t.surface,
+                border: `1px solid ${t.border}`,
+                color: t.text,
+              }}
+            >
+              {dayData.note}
+            </div>
+          ) : (
+            <span className="text-xs" style={{ color: t.textMuted }}>
+              No note
+            </span>
+          )}
         </div>
       </div>
     </div>
