@@ -182,12 +182,12 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 		LEFT JOIN employees assignee ON t.assignee_id = assignee.id
 		WHERE t.organisation_id = $1
 		  AND ($2::uuid IS NULL OR t.task_list_id = $2::uuid)
-		  AND ($3::uuid IS NULL OR (
-			  -- Regular tasks: assignee only
-			  (t.approval_type IS NULL AND t.assignee_id = $3::uuid)
-			  -- Approval tasks: assignee OR creator
-			  OR (t.approval_type IS NOT NULL AND (t.assignee_id = $3::uuid OR t.created_by = $3::uuid))
-		  ))
+		  AND (
+			  -- Regular tasks: show to all org members (collaborative workspace)
+			  t.approval_type IS NULL
+			  -- Approval tasks: show only to assignee OR creator
+			  OR (t.approval_type IS NOT NULL AND ($3::uuid IS NULL OR t.assignee_id = $3::uuid OR t.created_by = $3::uuid))
+		  )
 		  AND ($4::varchar IS NULL OR t.priority = $4)
 		  AND ($5::varchar IS NULL OR (
 			  CASE WHEN $5 = 'completed' THEN t.completed_at IS NOT NULL

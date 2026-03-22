@@ -77,7 +77,7 @@ type EmployeeInfoProvider interface {
 
 // TasksServiceInterface provides task management for approval workflows.
 type TasksServiceInterface interface {
-	CreateApprovalTask(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, assigneeID uuid.UUID, dueDate *string) error
+	CreateApprovalTask(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, requesterEmployeeID, assigneeID uuid.UUID, dueDate *string) error
 	CompleteApprovalTask(ctx context.Context, approvalType string, approvalID uuid.UUID) error
 	DeleteApprovalTask(ctx context.Context, approvalType string, approvalID uuid.UUID) error
 }
@@ -398,7 +398,7 @@ func (s *Service) createLeaveApprovalTask(ctx context.Context, orgID, employeeID
 			return "Not provided"
 		}())
 
-	err = s.tasksService.CreateApprovalTask(ctx, orgID, "leave", req.ID, title, description, *managerID, &dueDate)
+	err = s.tasksService.CreateApprovalTask(ctx, orgID, "leave", req.ID, title, description, employeeID, *managerID, &dueDate)
 	if err != nil {
 		s.log.Warn().Err(err).
 			Str("org_id", orgID.String()).

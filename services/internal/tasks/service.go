@@ -546,7 +546,8 @@ func (s *Service) CreateApprovalTask(
 	approvalID uuid.UUID,
 	title string,
 	description string,
-	assigneeID uuid.UUID,
+	requesterEmployeeID uuid.UUID, // Employee who submitted the request
+	assigneeID uuid.UUID, // Manager/approver
 	dueDate *string, // YYYY-MM-DD format, optional
 ) error {
 	// Get "Approvals" list (or first available list as fallback)
@@ -587,7 +588,7 @@ func (s *Service) CreateApprovalTask(
 		ApprovalID:   &approvalID,
 	}
 
-	task, err := s.repo.CreateTask(ctx, orgID, assigneeID, req)
+	task, err := s.repo.CreateTask(ctx, orgID, requesterEmployeeID, req)
 	if err != nil {
 		return fmt.Errorf("create approval task: %w", err)
 	}

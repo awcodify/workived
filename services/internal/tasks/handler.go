@@ -153,6 +153,7 @@ func (h *Handler) DeactivateTaskList(c *gin.Context) {
 
 func (h *Handler) ListTasks(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
 
 	var filters TaskFilters
 	if err := c.ShouldBindQuery(&filters); err != nil {
@@ -163,6 +164,22 @@ func (h *Handler) ListTasks(c *gin.Context) {
 	// Set default limit if not provided
 	if filters.Limit == 0 {
 		filters.Limit = paginate.DefaultLimit
+	}
+
+	// For approval tasks filtering: always pass employee_id
+	// Regular tasks (approval_type IS NULL) will be shown to all org members
+	// Approval tasks (approval_type IS NOT NULL) will be filtered to assignee/creator only
+	if filters.AssigneeID == nil {
+		employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+		if err != nil {
+			h.logAndRespondError(c, err, "failed to lookup employee", map[string]string{
+				"org_id":  orgID.String(),
+				"user_id": userID.String(),
+			})
+			return
+		}
+		empIDStr := employeeID.String()
+		filters.AssigneeID = &empIDStr
 	}
 
 	tasks, err := h.service.ListTasks(c.Request.Context(), orgID, filters)
