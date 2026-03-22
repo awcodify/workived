@@ -7,7 +7,7 @@ import { useEmployee, useEmployees, useCreateEmployee, useUpdateEmployee } from 
 import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
-import { moduleBackgrounds, moduleThemes } from '@/design/tokens'
+import { moduleBackgrounds, moduleThemes, colors } from '@/design/tokens'
 import { ArrowLeft, UserCheck, UserPlus, Mail } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 
@@ -169,10 +169,10 @@ function NewEmployeePage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Option A: link to an existing workspace member */}
                   <label
-                    className={`flex flex-col gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${field.value === 'member' ? 'border-accent' : ''}`}
+                    className="flex flex-col gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors"
                     style={{
-                      borderColor: field.value === 'member' ? undefined : t.border,
-                      background: field.value === 'member' ? t.accent : 'transparent',
+                      borderColor: field.value === 'member' ? colors.accent : t.border,
+                      background: 'transparent',
                     }}
                   >
                     <div className="flex items-start gap-3">
@@ -198,10 +198,10 @@ function NewEmployeePage() {
 
                   {/* Option B: invite by email */}
                   <label
-                    className={`flex flex-col gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${field.value === 'new' ? 'border-accent' : ''}`}
+                    className="flex flex-col gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors"
                     style={{
-                      borderColor: field.value === 'new' ? undefined : t.border,
-                      background: field.value === 'new' ? t.accent : 'transparent',
+                      borderColor: field.value === 'new' ? colors.accent : t.border,
+                      background: 'transparent',
                     }}
                   >
                     <div className="flex items-start gap-3">
@@ -227,10 +227,10 @@ function NewEmployeePage() {
 
                   {/* Option C: skip */}
                   <label
-                    className={`flex flex-col gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors ${field.value === 'skip' ? 'border-accent' : ''}`}
+                    className="flex flex-col gap-2 p-4 rounded-lg border-2 cursor-pointer transition-colors"
                     style={{
-                      borderColor: field.value === 'skip' ? undefined : t.border,
-                      background: field.value === 'skip' ? t.accent : 'transparent',
+                      borderColor: field.value === 'skip' ? colors.accent : t.border,
+                      background: 'transparent',
                     }}
                   >
                     <div className="flex items-start gap-3">
@@ -384,12 +384,11 @@ function NewEmployeePage() {
               <Field label="Start date" error={form.formState.errors.start_date?.message}>
                 <input
                   type="date"
-                  className="form-input-dark"
+                  className="form-input-dark cursor-pointer"
                   style={{ 
                     background: t.input, 
                     border: `1px solid ${t.inputBorder}`, 
                     color: t.text,
-                    colorScheme: 'dark'
                   }}
                   {...form.register('start_date')}
                 />
@@ -621,12 +620,11 @@ function EditEmployeePage({ id }: { id: string }) {
               <Field label="Start date" error={form.formState.errors.start_date?.message}>
                 <input
                   type="date"
-                  className="form-input-dark"
+                  className="form-input-dark cursor-pointer"
                   style={{ 
                     background: t.input, 
                     border: `1px solid ${t.inputBorder}`, 
                     color: t.text,
-                    colorScheme: 'dark'
                   }}
                   {...form.register('start_date')}
                 />
@@ -635,12 +633,11 @@ function EditEmployeePage({ id }: { id: string }) {
               <Field label="End date (optional)" error={form.formState.errors.end_date?.message}>
                 <input
                   type="date"
-                  className="form-input-dark"
+                  className="form-input-dark cursor-pointer"
                   style={{ 
                     background: t.input, 
                     border: `1px solid ${t.inputBorder}`, 
                     color: t.text,
-                    colorScheme: 'dark'
                   }}
                   {...form.register('end_date')}
                 />

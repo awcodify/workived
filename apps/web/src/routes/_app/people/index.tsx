@@ -85,44 +85,24 @@ function PeoplePage() {
           </p>
         </div>
         
-        <div className="flex flex-col-reverse md:flex-row items-start md:items-center gap-3 md:gap-4">
-          {/* Action Buttons */}
-          {canManageEmployees && (
-            <Link
-              to="/people/$id"
-              params={{ id: 'new' }}
-              search={{ user_id: undefined }}
-              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
-              style={{
-                background: t.accent,
-                color: t.accentText,
-                borderRadius: 12,
-              }}
-            >
-              <Plus size={16} />
-              Add employee
-            </Link>
-          )}
-          
-          <div className="flex items-center gap-4">
-            <DateTime 
-              textColor={t.text}
-              textMutedColor={t.textMuted}
-              borderColor={t.border}
-            />
-            <NotificationBell
-              surfaceColor={t.surface}
-              borderColor={t.border}
-              accentColor={colors.accent}
-              textColor={t.text}
-              textMutedColor={t.textMuted}
-            />
-          </div>
+        <div className="flex items-center gap-4">
+          <DateTime 
+            textColor={t.text}
+            textMutedColor={t.textMuted}
+            borderColor={t.border}
+          />
+          <NotificationBell
+            surfaceColor={t.surface}
+            borderColor={t.border}
+            accentColor={colors.accent}
+            textColor={t.text}
+            textMutedColor={t.textMuted}
+          />
         </div>
         </div>
       </div>
-      {/* Search and Org Chart Row */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mb-4">
+      {/* Search and Action Buttons Row */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 mb-4">
         {/* Search */}
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: t.textMuted }} />
@@ -155,6 +135,24 @@ function PeoplePage() {
           <Network size={16} />
           Org Chart
         </Link>
+        
+        {/* Add Employee Button */}
+        {canManageEmployees && (
+          <Link
+            to="/people/$id"
+            params={{ id: 'new' }}
+            search={{ user_id: undefined }}
+            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90 whitespace-nowrap"
+            style={{
+              background: t.accent,
+              color: t.accentText,
+              borderRadius: 12,
+            }}
+          >
+            <Plus size={16} />
+            Add employee
+          </Link>
+        )}
       </div>
 
       {/* Status filter tabs */}
