@@ -9,12 +9,10 @@ import { useMyClaimBalances, useClaimNotificationCount } from '@/lib/hooks/useCl
 import { useCanManageLeave, useCanManageClaims } from '@/lib/hooks/useRole'
 import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { formatMoney } from '@/lib/utils/money'
-import { moduleBackgrounds, moduleThemes, colors, typography } from '@/design/tokens'
+import { useModuleTheme, useModuleBackground, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { Users, CalendarDays, Receipt, AlertCircle, ChevronRight } from 'lucide-react'
-
-const t = moduleThemes.overview
 
 // ── Tooltip ──────────────────────────────────────────────────────
 import { useRef, useState as useTooltipState } from 'react'
@@ -130,6 +128,9 @@ function formatDateLabel(tz: string) {
 // ── Page ────────────────────────────────────────────────────────
 
 function OverviewPage() {
+  const t = useModuleTheme('overview')
+  const bg = useModuleBackground('overview')
+  
   const user = useAuthStore((s) => s.user)
   const { data: myEmployee } = useMyEmployee()
   const { data: org, isLoading: orgLoading } = useOrganisation()
@@ -222,7 +223,7 @@ function OverviewPage() {
   return (
     <div
       className="min-h-screen px-6 py-6 md:px-11 md:py-8 pb-24"
-      style={{ background: moduleBackgrounds.overview }}
+      style={{ background: bg }}
     >
       {/* Header: Greeting left, Date/clock right */}
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6" style={{ marginBottom: 24 }}>
@@ -755,6 +756,7 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
   totalEmployees: number
   onLeaveEntries: { employee_id: string; policy_name: string }[]
 }) {
+  const t = useModuleTheme('overview')
   const [hovered, setHovered] = useState<string | null>(null)
   const pending = Math.max(0, totalEmployees - present - late - trueAbsent - onLeaveCount)
 
@@ -941,6 +943,7 @@ function DonutChart({ size, segments, total, centerLabel, hovered, onHover, show
   onHover?: (label: string | null) => void
   showPercent?: boolean
 }) {
+  const t = useModuleTheme('overview')
   const [localHovered, setLocalHovered] = useState<string | null>(null)
   const activeHover = hovered !== undefined ? hovered : localHovered
   const setActiveHover = onHover ?? setLocalHovered

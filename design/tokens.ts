@@ -4,6 +4,8 @@
  * Import this anywhere in the app — never hardcode values.
  */
 
+import { useThemeStore } from '@/lib/stores/theme'
+
 // ── COLOURS ──────────────────────────────────────────────────
 export const colors = {
   // Accent
@@ -271,3 +273,92 @@ export function getAvatarColor(seed: string): { bg: string; text: string } {
   const idx = seed.charCodeAt(0) % avatarColors.length
   return avatarColors[idx] ?? avatarColors[0]!
 }
+
+// ── DARK THEME VARIANTS ───────────────────────────────────────
+// Original dark versions before light mode conversion
+
+const darkModuleThemes = {
+  overview: {
+    text:         '#FFE6F0',
+    textMuted:    'rgba(200,190,255,0.45)',
+    surface:      'rgba(255,255,255,0.05)',
+    surfaceHover: 'rgba(255,255,255,0.10)',
+    accent:       'rgba(255,255,255,0.12)',
+    accentText:   '#FFFFFF',
+    border:       'rgba(255,255,255,0.10)',
+    input:        'rgba(255,255,255,0.07)',
+    inputBorder:  'rgba(255,255,255,0.12)',
+  },
+  people: {
+    text:         '#FFFFFF',
+    textMuted:    '#B0AEBE',
+    surface:      '#080A12',
+    surfaceHover: '#18141A',
+    accent:       '#75293c',
+    accentText:   '#FFFFFF',
+    border:       '#2A2230',
+    input:        '#18141A',
+    inputBorder:  '#2A2230',
+  },
+} as const
+
+const darkModuleBackgrounds = {
+  overview:    '#0C0C0F',
+  people:      '#080A12',
+} as const
+
+const darkDockThemes = {
+  overview: {
+    bg:     'rgba(20,20,25,0.75)',
+    border: 'rgba(255,255,255,0.15)',
+    icon:   'rgba(255,255,255,0.50)',
+    label:  'rgba(255,255,255,0.35)',
+    active: {
+      bg:    'rgba(255,255,255,0.18)',
+      icon:  '#FFFFFF',
+      label: 'rgba(255,255,255,0.95)',
+    },
+  },
+  people: {
+    bg:     'rgba(20,20,25,0.75)',
+    border: 'rgba(255,255,255,0.15)',
+    icon:   'rgba(255,255,255,0.50)',
+    label:  'rgba(255,255,255,0.35)',
+    active: {
+      bg:    'rgba(255,255,255,0.18)',
+      icon:  '#FFFFFF',
+      label: 'rgba(255,255,255,0.95)',
+    },
+  },
+} as const
+
+const darkLogoMarkColors = {
+  overview:    { bg: '#1E1A3A', primary: '#9B8FF7', textPrimary: '#FFFFFF', textAccent: '#9B8FF7' },
+  people:      { bg: '#0D1224', primary: '#FF8AAE', textPrimary: '#FFFFFF', textAccent: '#FF8AAE' },
+} as const
+
+// ── THEME HOOKS ───────────────────────────────────────────────
+// Use these to get theme-aware values
+
+type ThemableModule = 'overview' | 'people'
+
+export function useModuleTheme(module: ThemableModule) {
+  const { theme } = useThemeStore()
+  return theme === 'dark' ? darkModuleThemes[module] : moduleThemes[module]
+}
+
+export function useModuleBackground(module: ThemableModule) {
+  const { theme } = useThemeStore()
+  return theme === 'dark' ? darkModuleBackgrounds[module] : moduleBackgrounds[module]
+}
+
+export function useDockTheme(module: ThemableModule) {
+  const { theme } = useThemeStore()
+  return theme === 'dark' ? darkDockThemes[module] : dockThemes[module]
+}
+
+export function useLogoMarkColor(module: ThemableModule) {
+  const { theme } = useThemeStore()
+  return theme === 'dark' ? darkLogoMarkColors[module] : logoMarkColors[module]
+}
+

@@ -1,6 +1,6 @@
 import { Link, useMatches } from '@tanstack/react-router'
 import { LayoutDashboard, Users, Clock, Calendar, CalendarDays, Receipt, BarChart3, CheckSquare } from 'lucide-react'
-import { dockThemes } from '@/design/tokens'
+import { dockThemes, useDockTheme } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 import { SettingsMenu } from './SettingsMenu'
 import { useEnabledFeatures } from '@/lib/hooks/useFeatures'
@@ -10,6 +10,7 @@ import { useCanManageLeave } from '@/lib/hooks/useRole'
 import { useCanManageClaims } from '@/lib/hooks/useRole'
 
 type ModuleKey = keyof typeof dockThemes
+type ThemableModule = 'overview' | 'people'
 
 const NAV_ITEMS = [
   { to: '/overview', label: 'Overview', icon: LayoutDashboard, module: 'overview' as ModuleKey, featureKey: null, notificationKey: null },
@@ -38,7 +39,15 @@ export function Dock() {
   const matches = useMatches()
   const pathname = matches[matches.length - 1]?.pathname ?? '/'
   const currentModule = getCurrentModule(pathname)
-  const theme = dockThemes[currentModule]
+  
+  // Use themed dock for overview/people, static for others
+  const overviewDockTheme = useDockTheme('overview')
+  const peopleDockTheme = useDockTheme('people')
+  
+  const theme = currentModule === 'overview' ? overviewDockTheme
+    : currentModule === 'people' ? peopleDockTheme
+    : dockThemes[currentModule]
+  
   const { data: features } = useEnabledFeatures()
   
   // Get real notification counts

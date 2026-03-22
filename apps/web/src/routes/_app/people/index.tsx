@@ -5,9 +5,7 @@ import { useEmployees } from '@/lib/hooks/useEmployees'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
-import { moduleBackgrounds, moduleThemes } from '@/design/tokens'
-
-const t = moduleThemes.people
+import { useModuleTheme, useModuleBackground } from '@/design/tokens'
 
 export const Route = createFileRoute('/_app/people/')({
   component: PeoplePage,
@@ -21,6 +19,8 @@ const STATUS_TABS = [
 ] as const
 
 function PeoplePage() {
+  const t = useModuleTheme('people')
+  const bg = useModuleBackground('people')
   const canManageEmployees = useCanManageEmployees()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | undefined>('active')
@@ -66,7 +66,7 @@ function PeoplePage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
-      style={{ background: moduleBackgrounds.people }}
+      style={{ background: bg }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -98,6 +98,7 @@ function PeoplePage() {
             <Link
               to="/people/$id"
               params={{ id: 'new' }}
+              search={{ user_id: undefined }}
               className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
               style={{
                 background: t.accent,
@@ -186,6 +187,7 @@ function PeoplePage() {
                 key={emp.id}
                 to="/people/$id"
                 params={{ id: emp.id }}
+                search={{ user_id: undefined }}
                 className="grid items-center gap-4 transition-all duration-150 hover:-translate-y-px"
                 style={{
                   gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
@@ -278,6 +280,8 @@ function PeoplePage() {
 
 // ── Skeleton loader ──────────────────────────────────────────────
 function PeopleRowsSkeleton() {
+  const t = useModuleTheme('people')
+  
   return (
     <div className="flex flex-col gap-[3px]">
       {/* Header skeleton */}
@@ -333,6 +337,8 @@ function PeopleEmptyState({
   search: string
   hasFilter: boolean
 }) {
+  const t = useModuleTheme('people')
+  const canManageEmployees = useCanManageEmployees()
   const hasFiltering = hasSearch || hasFilter
 
   return (
@@ -355,6 +361,7 @@ function PeopleEmptyState({
         <Link
           to="/people/$id"
           params={{ id: 'new' }}
+          search={{ user_id: undefined }}
           className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 mt-2 transition-colors hover:opacity-90"
           style={{
             background: t.accent,
