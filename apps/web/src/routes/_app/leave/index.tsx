@@ -31,9 +31,7 @@ function LeaveDashboard() {
   const rejectMutation = useRejectRequest()
   const cancelMutation = useCancelRequest()
   
-  const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>(
-    canManageLeave ? 'approvals' : 'my-requests'
-  )
+  const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>('my-requests')
   
   const [showNewRequestModal, setShowNewRequestModal] = useState(false)
   const [selectedPolicyId, setSelectedPolicyId] = useState<string>('')
@@ -44,6 +42,13 @@ function LeaveDashboard() {
     const available = b.entitled_days + b.carried_over_days - b.used_days - b.pending_days
     return sum + available
   }, 0) ?? 0
+
+  // Smart default: show approvals only if manager AND has pending items
+  useEffect(() => {
+    if (canManageLeave && pendingCount > 0) {
+      setActiveTab('approvals')
+    }
+  }, [canManageLeave, pendingCount])
 
   // Smart tab switching: if on Approvals tab and no pending requests, switch to My Requests
   useEffect(() => {

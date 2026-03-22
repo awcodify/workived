@@ -3,9 +3,9 @@
 **Duration:** March 22, 2026 (1 day sprint)  
 **Status:** ✅ Complete  
 **Team:** Full-stack  
-**Type:** Enhancement and bug fixes — `has_subordinate` system-wide utilization + UX improvements
+**Type:** Enhancement and bug fixes — `has_subordinate` system-wide utilization + UX improvements + Dark mode (beta)
 
-**Summary:** Comprehensive enhancement sprint covering permission system fixes, UX improvements, and workflow automation. Successfully implemented `has_subordinate` JWT flag across all modules, fixed critical bugs in Tasks visibility and date pickers, and added multiple UX features including owner auto-approval, two-click confirmation, balance cascades, and improved formatting.
+**Summary:** Comprehensive enhancement sprint covering permission system fixes, UX improvements, workflow automation, and dark mode implementation. Successfully implemented `has_subordinate` JWT flag across all modules, fixed critical bugs in Tasks visibility and date pickers, added multiple UX features including owner auto-approval, two-click confirmation, balance cascades, improved formatting, and launched beta dark mode for Overview and People modules with full theme persistence.
 
 ---
 
@@ -518,11 +518,11 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
 
 ## 📊 Metrics
 
-- **Files changed:** ~15 files (8 frontend + 7 backend)
-- **Lines added:** ~280 lines
-- **Lines removed:** ~90 lines (refactoring)
-- **Test cases:** 5 manual test scenarios + 6 new UX test cases
-- **Affected modules:** Leave, Claims, Tasks, Dock, (Attendance already correct)
+- **Files changed:** ~28 files (15 frontend + 7 backend + 6 documentation/config)
+- **Lines added:** ~520 lines (280 phase 1-2 + 240 dark mode)
+- **Lines removed:** ~110 lines (refactoring + replacements)
+- **Test cases:** 5 manual test scenarios + 6 new UX test cases + 8 dark mode test cases
+- **Affected modules:** Leave, Claims, Tasks, Dock, Settings, Overview, People, Attendance, Calendar, Reports
 - **Bugs fixed:** 
   - ✅ Members with subordinates now see Approvals tab
   - ✅ Approval tasks now visible to requester (creator) + approver (assignee)
@@ -531,6 +531,10 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
   - ✅ Date picker timezone issues resolved
   - ✅ Leave tab auto-switch after approving all requests
   - ✅ Dock settings modal backdrop blur added
+  - ✅ Settings menu position flash eliminated
+  - ✅ Dock blocking content at bottom of pages
+  - ✅ Claims Budget text invisible in dark mode
+  - ✅ Settings menu background mismatch (light mode)
 - **Features added:**
   - ✅ Task creator information display
   - ✅ Two-click approval confirmation UX
@@ -538,6 +542,10 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
   - ✅ Claim category balance cascade updates
   - ✅ Claims amount comma formatting
   - ✅ Owner auto-approval workflow for leave/claims
+  - ✅ **Dark mode (beta)** for Overview and People modules
+  - ✅ Theme toggle in settings menu with localStorage persistence
+  - ✅ Theme-aware design tokens and hooks
+  - ✅ Settings menu portal rendering with frosted glass effect
 
 ---
 
@@ -675,7 +683,100 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
 - [ ] Test: Owner request is auto-approved after confirmation
 - [ ] Test: Non-owner users see normal "Submit Request/Claim" button
 - [ ] Test: Owner auto-approval works even if role was just changed in DB (no JWT staleness)
+### Phase 3: Dark Mode Implementation (Evening Session)
 
+#### Overview / Beta Dark Theme
+- [x] ✅ Add dark mode toggle in settings menu
+  - [x] ✅ Moon icon (light mode) / Sun icon (dark mode) in settings dropdown
+  - [x] ✅ Label: "Dark mode (beta)" / "Light mode (beta)"
+  - [x] ✅ Zustand store for theme state (`useThemeStore`)
+  - [x] ✅ LocalStorage persistence (`workived-theme` key)
+  - [x] ✅ Theme initialization on app load
+
+#### Design Tokens Integration
+- [x] ✅ Dark theme variants for Overview and People modules
+  - [x] ✅ Created `darkModuleThemes` in `design/tokens.ts`
+  - [x] ✅ Created `darkModuleBackgrounds` (dark backgrounds for both modules)
+  - [x] ✅ Created `darkDockThemes` (frosted glass for dark backgrounds)
+  - [x] ✅ Created `darkLogoMarkColors` for dark mode branding
+- [x] ✅ Theme-aware hooks
+  - [x] ✅ `useModuleTheme()` — Returns light/dark module theme based on current theme
+  - [x] ✅ `useModuleBackground()` — Returns light/dark background color
+  - [x] ✅ `useDockTheme()` — Returns light/dark dock styling
+  - [x] ✅ `useLogoMarkColors()` — Returns light/dark logo colors
+- [x] ✅ Applied to Overview and People pages
+  - [x] ✅ Overview page uses `useModuleTheme('overview')` and `useModuleBackground('overview')`
+  - [x] ✅ People page uses `useModuleTheme('people')` and `useModuleBackground('people')`
+  - [x] ✅ Dock component uses theme-aware styling for active module
+
+#### Settings Menu Portal & UX Fixes
+- [x] ✅ Fix settings menu positioning and backdrop blur
+  - [x] ✅ Portal rendering to `document.body` (using `createPortal` from react-dom)
+  - [x] ✅ Fixed positioning with `position: fixed` and calculated screen coordinates
+  - [x] ✅ Proper backdrop blur (`backdrop-blur-3xl`) that blurs page content, not just dock
+  - [x] ✅ Eliminated position flash on open (calculate position synchronously before rendering)
+  - [x] ✅ Menu only renders when both `isOpen && menuPosition` are true
+  - [x] ✅ Uses `requestAnimationFrame` to ensure smooth positioning
+- [x] ✅ Match dock's frosted glass aesthetic
+  - [x] ✅ Dark mode: `rgba(20,20,25,0.85)` - slightly more opaque than dock
+  - [x] ✅ Light mode: `rgba(255,255,255,0.92)` - white base with high opacity
+  - [x] ✅ Same `backdrop-blur-3xl`, border color, and drop-shadow as dock
+  - [x] ✅ Eliminated black background bug (was boosting black opacity instead of using white)
+
+#### Dock & Page Layout Fixes
+- [x] ✅ Fix dock blocking content at bottom of pages
+  - [x] ✅ Added `paddingBottom: '160px'` inline style to all pages
+  - [x] ✅ Pages updated: Overview, People, Attendance, Leave, Claims, Tasks, Reports, Calendar
+  - [x] ✅ Clearance calculation: 160px padding > dock height (~80-90px) + bottom margin (24px) + breathing room
+  - [x] ✅ Used inline styles instead of Tailwind classes to bypass caching issues
+  - [x] ✅ Verified background colors match page backgrounds (no color mismatch)
+
+#### Component-Specific Dark Mode Fixes
+- [x] ✅ Fix Claims Budget card text visibility
+  - [x] ✅ Problem: Card uses light green background (`colors.okDim`) but text was theme-aware (white in dark mode)
+  - [x] ✅ Solution: Always use dark green text (`colors.okText`) regardless of theme
+  - [x] ✅ Muted text uses `opacity: 0.65` for hierarchy
+  - [x] ✅ Text now readable in both light and dark modes
+
+**Files Modified:**
+- `apps/web/src/lib/stores/theme.ts` — New Zustand store for theme state
+- `design/tokens.ts` — Added dark variants and theme-aware hooks
+- `apps/web/src/components/workived/dock/SettingsMenu.tsx` — Portal rendering, positioning, backdrop blur fixes
+- `apps/web/src/components/workived/dock/Dock.tsx` — Theme-aware dock styling
+- `apps/web/src/routes/_app/overview/route.tsx` — Theme hooks + Claims Budget text fix + bottom padding
+- `apps/web/src/routes/_app/people/index.tsx` — Theme hooks + bottom padding
+- `apps/web/src/routes/_app/attendance/index.tsx` — Bottom padding
+- `apps/web/src/routes/_app/leave/index.tsx` — Bottom padding
+- `apps/web/src/routes/_app/claims/index.tsx` — Bottom padding
+- `apps/web/src/routes/_app/tasks/route.tsx` — Bottom padding
+- `apps/web/src/routes/_app/reports/route.tsx` — Bottom padding
+- `apps/web/src/routes/_app/calendar/route.tsx` — Bottom padding
+
+**Technical Decisions:**
+1. **Portal for Menu:** Settings menu rendered outside dock hierarchy to enable proper backdrop blur of page content
+2. **Inline Styles for Padding:** Used `paddingBottom: '160px'` inline style instead of Tailwind `pb-40` class to bypass browser/Vite caching issues
+3. **Selective Dark Mode:** Only Overview and People modules have dark mode (beta). Other modules remain light-only for consistency
+4. **LocalStorage Persistence:** Theme choice persists across sessions via `zustand/middleware/persist`
+5. **Fixed Background Colors:** Components with fixed backgrounds (like Claims Budget card) use matching fixed text colors
+
+**UX Improvements:**
+- Settings menu now has silky-smooth frosted glass effect matching dock
+- No position flash when opening menu (synchronous position calculation)
+- All page content visible with proper spacing above dock
+- Dark mode toggle clearly marked as "beta" to set user expectations
+- Theme persists across sessions for better user experience
+
+### Testing (Dark Mode)
+- [x] ✅ Test: Theme toggle changes between light/dark mode
+- [x] ✅ Test: Theme persists after page reload
+- [x] ✅ Test: Settings menu backdrop blurs page content (not just dock)
+- [x] ✅ Test: Settings menu matches dock's frosted glass aesthetic
+- [x] ✅ Test: No position flash when opening settings menu
+- [x] ✅ Test: Dock doesn't block content at bottom of pages
+- [x] ✅ Test: Claims Budget text readable in both themes
+- [x] ✅ Test: Overview page switches between light/dark backgrounds
+- [x] ✅ Test: People page switches between light/dark backgrounds
+- [x] ✅ Test: Background colors match properly (no gaps or mismatches)
 ### Documentation
 - [x] ✅ Update Sprint 13 progress
 - [x] ✅ Document architecture decisions (Tasks, People modules)
