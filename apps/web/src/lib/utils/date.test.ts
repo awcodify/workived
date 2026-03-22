@@ -1,4 +1,4 @@
-import { formatDate, formatDateLocal, todayISO } from '@/lib/utils/date'
+import { formatDate, formatDateLocal, todayISO, getMondayOfWeek } from '@/lib/utils/date'
 
 describe('formatDate', () => {
   const utcDate = '2025-06-15T10:30:00Z'
@@ -53,6 +53,90 @@ describe('todayISO', () => {
 
   it('returns a valid date for a different timezone', () => {
     const result = todayISO('America/New_York')
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+})
+
+describe('getMondayOfWeek', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('returns Monday of current week when today is Sunday', () => {
+    // Set date to Sunday, March 22, 2026
+    vi.setSystemTime(new Date('2026-03-22T00:00:00Z'))
+    
+    const result = getMondayOfWeek('UTC', 0)
+    expect(result).toBe('2026-03-16') // Monday of that week
+  })
+
+  it('returns Monday of current week when today is Monday', () => {
+    // Set date to Monday, March 16, 2026
+    vi.setSystemTime(new Date('2026-03-16T00:00:00Z'))
+    
+    const result = getMondayOfWeek('UTC', 0)
+    expect(result).toBe('2026-03-16') // Same day
+  })
+
+  it('returns Monday of current week when today is Wednesday', () => {
+    // Set date to Wednesday, March 18, 2026
+    vi.setSystemTime(new Date('2026-03-18T00:00:00Z'))
+    
+    const result = getMondayOfWeek('UTC', 0)
+    expect(result).toBe('2026-03-16') // Monday of that week
+  })
+
+  it('returns Monday of current week when today is Saturday', () => {
+    // Set date to Saturday, March 21, 2026
+    vi.setSystemTime(new Date('2026-03-21T00:00:00Z'))
+    
+    const result = getMondayOfWeek('UTC', 0)
+    expect(result).toBe('2026-03-16') // Monday of that week
+  })
+
+  it('returns Monday of previous week with weekOffset -1', () => {
+    // Set date to Wednesday, March 18, 2026
+    vi.setSystemTime(new Date('2026-03-18T00:00:00Z'))
+    
+    const result = getMondayOfWeek('UTC', -1)
+    expect(result).toBe('2026-03-09') // Monday of previous week
+  })
+
+  it('returns Monday of next week with weekOffset 1', () => {
+    // Set date to Wednesday, March 18, 2026
+    vi.setSystemTime(new Date('2026-03-18T00:00:00Z'))
+    
+    const result = getMondayOfWeek('UTC', 1)
+    expect(result).toBe('2026-03-23') // Monday of next week
+  })
+
+  it('handles timezone correctly for Asia/Jakarta', () => {
+    // Set date to Sunday, March 22, 2026 at 00:00 UTC
+    // In Asia/Jakarta (UTC+7), this is 07:00 on Sunday March 22
+    vi.setSystemTime(new Date('2026-03-22T00:00:00Z'))
+    
+    const result = getMondayOfWeek('Asia/Jakarta', 0)
+    expect(result).toBe('2026-03-16') // Monday of that week
+  })
+
+  it('handles timezone correctly when day differs from UTC', () => {
+    // Set date to Saturday, March 21, 2026 at 20:00 UTC
+    // In Asia/Jakarta (UTC+7), this is 03:00 on Sunday March 22
+    vi.setSystemTime(new Date('2026-03-21T20:00:00Z'))
+    
+    const result = getMondayOfWeek('Asia/Jakarta', 0)
+    // In Jakarta it's Sunday, so Monday should be 2026-03-16
+    expect(result).toBe('2026-03-16')
+  })
+
+  it('returns result in YYYY-MM-DD format', () => {
+    vi.setSystemTime(new Date('2026-03-18T00:00:00Z'))
+    
+    const result = getMondayOfWeek('UTC', 0)
     expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })

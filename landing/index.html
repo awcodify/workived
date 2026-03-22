@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workived — Attendance done right.</title>
+  <meta name="description" content="HR & attendance management for 5–25 person startups. Track attendance, manage leave, and run daily operations — all in one beautiful workspace. Coming soon.">
+  <meta name="theme-color" content="#0C0C0F">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Workived — Attendance done right.">
+  <meta property="og:description" content="HR & attendance management for 5–25 person startups. Coming soon.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://workived.com">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Workived — Attendance done right.">
+  <meta name="twitter:description" content="HR & attendance management for 5–25 person startups. Coming soon.">
+
+  <!-- Favicon (inline SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M20 8L8 14L20 20L32 14Z' fill='%236357E8'/><path d='M8 22L20 28L32 22' stroke='%239B8FF7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M8 28L20 34L32 28' stroke='%236357E8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+
+  <!-- Plus Jakarta Sans from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --accent: #6357E8;
+      --accent-dim: #EFEDFD;
+      --accent-mid: #8F86F0;
+      --ink-900: #0F0E13;
+      --ink-700: #1F1D2B;
+      --ink-500: #72708A;
+      --ink-300: #B0AEBE;
+      --ink-150: #DDDBE8;
+      --ink-50: #F3F2FB;
+      --ink-0: #FFFFFF;
+      --bg-dark: #0C0C0F;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg-dark);
+      color: var(--ink-0);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    /* ── Background glow ── */
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .bg-glow::before {
+      content: '';
+      position: absolute;
+      top: -40%;
+      left: -20%;
+      width: 80%;
+      height: 80%;
+      background: radial-gradient(ellipse at center, rgba(99,87,232,0.08) 0%, transparent 70%);
+      animation: drift 20s ease-in-out infinite;
+    }
+    .bg-glow::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      right: -15%;
+      width: 70%;
+      height: 70%;
+      background: radial-gradient(ellipse at center, rgba(155,143,247,0.06) 0%, transparent 70%);
+      animation: drift 25s ease-in-out infinite reverse;
+    }
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0); }
+      50% { transform: translate(40px, -30px); }
+    }
+
+    /* ── Main container ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .header {
+      padding: 32px 40px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      flex-shrink: 0;
+    }
+    .logo-wordmark {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--ink-0);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 24px 80px;
+      text-align: center;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 100px;
+      background: rgba(99,87,232,0.12);
+      border: 1px solid rgba(99,87,232,0.20);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-mid);
+      letter-spacing: 0.02em;
+      margin-bottom: 40px;
+      animation: fadeUp 0.8s ease-out both;
+    }
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero h1 {
+      font-size: clamp(40px, 8vw, 72px);
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      line-height: 1.05;
+      margin-bottom: 24px;
+      animation: fadeUp 0.8s ease-out 0.1s both;
+    }
+    .hero h1 .highlight {
+      background: linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero .subtitle {
+      font-size: clamp(16px, 2.5vw, 20px);
+      color: rgba(255,255,255,0.45);
+      line-height: 1.7;
+      max-width: 540px;
+      margin-bottom: 56px;
+      animation: fadeUp 0.8s ease-out 0.2s both;
+    }
+
+    /* ── Feature pills ── */
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+      margin-bottom: 56px;
+      animation: fadeUp 0.8s ease-out 0.3s both;
+    }
+    .feature-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.65);
+      transition: all 0.3s ease;
+    }
+    .feature-tag:hover {
+      background: rgba(99,87,232,0.10);
+      border-color: rgba(99,87,232,0.25);
+      color: rgba(255,255,255,0.85);
+    }
+    .feature-tag .icon {
+      font-size: 16px;
+    }
+
+    /* ── Email form ── */
+    .notify-form {
+      display: flex;
+      gap: 12px;
+      width: 100%;
+      max-width: 460px;
+      animation: fadeUp 0.8s ease-out 0.4s both;
+    }
+    .notify-input {
+      flex: 1;
+      padding: 14px 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.05);
+      color: var(--ink-0);
+      font-family: inherit;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+    .notify-input::placeholder {
+      color: rgba(255,255,255,0.25);
+    }
+    .notify-input:focus {
+      border-color: rgba(99,87,232,0.50);
+      background: rgba(99,87,232,0.08);
+      box-shadow: 0 0 0 4px rgba(99,87,232,0.10);
+    }
+    .notify-btn {
+      padding: 14px 28px;
+      border-radius: 14px;
+      border: none;
+      background: var(--accent);
+      color: var(--ink-0);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+    .notify-btn:hover {
+      background: #5448D4;
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(99,87,232,0.35);
+    }
+    .notify-btn:active {
+      transform: translateY(0);
+    }
+
+    /* Success state */
+    .form-success {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 24px;
+      border-radius: 14px;
+      background: rgba(18,160,92,0.12);
+      border: 1px solid rgba(18,160,92,0.25);
+      color: #34D399;
+      font-size: 15px;
+      font-weight: 600;
+      animation: fadeUp 0.4s ease-out both;
+    }
+    .form-success.visible {
+      display: inline-flex;
+    }
+
+    /* ── Markets ── */
+    .markets {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 40px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.25);
+      animation: fadeUp 0.8s ease-out 0.5s both;
+    }
+    .markets-label {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .market-flags {
+      display: flex;
+      gap: 8px;
+      font-size: 20px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      padding: 32px 40px;
+      text-align: center;
+      font-size: 13px;
+      color: rgba(255,255,255,0.20);
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .header {
+        padding: 24px 20px;
+      }
+      .hero {
+        padding: 24px 20px 60px;
+      }
+      .notify-form {
+        flex-direction: column;
+      }
+      .notify-btn {
+        width: 100%;
+        text-align: center;
+      }
+      .features {
+        gap: 8px;
+      }
+      .feature-tag {
+        padding: 8px 14px;
+        font-size: 13px;
+      }
+      .footer {
+        padding: 24px 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background ambient glow -->
+  <div class="bg-glow"></div>
+
+  <div class="page">
+    <!-- Header -->
+    <header class="header">
+      <svg class="logo-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#9B8FF7"/>
+            <stop offset="100%" stop-color="#6357E8"/>
+          </linearGradient>
+        </defs>
+        <path d="M20 8L8 14L20 20L32 14Z" fill="url(#g)" opacity="0.9"/>
+        <path d="M8 22L20 28L32 22" stroke="url(#g)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+        <path d="M8 28L20 34L32 28" stroke="#6357E8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+      </svg>
+      <span class="logo-wordmark">Workived</span>
+    </header>
+
+    <!-- Hero -->
+    <main class="hero">
+      <div class="pill">
+        <span class="pill-dot"></span>
+        Coming Soon
+      </div>
+
+      <h1>
+        Your team,<br>
+        <span class="highlight">simplified.</span>
+      </h1>
+
+      <p class="subtitle">
+        Attendance tracking, leave management, and daily HR operations
+        — all in one beautiful workspace built for small teams.
+      </p>
+
+      <!-- Feature tags -->
+      <div class="features">
+        <div class="feature-tag">
+          <span class="icon">⏱</span> Attendance
+        </div>
+        <div class="feature-tag">
+          <span class="icon">🏖</span> Leave
+        </div>
+        <div class="feature-tag">
+          <span class="icon">📋</span> Claims
+        </div>
+        <div class="feature-tag">
+          <span class="icon">✅</span> Tasks
+        </div>
+        <div class="feature-tag">
+          <span class="icon">👥</span> Team
+        </div>
+      </div>
+
+      <!-- Email signup -->
+      <form class="notify-form" id="notifyForm">
+        <input
+          type="email"
+          class="notify-input"
+          placeholder="Enter your email for early access"
+          required
+          autocomplete="email"
+          aria-label="Email address"
+        >
+        <button type="submit" class="notify-btn">Notify Me</button>
+      </form>
+
+      <div class="form-success" id="formSuccess">
+        ✓ You're on the list! We'll be in touch.
+      </div>
+
+      <!-- Launch markets -->
+      <div class="markets">
+        <span class="markets-label">Launching in</span>
+        <div class="market-flags" title="Indonesia & UAE">
+          🇮🇩 🇦🇪
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      © 2026 Workived. Built for modern founders.
+    </footer>
+  </div>
+
+  <script>
+    document.getElementById('notifyForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      // Hide form, show success
+      this.style.display = 'none';
+      document.getElementById('formSuccess').classList.add('visible');
+    });
+  </script>
+
+</body>
+</html>

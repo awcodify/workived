@@ -26,12 +26,20 @@ export function todayISO(timezone: string): string {
  * @returns ISO date string (YYYY-MM-DD) of the Monday
  */
 export function getMondayOfWeek(tz: string, weekOffset: number = 0): string {
-  const now = new Date()
-  const localNow = new Date(now.toLocaleString('en-US', { timeZone: tz }))
-  const day = localNow.getDay()
-  const diff = day === 0 ? -6 : 1 - day // Sunday = 0, so go back 6 days; otherwise go to Monday
-  const monday = new Date(localNow)
-  monday.setDate(localNow.getDate() + diff + (weekOffset * 7)) // Add week offset
-  const isoDate = monday.toISOString().split('T')[0]
-  return isoDate ?? todayISO(tz) // Fallback to today if ISO conversion fails
+  // Get today's date in the target timezone using todayISO
+  const today = todayISO(tz) // Returns YYYY-MM-DD in the target timezone
+  const date = new Date(today + 'T00:00:00Z') // Parse as UTC to avoid local timezone issues
+  
+  // Get day of week (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
+  const day = date.getUTCDay()
+  
+  // Calculate days to subtract to get to Monday
+  const diff = day === 0 ? -6 : 1 - day // Sunday = 0, go back 6 days; otherwise go to Monday
+  
+  // Calculate the target date
+  const targetDate = new Date(date)
+  targetDate.setUTCDate(date.getUTCDate() + diff + (weekOffset * 7))
+  
+  // Return ISO date string (YYYY-MM-DD)
+  return targetDate.toISOString().split('T')[0]!
 }
