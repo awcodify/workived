@@ -36,3 +36,13 @@ export function parseJwtOrgId(token: string | null): string | null {
   const oid = payload['oid']
   return typeof oid === 'string' && oid !== '' && oid !== ZERO_UUID ? oid : null
 }
+
+// Returns whether the authenticated member has subordinates (direct reports).
+// Claim key is `has_sub` per services/internal/platform/middleware/auth.go.
+// Used for team-level permissions (leave/claims/attendance approvals).
+export function parseJwtHasSubordinate(token: string | null): boolean {
+  if (!token) return false
+  const payload = parseJwtPayload(token)
+  if (!payload) return false
+  return payload['has_sub'] === true
+}

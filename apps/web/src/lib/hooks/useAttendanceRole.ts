@@ -1,22 +1,9 @@
-import { useRole } from './useRole'
-import { useAuthStore } from '@/lib/stores/auth'
+import { useRole, useHasSubordinate } from './useRole'
 
 export interface AttendanceRole {
   canViewOwn: boolean
   canViewTeam: boolean
   canViewAll: boolean
-}
-
-// Decode JWT to extract has_subordinate claim
-function decodeJWT(token: string): { has_sub?: boolean } | null {
-  try {
-    const parts = token.split('.')
-    if (parts.length !== 3) return null
-    const payload = JSON.parse(atob(parts[1]))
-    return payload
-  } catch {
-    return null
-  }
 }
 
 /**
@@ -29,17 +16,10 @@ function decodeJWT(token: string): { has_sub?: boolean } | null {
  */
 export function useAttendanceRole(): AttendanceRole {
   const role = useRole()
-  const accessToken = useAuthStore((s) => s.accessToken)
+  const hasSubordinate = useHasSubordinate()
 
   // Admin roles can view all attendance
   const isAdmin = role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin'
-
-  // Decode JWT to check has_subordinate flag
-  let hasSubordinate = false
-  if (accessToken) {
-    const claims = decodeJWT(accessToken)
-    hasSubordinate = claims?.has_sub === true
-  }
 
   // Can view team if: role="manager" OR has subordinates (from JWT)
   const canViewTeam = role === 'manager' || hasSubordinate
