@@ -45,6 +45,13 @@ function LeaveDashboard() {
     return sum + available
   }, 0) ?? 0
 
+  // Smart tab switching: if on Approvals tab and no pending requests, switch to My Requests
+  useEffect(() => {
+    if (canManageLeave && pendingCount === 0 && activeTab === 'approvals') {
+      setActiveTab('my-requests')
+    }
+  }, [canManageLeave, pendingCount, activeTab])
+
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
