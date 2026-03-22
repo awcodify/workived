@@ -1,6 +1,7 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { DateTime } from '@/components/workived/shared/DateTime'
+import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 import { TaskFilters } from '@/components/TaskFilters'
 import {
@@ -479,27 +480,13 @@ function TasksPage() {
               textMutedColor="#7F8C8D"
               borderColor="#E8ECF0"
             />
-            {/* Notification Placeholder */}
-            <div
-              style={{
-                minWidth: 36,
-                height: 36,
-                background: '#FFFFFF',
-                borderRadius: 10,
-                boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-                border: '1px solid #E8ECF0',
-              }}
-              title="No notifications"
-            >
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
-                <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+            <NotificationBell
+              surfaceColor="#FFFFFF"
+              borderColor="#E8ECF0"
+              accentColor={colors.accent}
+              textColor="#2C3E50"
+              textMutedColor="#7F8C8D"
+            />
           </div>
         </div>
       </div>

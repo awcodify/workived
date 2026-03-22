@@ -7,6 +7,7 @@ import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { useModuleTheme, useModuleBackground, typography, colors } from '@/design/tokens'
 import { DateTime } from '@/components/workived/shared/DateTime'
+import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 
 export const Route = createFileRoute('/_app/people/')({
   component: PeoplePage,
@@ -109,27 +110,13 @@ function PeoplePage() {
               textMutedColor={t.textMuted}
               borderColor={t.border}
             />
-            {/* Notification Placeholder */}
-            <div
-              style={{
-                minWidth: 36,
-                height: 36,
-                background: t.surface,
-                borderRadius: 10,
-                boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-                border: `1px solid ${t.border}`,
-              }}
-              title="No notifications"
-            >
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
-                <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+            <NotificationBell
+              surfaceColor={t.surface}
+              borderColor={t.border}
+              accentColor={colors.accent}
+              textColor={t.text}
+              textMutedColor={t.textMuted}
+            />
           </div>
         </div>
         </div>

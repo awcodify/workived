@@ -1,5 +1,6 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { DateTime } from '@/components/workived/shared/DateTime'
+import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { apiClient } from '@/lib/api/client'
 import { moduleBackgrounds, typography, colors } from '@/design/tokens'
 import {
@@ -119,27 +120,13 @@ function ReportsPage() {
             textMutedColor="rgba(255,255,255,0.4)"
             borderColor="rgba(255,255,255,0.08)"
           />
-          {/* Notification Placeholder */}
-          <div
-              style={{
-                minWidth: 36,
-                height: 36,
-                background: 'rgba(255,255,255,0.06)',
-                borderRadius: 10,
-                boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: 0,
-                border: '1px solid rgba(255,255,255,0.08)',
-              }}
-              title="No notifications"
-            >
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
-                <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
+          <NotificationBell
+            surfaceColor="rgba(255,255,255,0.06)"
+            borderColor="rgba(255,255,255,0.08)"
+            accentColor={colors.accent}
+            textColor="#F0F0FF"
+            textMutedColor="rgba(255,255,255,0.4)"
+          />
 
           
           <div
