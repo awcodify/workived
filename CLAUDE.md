@@ -84,14 +84,7 @@ Before writing code, read the CLAUDE.md for your layer:
 
 ---
 
-## Project context (Sprint 9)
+## Project context
 
 **Product:** Workived — HR ops for 5–25 person startups (Indonesia + UAE)
 **Tech:** Go monolith + Vite/React SPA + PostgreSQL + Redis
-**Current sprint:** Sprint 9 — Workload Intelligence (see `docs/sprint9.md` for details)
-**Last completed:** Sprint 8 — Tasks & Advanced Commenting (sticky note kanban, nested comments, reactions)
-
-**Documentation:**
-- Current work → `docs/sprint9.md`
-- Product overview → `WORKIVED_PROJECT_BRIEF.md`
-- Sprint history → `docs/sprint8.md`, `docs/sprint7-completion.md`, etc.

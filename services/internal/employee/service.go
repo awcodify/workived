@@ -28,6 +28,7 @@ type RepositoryInterface interface {
 // OrgInfoProvider is the narrow interface the employee service needs from organisation.
 type OrgInfoProvider interface {
 	GetOrgPlanInfo(ctx context.Context, orgID uuid.UUID) (plan string, limit *int, err error)
+	UpdateManagerSubordinateFlag(ctx context.Context, orgID, managerEmployeeID uuid.UUID) error
 }
 
 type Service struct {
@@ -133,6 +134,11 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmploye
 		return nil, err
 	}
 
+	// Update manager's has_subordinate flag if employee has a manager
+	if req.ReportingTo != nil {
+		_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, *req.ReportingTo)
+	}
+
 	if len(actorUserID) > 0 {
 		s.logAudit(ctx, audit.LogEntry{
 			OrgID:        orgID,
@@ -156,6 +162,12 @@ func (s *Service) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Em
 }
 
 func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error) {
+	// Get old employee data to detect reporting_to changes
+	oldEmp, err := s.repo.GetByID(ctx, orgID, id)
+	if err != nil {
+		return nil, err
+	}
+
 	// Validate reporting_to if being updated
 	if req.ReportingTo != nil {
 		if err := s.validateReportingTo(ctx, orgID, id, *req.ReportingTo); err != nil {
@@ -166,6 +178,19 @@ func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmp
 	emp, err := s.repo.Update(ctx, orgID, id, req)
 	if err != nil {
 		return nil, err
+	}
+
+	// Update has_subordinate flags if reporting_to changed
+	if req.ReportingTo != nil {
+		newManagerID := *req.ReportingTo
+
+		// Update old manager (if exists and different from new)
+		if oldEmp.ReportingTo != nil && *oldEmp.ReportingTo != newManagerID {
+			_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, *oldEmp.ReportingTo)
+		}
+
+		// Update new manager
+		_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, newManagerID)
 	}
 
 	if len(actorUserID) > 0 {
@@ -183,8 +208,19 @@ func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmp
 }
 
 func (s *Service) Deactivate(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error {
+	// Get employee data to update their manager's flag
+	emp, err := s.repo.GetByID(ctx, orgID, id)
+	if err != nil {
+		return err
+	}
+
 	if err := s.repo.SoftDelete(ctx, orgID, id); err != nil {
 		return err
+	}
+
+	// Update manager's has_subordinate flag if employee had a manager
+	if emp.ReportingTo != nil {
+		_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, *emp.ReportingTo)
 	}
 
 	if len(actorUserID) > 0 {

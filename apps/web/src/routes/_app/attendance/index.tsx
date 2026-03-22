@@ -1,13 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useDailyReport } from '@/lib/hooks/useAttendance'
-import { todayISO, formatDate } from '@/lib/utils/date'
+import { useMyWeek, useTeamWeek, useAllWeek } from '@/lib/hooks/useAttendance'
+import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
+import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { Avatar } from '@/components/workived/layout/Avatar'
-import { StatusSquare } from '@/components/workived/layout/StatusSquare'
-import { QuickClock } from '@/components/workived/attendance/QuickClock'
+import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
-import { Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 
 const t = moduleThemes.attendance
 
@@ -15,269 +15,719 @@ export const Route = createFileRoute('/_app/attendance/')({
   component: AttendancePage,
 })
 
-function useLiveClock(tz: string) {
-  const [time, setTime] = useState(() => formatClock(tz))
-  useEffect(() => {
-    const id = setInterval(() => setTime(formatClock(tz)), 1000)
-    return () => clearInterval(id)
-  }, [tz])
-  return time
-}
-
-function formatClock(tz: string) {
-  return new Intl.DateTimeFormat('en', {
-    timeZone: tz,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).format(new Date())
+// Check if a week start date is in the future
+function isWeekInFuture(weekStart: string, tz: string): boolean {
+  try {
+    const weekDate = new Date(weekStart)
+    const now = new Date()
+    const localNow = new Date(now.toLocaleString('en-US', { timeZone: tz }))
+    const today = new Date(localNow.toISOString().split('T')[0] ?? '')
+    return weekDate > today
+  } catch {
+    return false
+  }
 }
 
 function AttendancePage() {
   const { data: org } = useOrganisation()
   const tz = org?.timezone ?? 'UTC'
-  const [date, setDate] = useState(() => todayISO(tz))
+  const role = useAttendanceRole()
+  
+  // Track if org has loaded to recalculate initial date
+  const orgLoadedRef = useRef(false)
+  
+  // Sprint 12: Show others toggle
+  const [showOthers, setShowOthers] = useState(true)
+  
+  // Filter by clock-in status
+  const [clockInFilter, setClockInFilter] = useState<'all' | 'clocked-in'>('all')
+  
+  // Week navigation state (0 = current week, -1 = previous week, etc.)
+  const [weekOffset, setWeekOffset] = useState(0)
+  const weekStart = useMemo(() => getMondayOfWeek(tz, weekOffset), [tz, weekOffset])
+  
+  // Conditionally fetch based on role to avoid 404 errors
+  const { data: myWeek } = useMyWeek(weekStart)
+  const { data: teamWeek } = useTeamWeek(weekStart, role.canViewTeam)
+  const { data: allWeek } = useAllWeek(weekStart, role.canViewAll)
+  
+  // Check if we can navigate to next week (cannot go to future)
+  const canNavigateNext = !isWeekInFuture(getMondayOfWeek(tz, weekOffset + 1), tz)
+  
+  // Daily report state
+  const [date, setDate] = useState(() => todayISO('UTC'))
+  
+  // Month picker state
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+  
+  // Update date to correct timezone's today when org first loads
+  useEffect(() => {
+    if (org && !orgLoadedRef.current) {
+      orgLoadedRef.current = true
+      setDate(todayISO(tz))
+    }
+  }, [org, tz])
 
-  const { data: entries, isLoading } = useDailyReport(date)
-  const isToday = date === todayISO(tz)
-  const clock = useLiveClock(tz)
+  // Close month picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (showMonthPicker) {
+        const target = e.target as HTMLElement
+        if (!target.closest('[data-month-picker]')) {
+          setShowMonthPicker(false)
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showMonthPicker])
 
-  const present = entries?.filter((e) => e.status === 'present').length ?? 0
-  const late = entries?.filter((e) => e.status === 'late').length ?? 0
-  const absent = entries?.filter((e) => e.status === 'absent').length ?? 0
+  // Get employee list based on toggle and role
+  const getEmployeeList = () => {
+    // If toggle is off or no team/all data, show empty (can add "my" later if needed)
+    let employees = []
+    
+    if (!showOthers) {
+      // Show only my attendance as a single-item array
+      employees = myWeek ? [{ employee_id: 'me', employee_name: 'Me', week: myWeek }] : []
+    } else {
+      // Show all employees based on role
+      if (role.canViewAll) {
+        employees = allWeek ?? []
+      } else if (role.canViewTeam) {
+        employees = teamWeek ?? []
+      } else {
+        // Default: show only my week
+        employees = myWeek ? [{ employee_id: 'me', employee_name: 'Me', week: myWeek }] : []
+      }
+    }
 
-  const dateLabel = isToday
-    ? new Intl.DateTimeFormat('en', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())
-    : date
+    // Apply clock-in filter for selected date
+    if (clockInFilter === 'clocked-in') {
+      employees = employees.filter((emp: any) => {
+        const dayData = emp.week?.days.find((d: any) => d.date === date)
+        return dayData?.clock_in_at != null
+      })
+    }
+    
+    return employees
+  }
+
+  // Calculate statistics for selected date
+  const getStatistics = () => {
+    const employees = getEmployeeList()
+    const total = employees.length
+    let present = 0
+    let late = 0
+    let absent = 0
+    let onLeave = 0
+    let overtime = 0
+
+    employees.forEach((emp: any) => {
+      const dayData = emp.week?.days.find((d: any) => d.date === date)
+      if (dayData) {
+        if (dayData.status === 'present' || dayData.status === 'late') {
+          if (dayData.status === 'late') late++
+          else present++
+        } else if (dayData.status === 'on_leave') {
+          onLeave++
+        } else if (dayData.status === 'absent') {
+          absent++
+        } else if (dayData.status === 'overtime') {
+          overtime++
+        }
+      }
+    })
+
+    return { total, present, late, absent, onLeave, overtime }
+  }
+
+  const stats = getStatistics()
+
+  // Get month name for selected date (not the Monday's month)
+  const getDisplayMonthName = () => {
+    try {
+      const dateObj = new Date(date + 'T12:00:00Z')
+      return new Intl.DateTimeFormat('en', { month: 'long' }).format(dateObj)
+    } catch {
+      return 'Month'
+    }
+  }
+
+  // Handle month selection
+  const handleMonthSelect = (monthIndex: number) => {
+    // Get current date in org's timezone
+    const now = new Date()
+    const localNow = new Date(now.toLocaleString('en-US', { timeZone: tz }))
+    const currentYear = localNow.getFullYear()
+    const currentMonth = localNow.getMonth()
+    
+    // Determine target year
+    let targetYear = currentYear
+    if (monthIndex > currentMonth) {
+      // Future month = previous year
+      targetYear = currentYear - 1
+    }
+    
+    // Create ISO date string for 1st of target month
+    const monthStr = String(monthIndex + 1).padStart(2, '0')
+    const targetDateStr = `${targetYear}-${monthStr}-01`
+    
+    // Parse as calendar date (use noon UTC to avoid date boundary issues)
+    const targetDate = new Date(targetDateStr + 'T12:00:00Z')
+    
+    // Find Monday of that week using UTC methods
+    const dayOfWeek = targetDate.getUTCDay()
+    const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
+    const mondayTime = targetDate.getTime() + (daysToMonday * 24 * 60 * 60 * 1000)
+    const targetMondayDate = new Date(mondayTime)
+    const targetMondayStr = targetMondayDate.toISOString().split('T')[0]
+    
+    // Get c className="flex-1"urrent Monday and calculate week offset
+    const currentMondayStr = getMondayOfWeek(tz, 0)
+    const currentMonday = new Date(currentMondayStr + 'T12:00:00Z')
+    const targetMonday = new Date(targetMondayStr + 'T12:00:00Z')
+    
+    const diffTime = targetMonday.getTime() - currentMonday.getTime()
+    const diffWeeks = Math.round(diffTime / (1000 * 60 * 60 * 24 * 7))
+    
+    setWeekOffset(diffWeeks)
+    setShowMonthPicker(false)
+    setDate(targetDateStr)
+  }
 
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
       style={{ background: moduleBackgrounds.attendance }}
     >
-      {/* Header */}
+      {/* Header with Title and Toggle */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1
-            className="font-extrabold"
-            style={{ fontSize: typography.display.size, letterSpacing: typography.display.tracking, color: t.text, lineHeight: typography.display.lineHeight }}
+            className="font-extrabold mb-4"
+            style={{ 
+              fontSize: typography.display.size, 
+              letterSpacing: typography.display.tracking, 
+              color: t.text, 
+              lineHeight: typography.display.lineHeight,
+            }}
           >
             Attendance
           </h1>
-          <p className="mt-2" style={{ fontSize: 14, color: t.textMuted }}>
-            {dateLabel}
-          </p>
+          
+          {/* Statistics */}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-2 h-2 rounded-full" 
+                style={{ background: t.accent }}
+              />
+              <span className="text-sm font-semibold" style={{ color: t.text }}>
+                {stats.total} Total
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div 
+                className="w-2 h-2 rounded-full" 
+                style={{ background: colors.ok }}
+              />
+              <span className="text-sm font-semibold" style={{ color: t.text }}>
+                {stats.present} Present
+              </span>
+            </div>
+            {stats.late > 0 && (
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-2 h-2 rounded-full" 
+                  style={{ background: colors.warn }}
+                />
+                <span className="text-sm font-semibold" style={{ color: t.text }}>
+                  {stats.late} Late
+                </span>
+              </div>
+            )}
+            {stats.onLeave > 0 && (
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-2 h-2 rounded-full" 
+                  style={{ background: colors.accentMid }}
+                />
+                <span className="text-sm font-semibold" style={{ color: t.text }}>
+                  {stats.onLeave} On Leave
+                </span>
+              </div>
+            )}
+            {stats.overtime > 0 && (
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-2 h-2 rounded-full" 
+                  style={{ background: colors.accent }}
+                />
+                <span className="text-sm font-semibold" style={{ color: t.text }}>
+                  {stats.overtime} Overtime
+                </span>
+              </div>
+            )}
+            {stats.absent > 0 && (
+              <div className="flex items-center gap-2">
+                <div 
+                  className="w-2 h-2 rounded-full" 
+                  style={{ background: colors.err }}
+                />
+                <span className="text-sm font-semibold" style={{ color: t.text }}>
+                  {stats.absent} Absent
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-        <input
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className="text-sm px-3 py-2 focus:outline-none focus:ring-2"
-          style={{
-            background: t.input,
-            border: `1px solid ${t.inputBorder}`,
-            borderRadius: 10,
-            color: t.text,
-            colorScheme: 'dark',
-          }}
-        />
-      </div>
-
-      {/* Hero clock block */}
-      <div
-        className="flex items-center gap-0"
-        style={{
-          background: colors.ink700,
-          borderRadius: 20,
-          padding: '30px 34px',
-        }}
-      >
-        {/* Live time */}
-        <div className="flex-shrink-0">
-          <p
+        
+        {/* Filter Buttons */}
+        <div className="flex items-center gap-3">
+          {/* Clock-in Filter */}
+          <div className="flex items-center gap-2 p-1 rounded-lg" style={{ background: t.border }}>
+            <button
+              onClick={() => setClockInFilter('all')}
+              className="px-4 py-2 text-xs font-bold rounded-md transition-all"
+              style={{
+                background: clockInFilter === 'all' ? t.surface : 'transparent',
+                color: clockInFilter === 'all' ? t.text : t.textMuted,
+              }}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setClockInFilter('clocked-in')}
+              className="px-4 py-2 text-xs font-bold rounded-md transition-all"
+              style={{
+                background: clockInFilter === 'clocked-in' ? t.surface : 'transparent',
+                color: clockInFilter === 'clocked-in' ? t.text : t.textMuted,
+              }}
+            >
+              Clocked In
+            </button>
+          </div>
+          
+          {/* Show All Employees Toggle */}
+          {(role.canViewTeam || role.canViewAll) && (
+          <button
+            onClick={() => setShowOthers(!showOthers)}
+            className="flex items-center gap-3 px-5 py-2.5 rounded-lg transition-all"
             style={{
-              fontFamily: typography.fontMono,
-              fontSize: 56,
-              fontWeight: 800,
-              color: '#FFFFFF',
-              lineHeight: 1,
-              letterSpacing: '-0.02em',
+              background: showOthers ? t.accent : t.surface,
+              color: showOthers ? t.accentText : t.text,
+              border: `1px solid ${t.border}`,
             }}
           >
-            {isToday ? clock : '--:--:--'}
-          </p>
-          {!isToday && (
-            <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
-              Viewing past date
-            </p>
+            <span className="text-sm font-bold">
+              Show All Employees
+            </span>
+            <div
+              className="w-11 h-6 rounded-full relative transition-all"
+              style={{
+                background: showOthers ? t.accentText : t.border,
+              }}
+            >
+              <div
+                className="absolute top-0.5 w-5 h-5 rounded-full shadow transition-all"
+                style={{
+                  background: showOthers ? t.accent : t.surface,
+                  left: showOthers ? '22px' : '2px',
+                }}
+              />
+            </div>
+          </button>
           )}
-        </div>
-
-        {/* Separator */}
-        <div
-          className="mx-6 md:mx-8 flex-shrink-0"
-          style={{ width: 1, height: 64, background: 'rgba(255,255,255,0.12)' }}
-        />
-
-        {/* Stats */}
-        <div className="flex items-center gap-6 md:gap-8">
-          <HeroStat value={present} label="CLOCKED IN" color={colors.ok} />
-          <HeroStat value={late} label="LATE" color={colors.warn} />
-          <HeroStat value={absent} label="ABSENT" color={colors.err} />
         </div>
       </div>
 
-      {/* Quick Clock (only today) */}
-      {isToday && (
-        <div className="mt-4">
-          <QuickClock variant="dark" theme={t} />
+      {/* 2-Column Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
+        {/* LEFT COLUMN: Attendance Card */}
+        <div>
+          <div className="sticky top-6">
+            <AttendanceCard variant="light" />
+          </div>
         </div>
-      )}
 
-      {/* Column headers */}
-      {!isLoading && entries && entries.length > 0 && (
-        <div
-          className="flex items-center gap-4 px-5 mt-6 mb-2 uppercase"
-          style={{
-            fontSize: 10,
-            fontWeight: 700,
-            color: colors.ink500,
-            letterSpacing: '0.08em',
-          }}
-        >
-          <span style={{ width: 32 }} />
-          <span className="flex-1">Employee</span>
-          <span className="hidden md:block" style={{ width: 80 }}>Clock in</span>
-          <span className="hidden md:block" style={{ width: 80 }}>Clock out</span>
-          <span style={{ width: 80, textAlign: 'right' }}>Status</span>
-        </div>
-      )}
-
-      {/* Attendance rows */}
-      {isLoading ? (
-        <AttendanceSkeleton />
-      ) : !entries || entries.length === 0 ? (
-        <AttendanceEmptyState />
-      ) : (
-        <div className="flex flex-col gap-[3px]">
-          {entries.map((entry) => (
-            <div
-              key={entry.employee_id}
-              className="flex items-center gap-4 transition-colors duration-150"
-              style={{
-                background: t.surface,
-                borderRadius: 12,
-                padding: '14px 20px',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = t.surface }}
-            >
-              <Avatar name={entry.employee_name} id={entry.employee_id} size={32} />
-
-              <div className="flex-1 min-w-0">
-                <p
-                  className="font-semibold truncate"
-                  style={{ fontSize: 13, color: t.text }}
+        {/* RIGHT COLUMN: Week Calendar + Employee Table (Wider) */}
+        <div className="space-y-6">
+          {/* Week Calendar Navigation */}
+          <div 
+            className="p-5"
+            style={{
+              background: t.surface,
+              borderRadius: 16,
+              border: `1px solid ${t.border}`,
+            }}
+          >
+            {/* Month Navigation */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setWeekOffset(weekOffset - 1)}
+                  className="p-2 rounded-lg hover:bg-black/5 transition-all"
+                  style={{ color: t.textMuted }}
                 >
-                  {entry.employee_name}
-                </p>
-                {/* Mobile: show times below name */}
-                <div className="flex items-center gap-3 md:hidden mt-0.5">
-                  {entry.clock_in_at && (
-                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: t.textMuted }}>
-                      {formatDate(entry.clock_in_at, tz, 'time')}
-                    </span>
-                  )}
-                  {entry.clock_out_at && (
-                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: t.textMuted }}>
-                      — {formatDate(entry.clock_out_at, tz, 'time')}
-                    </span>
+                  <ChevronLeft size={20} strokeWidth={2.5} />
+                </button>
+                
+                {/* Month Picker */}
+                <div style={{ position: 'relative' }} data-month-picker>
+                  <button
+                    data-month-picker
+                    onClick={() => setShowMonthPicker(!showMonthPicker)}
+                    className="font-bold text-sm px-4 py-2 rounded-lg hover:bg-black/5 transition-all"
+                    style={{ color: t.text }}
+                  >
+                    {getDisplayMonthName()}
+                  </button>
+                  
+                  {showMonthPicker && (
+                    <div
+                      data-month-picker
+                      className="absolute top-full left-0 mt-2 rounded-lg shadow-lg z-50 grid grid-cols-3 gap-1 p-2"
+                      style={{
+                        background: t.surface,
+                        border: `1px solid ${t.border}`,
+                        minWidth: '240px',
+                      }}
+                    >
+                      {['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, idx) => (
+                        <button
+                          key={month}
+                          onClick={() => handleMonthSelect(idx)}
+                          className="px-3 py-2 text-sm font-semibold rounded-md hover:bg-black/5 transition-all"
+                          style={{ color: t.text }}
+                        >
+                          {month}
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
+                
+                <button
+                  onClick={() => setWeekOffset(weekOffset + 1)}
+                  disabled={!canNavigateNext}
+                  className="p-2 rounded-lg hover:bg-black/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                  style={{ color: t.textMuted }}
+                >
+                  <ChevronRight size={20} strokeWidth={2.5} />
+                </button>
               </div>
 
-              {/* Desktop: times in columns */}
-              <span
-                className="hidden md:block"
-                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: t.textMuted }}
+              <button
+                onClick={() => {
+                  setWeekOffset(0)
+                  setDate(todayISO(tz))
+                }}
+                className="px-4 py-2 text-sm font-bold rounded-lg transition-all"
+                style={{
+                  background: weekOffset === 0 ? t.accent : 'transparent',
+                  color: weekOffset === 0 ? t.accentText : t.textMuted,
+                }}
               >
-                {entry.clock_in_at ? formatDate(entry.clock_in_at, tz, 'time') : '—'}
-              </span>
-              <span
-                className="hidden md:block"
-                style={{ width: 80, fontFamily: typography.fontMono, fontSize: 13, color: t.textMuted }}
-              >
-                {entry.clock_out_at ? formatDate(entry.clock_out_at, tz, 'time') : '—'}
-              </span>
+                Today
+              </button>
+            </div>
 
-              <div style={{ width: 80, display: 'flex', justifyContent: 'flex-end' }}>
-                <StatusSquare status={entry.status} />
+            {/* Horizontal Week Days */}
+            <div className="grid grid-cols-7 gap-2">
+              {myWeek?.days.map((day, index) => (
+                <DayButton
+                  key={day.date || index}
+                  day={day}
+                  isSelected={day.date === date}
+                  onClick={() => setDate(day.date || todayISO(tz))}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Employee Attendance Table */}
+          <div
+            className="overflow-hidden"
+            style={{
+              background: t.surface,
+              borderRadius: 16,
+              border: `1px solid ${t.border}`,
+            }}
+          >
+            {/* Table Header */}
+            <div 
+              className="px-6 py-4 border-b"
+              style={{ borderColor: t.border }}
+            >
+              <div className="flex items-center gap-6">
+                <div className="w-10"></div> {/* Avatar space */}
+                <div className="flex-1 text-sm font-bold" style={{ color: t.text }}>Employee</div>
+                <div className="w-32 text-sm font-bold text-center" style={{ color: t.text }}>Clock In</div>
+                <div className="w-32 text-sm font-bold text-center" style={{ color: t.text }}>Clock Out</div>
+                <div className="w-40 text-sm font-bold" style={{ color: t.text }}>Note</div>
               </div>
             </div>
-          ))}
+
+            {/* Table Body */}
+            <div>
+              {getEmployeeList().map((employee) => (
+                <EmployeeRow
+                  key={employee.employee_id}
+                  employee={employee}
+                  date={date}
+                  tz={tz}
+                />
+              ))}
+            </div>
+
+            {/* Empty State */}
+            {getEmployeeList().length === 0 && (
+              <div className="px-6 py-12 text-center">
+                <p className="text-sm font-bold" style={{ color: t.textMuted }}>
+                  No employees to display
+                </p>
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }
 
 // ── Subcomponents ──────────────────────────────────────────────
 
-function HeroStat({ value, label, color }: { value: number; label: string; color: string }) {
+// Day Button for Horizontal Week Calendar
+interface DayButtonProps {
+  day: any
+  isSelected: boolean
+  onClick: () => void
+}
+
+function DayButton({ day, isSelected, onClick }: DayButtonProps) {
   return (
-    <div>
-      <p style={{ fontSize: 30, fontWeight: 800, color, lineHeight: 1 }}>{value}</p>
-      <p
-        className="uppercase mt-1"
-        style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em' }}
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center px-2 py-3 rounded-lg transition-all w-full"
+      style={{
+        background: isSelected ? t.accent : 'transparent',
+        border: `1px solid ${isSelected ? t.accent : t.border}`,
+      }}
+    >
+      <span 
+        className="text-xs font-bold uppercase mb-1"
+        style={{ color: isSelected ? t.accentText : t.textMuted }}
       >
-        {label}
-      </p>
-    </div>
+        {day.day_name?.substring(0, 2)}
+      </span>
+      <span 
+        className="text-2xl font-black"
+        style={{ 
+          color: isSelected ? t.accentText : t.text,
+          opacity: (day.status === 'weekend' || day.status === 'future') ? 0.3 : 1,
+        }}
+      >
+        {day.day_number || '—'}
+      </span>
+    </button>
   )
 }
 
-function AttendanceSkeleton() {
+// Employee Row Component
+interface EmployeeRowProps {
+  employee: any
+  date: string
+  tz: string
+}
+
+function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
+  // Find attendance for selected date
+  const dayData = employee.week?.days.find((d: any) => d.date === date)
+  const clockInTime = dayData?.clock_in_at ? formatDate(dayData.clock_in_at, tz, 'time') : null
+  const clockOutTime = dayData?.clock_out_at ? formatDate(dayData.clock_out_at, tz, 'time') : null
+  
+  // Determine status display
+  const getStatusBadge = () => {
+    if (!dayData) return null
+    
+    const status = dayData.status
+    
+    if (status === 'overtime') {
+      return {
+        label: 'Overtime',
+        bg: colors.accentDim,
+        dot: colors.accent,
+        text: colors.accentText,
+      }
+    } else if (status === 'on-time') {
+      return {
+        label: 'On Time',
+        bg: colors.okDim,
+        dot: colors.ok,
+        text: colors.okText,
+      }
+    } else if (status === 'late') {
+      return {
+        label: 'Late',
+        bg: colors.warnDim,
+        dot: colors.warn,
+        text: colors.warnText,
+      }
+    } else if (status === 'on_leave') {
+      return {
+        label: 'On Leave',
+        bg: colors.accentDim,
+        dot: colors.accentMid,
+        text: colors.accentText,
+      }
+    } else if (status === 'absent') {
+      return {
+        label: 'Absent',
+        bg: colors.errDim,
+        dot: colors.err,
+        text: colors.errText,
+      }
+    }
+    return null
+  }
+  
+  const badge = getStatusBadge()
+
   return (
-    <div className="flex flex-col gap-[3px] mt-6">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-4 animate-pulse"
-          style={{ background: t.surface, borderRadius: 12, padding: '14px 20px' }}
-        >
-          <div className="rounded-[9px] flex-shrink-0" style={{ width: 32, height: 32, background: t.surfaceHover }} />
-          <div className="flex-1">
-            <div className="rounded-md" style={{ width: 120, height: 13, background: t.surfaceHover }} />
-          </div>
-          <div className="rounded-md hidden md:block" style={{ width: 50, height: 13, background: t.surface }} />
-          <div className="rounded-md hidden md:block" style={{ width: 50, height: 13, background: t.surface }} />
-          <div className="flex items-center gap-1.5" style={{ width: 80, justifyContent: 'flex-end' }}>
-            <div className="rounded-sm" style={{ width: 7, height: 7, background: t.surfaceHover }} />
-            <div className="rounded-sm" style={{ width: 36, height: 12, background: t.surface }} />
-          </div>
+    <div
+      className="px-6 py-4 border-b transition-all hover:bg-black/[0.02]"
+      style={{
+        borderColor: t.border,
+      }}
+    >
+      <div className="flex items-center gap-6">
+        {/* Avatar */}
+        <div className="w-10 flex-shrink-0">
+          <Avatar id={employee.employee_id} name={employee.employee_name} size={40} />
         </div>
-      ))}
-    </div>
-  )
-}
 
-function AttendanceEmptyState() {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 gap-3">
-      <div
-        className="grid place-items-center"
-        style={{ width: 48, height: 48, borderRadius: 14, background: t.accent }}
-      >
-        <Clock size={22} style={{ color: t.accentText }} />
+        {/* Employee Name + Status Badge */}
+        <div className="flex-1 flex items-center gap-3">
+          <span className="text-sm font-bold" style={{ color: t.text }}>
+            {employee.employee_name}
+          </span>
+          {badge && (
+            <div 
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              style={{ background: badge.bg }}
+            >
+              <div className="w-1.5 h-1.5 rounded-full" style={{ background: badge.dot }} />
+              <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: badge.text }}>
+                {badge.label}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Clock In */}
+        <div className="w-32 flex justify-center">
+          {clockInTime ? (
+            <div className="flex flex-col items-center gap-1">
+              <div 
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+                style={{
+                  background: dayData.status === 'overtime' ? colors.accentDim : colors.okDim,
+                }}
+              >
+                <div className="w-2 h-2 rounded-full" style={{ 
+                  background: dayData.status === 'overtime' ? colors.accent : colors.ok 
+                }} />
+                <span className="text-xs font-bold" style={{ 
+                  color: dayData.status === 'overtime' ? colors.accentText : colors.okText 
+                }}>
+                  {clockInTime}
+                </span>
+              </div>
+              <span className="text-[10px] font-medium" style={{ 
+                color: dayData.status === 'overtime' ? colors.accentText : colors.okText 
+              }}>
+                Clocked In
+              </span>
+            </div>
+          ) : (
+            <div 
+              className="flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-lg border"
+              style={{
+                background: t.surface,
+                borderColor: t.border,
+              }}
+            >
+              <Clock size={16} style={{ color: t.textMuted, opacity: 0.4 }} />
+              <span className="text-[10px] font-medium" style={{ color: t.textMuted }}>
+                No clock in
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Clock Out */}
+        <div className="w-32 flex justify-center">
+          {clockOutTime ? (
+            <div className="flex flex-col items-center gap-1">
+              <div 
+                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+                style={{
+                  background: colors.ink100,
+                }}
+              >
+                <div className="w-2 h-2 rounded-full" style={{ background: colors.ink500 }} />
+                <span className="text-xs font-bold" style={{ color: colors.ink700 }}>
+                  {clockOutTime}
+                </span>
+              </div>
+              <span className="text-[10px] font-medium" style={{ color: colors.ink500 }}>
+                Clocked Out
+              </span>
+            </div>
+          ) : clockInTime ? (
+            <div 
+              className="flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-lg border"
+              style={{
+                background: colors.warnDim,
+                borderColor: colors.warn,
+              }}
+            >
+              <div className="w-2 h-2 rounded-full" style={{ background: colors.warn }} />
+              <span className="text-[10px] font-bold" style={{ color: colors.warnText }}>
+                Working
+              </span>
+            </div>
+          ) : (
+            <div 
+              className="flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-lg border"
+              style={{
+                background: t.surface,
+                borderColor: t.border,
+              }}
+            >
+              <Clock size={16} style={{ color: t.textMuted, opacity: 0.4 }} />
+              <span className="text-[10px] font-medium" style={{ color: t.textMuted }}>
+                No clock out
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Note */}
+        <div className="w-40">
+          <input
+            type="text"
+            placeholder="Add note..."
+            className="w-full px-3 py-2 text-xs rounded-lg transition-all focus:outline-none focus:ring-2"
+            style={{
+              background: t.input,
+              border: `1px solid ${t.border}`,
+              color: t.text,
+            }}
+          />
+        </div>
       </div>
-      <p className="font-bold" style={{ fontSize: 15, color: t.text }}>
-        No clock-ins yet today
-      </p>
-      <p style={{ fontSize: 13, color: t.textMuted }}>
-        Records appear here as employees check in.
-      </p>
     </div>
   )
 }

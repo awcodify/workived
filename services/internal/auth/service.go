@@ -30,15 +30,15 @@ type Repo interface {
 
 // OrgRepo is the narrow interface the auth service needs from the organisation module.
 type OrgRepo interface {
-	GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, error)
+	GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, bool, error)
 }
 
 type Service struct {
-	repo          Repo
-	orgRepo       OrgRepo
-	jwtSecret     string
-	accessTTL     time.Duration
-	refreshTTL    time.Duration
+	repo       Repo
+	orgRepo    OrgRepo
+	jwtSecret  string
+	accessTTL  time.Duration
+	refreshTTL time.Duration
 }
 
 func NewService(repo Repo, orgRepo OrgRepo, jwtSecret string, accessTTL, refreshTTL time.Duration) *Service {
@@ -93,9 +93,9 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, 
 	}
 
 	// Try to get org context — may be empty if user has not yet created/joined an org
-	orgID, role, _ := s.orgRepo.GetMemberOrgID(ctx, user.ID)
+	orgID, role, hasSubordinate, _ := s.orgRepo.GetMemberOrgID(ctx, user.ID)
 
-	accessToken, err := s.IssueAccessToken(user.ID, orgID, role)
+	accessToken, err := s.IssueAccessToken(user.ID, orgID, role, hasSubordinate)
 	if err != nil {
 		// unreachable with HMAC-SHA256 and a non-nil key
 		return nil, "", fmt.Errorf("issue access token: %w", err)
@@ -124,9 +124,9 @@ func (s *Service) Refresh(ctx context.Context, rawToken string) (*RefreshRespons
 		return nil, "", err
 	}
 
-	orgID, role, _ := s.orgRepo.GetMemberOrgID(ctx, user.ID)
+	orgID, role, hasSubordinate, _ := s.orgRepo.GetMemberOrgID(ctx, user.ID)
 
-	accessToken, err := s.IssueAccessToken(user.ID, orgID, role)
+	accessToken, err := s.IssueAccessToken(user.ID, orgID, role, hasSubordinate)
 	if err != nil {
 		// unreachable with HMAC-SHA256 and a non-nil key
 		return nil, "", fmt.Errorf("issue access token: %w", err)
@@ -166,7 +166,7 @@ func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
 
 // IssueAccessToken creates a signed JWT with the given claims.
 // Exported so the organisation service can issue tokens after invitation acceptance.
-func (s *Service) IssueAccessToken(userID, orgID uuid.UUID, role string) (string, error) {
+func (s *Service) IssueAccessToken(userID, orgID uuid.UUID, role string, hasSubordinate bool) (string, error) {
 	now := time.Now().UTC()
 	claims := middleware.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -174,9 +174,10 @@ func (s *Service) IssueAccessToken(userID, orgID uuid.UUID, role string) (string
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.accessTTL)),
 		},
-		UserID: userID,
-		OrgID:  orgID,
-		Role:   role,
+		UserID:         userID,
+		OrgID:          orgID,
+		Role:           role,
+		HasSubordinate: hasSubordinate,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.jwtSecret))

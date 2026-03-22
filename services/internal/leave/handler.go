@@ -296,6 +296,9 @@ func (h *Handler) ListRequests(c *gin.Context) {
 		}
 		filter.Year = &year
 	}
+	if d := c.Query("date"); d != "" {
+		filter.Date = &d
+	}
 
 	// For non-admin roles, filter by direct reports (reporting_to relationship)
 	// Admins (owner, admin, hr_admin) can see all requests

@@ -464,8 +464,9 @@ func (r *Repository) ListRequests(ctx context.Context, orgID uuid.UUID, filter L
 		  AND ($3::uuid IS NULL OR lr.employee_id = $3)
 		  AND ($4::int IS NULL OR EXTRACT(YEAR FROM lr.start_date) = $4)
 		  AND ($5::uuid IS NULL OR e.reporting_to = $5)
+		  AND ($6::date IS NULL OR (lr.start_date <= $6::date AND lr.end_date >= $6::date))
 		ORDER BY lr.created_at DESC
-	`, orgID, filter.Status, filter.EmployeeID, filter.Year, filter.ManagerEmployeeID)
+	`, orgID, filter.Status, filter.EmployeeID, filter.Year, filter.ManagerEmployeeID, filter.Date)
 	if err != nil {
 		return nil, fmt.Errorf("list leave requests: %w", err)
 	}

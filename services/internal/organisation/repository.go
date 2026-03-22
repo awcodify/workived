@@ -98,20 +98,21 @@ func (r *Repository) GetMember(ctx context.Context, orgID, userID uuid.UUID) (*m
 }
 
 // GetMemberOrgID returns the first active org membership for a user — used by auth service.
-func (r *Repository) GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, error) {
+func (r *Repository) GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, bool, error) {
 	var orgID uuid.UUID
 	var role string
+	var hasSubordinate bool
 	err := r.db.QueryRow(ctx, `
-		SELECT organisation_id, role
+		SELECT organisation_id, role, has_subordinate
 		FROM organisation_members
 		WHERE user_id = $1 AND is_active = TRUE
 		ORDER BY joined_at ASC
 		LIMIT 1
-	`, userID).Scan(&orgID, &role)
+	`, userID).Scan(&orgID, &role, &hasSubordinate)
 	if err != nil {
-		return uuid.Nil, "", err
+		return uuid.Nil, "", false, err
 	}
-	return orgID, role, nil
+	return orgID, role, hasSubordinate, nil
 }
 
 // CreateInvitation stores an invitation record and returns the invitation.
@@ -211,9 +212,9 @@ func (r *Repository) AcceptInvitation(ctx context.Context, p AcceptParams) (*Mem
 		        employee_id = COALESCE(EXCLUDED.employee_id, organisation_members.employee_id),
 		        is_active = TRUE,
 		        joined_at = NOW()
-		RETURNING id, user_id, organisation_id, employee_id, role, is_active, joined_at
+		RETURNING id, user_id, organisation_id, employee_id, role, has_subordinate, is_active, joined_at
 	`, p.OrgID, p.UserID, p.Role, p.EmployeeID).Scan(
-		&m.ID, &m.UserID, &m.OrgID, &m.EmployeeID, &m.Role, &m.IsActive, &m.JoinedAt,
+		&m.ID, &m.UserID, &m.OrgID, &m.EmployeeID, &m.Role, &m.HasSubordinate, &m.IsActive, &m.JoinedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -330,6 +331,24 @@ func (r *Repository) GetOrgPlanInfo(ctx context.Context, orgID uuid.UUID) (strin
 		return "", nil, err
 	}
 	return plan, limit, nil
+}
+
+// UpdateManagerSubordinateFlag updates the has_subordinate flag for a manager.
+// Called by employee service when reporting relationships change.
+func (r *Repository) UpdateManagerSubordinateFlag(ctx context.Context, orgID, managerEmployeeID uuid.UUID) error {
+	// Update the has_subordinate flag based on whether they have active subordinates
+	_, err := r.db.Exec(ctx, `
+		UPDATE organisation_members
+		SET has_subordinate = EXISTS (
+			SELECT 1 
+			FROM employees 
+			WHERE reporting_to = $2 
+			  AND is_active = true
+		)
+		WHERE organisation_id = $1 
+		  AND employee_id = $2
+	`, orgID, managerEmployeeID)
+	return err
 }
 
 // GetOrgTimezone returns the timezone for an org — used by attendance service.

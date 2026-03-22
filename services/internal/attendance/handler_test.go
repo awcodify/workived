@@ -30,6 +30,8 @@ type mockAttService struct {
 	dailyReportFn       func(ctx context.Context, orgID uuid.UUID, f attendance.DailyReportFilters) ([]attendance.DailyEntry, error)
 	monthlySummaryFn    func(ctx context.Context, orgID uuid.UUID, f attendance.MonthlyReportFilters) ([]attendance.MonthlySummary, error)
 	empMonthlySummaryFn func(ctx context.Context, orgID, empID uuid.UUID, f attendance.MonthlyReportFilters) (*attendance.MonthlySummary, error)
+	getEmployeeWeekFn   func(ctx context.Context, orgID, empID uuid.UUID, startDate string) (*attendance.WeekCalendar, error)
+	getTeamWeekFn       func(ctx context.Context, orgID, managerEmpID uuid.UUID, startDate string) ([]attendance.TeamWeekEntry, error)
 }
 
 func (m *mockAttService) ClockIn(ctx context.Context, orgID uuid.UUID, req attendance.ClockInRequest) (*attendance.Record, error) {
@@ -49,6 +51,18 @@ func (m *mockAttService) MonthlySummaryReport(ctx context.Context, orgID uuid.UU
 }
 func (m *mockAttService) EmployeeMonthlySummary(ctx context.Context, orgID, empID uuid.UUID, f attendance.MonthlyReportFilters) (*attendance.MonthlySummary, error) {
 	return m.empMonthlySummaryFn(ctx, orgID, empID, f)
+}
+func (m *mockAttService) GetEmployeeWeek(ctx context.Context, orgID, empID uuid.UUID, startDate string) (*attendance.WeekCalendar, error) {
+	if m.getEmployeeWeekFn != nil {
+		return m.getEmployeeWeekFn(ctx, orgID, empID, startDate)
+	}
+	return nil, nil
+}
+func (m *mockAttService) GetTeamWeek(ctx context.Context, orgID, managerEmpID uuid.UUID, startDate string) ([]attendance.TeamWeekEntry, error) {
+	if m.getTeamWeekFn != nil {
+		return m.getTeamWeekFn(ctx, orgID, managerEmpID, startDate)
+	}
+	return nil, nil
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

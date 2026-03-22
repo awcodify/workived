@@ -94,6 +94,16 @@ export function useAllBalances(year?: number) {
 }
 
 // ── Request Hooks ────────────────────────────────────────────
+export function useOnLeaveByDate(date: string) {
+  const canManage = useCanManageLeave()
+  return useQuery({
+    queryKey: [...leaveKeys.requests(), 'on-leave', date],
+    queryFn: () => leaveApi.getOnLeaveByDate(date).then((r) => r.data.data),
+    enabled: canManage,
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 export function useMyRequests() {
   return useQuery({
     queryKey: leaveKeys.myRequests(),

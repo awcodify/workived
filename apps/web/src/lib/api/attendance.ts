@@ -3,6 +3,8 @@ import type {
   AttendanceRecord,
   DailyEntry,
   MonthlySummary,
+  WeekCalendar,
+  TeamWeekEntry,
   ApiResponse,
 } from '@/types/api'
 
@@ -24,4 +26,20 @@ export const attendanceApi = {
 
   employeeMonthly: (employeeId: string, year: number, month: number) =>
     apiClient.get<ApiResponse<MonthlySummary>>(`/api/v1/attendance/monthly/${employeeId}`, { params: { year, month } }),
+
+  // Week calendar endpoints (Sprint 12)
+  getMyWeek: (startDate: string) =>
+    apiClient.get<ApiResponse<WeekCalendar>>('/api/v1/attendance/my/week', { params: { start_date: startDate } }),
+
+  getTeamWeek: (startDate: string) =>
+    apiClient.get<ApiResponse<TeamWeekEntry[]>>('/api/v1/attendance/team/week', { params: { start_date: startDate } }),
+
+  getAllWeek: (startDate: string) =>
+    apiClient.get<ApiResponse<TeamWeekEntry[]>>('/api/v1/attendance/all/week', { params: { start_date: startDate } }),
+
+  getMySummary: (year: number, month: number) =>
+    apiClient.get<ApiResponse<MonthlySummary>>('/api/v1/attendance/my/summary', { params: { year, month } }),
+
+  getTeamSummary: (year: number, month: number) =>
+    apiClient.get<ApiResponse<MonthlySummary[]>>('/api/v1/attendance/team/summary', { params: { year, month } }),
 }

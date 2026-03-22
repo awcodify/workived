@@ -27,7 +27,7 @@ type RepoInterface interface {
 	Update(ctx context.Context, orgID uuid.UUID, req UpdateOrgRequest) (*Organisation, error)
 	TransferOwnership(ctx context.Context, orgID, currentOwnerID, newOwnerID uuid.UUID) error
 	GetOrgPlanInfo(ctx context.Context, orgID uuid.UUID) (string, *int, error)
-	GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, error)
+	GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, bool, error)
 	GetActiveMember(ctx context.Context, orgID, userID uuid.UUID) (*Member, error)
 	CreateInvitation(ctx context.Context, orgID uuid.UUID, email, role string, invitedBy uuid.UUID, tokenHash, inviteURL string, employeeID *uuid.UUID, expiresAt time.Time) (*Invitation, error)
 	GetInvitationByToken(ctx context.Context, tokenHash string) (*Invitation, error)
@@ -48,7 +48,7 @@ type AuthTokenCreator interface {
 
 // AccessTokenIssuer issues JWTs — satisfied by the auth service.
 type AccessTokenIssuer interface {
-	IssueAccessToken(userID, orgID uuid.UUID, role string) (string, error)
+	IssueAccessToken(userID, orgID uuid.UUID, role string, hasSubordinate bool) (string, error)
 }
 
 // EmployeeInfoProvider provides employee profile data for email notifications.
@@ -126,7 +126,8 @@ func (s *Service) Create(ctx context.Context, ownerID uuid.UUID, req CreateOrgRe
 		return nil, fmt.Errorf("create organisation: %w", err)
 	}
 	// Issue a new JWT so the caller immediately has org context without re-logging in.
-	accessToken, err := s.tokenIssuer.IssueAccessToken(ownerID, org.ID, "owner")
+	// Owner never has subordinates initially
+	accessToken, err := s.tokenIssuer.IssueAccessToken(ownerID, org.ID, "owner", false)
 	if err != nil {
 		return nil, fmt.Errorf("issue access token after org creation: %w", err)
 	}
@@ -349,7 +350,8 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 	}
 
 	// 5. Issue a new JWT with the new org context.
-	accessToken, err := s.tokenIssuer.IssueAccessToken(userID, inv.OrgID, inv.Role)
+	// Get has_subordinate from the member record
+	accessToken, err := s.tokenIssuer.IssueAccessToken(userID, inv.OrgID, inv.Role, member.HasSubordinate)
 	if err != nil {
 		return nil, fmt.Errorf("issue access token: %w", err)
 	}

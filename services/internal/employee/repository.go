@@ -313,6 +313,32 @@ func (r *Repository) GetDirectReports(ctx context.Context, orgID, managerID uuid
 	return emps, rows.Err()
 }
 
+// GetSubordinateIDs returns employee IDs reporting to the given manager.
+// Used for permission checks and filtering in attendance/leave modules.
+func (r *Repository) GetSubordinateIDs(ctx context.Context, orgID, managerID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id
+		FROM employees
+		WHERE organisation_id = $1
+		  AND reporting_to = $2
+		  AND is_active = TRUE
+	`, orgID, managerID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var ids []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
 // GetWithManagerName returns an employee with their managers full name populated.
 func (r *Repository) GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error) {
 	result := &EmployeeWithManager{}

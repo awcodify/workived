@@ -686,9 +686,10 @@ API_URL=http://localhost:8080
 
 ---
 
-*Last updated: March 21, 2026*  
-*Current Sprint: Sprint 9 ✅ COMPLETE (Workload Intelligence)*  
-*Status: Sprint 9 ✅ Complete → Sprint 10 🎯 Next*  
-*Sprint Documentation:* [sprint8.md](./docs/sprint8.md) | [sprint9.md](./docs/sprint9.md)  
+*Last updated: March 22, 2026*  
+*Current Sprint: Sprint 12 🎯 Planned (Attendance Dashboard Revamp)*  
+*Recent Sprint: Sprint 11 ✅ Complete (Leave & Claim Approval UX Revamp, March 22)*  
+*Status: Sprint 11 ✅ Complete → Sprint 12 🎯 Next (Attendance)*  
+*Sprint Documentation:* [sprint8.md](./docs/sprint8.md) | [sprint9.md](./docs/sprint9.md) | [sprint11.md](./docs/sprint11.md) | [sprint12.md](./docs/sprint12.md)  
 *Product Roadmap:* [docs/ROADMAP.md](./docs/ROADMAP.md) — Sprint priorities & competitive positioning  
 *Feature Backlog:* [docs/backlog/](./docs/backlog/) — Organized by theme (HR, system, monetization, advanced)

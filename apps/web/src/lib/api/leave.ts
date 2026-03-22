@@ -78,6 +78,12 @@ export const leaveApi = {
       params,
     }),
 
+  // Get on-leave employees for a specific date
+  getOnLeaveByDate: (date: string) =>
+    apiClient.get<RequestListResponse>('/api/v1/leave/requests', {
+      params: { status: 'approved', date },
+    }),
+
   myRequests: () =>
     apiClient.get<RequestListResponse>('/api/v1/leave/requests/me'),
 

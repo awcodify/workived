@@ -52,6 +52,31 @@ type MonthlySummary struct {
 	WorkingDays  int       `json:"working_days"`
 }
 
+// WeekDay represents a single day in the week calendar view.
+type WeekDay struct {
+	Date       string     `json:"date"`       // "2026-03-17" (YYYY-MM-DD)
+	DayName    string     `json:"day_name"`   // "Mon", "Tue", etc.
+	DayNumber  int        `json:"day_number"` // 17
+	Status     string     `json:"status"`     // "on-time", "late", "absent", "weekend", "future", "overtime", "on_leave"
+	ClockInAt  *time.Time `json:"clock_in_at,omitempty"`
+	ClockOutAt *time.Time `json:"clock_out_at,omitempty"`
+	IsToday    bool       `json:"is_today"`
+}
+
+// WeekCalendar contains 7 days (Monday–Sunday) for the week calendar view.
+type WeekCalendar struct {
+	StartDate string    `json:"start_date"` // Monday's date (YYYY-MM-DD)
+	EndDate   string    `json:"end_date"`   // Sunday's date (YYYY-MM-DD)
+	Days      []WeekDay `json:"days"`       // Always 7 elements
+}
+
+// TeamWeekEntry represents one employee's week calendar in the team view.
+type TeamWeekEntry struct {
+	EmployeeID   uuid.UUID     `json:"employee_id"`
+	EmployeeName string        `json:"employee_name"`
+	Week         *WeekCalendar `json:"week"`
+}
+
 // ActiveEmployee is a minimal employee projection for attendance calculations.
 type ActiveEmployee struct {
 	ID       uuid.UUID

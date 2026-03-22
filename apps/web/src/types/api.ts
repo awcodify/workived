@@ -243,7 +243,7 @@ export interface AttendanceRecord {
 export interface DailyEntry {
   employee_id: string
   employee_name: string
-  status: 'present' | 'late' | 'absent'
+  status: 'present' | 'late' | 'absent' | 'on_leave'
   clock_in_at?: string
   clock_out_at?: string
   note?: string
@@ -256,6 +256,28 @@ export interface MonthlySummary {
   late: number
   absent: number
   working_days: number
+}
+
+export interface WeekDay {
+  date: string // "2026-03-17"
+  day_name: string // "Mon", "Tue", etc.
+  day_number: number // 17
+  status: 'on-time' | 'late' | 'absent' | 'weekend' | 'future' | 'on_leave' | 'overtime'
+  clock_in_at?: string
+  clock_out_at?: string
+  is_today: boolean
+}
+
+export interface WeekCalendar {
+  start_date: string // Monday (YYYY-MM-DD)
+  end_date: string // Sunday (YYYY-MM-DD)
+  days: WeekDay[] // Always 7 elements
+}
+
+export interface TeamWeekEntry {
+  employee_id: string
+  employee_name: string
+  week: WeekCalendar
 }
 
 // ── Shared ───────────────────────────────────────────────────

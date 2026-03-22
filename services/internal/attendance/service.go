@@ -30,22 +30,30 @@ type OrgInfoProvider interface {
 	GetOrgCountryCode(ctx context.Context, orgID uuid.UUID) (string, error)
 }
 
+// EmployeeInfoProvider provides employee relationship data for team attendance views.
+type EmployeeInfoProvider interface {
+	GetSubordinateIDs(ctx context.Context, orgID, managerID uuid.UUID) ([]uuid.UUID, error)
+	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+}
+
 // NowFunc can be replaced in tests to control time.
 type NowFunc func() time.Time
 
 type Service struct {
-	repo    RepositoryInterface
-	orgRepo OrgInfoProvider
-	now     NowFunc
-	log     zerolog.Logger
+	repo         RepositoryInterface
+	orgRepo      OrgInfoProvider
+	employeeRepo EmployeeInfoProvider
+	now          NowFunc
+	log          zerolog.Logger
 }
 
-func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, log zerolog.Logger) *Service {
+func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, employeeRepo EmployeeInfoProvider, log zerolog.Logger) *Service {
 	return &Service{
-		repo:    repo,
-		orgRepo: orgRepo,
-		now:     func() time.Time { return time.Now().UTC() },
-		log:     log,
+		repo:         repo,
+		orgRepo:      orgRepo,
+		employeeRepo: employeeRepo,
+		now:          func() time.Time { return time.Now().UTC() },
+		log:          log,
 	}
 }
 
@@ -322,6 +330,225 @@ func (s *Service) EmployeeMonthlySummary(ctx context.Context, orgID, employeeID 
 		Absent:       absent,
 		WorkingDays:  workingDays,
 	}, nil
+}
+
+// GetEmployeeWeek returns a 7-day week calendar (Mon-Sun) for a single employee.
+// startDate must be a Monday in "YYYY-MM-DD" format.
+func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UUID, startDate string) (*WeekCalendar, error) {
+	// Parse start date
+	start, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		return nil, apperr.NewField(apperr.CodeValidation, "invalid start_date format, expected YYYY-MM-DD", "start_date")
+	}
+
+	// Verify it's a Monday
+	if start.Weekday() != time.Monday {
+		return nil, apperr.NewField(apperr.CodeValidation, "start_date must be a Monday", "start_date")
+	}
+
+	// Get org timezone for "today" calculation
+	tz, err := s.orgRepo.GetOrgTimezone(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return nil, fmt.Errorf("invalid timezone %q: %w", tz, err)
+	}
+
+	now := s.now()
+	localNow := now.In(loc)
+	todayStr := localNow.Format("2006-01-02")
+
+	// Get work schedule and holidays
+	schedule, err := s.repo.GetDefaultSchedule(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	workDays := []int{1, 2, 3, 4, 5} // Default Mon-Fri
+	if schedule != nil {
+		workDays = schedule.WorkDays
+	}
+	workDaySet := make(map[int]bool, len(workDays))
+	for _, wd := range workDays {
+		workDaySet[wd] = true
+	}
+
+	endDate := start.AddDate(0, 0, 6) // Sunday
+	countryCode, err := s.orgRepo.GetOrgCountryCode(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	holidays, err := s.repo.ListHolidays(ctx, countryCode, start.Format("2006-01-02"), endDate.Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+	holidaySet := make(map[string]bool, len(holidays))
+	for _, h := range holidays {
+		holidaySet[h.Date] = true
+	}
+
+	// Fetch attendance records for the week's month(s)
+	// A week can span two months, so we need to handle both
+	startYear, startMonth, _ := start.Date()
+	endYear, endMonth, _ := endDate.Date()
+
+	var records []Record
+	if startYear == endYear && startMonth == endMonth {
+		// Week within single month
+		records, err = s.repo.ListByEmployeeMonth(ctx, orgID, employeeID, startYear, int(startMonth))
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		// Week spans two months
+		r1, err1 := s.repo.ListByEmployeeMonth(ctx, orgID, employeeID, startYear, int(startMonth))
+		if err1 != nil {
+			return nil, err1
+		}
+		r2, err2 := s.repo.ListByEmployeeMonth(ctx, orgID, employeeID, endYear, int(endMonth))
+		if err2 != nil {
+			return nil, err2
+		}
+		records = append(r1, r2...)
+	}
+
+	// Build map: date → record
+	recordMap := make(map[string]*Record, len(records))
+	for i := range records {
+		recordMap[records[i].Date] = &records[i]
+	}
+
+	// Generate 7 days
+	days := make([]WeekDay, 7)
+	for i := 0; i < 7; i++ {
+		d := start.AddDate(0, 0, i)
+		dateStr := d.Format("2006-01-02")
+		dayName := d.Format("Mon")
+		dayNumber := d.Day()
+
+		weekDay := WeekDay{
+			Date:      dateStr,
+			DayName:   dayName,
+			DayNumber: dayNumber,
+			IsToday:   dateStr == todayStr,
+		}
+
+		// Determine status
+		isFuture := d.After(localNow.Truncate(24 * time.Hour))
+		isWorkDay := workDaySet[int(d.Weekday())] && !holidaySet[dateStr]
+		rec := recordMap[dateStr]
+
+		if isFuture {
+			weekDay.Status = "future"
+		} else if rec != nil {
+			// Has attendance record
+			if !isWorkDay {
+				// Clocked in on weekend/holiday = overtime
+				weekDay.Status = "overtime"
+			} else if rec.IsLate {
+				weekDay.Status = "late"
+			} else {
+				weekDay.Status = "on-time"
+			}
+			weekDay.ClockInAt = &rec.ClockInAt
+			weekDay.ClockOutAt = rec.ClockOutAt
+		} else if !isWorkDay {
+			// Weekend/holiday with no attendance
+			weekDay.Status = "weekend"
+		} else {
+			// No record on past working day
+			weekDay.Status = "absent"
+		}
+
+		days[i] = weekDay
+	}
+
+	return &WeekCalendar{
+		StartDate: start.Format("2006-01-02"),
+		EndDate:   endDate.Format("2006-01-02"),
+		Days:      days,
+	}, nil
+}
+
+// GetTeamWeek returns week calendars for the manager and all their subordinates.
+// startDate must be a Monday in "YYYY-MM-DD" format.
+func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid.UUID, startDate string) ([]TeamWeekEntry, error) {
+	// Get subordinate employee IDs
+	subordinateIDs, err := s.employeeRepo.GetSubordinateIDs(ctx, orgID, managerEmployeeID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Include the manager's own attendance
+	employeeIDs := append([]uuid.UUID{managerEmployeeID}, subordinateIDs...)
+
+	// Fetch week calendar for each employee (manager + subordinates)
+	result := make([]TeamWeekEntry, 0, len(employeeIDs))
+	for _, employeeID := range employeeIDs {
+		// Get employee name
+		name, _, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+		if err != nil {
+			// Skip if employee not found (soft-deleted, etc.)
+			continue
+		}
+
+		// Get week calendar
+		week, err := s.GetEmployeeWeek(ctx, orgID, employeeID, startDate)
+		if err != nil {
+			// Log error but continue with other employees
+			s.log.Error().Err(err).
+				Str("employee_id", employeeID.String()).
+				Str("start_date", startDate).
+				Msg("failed to get employee week calendar")
+			continue
+		}
+
+		result = append(result, TeamWeekEntry{
+			EmployeeID:   employeeID,
+			EmployeeName: name,
+			Week:         week,
+		})
+	}
+
+	return result, nil
+}
+
+// GetAllWeek returns week calendars for all active employees in the organization.
+// startDate must be a Monday in "YYYY-MM-DD" format.
+func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate string) ([]TeamWeekEntry, error) {
+	// Get all active employees
+	employees, err := s.repo.ListActiveEmployees(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(employees) == 0 {
+		return []TeamWeekEntry{}, nil
+	}
+
+	// Fetch week calendar for each employee
+	result := make([]TeamWeekEntry, 0, len(employees))
+	for _, employee := range employees {
+		// Get week calendar
+		week, err := s.GetEmployeeWeek(ctx, orgID, employee.ID, startDate)
+		if err != nil {
+			// Log error but continue with other employees
+			s.log.Error().Err(err).
+				Str("employee_id", employee.ID.String()).
+				Str("start_date", startDate).
+				Msg("failed to get employee week calendar")
+			continue
+		}
+
+		result = append(result, TeamWeekEntry{
+			EmployeeID:   employee.ID,
+			EmployeeName: employee.FullName,
+			Week:         week,
+		})
+	}
+
+	return result, nil
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────────────

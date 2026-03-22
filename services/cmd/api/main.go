@@ -105,7 +105,7 @@ func main() {
 	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender))
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithLogger(log))
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log))
-	attSvc := attendance.NewService(attRepo, orgRepo, log)
+	attSvc := attendance.NewService(attRepo, orgRepo, empRepo, log)
 	// Tasks service must be created before leave/claims to wire up approval task creation
 	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log))
 	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender), claims.WithTasksService(tasksSvc))

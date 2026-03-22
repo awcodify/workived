@@ -3,15 +3,16 @@ import { useState, useEffect, useMemo } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
-import { useDailyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
+import { useTodayAttendance } from '@/lib/hooks/useAttendance'
 import { useMyBalances, useCalendar, useHolidays, useLeaveNotificationCount } from '@/lib/hooks/useLeave'
 import { useMyClaimBalances, useClaimNotificationCount } from '@/lib/hooks/useClaims'
 import { useCanManageLeave, useCanManageClaims } from '@/lib/hooks/useRole'
-import { todayISO, formatDate } from '@/lib/utils/date'
+import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { formatMoney } from '@/lib/utils/money'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
-import { LogIn, LogOut, Clock, Timer, Users, CalendarDays, Receipt, AlertCircle, ChevronRight } from 'lucide-react'
+import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
+import { Users, CalendarDays, Receipt, AlertCircle, ChevronRight } from 'lucide-react'
 
 // ── Tooltip ──────────────────────────────────────────────────────
 import { useRef, useState as useTooltipState } from 'react'
@@ -124,25 +125,6 @@ function formatDateLabel(tz: string) {
   return `${day} \u00B7 ${date}`
 }
 
-function useElapsedTime(clockInAt: string | undefined) {
-  const [elapsed, setElapsed] = useState('')
-  useEffect(() => {
-    if (!clockInAt) { setElapsed(''); return }
-    const update = () => {
-      const diff = Date.now() - new Date(clockInAt).getTime()
-      if (diff < 0) { setElapsed('00:00:00'); return }
-      const h = Math.floor(diff / 3600000)
-      const m = Math.floor((diff % 3600000) / 60000)
-      const s = Math.floor((diff % 60000) / 1000)
-      setElapsed(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`)
-    }
-    update()
-    const id = setInterval(update, 1000)
-    return () => clearInterval(id)
-  }, [clockInAt])
-  return elapsed
-}
-
 // ── Page ────────────────────────────────────────────────────────
 
 function OverviewPage() {
@@ -151,9 +133,10 @@ function OverviewPage() {
   const { data: org, isLoading: orgLoading } = useOrganisation()
   const tz = org?.timezone ?? 'UTC'
   const today = todayISO(tz)
+  const weekStart = getMondayOfWeek(tz, 0)
 
   const { data: employees, isLoading: empLoading} = useEmployees({ limit: 100, status: 'active' })
-  const { data: daily, isLoading: dailyLoading } = useDailyReport(today)
+  const { data: daily, isLoading: dailyLoading } = useTodayAttendance(weekStart, today)
 
   // Leave balances for current year
   const currentYear = new Date().getFullYear()
@@ -204,6 +187,7 @@ function OverviewPage() {
   const present = daily?.filter((e) => e.status === 'present').length ?? 0
   const late = daily?.filter((e) => e.status === 'late').length ?? 0
   const absent = daily?.filter((e) => e.status === 'absent').length ?? 0
+  const onLeaveFromAttendance = daily?.filter((e) => e.status === 'on_leave').length ?? 0
 
   // Use only real attendance data, no simulation
   const enrichedEntries = useMemo(() => {
@@ -211,9 +195,9 @@ function OverviewPage() {
     return daily.map((e) => ({ ...e }))
   }, [daily])
 
-  // On-leave count comes from calendar entries (not daily report)
-  const onLeaveCount = onLeaveEntries.length
-  const trueAbsent = Math.max(0, absent - onLeaveCount)
+  // On-leave count: use attendance status or fall back to calendar entries
+  const onLeaveCount = onLeaveFromAttendance > 0 ? onLeaveFromAttendance : onLeaveEntries.length
+  const trueAbsent = absent
 
   const fullName = user?.full_name ?? myEmployee?.full_name
   const firstName = fullName?.split(' ')[0] ?? 'there'
@@ -221,23 +205,6 @@ function OverviewPage() {
   const greeting = useGreeting()
   const clock = useLiveClock(tz)
   const dailyQuote = useDailyQuote()
-
-  // My clock-in state
-  const myEntry = daily?.find((e) => e.employee_id === myEmployee?.id)
-  const hasClockedIn = !!myEntry?.clock_in_at
-  const hasClockedOut = !!myEntry?.clock_out_at
-  const elapsed = useElapsedTime(hasClockedIn && !hasClockedOut ? myEntry?.clock_in_at : undefined)
-
-  const clockIn = useClockIn()
-  const clockOut = useClockOut()
-  const [note, setNote] = useState('')
-
-  const handleClockIn = () => {
-    clockIn.mutate({ note: note || undefined }, { onSuccess: () => setNote('') })
-  }
-  const handleClockOut = () => {
-    clockOut.mutate({ note: note || undefined }, { onSuccess: () => setNote('') })
-  }
 
   // Team pulse data — merge employees with daily report + leave calendar
   const teamMembers = useMemo(() => {
@@ -370,205 +337,7 @@ function OverviewPage() {
         <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* My Attendance Card */}
-          <div style={{
-            border: '1px solid rgba(255,255,255,0.08)',
-            borderRadius: 18,
-            background: 'rgba(74, 63, 191, 0.50)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            color: colors.ink0,
-            boxShadow: '0 2px 16px 0 rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05) inset',
-            position: 'relative',
-            overflow: 'hidden',
-          }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 28px 0 28px' }}>
-            <Timer size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
-            <h3
-              style={{
-                fontSize: typography.h2.size,
-                fontWeight: typography.h2.weight,
-                color: colors.ink0,
-                letterSpacing: typography.h2.tracking,
-                lineHeight: typography.h2.lineHeight,
-                marginBottom: 0,
-              }}
-            >
-              {hasClockedOut
-                ? "You've completed your work today"
-                : hasClockedIn
-                ? "You're clocked in"
-                : 'Clock in to start your day'}
-            </h3>
-          </div>
-          <div style={{ marginTop: 20, display: 'flex', flexDirection: 'column', padding: '0 28px 28px 28px' }}>
-            <div style={{ flex: 1 }}>
-              {!myEmployee ? (
-                <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.35)' }}>
-                  No employee record linked to your account.
-                </p>
-              ) : hasClockedOut ? (
-                myEntry?.clock_in_at && myEntry?.clock_out_at && (() => {
-                  const inTime = new Date(myEntry.clock_in_at)
-                  const outTime = new Date(myEntry.clock_out_at)
-                  const diffMs = outTime.getTime() - inTime.getTime()
-                  const hours = Math.floor(diffMs / (1000 * 60 * 60))
-                  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
-                  return (
-                    <>
-                      <p style={{ fontSize: typography.tiny.size, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight), marginBottom: 10 }}>
-                        You worked today
-                      </p>
-                      <p style={{ fontFamily: typography.fontMono, fontSize: 48, fontWeight: 800, color: colors.ok, letterSpacing: '-0.02em', lineHeight: 1, marginBottom: 18 }}>
-                        {hours}h {minutes}m
-                      </p>
-                      <div className="flex items-center gap-5">
-                        <div className="flex items-center gap-2">
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(18,160,92,0.15)' }}>
-                            <LogIn size={14} style={{ color: colors.ok }} />
-                          </div>
-                          <div>
-                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clock In</p>
-                            <p style={{ fontFamily: typography.fontMono, fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
-                              {formatDate(myEntry.clock_in_at, tz, 'time')}
-                            </p>
-                          </div>
-                        </div>
-                        <div style={{ width: 1, height: 28, background: 'rgba(255,255,255,0.1)' }} />
-                        <div className="flex items-center gap-2">
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(201,123,42,0.15)' }}>
-                            <LogOut size={14} style={{ color: colors.warn }} />
-                          </div>
-                          <div>
-                            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Clock Out</p>
-                            <p style={{ fontFamily: typography.fontMono, fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
-                              {formatDate(myEntry.clock_out_at, tz, 'time')}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  )
-                })()
-              ) : hasClockedIn ? (
-                <>
-                  <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
-                    <Timer size={16} style={{ color: colors.ink0 }} />
-                    <p style={{ fontSize: typography.tiny.size, color: colors.ink0, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: Number(typography.tiny.weight) }}>
-                      Working hours
-                    </p>
-                    {myEntry?.status === 'late' && (
-                      <span style={{ padding: '2px 7px', borderRadius: 5, fontSize: 10, fontWeight: 700, background: `${colors.warn}18`, color: colors.warn, letterSpacing: '0.03em' }}>Late</span>
-                    )}
-                  </div>
-                  <p style={{ fontFamily: typography.fontMono, fontSize: 56, fontWeight: 800, color: colors.ink0, letterSpacing: '-0.03em', lineHeight: 1, marginBottom: 18 }}>
-                    {elapsed}
-                  </p>
-                  <div className="flex items-center gap-2 mb-6">
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 22, height: 22, borderRadius: 6, background: 'rgba(18,160,92,0.15)' }}>
-                      <LogIn size={11} style={{ color: colors.ok }} />
-                    </div>
-                    <p style={{ fontSize: 13, color: colors.ink0 }}>
-                      Clocked in at <span style={{ fontFamily: typography.fontMono, fontWeight: 700, color: colors.ink0 }}>{myEntry?.clock_in_at ? formatDate(myEntry.clock_in_at, tz, 'time') : ''}</span>
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Note (optional)"
-                      aria-label="Clock out note"
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      className="flex-1 text-sm px-4 py-3 focus:outline-none"
-                      style={{
-                        background: 'rgba(255,255,255,0.04)',
-                        border: '1px solid rgba(255,255,255,0.1)',
-                        borderRadius: 12,
-                        color: colors.ink0,
-                      }}
-                    />
-                    <button
-                      onClick={handleClockOut}
-                      disabled={clockOut.isPending}
-                      className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-                      style={{
-                        background: colors.warn,
-                        color: colors.ink0,
-                        borderRadius: 12,
-                        fontSize: 15,
-                        letterSpacing: '-0.01em',
-                      }}
-                    >
-                      {clockOut.isPending ? 'Clocking out...' : 'Clock Out'}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div style={{ marginTop: 10 }}>
-                    <div className="flex items-center gap-2" style={{ marginBottom: 20 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 28, borderRadius: 8, background: 'rgba(18,160,92,0.15)' }}>
-                        <Clock size={15} style={{ color: colors.ok }} />
-                      </div>
-                      <p style={{ fontSize: typography.tiny.size, color: colors.ok, textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700 }}>
-                        Attendance Clock
-                      </p>
-                    </div>
-                    <div className="flex items-baseline gap-3">
-                      <p
-                        style={{
-                          fontFamily: typography.fontMono,
-                          fontSize: 64,
-                          fontWeight: 800,
-                          color: colors.ink0,
-                          letterSpacing: '-0.03em',
-                          lineHeight: 1,
-                        }}
-                      >
-                        {clock.time}
-                      </p>
-                      <span style={{ fontSize: 22, fontWeight: 700, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.04em' }}>
-                        {clock.period}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', marginTop: 14, fontWeight: 500 }}>
-                      Ready to start your day?
-                    </p>
-                    <div className="flex gap-2 mt-6">
-                      <input
-                        type="text"
-                        placeholder="Note (optional)"
-                        aria-label="Clock in note"
-                        value={note}
-                        onChange={(e) => setNote(e.target.value)}
-                        className="flex-1 text-sm px-4 py-3 focus:outline-none"
-                        style={{
-                          background: 'rgba(255,255,255,0.06)',
-                          border: '1px solid rgba(255,255,255,0.12)',
-                          borderRadius: 12,
-                          color: colors.ink0,
-                        }}
-                      />
-                      <button
-                        onClick={handleClockIn}
-                        disabled={clockIn.isPending}
-                        className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-                        style={{
-                          background: colors.ok,
-                          color: colors.ink0,
-                          borderRadius: 12,
-                          fontSize: 15,
-                          letterSpacing: '-0.01em',
-                        }}
-                      >
-                        {clockIn.isPending ? 'Clocking in...' : 'Clock In'}
-                      </button>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
+          <AttendanceCard variant="dark" />
 
           {/* Upcoming Holidays */}
           {upcomingHolidays.length > 0 && (
@@ -952,7 +721,7 @@ type TeamMember = {
   attendance: {
     employee_id: string
     employee_name: string
-    status: 'present' | 'late' | 'absent'
+    status: 'present' | 'late' | 'absent' | 'on_leave'
     clock_in_at?: string
     clock_out_at?: string
     note?: string
@@ -961,11 +730,12 @@ type TeamMember = {
 
 function getStatusCategory(m: TeamMember): string {
   const att = m.attendance
-  if (m.isOnLeave) return 'On Leave'
+  if (m.isOnLeave || att?.status === 'on_leave') return 'On Leave'
   if (att?.status === 'late') return 'Late'
   if (att?.status === 'present') return 'On Time'
   if (att?.status === 'absent') return 'Absent'
-  return 'Pending'
+  // No attendance record yet = not clocked in
+  return 'Not Clocked In'
 }
 
 function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, totalEmployees, onLeaveEntries }: {
@@ -978,14 +748,14 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
   onLeaveEntries: { employee_id: string; policy_name: string }[]
 }) {
   const [hovered, setHovered] = useState<string | null>(null)
-  const pending = Math.max(0, totalEmployees - present - late - trueAbsent - onLeaveCount)
+  const notClockedIn = Math.max(0, totalEmployees - present - late - trueAbsent - onLeaveCount)
 
   const segments = [
     { label: 'On Time', value: present, color: colors.ok },
     { label: 'Late', value: late, color: colors.warn },
     { label: 'On Leave', value: onLeaveCount, color: colors.accentMid },
     { label: 'Absent', value: trueAbsent, color: colors.err },
-    { label: 'Pending', value: pending, color: 'rgba(255,255,255,0.07)', legendColor: 'rgba(255,255,255,0.2)' },
+    { label: 'Not Clocked In', value: notClockedIn, color: 'rgba(255,255,255,0.07)', legendColor: 'rgba(255,255,255,0.2)' },
   ]
 
   return (

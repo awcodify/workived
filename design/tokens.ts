@@ -41,7 +41,7 @@ export const colors = {
 export const moduleBackgrounds = {
   overview:    '#0C0C0F',  // deep violet night
   people:      '#080A12',  // deep midnight navy
-  attendance:  '#111214',  // deep charcoal
+  attendance:  '#F3F4F6',  // light gray (light mode)
   leave:       '#F3F2FB',  // soft violet
   claims:      '#F0FDF9',  // soft mint green
   tasks:       '#F5F5F0',  // warm paper beige (kanban board)
@@ -79,7 +79,7 @@ const _dockLight = {
 export const dockThemes = {
   overview:   _dock,
   people:     _dock,
-  attendance: _dock,
+  attendance: _dockLight,
   leave:      _dockLight,
   claims:     _dockLight,
   tasks:      _dockLight,  // Light dock for light background
@@ -114,15 +114,15 @@ export const moduleThemes = {
     inputBorder:  '#2A2230',
   },
   attendance: {
-    text:         'rgba(255,255,255,0.92)',
-    textMuted:    'rgba(130,200,255,0.55)',
-    surface:      'rgba(130,200,255,0.06)',
-    surfaceHover: 'rgba(130,200,255,0.11)',
-    accent:       'rgba(130,200,255,0.14)',
-    accentText:   '#A8D8FF',
-    border:       'rgba(130,200,255,0.14)',
-    input:        'rgba(255,255,255,0.07)',
-    inputBorder:  'rgba(130,200,255,0.18)',
+    text:         '#0F0E13',
+    textMuted:    '#6B7280',
+    surface:      '#FFFFFF',
+    surfaceHover: '#F9FAFB',
+    accent:       '#8B5CF6',
+    accentText:   '#FFFFFF',
+    border:       '#E5E7EB',
+    input:        '#FFFFFF',
+    inputBorder:  '#E5E7EB',
   },
   leave: {
     text:         '#0F0E13',

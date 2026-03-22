@@ -182,7 +182,7 @@ func (r *Repository) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*
 // ListHolidays returns public holidays for a country within a date range.
 func (r *Repository) ListHolidays(ctx context.Context, countryCode string, startDate, endDate string) ([]PublicHoliday, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT date, name
+		SELECT date::text, name
 		FROM public_holidays
 		WHERE country_code = $1
 		  AND date >= $2::date

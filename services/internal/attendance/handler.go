@@ -20,6 +20,9 @@ type ServiceInterface interface {
 	DailyReport(ctx context.Context, orgID uuid.UUID, filters DailyReportFilters) ([]DailyEntry, error)
 	MonthlySummaryReport(ctx context.Context, orgID uuid.UUID, filters MonthlyReportFilters) ([]MonthlySummary, error)
 	EmployeeMonthlySummary(ctx context.Context, orgID, employeeID uuid.UUID, filters MonthlyReportFilters) (*MonthlySummary, error)
+	GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UUID, startDate string) (*WeekCalendar, error)
+	GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid.UUID, startDate string) ([]TeamWeekEntry, error)
+	GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate string) ([]TeamWeekEntry, error)
 }
 
 // EmployeeLookupFunc resolves the authenticated user's employee ID from their user ID.
@@ -51,7 +54,17 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	att.POST("/clock-in", middleware.Require(middleware.PermSelfAttendance), h.ClockIn)
 	att.POST("/clock-out", middleware.Require(middleware.PermSelfAttendance), h.ClockOut)
 	att.GET("/today/:employee_id", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.GetToday)
-	att.GET("/daily", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.DailyReport)
+
+	// Security fix: /daily is org-wide, admin only
+	att.GET("/daily", middleware.Require(middleware.PermAttendanceRead), h.DailyReport)
+
+	// New: Employee and manager specific endpoints
+	att.GET("/my/week", middleware.Require(middleware.PermSelfAttendance), h.GetMyWeek)
+	att.GET("/team/week", middleware.RequireManager(), h.GetTeamWeek)
+	att.GET("/all/week", middleware.Require(middleware.PermAttendanceRead), h.GetAllWeek)
+	att.GET("/my/summary", middleware.Require(middleware.PermSelfAttendance), h.GetMySummary)
+	att.GET("/team/summary", middleware.RequireManager(), h.GetTeamSummary)
+
 	att.GET("/monthly", middleware.Require(middleware.PermAttendanceRead), h.MonthlySummaryReport)
 	att.GET("/monthly/:employee_id", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.EmployeeMonthlySummary)
 }
@@ -206,4 +219,169 @@ func (h *Handler) EmployeeMonthlySummary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": summary})
+}
+
+// GetMyWeek returns the authenticated user's week calendar.
+func (h *Handler) GetMyWeek(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	// Resolve employee ID
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to lookup employee ID", map[string]string{
+			"user_id": userID.String(),
+		})
+		return
+	}
+
+	// Get start_date query param (Monday of the week)
+	startDate := c.Query("start_date")
+	if startDate == "" {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "start_date is required (YYYY-MM-DD, must be Monday)", "start_date")))
+		return
+	}
+
+	week, err := h.service.GetEmployeeWeek(c.Request.Context(), orgID, employeeID, startDate)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": week})
+}
+
+// GetTeamWeek returns week calendars for the authenticated manager and their direct reports.
+func (h *Handler) GetTeamWeek(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	// Resolve manager's employee ID
+	managerEmployeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to lookup employee ID", map[string]string{
+			"user_id": userID.String(),
+		})
+		return
+	}
+
+	// Get start_date query param
+	startDate := c.Query("start_date")
+	if startDate == "" {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "start_date is required (YYYY-MM-DD, must be Monday)", "start_date")))
+		return
+	}
+
+	teamWeek, err := h.service.GetTeamWeek(c.Request.Context(), orgID, managerEmployeeID, startDate)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": teamWeek})
+}
+
+// GetAllWeek returns week calendars for all active employees in the organization.
+func (h *Handler) GetAllWeek(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	// Get start_date query param
+	startDate := c.Query("start_date")
+	if startDate == "" {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "start_date is required (YYYY-MM-DD, must be Monday)", "start_date")))
+		return
+	}
+
+	allWeek, err := h.service.GetAllWeek(c.Request.Context(), orgID, startDate)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": allWeek})
+}
+
+// GetMySummary returns the authenticated user's monthly attendance summary.
+func (h *Handler) GetMySummary(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	// Resolve employee ID
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to lookup employee ID", map[string]string{
+			"user_id": userID.String(),
+		})
+		return
+	}
+
+	year, err := strconv.Atoi(c.Query("year"))
+	if err != nil || year < 2000 {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "valid year is required", "year")))
+		return
+	}
+	month, err := strconv.Atoi(c.Query("month"))
+	if err != nil || month < 1 || month > 12 {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "valid month (1-12) is required", "month")))
+		return
+	}
+
+	summary, err := h.service.EmployeeMonthlySummary(c.Request.Context(), orgID, employeeID, MonthlyReportFilters{Year: year, Month: month})
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": summary})
+}
+
+// GetTeamSummary returns monthly summaries for all direct reports of the authenticated manager.
+func (h *Handler) GetTeamSummary(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	// Resolve manager's employee ID
+	managerEmployeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to lookup employee ID", map[string]string{
+			"user_id": userID.String(),
+		})
+		return
+	}
+
+	year, err := strconv.Atoi(c.Query("year"))
+	if err != nil || year < 2000 {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "valid year is required", "year")))
+		return
+	}
+	month, err := strconv.Atoi(c.Query("month"))
+	if err != nil || month < 1 || month > 12 {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "valid month (1-12) is required", "month")))
+		return
+	}
+
+	// Get team week calendars and convert to summaries
+	// For now, reuse the existing team pattern - get subordinates and fetch summaries
+	// This could be optimized later with a dedicated service method
+	teamWeek, err := h.service.GetTeamWeek(c.Request.Context(), orgID, managerEmployeeID, "2024-01-01") // Dummy date just to get team
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	// Fetch summaries for each team member
+	summaries := make([]MonthlySummary, 0, len(teamWeek))
+	for _, entry := range teamWeek {
+		summary, err := h.service.EmployeeMonthlySummary(c.Request.Context(), orgID, entry.EmployeeID, MonthlyReportFilters{Year: year, Month: month})
+		if err != nil {
+			// Skip if error, log it
+			h.log.Warn().Err(err).
+				Str("employee_id", entry.EmployeeID.String()).
+				Msg("failed to fetch team member summary")
+			continue
+		}
+		summaries = append(summaries, *summary)
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": summaries})
 }

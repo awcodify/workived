@@ -17,9 +17,10 @@ const (
 
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID uuid.UUID `json:"uid"`
-	OrgID  uuid.UUID `json:"oid"`
-	Role   string    `json:"role"`
+	UserID         uuid.UUID `json:"uid"`
+	OrgID          uuid.UUID `json:"oid"`
+	Role           string    `json:"role"`
+	HasSubordinate bool      `json:"has_sub,omitempty"`
 }
 
 func Auth(jwtSecret string) gin.HandlerFunc {
@@ -47,6 +48,7 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 		c.Set(userIDKey, claims.UserID)
 		c.Set(orgIDKey, claims.OrgID)
 		c.Set("role", claims.Role)
+		c.Set("has_subordinate", claims.HasSubordinate)
 		c.Next()
 	}
 }
@@ -70,6 +72,13 @@ func RoleFromCtx(c *gin.Context) string {
 	v, _ := c.Get("role")
 	role, _ := v.(string)
 	return role
+}
+
+// HasSubordinateFromCtx returns whether the member manages other employees.
+func HasSubordinateFromCtx(c *gin.Context) bool {
+	v, _ := c.Get("has_subordinate")
+	has, _ := v.(bool)
+	return has
 }
 
 // AuthWithCookie is middleware that accepts JWT from either Authorization header or cookie.
@@ -110,6 +119,7 @@ func AuthWithCookie(jwtSecret string) gin.HandlerFunc {
 		c.Set(userIDKey, claims.UserID)
 		c.Set(orgIDKey, claims.OrgID)
 		c.Set("role", claims.Role)
+		c.Set("has_subordinate", claims.HasSubordinate)
 		c.Next()
 	}
 }

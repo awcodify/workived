@@ -24,13 +24,14 @@ type Organisation struct {
 }
 
 type Member struct {
-	ID         uuid.UUID  `json:"id"`
-	UserID     uuid.UUID  `json:"user_id"`
-	OrgID      uuid.UUID  `json:"organisation_id"`
-	EmployeeID *uuid.UUID `json:"employee_id,omitempty"`
-	Role       string     `json:"role"`
-	IsActive   bool       `json:"is_active"`
-	JoinedAt   time.Time  `json:"joined_at"`
+	ID             uuid.UUID  `json:"id"`
+	UserID         uuid.UUID  `json:"user_id"`
+	OrgID          uuid.UUID  `json:"organisation_id"`
+	EmployeeID     *uuid.UUID `json:"employee_id,omitempty"`
+	Role           string     `json:"role"`
+	HasSubordinate bool       `json:"has_subordinate"`
+	IsActive       bool       `json:"is_active"`
+	JoinedAt       time.Time  `json:"joined_at"`
 }
 
 type Invitation struct {

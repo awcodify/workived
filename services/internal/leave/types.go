@@ -155,6 +155,7 @@ type ListRequestsFilter struct {
 	Status            *string
 	EmployeeID        *uuid.UUID
 	Year              *int
+	Date              *string // YYYY-MM-DD for single date filtering
 	ManagerEmployeeID *uuid.UUID
 }
 

@@ -229,6 +229,32 @@ func RequireSuperAdmin() gin.HandlerFunc {
 	}
 }
 
+// RequireManager returns a Gin middleware that checks if the authenticated user is a manager
+// (has team-scoped permissions). Used for attendance/leave team endpoints.
+func RequireManager() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		role := RoleFromCtx(c)
+		hasSubordinate := HasSubordinateFromCtx(c)
+
+		// Managers with role="manager" OR members with subordinates get team permissions
+		if role == RoleManager || hasSubordinate {
+			c.Next()
+			return
+		}
+
+		// Also check if they have any team permission via role-based permissions
+		if HasPermission(role, PermTeamRead) ||
+			HasPermission(role, PermTeamAttendanceRead) ||
+			HasPermission(role, PermTeamLeaveApprove) ||
+			HasPermission(role, PermTeamClaimsApprove) {
+			c.Next()
+			return
+		}
+
+		c.AbortWithStatusJSON(http.StatusForbidden, apperr.Response(apperr.Forbidden()))
+	}
+}
+
 // ── Legacy helpers (kept for backwards compatibility during migration) ────────
 
 // RequireRole returns an error if the member's role is not in the allowed list.

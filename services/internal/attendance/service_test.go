@@ -78,6 +78,25 @@ func (f *fakeOrgInfo) GetOrgCountryCode(_ context.Context, _ uuid.UUID) (string,
 	return f.cc, nil
 }
 
+type fakeEmployeeInfo struct {
+	subordinateIDsFn  func(ctx context.Context, orgID, managerID uuid.UUID) ([]uuid.UUID, error)
+	employeeProfileFn func(ctx context.Context, orgID, employeeID uuid.UUID) (string, *string, *uuid.UUID, error)
+}
+
+func (f *fakeEmployeeInfo) GetSubordinateIDs(ctx context.Context, orgID, managerID uuid.UUID) ([]uuid.UUID, error) {
+	if f.subordinateIDsFn != nil {
+		return f.subordinateIDsFn(ctx, orgID, managerID)
+	}
+	return []uuid.UUID{}, nil
+}
+
+func (f *fakeEmployeeInfo) GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (string, *string, *uuid.UUID, error) {
+	if f.employeeProfileFn != nil {
+		return f.employeeProfileFn(ctx, orgID, employeeID)
+	}
+	return "Test Employee", nil, nil, nil
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 var (
@@ -149,7 +168,8 @@ func defaultFakeRepo() *fakeRepo {
 }
 
 func newTestService(repo *fakeRepo, orgInfo *fakeOrgInfo, now time.Time) *attendance.Service {
-	svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
+	empInfo := &fakeEmployeeInfo{}
+	svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
 	svc.SetNowFunc(fixedNow(now))
 	return svc
 }
@@ -528,11 +548,12 @@ func TestService_DailyReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := defaultFakeRepo()
 			orgInfo := &fakeOrgInfo{tz: "Asia/Jakarta", cc: "ID"}
+			empInfo := &fakeEmployeeInfo{}
 			if tt.setup != nil {
 				tt.setup(repo)
 			}
 
-			svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
+			svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
 			entries, err := svc.DailyReport(context.Background(), testOrgID, attendance.DailyReportFilters{Date: "2026-03-16"})
 
 			if tt.wantErr {
@@ -765,11 +786,12 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := defaultFakeRepo()
 			orgInfo := &fakeOrgInfo{tz: "Asia/Jakarta", cc: "ID"}
+			empInfo := &fakeEmployeeInfo{}
 			if tt.setup != nil {
 				tt.setup(repo, orgInfo)
 			}
 
-			svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
+			svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
 			summaries, err := svc.MonthlySummaryReport(context.Background(), testOrgID, attendance.MonthlyReportFilters{Year: 2026, Month: 3})
 
 			if tt.wantErr {
@@ -874,11 +896,12 @@ func TestService_EmployeeMonthlySummary(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			repo := defaultFakeRepo()
 			orgInfo := &fakeOrgInfo{tz: "Asia/Jakarta", cc: "ID"}
+			empInfo := &fakeEmployeeInfo{}
 			if tt.setup != nil {
 				tt.setup(repo, orgInfo)
 			}
 
-			svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
+			svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
 			summary, err := svc.EmployeeMonthlySummary(context.Background(), testOrgID, testEmpID, attendance.MonthlyReportFilters{Year: 2026, Month: 3})
 
 			if tt.wantErr {
@@ -915,7 +938,8 @@ func TestService_HolidayOnWeekendNotSubtracted(t *testing.T) {
 		return []attendance.PublicHoliday{{Date: "2026-03-14", Name: "Weekend Holiday"}}, nil
 	}
 
-	svc := attendance.NewService(repo, orgInfo, zerolog.Nop())
+	empInfo := &fakeEmployeeInfo{}
+	svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
 	summariesWithHoliday, err := svc.MonthlySummaryReport(context.Background(), testOrgID, attendance.MonthlyReportFilters{Year: 2026, Month: 3})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
