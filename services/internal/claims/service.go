@@ -371,7 +371,7 @@ func (s *Service) VerifyManagerRelationship(ctx context.Context, orgID, employee
 	return s.employeeRepo.VerifyManagerRelationship(ctx, orgID, employeeID, managerEmployeeID)
 }
 
-func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, req SubmitClaimRequest, receiptURL *string, actorUserID ...uuid.UUID) (*Claim, error) {
+func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, req SubmitClaimRequest, receiptURL *string, actorUserID uuid.UUID, role string) (*Claim, error) {
 	// 1. Validate amount is positive
 	if req.Amount <= 0 {
 		return nil, ErrInvalidAmount()
@@ -438,16 +438,14 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 	}
 
 	// 8. Log audit trail
-	if len(actorUserID) > 0 {
-		s.logAudit(ctx, audit.LogEntry{
-			OrgID:        orgID,
-			ActorUserID:  actorUserID[0],
-			Action:       "claim.submitted",
-			ResourceType: "claim",
-			ResourceID:   claim.ID,
-			AfterState:   claim,
-		})
-	}
+	s.logAudit(ctx, audit.LogEntry{
+		OrgID:        orgID,
+		ActorUserID:  actorUserID,
+		Action:       "claim.submitted",
+		ResourceType: "claim",
+		ResourceID:   claim.ID,
+		AfterState:   claim,
+	})
 
 	// 9. Log business event
 	s.log.Info().
@@ -468,6 +466,26 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 	// 11. Create approval task (best effort)
 	if s.tasksService != nil {
 		go s.createClaimApprovalTask(context.Background(), orgID, employeeID, claim, category.Name)
+	}
+
+	// 12. Auto-approve if submitter is organization owner
+	if role == "owner" {
+		s.log.Info().
+			Str("org_id", orgID.String()).
+			Str("claim_id", claim.ID.String()).
+			Str("employee_id", employeeID.String()).
+			Msg("auto-approving claim for organization owner")
+
+		approvedClaim, err := s.ApproveClaim(ctx, orgID, employeeID, claim.ID, nil, actorUserID)
+		if err != nil {
+			// Don't fail submission if auto-approval fails - just log and return pending claim
+			s.log.Error().Err(err).
+				Str("org_id", orgID.String()).
+				Str("claim_id", claim.ID.String()).
+				Msg("auto-approval failed for owner claim - claim remains pending")
+			return claim, nil
+		}
+		return approvedClaim, nil
 	}
 
 	return claim, nil

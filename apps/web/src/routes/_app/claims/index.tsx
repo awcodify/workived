@@ -10,7 +10,7 @@ import {
   useSubmitClaim,
   useCategories,
 } from '@/lib/hooks/useClaims'
-import { useCanManageClaims } from '@/lib/hooks/useRole'
+import { useCanManageClaims, useRole } from '@/lib/hooks/useRole'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 import type { ClaimBalanceWithCategory, ClaimWithDetails } from '@/types/api'
@@ -611,6 +611,7 @@ interface ClaimFormData {
 }
 
 function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
+  const role = useRole()
   const { data: org } = useOrganisation()
   const { data: categories } = useCategories()
   const submitMutation = useSubmitClaim()
@@ -618,6 +619,9 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
   const [receipt, setReceipt] = useState<File | null>(null)
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
   const [amountDisplay, setAmountDisplay] = useState<string>('')
+  const [fileError, setFileError] = useState<string | null>(null)
+  const [showOwnerConfirmation, setShowOwnerConfirmation] = useState(false)
+  const [pendingFormData, setPendingFormData] = useState<ClaimFormData | null>(null)
 
   const {
     register,
@@ -661,16 +665,20 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
     const file = e.target.files?.[0]
     if (!file) return
 
+    setFileError(null) // Clear previous errors
+
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf']
     if (!allowedTypes.includes(file.type)) {
-      alert('Only JPG, PNG, and PDF files are allowed')
+      setFileError('Only JPG, PNG, and PDF files are allowed')
+      e.target.value = '' // Reset file input
       return
     }
 
     // Validate file size (10MB max)
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size must be less than 10MB')
+      setFileError('File size must be less than 10MB')
+      e.target.value = '' // Reset file input
       return
     }
 
@@ -691,6 +699,7 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
   const removeFile = () => {
     setReceipt(null)
     setReceiptPreview(null)
+    setFileError(null) // Clear file error when removing file
   }
 
   const onSubmit = async (data: ClaimFormData) => {
@@ -698,7 +707,14 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
 
     // Check if receipt is required
     if (selectedCategory?.requires_receipt && !receipt) {
-      alert('Receipt is required for this category')
+      setFileError('Receipt is required for this category')
+      return
+    }
+
+    // If owner and not yet confirmed, show confirmation first
+    if (role === 'owner' && !showOwnerConfirmation) {
+      setPendingFormData(data)
+      setShowOwnerConfirmation(true)
       return
     }
 
@@ -712,10 +728,38 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
 
     try {
       await submitMutation.mutateAsync({ data: payload, receipt: receipt || undefined })
+      setFileError(null)
       onClose()
     } catch (error) {
       // Error handled by mutation
     }
+  }
+
+  const handleConfirmSubmit = async () => {
+    if (!org || !pendingFormData) return
+
+    setShowOwnerConfirmation(false)
+
+    const payload = {
+      category_id: pendingFormData.category_id,
+      amount: parseInt(pendingFormData.amount, 10),
+      currency_code: org.currency_code,
+      description: pendingFormData.description.trim(),
+      claim_date: pendingFormData.claim_date,
+    }
+
+    try {
+      await submitMutation.mutateAsync({ data: payload, receipt: receipt || undefined })
+      setFileError(null)
+      onClose()
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }
+
+  const handleCancelConfirmation = () => {
+    setShowOwnerConfirmation(false)
+    setPendingFormData(null)
   }
 
   return (
@@ -778,7 +822,7 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
                   case 'INVALID_CLAIM_DATE': return 'Invalid Date'
                   default: return 'Failed to Submit Claim'
                 }
-              })()}
+              })()}(
             </p>
             <p className="text-xs mt-1" style={{ color: colors.errText }}>
               {(submitMutation.error as any)?.response?.data?.error?.message || 
@@ -981,21 +1025,53 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
                 Receipt required for this category
               </p>
             )}
+            {fileError && (
+              <p className="text-xs mt-1" style={{ color: colors.errText }}>
+                {fileError}
+              </p>
+            )}
           </div>
 
           {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={submitMutation.isPending}
-            className="w-full font-semibold text-sm py-3 transition-opacity hover:opacity-90 disabled:opacity-50"
-            style={{
-              background: t.accent,
-              color: t.accentText,
-              borderRadius: 12,
-            }}
-          >
-            {submitMutation.isPending ? 'Submitting...' : 'Submit Claim'}
-          </button>
+          {showOwnerConfirmation ? (
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleConfirmSubmit}
+                disabled={submitMutation.isPending}
+                className="flex-1 font-semibold text-sm py-3 transition-opacity hover:opacity-90 disabled:opacity-50"
+                style={{
+                  background: '#3b82f6',
+                  color: 'white',
+                  borderRadius: 12,
+                }}
+              >
+                {submitMutation.isPending ? 'Submitting...' : '✓ Owner, proceed auto-approve!'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelConfirmation}
+                disabled={submitMutation.isPending}
+                className="px-6 py-3 font-medium text-sm transition-opacity hover:opacity-70"
+                style={{ color: t.textMuted }}
+              >
+                Back
+              </button>
+            </div>
+          ) : (
+            <button
+              type="submit"
+              disabled={submitMutation.isPending}
+              className="w-full font-semibold text-sm py-3 transition-opacity hover:opacity-90 disabled:opacity-50"
+              style={{
+                background: t.accent,
+                color: t.accentText,
+                borderRadius: 12,
+              }}
+            >
+              {submitMutation.isPending ? 'Submitting...' : 'Submit Claim'}
+            </button>
+          )}
         </form>
       </div>
     </div>

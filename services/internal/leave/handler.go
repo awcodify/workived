@@ -26,7 +26,7 @@ type ServiceInterface interface {
 	ListMyBalances(ctx context.Context, orgID, employeeID uuid.UUID, year int) ([]BalanceWithPolicy, error)
 
 	// Requests
-	SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID, input SubmitRequestInput) (*Request, error)
+	SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID, role string, input SubmitRequestInput) (*Request, error)
 	ListRequests(ctx context.Context, orgID uuid.UUID, filter ListRequestsFilter, role string, managerEmployeeID *uuid.UUID) ([]RequestWithDetails, error)
 	ListMyRequests(ctx context.Context, orgID, employeeID uuid.UUID) ([]RequestWithDetails, error)
 	GetRequest(ctx context.Context, orgID, requestID uuid.UUID) (*Request, error)
@@ -227,6 +227,7 @@ func (h *Handler) ListMyBalances(c *gin.Context) {
 func (h *Handler) SubmitRequest(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
 
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
@@ -244,7 +245,7 @@ func (h *Handler) SubmitRequest(c *gin.Context) {
 		return
 	}
 
-	req, err := h.service.SubmitRequest(c.Request.Context(), orgID, employeeID, input)
+	req, err := h.service.SubmitRequest(c.Request.Context(), orgID, employeeID, role, input)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return

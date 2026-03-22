@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, X, Settings } from 'lucide-react'
 import { useMyBalances, useAllRequests, useMyRequests, useAllBalances, useApproveRequest, useRejectRequest, useCancelRequest, useSubmitRequest, usePolicies } from '@/lib/hooks/useLeave'
-import { useCanManageLeave } from '@/lib/hooks/useRole'
+import { useCanManageLeave, useRole } from '@/lib/hooks/useRole'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 import { useState, useEffect } from 'react'
@@ -515,6 +515,7 @@ interface NewRequestModalProps {
 }
 
 function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
+  const role = useRole()
   const { data: org } = useOrganisation()
   const { data: policies } = usePolicies()
   const currentYear = new Date().getFullYear()
@@ -526,6 +527,8 @@ function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
   const [workingDays, setWorkingDays] = useState<number>(0)
   const [availableDays, setAvailableDays] = useState<number | null>(null)
   const [hasInsufficientBalance, setHasInsufficientBalance] = useState(false)
+  const [showOwnerConfirmation, setShowOwnerConfirmation] = useState(false)
+  const [pendingFormData, setPendingFormData] = useState<SubmitRequestFormData | null>(null)
 
   const {
     register,
@@ -586,6 +589,13 @@ function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
   }, [policyId, balances, workingDays])
 
   const onSubmit = async (data: SubmitRequestFormData) => {
+    // If owner and not yet confirmed, show confirmation first
+    if (role === 'owner' && !showOwnerConfirmation) {
+      setPendingFormData(data)
+      setShowOwnerConfirmation(true)
+      return
+    }
+
     try {
       const payload: any = {
         leave_policy_id: data.leave_policy_id,
@@ -600,6 +610,32 @@ function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
     } catch (error) {
       // Error handled by mutation
     }
+  }
+
+  const handleConfirmSubmit = async () => {
+    if (!pendingFormData) return
+
+    setShowOwnerConfirmation(false)
+    
+    try {
+      const payload: any = {
+        leave_policy_id: pendingFormData.leave_policy_id,
+        start_date: pendingFormData.start_date,
+        end_date: pendingFormData.end_date,
+      }
+      if (pendingFormData.reason?.trim()) {
+        payload.reason = pendingFormData.reason.trim()
+      }
+      await submitMutation.mutateAsync(payload)
+      onClose()
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }
+
+  const handleCancelConfirmation = () => {
+    setShowOwnerConfirmation(false)
+    setPendingFormData(null)
   }
 
   return (
@@ -703,27 +739,57 @@ function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
 
           {/* Buttons */}
           <div className="flex items-center gap-3">
-            <button
-              type="submit"
-              disabled={submitMutation.isPending || hasInsufficientBalance || workingDays === 0}
-              className="flex-1 font-semibold py-3 transition-opacity hover:opacity-90 disabled:opacity-50"
-              style={{
-                background: t.accent,
-                color: t.accentText,
-                borderRadius: 10,
-                fontSize: typography.body.size,
-              }}
-            >
-              {submitMutation.isPending ? 'Submitting...' : 'Submit Request'}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-3 font-medium transition-opacity hover:opacity-70"
-              style={{ color: t.textMuted, fontSize: typography.body.size }}
-            >
-              Cancel
-            </button>
+            {showOwnerConfirmation ? (
+              <>
+                <button
+                  type="button"
+                  onClick={handleConfirmSubmit}
+                  disabled={submitMutation.isPending}
+                  className="flex-1 font-semibold py-3 transition-opacity hover:opacity-90 disabled:opacity-50"
+                  style={{
+                    background: '#3b82f6',
+                    color: 'white',
+                    borderRadius: 10,
+                    fontSize: typography.body.size,
+                  }}
+                >
+                  {submitMutation.isPending ? 'Submitting...' : '✓ Owner, proceed auto-approve!'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancelConfirmation}
+                  disabled={submitMutation.isPending}
+                  className="px-4 py-3 font-medium transition-opacity hover:opacity-70"
+                  style={{ color: t.textMuted, fontSize: typography.body.size }}
+                >
+                  Back
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="submit"
+                  disabled={submitMutation.isPending || hasInsufficientBalance || workingDays === 0}
+                  className="flex-1 font-semibold py-3 transition-opacity hover:opacity-90 disabled:opacity-50"
+                  style={{
+                    background: t.accent,
+                    color: t.accentText,
+                    borderRadius: 10,
+                    fontSize: typography.body.size,
+                  }}
+                >
+                  {submitMutation.isPending ? 'Submitting...' : 'Submit Request'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-3 font-medium transition-opacity hover:opacity-70"
+                  style={{ color: t.textMuted, fontSize: typography.body.size }}
+                >
+                  Cancel
+                </button>
+              </>
+            )}
           </div>
         </form>
       </div>

@@ -37,7 +37,7 @@ type ServiceInterface interface {
 	// Claims
 	ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFilters, role string, managerEmployeeID *uuid.UUID) (*ListResult, error)
 	GetClaim(ctx context.Context, orgID, id uuid.UUID) (*Claim, error)
-	SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, req SubmitClaimRequest, receiptURL *string, actorUserID ...uuid.UUID) (*Claim, error)
+	SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, req SubmitClaimRequest, receiptURL *string, actorUserID uuid.UUID, role string) (*Claim, error)
 	ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, claimID uuid.UUID, req *ApproveClaimRequest, actorUserID ...uuid.UUID) (*Claim, error)
 	RejectClaim(ctx context.Context, orgID, reviewerEmployeeID, claimID uuid.UUID, req RejectClaimRequest, actorUserID ...uuid.UUID) (*Claim, error)
 	CancelClaim(ctx context.Context, orgID, employeeID, claimID uuid.UUID, actorUserID ...uuid.UUID) (*Claim, error)
@@ -268,6 +268,7 @@ func (h *Handler) ListMyBalances(c *gin.Context) {
 func (h *Handler) SubmitClaim(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
 
 	// Resolve user → employee
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
@@ -353,7 +354,7 @@ func (h *Handler) SubmitClaim(c *gin.Context) {
 		receiptURL = &key
 	}
 
-	claim, err := h.service.SubmitClaim(c.Request.Context(), orgID, employeeID, req, receiptURL, userID)
+	claim, err := h.service.SubmitClaim(c.Request.Context(), orgID, employeeID, req, receiptURL, userID, role)
 	if err != nil {
 		h.logAndRespondError(c, err, "failed to submit claim", map[string]string{
 			"org_id":      orgID.String(),

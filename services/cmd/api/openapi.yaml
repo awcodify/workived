@@ -843,6 +843,10 @@ paths:
     post:
       operationId: submitLeaveRequest
       summary: Submit a leave request
+      description: |
+        Submits a new leave request. Organization owners receive automatic approval -
+        their requests will immediately return with status='approved' instead of 'pending'.
+        All other users' requests remain 'pending' until reviewed by their manager.
       tags: [Leave]
       requestBody:
         required: true
@@ -1272,7 +1276,11 @@ paths:
     post:
       operationId: submitClaim
       summary: Submit a new claim
-      description: Supports multipart file upload for receipt
+      description: |
+        Submits a new expense claim. Supports multipart file upload for receipt.
+        Organization owners receive automatic approval - their claims will immediately
+        return with status='approved' instead of 'pending'. All other users' claims
+        remain 'pending' until reviewed by their manager.
       tags: [Claims]
       requestBody:
         required: true

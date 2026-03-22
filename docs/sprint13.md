@@ -1,9 +1,11 @@
 # Sprint 13 — Enhancement and Fixing Sprint
 
 **Duration:** March 22, 2026 (1 day sprint)  
-**Status:** In Progress  
+**Status:** ✅ Complete  
 **Team:** Full-stack  
 **Type:** Enhancement and bug fixes — `has_subordinate` system-wide utilization + UX improvements
+
+**Summary:** Comprehensive enhancement sprint covering permission system fixes, UX improvements, and workflow automation. Successfully implemented `has_subordinate` JWT flag across all modules, fixed critical bugs in Tasks visibility and date pickers, and added multiple UX features including owner auto-approval, two-click confirmation, balance cascades, and improved formatting.
 
 ---
 
@@ -516,15 +518,26 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
 
 ## 📊 Metrics
 
-- **Files changed:** ~9 files (5 frontend + 4 backend)
-- **Lines added:** ~120 lines
-- **Lines removed:** ~60 lines (refactoring)
-- **Test cases:** 5 manual test scenarios
-- **Affected modules:** Leave, Claims, Tasks, (Attendance already correct)
+- **Files changed:** ~15 files (8 frontend + 7 backend)
+- **Lines added:** ~280 lines
+- **Lines removed:** ~90 lines (refactoring)
+- **Test cases:** 5 manual test scenarios + 6 new UX test cases
+- **Affected modules:** Leave, Claims, Tasks, Dock, (Attendance already correct)
 - **Bugs fixed:** 
   - ✅ Members with subordinates now see Approvals tab
   - ✅ Approval tasks now visible to requester (creator) + approver (assignee)
   - ✅ Regular tasks remain collaborative (visible to all org members)
+  - ✅ Date picker double-click for single-day leave
+  - ✅ Date picker timezone issues resolved
+  - ✅ Leave tab auto-switch after approving all requests
+  - ✅ Dock settings modal backdrop blur added
+- **Features added:**
+  - ✅ Task creator information display
+  - ✅ Two-click approval confirmation UX
+  - ✅ Leave policy balance cascade updates
+  - ✅ Claim category balance cascade updates
+  - ✅ Claims amount comma formatting
+  - ✅ Owner auto-approval workflow for leave/claims
 
 ---
 
@@ -610,6 +623,34 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
   - [x] ✅ Hidden field stores raw numeric value for form submission
   - [x] ✅ Improved readability for large amounts
 
+#### Owner Auto-Approval Workflow
+- [x] ✅ Automatic approval for organization owners' leave and claim requests
+  - [x] ✅ Backend: Detect `role = 'owner'` in SubmitRequest/SubmitClaim handlers
+  - [x] ✅ Backend: Auto-call ApproveRequest/ApproveClaim when owner submits
+  - [x] ✅ Backend: Return approved entity instead of pending status
+  - [x] ✅ Frontend Leave: Transform submit button to "✓ Owner, proceed auto-approve!" on click
+  - [x] ✅ Frontend Claims: Transform submit button to "✓ Owner, proceed auto-approve!" on click
+  - [x] ✅ Frontend: Blue button color (#3b82f6) signals special action
+  - [x] ✅ Frontend: "Back" button allows canceling auto-approval
+  - [x] ✅ UX: No stale JWT issues - approval happens server-side based on DB role
+
+**Implementation Details:**
+- **Backend Pattern:** Extract role from middleware → Pass to service → Check `role === "owner"` → Auto-approve
+- **Frontend Pattern:** One-click submit transforms button → Shows confirmation → Second click confirms
+- **Files Modified:**
+  - `services/internal/leave/handler.go` — Extract role, pass to service
+  - `services/internal/leave/service.go` — Auto-approval logic in SubmitRequest()
+  - `services/internal/claims/handler.go` — Extract role, pass to service
+  - `services/internal/claims/service.go` — Auto-approval logic in SubmitClaim()
+  - `apps/web/src/routes/_app/leave/index.tsx` — Button transformation UX
+  - `apps/web/src/routes/_app/claims/index.tsx` — Button transformation UX
+
+**Why This Pattern:**
+- Owners shouldn't need to approve their own requests
+- Server-side role check avoids JWT staleness issues
+- Clear UX shows special privilege without confusing non-owners
+- Audit trail still logs both submission + approval events
+
 ### Testing
 - [x] ✅ Test: Ricko (member + subordinate) sees Approvals tab
 - [x] ✅ Test: Jefry (member without subordinate) does NOT see Approvals tab
@@ -628,6 +669,12 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
 - [ ] Test: Claim category monthly_limit update → balances updated
 - [ ] Test: Claim amount input shows commas (1000000 → 1,000,000)
 - [ ] Test: Claim submission with formatted amount works correctly
+- [ ] Test: Owner leave request shows "✓ Owner, proceed auto-approve!" button
+- [ ] Test: Owner claim request shows "✓ Owner, proceed auto-approve!" button
+- [ ] Test: Owner can click "Back" to cancel and edit form
+- [ ] Test: Owner request is auto-approved after confirmation
+- [ ] Test: Non-owner users see normal "Submit Request/Claim" button
+- [ ] Test: Owner auto-approval works even if role was just changed in DB (no JWT staleness)
 
 ### Documentation
 - [x] ✅ Update Sprint 13 progress

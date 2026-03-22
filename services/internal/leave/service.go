@@ -264,7 +264,7 @@ func (s *Service) ensureEmployeeBalances(ctx context.Context, orgID, employeeID 
 
 // ── Submit Request ──────────────────────────────────────────────────────────
 
-func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID, input SubmitRequestInput) (*Request, error) {
+func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID, role string, input SubmitRequestInput) (*Request, error) {
 	// 1. Parse and validate dates.
 	startDate, err := time.Parse("2006-01-02", input.StartDate)
 	if err != nil {
@@ -365,6 +365,26 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 		Str("end_date", req.EndDate).
 		Float64("total_days", req.TotalDays).
 		Msg("leave.request.submitted")
+
+	// Auto-approve for organization owners
+	if role == "owner" {
+		s.log.Info().
+			Str("org_id", orgID.String()).
+			Str("request_id", req.ID.String()).
+			Msg("auto-approving leave request for organization owner")
+
+		approvedReq, err := s.ApproveRequest(ctx, orgID, employeeID, req.ID)
+		if err != nil {
+			s.log.Warn().
+				Err(err).
+				Str("org_id", orgID.String()).
+				Str("request_id", req.ID.String()).
+				Msg("failed to auto-approve owner's leave request")
+			// Return original request if auto-approval fails
+			return req, nil
+		}
+		return approvedReq, nil
+	}
 
 	// Send email notification to manager (best effort - don't fail if email fails)
 	if s.email != nil {
