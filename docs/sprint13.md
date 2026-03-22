@@ -580,6 +580,29 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
   - [x] ✅ Auto-reset after 3 seconds if user doesn't confirm
   - [x] ✅ Visual feedback: Width expands, background changes to warning color
 
+#### Dock Settings Modal Blur
+- [x] ✅ Add backdrop blur when settings modal is open
+  - [x] ✅ Full-screen backdrop overlay with `blur(12px)`
+  - [x] ✅ Blurs background content (task cards, text) for better modal visibility
+  - [x] ✅ Click outside to close functionality
+
+#### Leave Policy Balance Cascade
+- [x] ✅ Update leave balances when policy days_per_year is changed
+  - [x] ✅ Backend: Added `UpdateBalanceEntitledDays()` repository method
+  - [x] ✅ Backend: Service calls cascade update for current year balances
+  - [x] ✅ Updates all employee balances automatically when policy is updated
+
+#### Claim Category Balance Cascade
+- [x] ✅ Update claim balances when category monthly_limit is changed
+  - [x] ✅ Backend: Added `UpdateBalanceMonthlyLimit()` repository method
+  - [x] ✅ Backend: Service calls cascade update for current month balances
+  - [x] ✅ Updates all employee balances automatically when category is updated
+
+#### Leave Tab Auto-Switch
+- [x] ✅ Leave module matches Claims behavior after approving all requests
+  - [x] ✅ Added useEffect to auto-switch from "Approvals" to "My Requests" when pendingCount becomes 0
+  - [x] ✅ Consistent UX across both modules
+
 ### Testing
 - [x] ✅ Test: Ricko (member + subordinate) sees Approvals tab
 - [x] ✅ Test: Jefry (member without subordinate) does NOT see Approvals tab
@@ -593,6 +616,9 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
 - [ ] Test: Two-click confirmation works for approve all button
 - [ ] Test: Confirmation auto-resets after 3 seconds
 - [ ] Test: Claims approval confirmation (shared component - should auto-work)
+- [ ] Test: Settings modal backdrop blur works
+- [ ] Test: Leave policy days_per_year update → balances updated
+- [ ] Test: Claim category monthly_limit update → balances updated
 
 ### Documentation
 - [x] ✅ Update Sprint 13 progress

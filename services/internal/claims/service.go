@@ -34,6 +34,7 @@ type RepositoryInterface interface {
 	UpdateBalanceOnRejection(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int, amount int64) error
 	ListBalancesByEmployee(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error)
 	CreateBalancesForAllEmployees(ctx context.Context, orgID, categoryID uuid.UUID, year, month int) error
+	UpdateBalanceMonthlyLimit(ctx context.Context, orgID, categoryID uuid.UUID, year, month int, newMonthlyLimit int64) error
 
 	// Claims
 	CreateClaim(ctx context.Context, orgID uuid.UUID, req SubmitClaimRequest, employeeID uuid.UUID, receiptURL *string) (*Claim, error)
@@ -159,6 +160,24 @@ func (s *Service) UpdateCategory(ctx context.Context, orgID, id uuid.UUID, req U
 	cat, err := s.repo.UpdateCategory(ctx, orgID, id, req)
 	if err != nil {
 		return nil, err
+	}
+
+	// If monthly_limit was updated, cascade to all existing balances for current month
+	if req.MonthlyLimit != nil {
+		now := time.Now()
+		currentYear := now.Year()
+		currentMonth := int(now.Month())
+		if err := s.repo.UpdateBalanceMonthlyLimit(ctx, orgID, id, currentYear, currentMonth, *req.MonthlyLimit); err != nil {
+			// Log error but don't fail the category update
+			s.log.Warn().
+				Err(err).
+				Str("org_id", orgID.String()).
+				Str("category_id", id.String()).
+				Int("year", currentYear).
+				Int("month", currentMonth).
+				Int64("new_monthly_limit", *req.MonthlyLimit).
+				Msg("Failed to update monthly limit for existing balances")
+		}
 	}
 
 	if len(actorUserID) > 0 {

@@ -358,6 +358,22 @@ func (r *Repository) ApproveBalanceUpdate(ctx context.Context, tx pgx.Tx, balanc
 	return nil
 }
 
+// UpdateBalanceEntitledDays updates entitled_days for all balances of a specific policy and year.
+// Called when a policy's days_per_year is changed.
+func (r *Repository) UpdateBalanceEntitledDays(ctx context.Context, orgID, policyID uuid.UUID, year int, newEntitledDays float64) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE leave_balances
+		SET entitled_days = $4
+		WHERE organisation_id = $1
+		  AND leave_policy_id = $2
+		  AND year = $3
+	`, orgID, policyID, year, newEntitledDays)
+	if err != nil {
+		return fmt.Errorf("update balance entitled days: %w", err)
+	}
+	return nil
+}
+
 // ── Requests ────────────────────────────────────────────────────────────────
 
 // CreateRequest inserts a new leave request. Must be called in a transaction.

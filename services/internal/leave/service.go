@@ -33,6 +33,7 @@ type RepositoryInterface interface {
 	EnsureBalance(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int, entitledDays float64) error
 	UpdateBalancePending(ctx context.Context, tx pgx.Tx, balanceID uuid.UUID, deltaDays float64) error
 	ApproveBalanceUpdate(ctx context.Context, tx pgx.Tx, balanceID uuid.UUID, totalDays float64) error
+	UpdateBalanceEntitledDays(ctx context.Context, orgID, policyID uuid.UUID, year int, newEntitledDays float64) error
 
 	// Requests
 	CreateRequest(ctx context.Context, tx pgx.Tx, orgID, employeeID, policyID uuid.UUID, startDate, endDate string, totalDays float64, reason *string) (*Request, error)
@@ -171,6 +172,21 @@ func (s *Service) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID, r
 	p, err := s.repo.UpdatePolicy(ctx, orgID, policyID, req)
 	if err != nil {
 		return nil, fmt.Errorf("update policy: %w", err)
+	}
+
+	// If days_per_year was updated, cascade to all existing balances for current year
+	if req.DaysPerYear != nil {
+		currentYear := time.Now().Year()
+		if err := s.repo.UpdateBalanceEntitledDays(ctx, orgID, policyID, currentYear, *req.DaysPerYear); err != nil {
+			// Log error but don't fail the policy update
+			s.log.Warn().
+				Err(err).
+				Str("org_id", orgID.String()).
+				Str("policy_id", policyID.String()).
+				Int("year", currentYear).
+				Float64("new_entitled_days", *req.DaysPerYear).
+				Msg("Failed to update entitled days for existing balances")
+		}
 	}
 
 	s.logAudit(ctx, audit.LogEntry{

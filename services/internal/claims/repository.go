@@ -492,6 +492,24 @@ func (r *Repository) UpdateBalanceOnRejection(ctx context.Context, orgID, employ
 	return err
 }
 
+// UpdateBalanceMonthlyLimit updates monthly_limit for all balances of a specific category, year, and month.
+// Called when a category's monthly_limit is changed.
+func (r *Repository) UpdateBalanceMonthlyLimit(ctx context.Context, orgID, categoryID uuid.UUID, year, month int, newMonthlyLimit int64) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE claim_balances
+		SET monthly_limit = $5,
+		    updated_at = NOW()
+		WHERE organisation_id = $1
+		  AND category_id = $2
+		  AND year = $3
+		  AND month = $4
+	`, orgID, categoryID, year, month, newMonthlyLimit)
+	if err != nil {
+		return fmt.Errorf("update balance monthly limit: %w", err)
+	}
+	return nil
+}
+
 // ListBalancesByEmployee returns all balances for an employee in a specific month.
 // Only returns balances for active categories.
 func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error) {
