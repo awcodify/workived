@@ -117,6 +117,8 @@
 - SoftDelete: Recalculates manager's flag when subordinate removed
 - Centralized: `UpdateManagerSubordinateFlag()` repository method
 
+**📄 Full documentation:** [ADR-005: has_subordinate Application-Managed](./adr/005-has-subordinate-application-managed.md)
+
 ### AD-2: Team View Includes Manager (Self + Subordinates)
 **Decision:** GetTeamWeek() returns manager's own attendance + subordinates  
 **Rationale:**
