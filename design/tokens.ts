@@ -279,7 +279,7 @@ export function getAvatarColor(seed: string): { bg: string; text: string } {
 
 const darkModuleThemes = {
   overview: {
-    text:         '#FFE6F0',
+    text:         '#FFFFFF',
     textMuted:    'rgba(200,190,255,0.45)',
     surface:      'rgba(255,255,255,0.05)',
     surfaceHover: 'rgba(255,255,255,0.10)',

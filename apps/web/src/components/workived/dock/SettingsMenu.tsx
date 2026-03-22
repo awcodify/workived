@@ -29,6 +29,21 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
     : currentModule === 'people' ? peopleDockTheme
     : dockThemes[currentModule]
 
+  // Menu needs opaque background for text readability but same blur/border/shadow as dock
+  // Dock uses extremely low opacity (rgba(0,0,0,0.04) = 4%) which works for icons
+  // Menu needs much higher opacity for readable text - aim for frosted glass look
+  const isDarkDock = theme.bg.includes('20,20,25')
+  const menuBg = isDarkDock 
+    ? 'rgba(30,30,35,0.80)'  // Dark frosted glass - 80% opacity lets blur show
+    : 'rgba(245,245,245,0.90)'  // Light frosted glass - 90% opacity for dark text contrast
+  
+  const menuColors = {
+    text: isDarkDock ? 'rgba(255,255,255,0.95)' : '#0F0E13',
+    textMuted: isDarkDock ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)',
+    hoverBg: isDarkDock ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
+    iconBg: isDarkDock ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
+  }
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -105,15 +120,12 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
       {isOpen && (
         <div
           role="menu"
-          className="absolute bottom-full mb-3 right-0 rounded-2xl overflow-hidden shadow-2xl"
+          className="absolute bottom-full mb-3 right-0 rounded-2xl overflow-hidden border backdrop-blur-3xl"
           style={{
             minWidth: 200,
-            background: theme.bg,
-            border: `1px solid ${theme.border}`,
-            backdropFilter: 'blur(40px) saturate(180%)',
-            boxShadow: currentModule === 'leave' || currentModule === 'claims'
-              ? '0 8px 32px rgba(0, 0, 0, 0.12)'
-              : '0 8px 32px rgba(0, 0, 0, 0.4)',
+            background: menuBg,
+            borderColor: theme.border,
+            filter: 'drop-shadow(0 8px 32px rgba(0, 0, 0, 0.4)) drop-shadow(0 4px 16px rgba(0, 0, 0, 0.2))',
             animation: 'slideUpFade 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
           }}
         >
@@ -121,30 +133,32 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           {user && (
             <div
               className="px-3 py-3 border-b"
-              style={{ borderColor: theme.border }}
+              style={{ 
+                borderColor: theme.border
+              }}
             >
               <div className="flex items-center gap-2.5">
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ 
-                    background: theme.active.bg,
+                    background: menuColors.iconBg,
                   }}
                 >
                   <User
                     size={16}
-                    style={{ color: theme.active.icon }}
+                    style={{ color: menuColors.text }}
                   />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p
                     className="text-xs font-semibold leading-tight truncate"
-                    style={{ color: theme.active.icon }}
+                    style={{ color: menuColors.text }}
                   >
                     {user.full_name}
                   </p>
                   <p
                     className="text-[10px] leading-tight mt-0.5 truncate opacity-70"
-                    style={{ color: theme.icon }}
+                    style={{ color: menuColors.textMuted }}
                   >
                     {user.email}
                   </p>
@@ -158,9 +172,9 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/company' }) }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            style={{ color: theme.active.icon }}
+            style={{ color: menuColors.text }}
             onMouseEnter={(e) => { 
-              e.currentTarget.style.background = theme.active.bg
+              e.currentTarget.style.background = menuColors.hoverBg
             }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
@@ -172,9 +186,9 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/members' }) }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            style={{ color: theme.active.icon }}
+            style={{ color: menuColors.text }}
             onMouseEnter={(e) => { 
-              e.currentTarget.style.background = theme.active.bg
+              e.currentTarget.style.background = menuColors.hoverBg
             }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
@@ -191,9 +205,9 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { toggleTheme() }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            style={{ color: theme.active.icon }}
+            style={{ color: menuColors.text }}
             onMouseEnter={(e) => { 
-              e.currentTarget.style.background = theme.active.bg
+              e.currentTarget.style.background = menuColors.hoverBg
             }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
@@ -219,9 +233,9 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={handleLogout}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            style={{ color: theme.active.icon }}
+            style={{ color: menuColors.text }}
             onMouseEnter={(e) => { 
-              e.currentTarget.style.background = theme.active.bg
+              e.currentTarget.style.background = menuColors.hoverBg
             }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
           >
