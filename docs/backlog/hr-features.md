@@ -426,3 +426,103 @@ Show urgent tasks for employees marked absent. One-click reassign substitute.
 - Frontend: Dashboard widget + reassign flow
 
 **Status:** Low priority — only valuable for teams under 15 people
+
+---
+
+## ⭐⭐⭐⭐ Custom Task Metrics & Performance Reports (3-Phase Epic)
+**Status:** 📋 Backlog  
+**Effort:** XL (phased: M → L → XL)  
+**Value:** Unique competitive moat — no competitor combines task-level business metrics with HR context
+
+**Description:**
+Add custom numeric/currency fields to tasks (e.g., sales generated, units processed), then generate powerful reports: top performers, monthly sales, financial growth — all correlated with HR data (attendance, leave, workload).
+
+**User Story:**
+> As a startup founder, I want to track business outcomes (revenue, deals closed) per task so I can see which employees perform best and generate data-driven team reports.
+
+**Competitive Analysis:**
+- **Monday.com / ClickUp / Asana:** Have custom fields + dashboards, but ZERO HR awareness (don't know who's on leave, who's overworked)
+- **BambooHR / Talenta / Bayzat / ZenHR:** Have HR context, but ZERO task boards or business metrics
+- **Workived:** ONLY product combining both → unique positioning
+
+**Positioning:** "Monday.com tells you what tasks got done. BambooHR tells you who was at work. Workived tells you who performed best — and why."
+
+### Phase 1: Built-in Task Analytics Dashboard
+**Sprint:** 15-16 | **Effort:** M (1 week) | **Tier:** Free
+
+Zero schema changes — uses existing task data:
+- Task completion rate per employee (completed / total)
+- Average completion time (completed_at - created_at)
+- Overdue task rate (due_date < today & not completed)
+- Tasks by priority breakdown (pie chart)
+- Top performers ranking (most tasks completed in period)
+- Workload distribution chart (tasks per employee)
+- Date range selector (week / month / quarter)
+
+### Phase 2: Custom Metric Fields on Tasks
+**Sprint:** 18-19 | **Effort:** L (2 weeks) | **Tier:** Pro
+
+- Admin defines custom fields per org (number, currency, percentage)
+- Fields appear on task create/edit form
+- Aggregation: sum, avg, min, max per employee / per list / per date range
+- Report builder: "Total sales by employee for March 2026"
+- Export: PDF + CSV
+
+Schema:
+```sql
+CREATE TABLE task_metric_definitions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organisation_id UUID NOT NULL REFERENCES organisations(id),
+    name VARCHAR(100) NOT NULL,
+    field_type VARCHAR(20) NOT NULL,     -- 'number', 'currency', 'percentage'
+    currency_code VARCHAR(3),            -- if type=currency
+    is_required BOOLEAN DEFAULT false,
+    position INT DEFAULT 0,
+    is_active BOOLEAN DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE task_metric_values (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    organisation_id UUID NOT NULL REFERENCES organisations(id),
+    task_id UUID NOT NULL REFERENCES tasks(id),
+    metric_id UUID NOT NULL REFERENCES task_metric_definitions(id),
+    numeric_value BIGINT,               -- smallest currency unit, never FLOAT
+    text_value TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(task_id, metric_id)
+);
+```
+
+### Phase 3: Cross-Module HR Intelligence
+**Sprint:** 22+ | **Effort:** XL (3+ weeks) | **Tier:** Pro
+
+The killer differentiator no competitor has:
+- Correlate task output with attendance ("95%+ punctuality → 40% more tasks completed")
+- Burnout risk score (high tasks + low leave usage + overtime = red flag)
+- Department efficiency (tasks completed per member, adjusted for leave days)
+- Financial performance (custom sales metrics × attendance days = revenue per working day)
+- Scheduled weekly email digest to founders
+- Multi-dimensional top performer (weighted by priority, on-time rate, custom metrics)
+
+**Use cases by industry:**
+- Property management → revenue per property task
+- Agency → billable hours per employee
+- Retail → sales per shift
+- Tech → sprint velocity + code metrics
+
+**Why it matters:**
+- **Unique moat:** PM tools can't add HR, HR tools can't add tasks — we have both
+- **Natural Pro feature:** Clear upgrade incentive
+- **High stickiness:** Custom metrics = high migration cost
+- **Multi-industry:** One feature, many use cases
+
+**Risks:**
+- Small teams may not consistently fill in custom metrics (<10% adoption risk)
+- Need Phase 1 analytics first to prove concept with zero-effort data
+- Full vision is XL effort — phased approach mitigates
+
+**Dependencies:**
+- Phase 1: None (existing data)
+- Phase 2: Phase 1 shipped + Pro tier gating
+- Phase 3: Phase 2 + audit logging + attendance analytics
