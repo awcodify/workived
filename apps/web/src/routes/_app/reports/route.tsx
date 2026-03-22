@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { DateTime } from '@/components/workived/shared/DateTime'
 import { apiClient } from '@/lib/api/client'
-import { moduleBackgrounds, typography } from '@/design/tokens'
+import { moduleBackgrounds, typography, colors } from '@/design/tokens'
 import {
   Clock,
   Users,
@@ -98,11 +99,12 @@ function ReportsPage() {
       style={{ background: moduleBackgrounds.reports, paddingBottom: '160px' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="mb-6">
+        <div className="flex items-center justify-between">
         <div>
           <h1
             className="font-extrabold"
-            style={{ fontSize: 44, letterSpacing: '-0.05em', color: '#F0F0FF', lineHeight: 1 }}
+            style={{ fontSize: typography.display.size, letterSpacing: typography.display.tracking, color: '#F0F0FF', lineHeight: typography.display.lineHeight }}
           >
             Reports
           </h1>
@@ -110,15 +112,47 @@ function ReportsPage() {
             Analytics & insights · {monthLabel}
           </p>
         </div>
-        <div
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
-          style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          <BarChart3 size={14} style={{ color: 'rgba(255,255,255,0.5)' }} />
-          <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            {monthLabel}
-          </span>
+        
+        <div className="flex items-center gap-4">
+          <DateTime 
+            textColor="#F0F0FF"
+            textMutedColor="rgba(255,255,255,0.4)"
+            borderColor="rgba(255,255,255,0.08)"
+          />
+          {/* Notification Placeholder */}
+          <div
+              style={{
+                minWidth: 36,
+                height: 36,
+                background: 'rgba(255,255,255,0.06)',
+                borderRadius: 10,
+                boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}
+              title="No notifications"
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
+                <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+
+          
+          <div
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            <BarChart3 size={14} style={{ color: 'rgba(255,255,255,0.5)' }} />
+            <span className="text-xs font-medium" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {monthLabel}
+            </span>
+          </div>
         </div>
+      </div>
       </div>
 
       {/* Summary Cards */}

@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, Settings, X, Upload } from 'lucide-react'
+import { DateTime } from '@/components/workived/shared/DateTime'
 import { 
   useMyClaimBalances, 
   useAllClaims, 
@@ -68,7 +69,7 @@ function ClaimsDashboard() {
     >
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1
               className="font-extrabold"
@@ -88,9 +89,56 @@ function ClaimsDashboard() {
             </p>
           </div>
           
-          {/* Settings button for managers */}
-          {canManageClaims && (
-            <button
+          <div className="flex items-center gap-4">
+              <DateTime 
+                textColor={t.text}
+                textMutedColor={t.textMuted}
+                borderColor={t.border}
+              />
+              {/* Notification Placeholder */}
+              <div
+                  style={{
+                    minWidth: 36,
+                    height: 36,
+                    background: t.surface,
+                    borderRadius: 10,
+                    boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: 0,
+                    border: `1px solid ${t.border}`,
+                  }}
+                  title="No notifications"
+                >
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
+                    <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </div>
+            </div>
+        </div>
+      </div>
+
+      {/* Two Column Layout - Left wider for visual bars */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
+        {/* LEFT COLUMN: Claim Balances */}
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2
+              className="font-bold"
+              style={{
+                fontSize: typography.h2.size,
+                letterSpacing: typography.h2.tracking,
+                color: t.text,
+              }}
+            >
+              Need to claim? Click a category to submit
+            </h2>
+            
+            {/* Settings button for managers */}
+            {canManageClaims && (
+              <button
               onClick={() => navigate({ to: '/claims/categories' })}
               className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all hover:opacity-80"
               style={{
@@ -102,26 +150,10 @@ function ClaimsDashboard() {
               title="Manage claim categories"
             >
               <Settings size={16} />
-              Categories
+              Settings
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* Two Column Layout - Left wider for visual bars */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
-        {/* LEFT COLUMN: Claim Balances */}
-        <div>
-          <h2
-            className="font-bold mb-3"
-            style={{
-              fontSize: typography.h2.size,
-              letterSpacing: typography.h2.tracking,
-              color: t.text,
-            }}
-          >
-            Need to claim? Click a category to submit
-          </h2>
+            )}
+          </div>
 
           {isLoading ? (
             <BalancesSkeleton />

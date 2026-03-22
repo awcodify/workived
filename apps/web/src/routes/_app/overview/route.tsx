@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
@@ -7,12 +7,13 @@ import { useTodayAttendance } from '@/lib/hooks/useAttendance'
 import { useMyBalances, useCalendar, useHolidays, useLeaveNotificationCount } from '@/lib/hooks/useLeave'
 import { useMyClaimBalances, useClaimNotificationCount } from '@/lib/hooks/useClaims'
 import { useCanManageLeave, useCanManageClaims } from '@/lib/hooks/useRole'
-import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
+import { todayISO, getMondayOfWeek } from '@/lib/utils/date'
 import { formatMoney } from '@/lib/utils/money'
 import { useModuleTheme, useModuleBackground, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { Users, CalendarDays, Receipt, AlertCircle, ChevronRight } from 'lucide-react'
+import { DateTime } from '@/components/workived/shared/DateTime'
 
 // ── Tooltip ──────────────────────────────────────────────────────
 import { useRef, useState as useTooltipState } from 'react'
@@ -92,37 +93,6 @@ function useGreeting() {
   if (hour < 12) return 'Good morning,'
   if (hour < 17) return 'Good afternoon,'
   return 'Good evening,'
-}
-
-function useLiveClock(tz: string) {
-  const [clock, setClock] = useState(() => formatTime(tz))
-  useEffect(() => {
-    const id = setInterval(() => setClock(formatTime(tz)), 1000)
-    return () => clearInterval(id)
-  }, [tz])
-  return clock
-}
-
-function formatTime(tz: string) {
-  const now = new Date()
-  const time = new Intl.DateTimeFormat('en', {
-    timeZone: tz,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true,
-  }).format(now)
-  // Split into time and period (e.g. "06:23:10 PM")
-  const parts = time.match(/^(.+?)\s*(AM|PM)$/i)
-  if (parts) return { time: parts[1]!.trim(), period: parts[2]!.toUpperCase() }
-  return { time, period: '' }
-}
-
-function formatDateLabel(tz: string) {
-  const now = new Date()
-  const day = new Intl.DateTimeFormat('en', { timeZone: tz, weekday: 'long' }).format(now).toUpperCase()
-  const date = new Intl.DateTimeFormat('en', { timeZone: tz, day: 'numeric', month: 'long', year: 'numeric' }).format(now).toUpperCase()
-  return `${day} \u00B7 ${date}`
 }
 
 // ── Page ────────────────────────────────────────────────────────
@@ -206,7 +176,6 @@ function OverviewPage() {
   const firstName = fullName?.split(' ')[0] ?? 'there'
 
   const greeting = useGreeting()
-  const clock = useLiveClock(tz)
   const dailyQuote = useDailyQuote()
 
   // Team pulse data — merge employees with daily report + leave calendar
@@ -226,7 +195,8 @@ function OverviewPage() {
       style={{ background: bg, paddingBottom: '160px' }}
     >
       {/* Header: Greeting left, Date/clock right */}
-      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6" style={{ marginBottom: 24 }}>
+      <div className="mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           {/* Greeting */}
           <h1
@@ -246,46 +216,12 @@ function OverviewPage() {
         </div>
 
         {/* Date, live clock, and notification on right */}
-        <div className="flex flex-col gap-3 md:items-end md:justify-end md:flex-row md:gap-4" style={{ minWidth: 340, flex: 1 }}>
-          <div className="flex items-center gap-4" style={{ minHeight: 38 }}>
-            <p
-              className="uppercase"
-              style={{
-                fontSize: 15,
-                fontWeight: 600,
-                color: t.textMuted,
-                letterSpacing: '0.10em',
-                lineHeight: 1.2,
-              }}
-            >
-              {formatDateLabel(tz)}
-            </p>
-            <span style={{ width: 1, height: 22, background: t.border, borderRadius: 2 }} />
-            <div className="flex items-baseline gap-2">
-              <p
-                style={{
-                  fontFamily: typography.fontMono,
-                  fontSize: 22,
-                  fontWeight: 700,
-                  color: t.text,
-                  letterSpacing: '-0.02em',
-                  lineHeight: 1,
-                }}
-              >
-                {clock.time}
-              </p>
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: t.textMuted,
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {clock.period}
-              </span>
-            </div>
-          </div>
+        <div className="flex items-center gap-4">
+          <DateTime 
+            textColor={t.text}
+            textMutedColor={t.textMuted}
+            borderColor={t.border}
+          />
           {/* Notification Placeholder */}
           <div
             style={{
@@ -309,6 +245,7 @@ function OverviewPage() {
           </div>
         </div>
       </div>
+      </div>
 
       {/* Motivational Quote Card (moved below header) */}
       <div
@@ -327,8 +264,8 @@ function OverviewPage() {
       >
         <span style={{ fontSize: 32, color: colors.accent, marginRight: 8 }}>❝</span>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 17, color: t.text, fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>{dailyQuote.text}</p>
-          <p style={{ fontSize: 13, color: t.textMuted, fontWeight: 500, textAlign: 'right' }}>— {dailyQuote.author}</p>
+          <p style={{ fontSize: 17, color: t.text, fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>{dailyQuote?.text}</p>
+          <p style={{ fontSize: 13, color: t.textMuted, fontWeight: 500, textAlign: 'right' }}>— {dailyQuote?.author}</p>
         </div>
       </div>
 

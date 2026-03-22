@@ -1,5 +1,6 @@
 import { createFileRoute, redirect, useNavigate } from '@tanstack/react-router'
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import { DateTime } from '@/components/workived/shared/DateTime'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 import { TaskFilters } from '@/components/TaskFilters'
 import {
@@ -23,7 +24,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useDroppable } from '@dnd-kit/core'
-import { moduleBackgrounds, typography } from '@/design/tokens'
+import { moduleBackgrounds, typography, colors } from '@/design/tokens'
 import { apiClient } from '@/lib/api/client'
 import { formatDateLocal } from '@/lib/utils/date'
 import { 
@@ -443,19 +444,20 @@ function TasksPage() {
     >
       {/* Header */}
       <div className="mb-6">
-        <div>
-          <h1
-            className="font-extrabold"
-            style={{ 
-              fontSize: 32, 
-              letterSpacing: '-0.02em', 
-              color: '#2C3E50', 
-              lineHeight: 1,
-              fontFamily: typography.fontFamily,
-            }}
-          >
-            Tasks
-          </h1>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1
+              className="font-extrabold"
+              style={{ 
+                fontSize: typography.display.size, 
+                letterSpacing: typography.display.tracking, 
+                color: '#2C3E50', 
+                lineHeight: typography.display.lineHeight,
+                fontFamily: typography.fontFamily,
+              }}
+            >
+              Tasks
+            </h1>
           <p 
             className="mt-3" 
             style={{ 
@@ -469,6 +471,36 @@ function TasksPage() {
               ? `${totalTasks} of ${allTasksCount} tasks`
               : `${totalTasks} total`} · {inProgressCount} in progress · {completedTasks} done
           </p>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <DateTime 
+              textColor="#2C3E50"
+              textMutedColor="#7F8C8D"
+              borderColor="#E8ECF0"
+            />
+            {/* Notification Placeholder */}
+            <div
+              style={{
+                minWidth: 36,
+                height: 36,
+                background: '#FFFFFF',
+                borderRadius: 10,
+                boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                border: '1px solid #E8ECF0',
+              }}
+              title="No notifications"
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
+                <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
 

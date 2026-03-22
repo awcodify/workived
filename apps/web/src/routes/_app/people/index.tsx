@@ -5,7 +5,8 @@ import { useEmployees } from '@/lib/hooks/useEmployees'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
-import { useModuleTheme, useModuleBackground } from '@/design/tokens'
+import { useModuleTheme, useModuleBackground, typography, colors } from '@/design/tokens'
+import { DateTime } from '@/components/workived/shared/DateTime'
 
 export const Route = createFileRoute('/_app/people/')({
   component: PeoplePage,
@@ -69,11 +70,12 @@ function PeoplePage() {
       style={{ background: bg, paddingBottom: '160px' }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1
             className="font-extrabold"
-            style={{ fontSize: 44, letterSpacing: '-0.05em', color: t.text, lineHeight: 1 }}
+            style={{ fontSize: typography.display.size, letterSpacing: typography.display.tracking, color: t.text, lineHeight: typography.display.lineHeight }}
           >
             People
           </h1>
@@ -81,19 +83,9 @@ function PeoplePage() {
             {employees.length} employee{employees.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Link
-            to="/org-chart"
-            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
-            style={{
-              background: t.surface,
-              color: t.text,
-              borderRadius: 12,
-            }}
-          >
-            <Network size={16} />
-            Org Chart
-          </Link>
+        
+        <div className="flex flex-col-reverse md:flex-row items-start md:items-center gap-3 md:gap-4">
+          {/* Action Buttons */}
           {canManageEmployees && (
             <Link
               to="/people/$id"
@@ -110,25 +102,72 @@ function PeoplePage() {
               Add employee
             </Link>
           )}
+          
+          <div className="flex items-center gap-4">
+            <DateTime 
+              textColor={t.text}
+              textMutedColor={t.textMuted}
+              borderColor={t.border}
+            />
+            {/* Notification Placeholder */}
+            <div
+              style={{
+                minWidth: 36,
+                height: 36,
+                background: t.surface,
+                borderRadius: 10,
+                boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                border: `1px solid ${t.border}`,
+              }}
+              title="No notifications"
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
+                <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
+        </div>
         </div>
       </div>
-
-      {/* Search */}
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: t.textMuted }} />
-        <input
-          type="text"
-          placeholder="Search employees..."
-          value={search}
-          onChange={(e) => handleSearch(e.target.value)}
-          className="w-full pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2"
+      {/* Search and Org Chart Row */}
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-3 mb-4">
+        {/* Search */}
+        <div className="relative">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: t.textMuted }} />
+          <input
+            type="text"
+            placeholder="Search employees..."
+            value={search}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="w-full pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2"
+            style={{
+              background: t.input,
+              border: `1px solid ${t.inputBorder}`,
+              borderRadius: 12,
+              color: t.text,
+            }}
+          />
+        </div>
+        
+        {/* Org Chart Button */}
+        <Link
+          to="/org-chart"
+          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90 whitespace-nowrap"
           style={{
-            background: t.input,
-            border: `1px solid ${t.inputBorder}`,
-            borderRadius: 12,
+            background: t.surface,
             color: t.text,
+            borderRadius: 12,
+            border: `1px solid ${t.border}`,
           }}
-        />
+        >
+          <Network size={16} />
+          Org Chart
+        </Link>
       </div>
 
       {/* Status filter tabs */}

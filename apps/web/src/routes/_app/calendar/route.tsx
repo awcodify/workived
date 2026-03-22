@@ -1,9 +1,10 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
+import { DateTime } from '@/components/workived/shared/DateTime'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCalendar, useHolidays } from '@/lib/hooks/useLeave'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
+import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 import type { CalendarEntry } from '@/types/api'
 
 const t = moduleThemes.calendar
@@ -102,50 +103,83 @@ function CalendarPage() {
     >
       {/* Header */}
       <div className="mb-6">
-        <h1
-          className="font-extrabold text-3xl md:text-4xl"
-          style={{
-            letterSpacing: typography.display.tracking,
-            color: t.text,
-            lineHeight: typography.display.lineHeight,
-          }}
-        >
-          Calendar
-        </h1>
-        <div className="flex flex-wrap items-center gap-3 mt-1">
-          {onLeaveToday > 0 && (
-            <span
-              className="text-sm font-semibold px-2.5 py-0.5"
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <h1
+              className="font-extrabold"
               style={{
-                background: 'rgba(217,119,6,0.10)',
-                color: t.accent,
-                borderRadius: 6,
+                fontSize: typography.display.size,
+                letterSpacing: typography.display.tracking,
+                color: t.text,
+                lineHeight: typography.display.lineHeight,
               }}
             >
-              {onLeaveToday} on leave today
-            </span>
-          )}
-          {backendCountryName && (
-            <p className="text-sm" style={{ color: t.textMuted }}>
-              Holidays: {backendCountryName}
-              {org && backendCountry !== org.country_code && (
+              Calendar
+            </h1>
+            <div className="flex flex-wrap items-center gap-3 mt-1">
+              {onLeaveToday > 0 && (
                 <span
-                  className="ml-2 text-xs font-semibold px-1.5 py-0.5"
+                  className="text-sm font-semibold px-2.5 py-0.5"
                   style={{
-                    background: 'rgba(232,87,87,0.1)',
-                    color: '#E85757',
-                    borderRadius: 4,
+                    background: 'rgba(217,119,6,0.10)',
+                    color: t.accent,
+                    borderRadius: 6,
                   }}
                 >
-                  Org: {org.country_code}
+                  {onLeaveToday} on leave today
                 </span>
               )}
-            </p>
-          )}
+              {backendCountryName && (
+                <p className="text-sm" style={{ color: t.textMuted }}>
+                  Holidays: {backendCountryName}
+                  {org && backendCountry !== org.country_code && (
+                    <span
+                      className="ml-2 text-xs font-semibold px-1.5 py-0.5"
+                      style={{
+                        background: 'rgba(232,87,87,0.1)',
+                        color: '#E85757',
+                        borderRadius: 4,
+                      }}
+                    >
+                      Org: {org.country_code}
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-4">
+            <DateTime 
+              textColor={t.text}
+              textMutedColor={t.textMuted}
+              borderColor={t.border}
+            />
+            {/* Notification Placeholder */}
+            <div
+              style={{
+                minWidth: 36,
+                height: 36,
+                background: t.surface,
+                borderRadius: 10,
+                boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                border: `1px solid ${t.border}`,
+              }}
+              title="No notifications"
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
+                <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Controls */}
+      
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-0 mb-6">
         <div className="flex items-center gap-2">
           <button

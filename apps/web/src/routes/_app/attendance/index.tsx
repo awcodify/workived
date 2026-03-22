@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { DateTime } from '@/components/workived/shared/DateTime'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useMyWeek, useTeamWeek, useAllWeek } from '@/lib/hooks/useAttendance'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
@@ -202,7 +203,8 @@ function AttendancePage() {
       style={{ background: moduleBackgrounds.attendance, paddingBottom: '160px' }}
     >
       {/* Header with Title and Toggle */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1
             className="font-extrabold mb-4"
@@ -283,8 +285,40 @@ function AttendancePage() {
           </div>
         </div>
         
-        {/* Filter Buttons */}
-        <div className="flex items-center gap-3">
+        {/* Right side: DateTime and Notification */}
+        <div className="flex items-center gap-4">
+          <DateTime 
+            textColor={t.text}
+            textMutedColor={t.textMuted}
+            borderColor={t.border}
+          />
+          {/* Notification Placeholder */}
+          <div
+              style={{
+                minWidth: 36,
+                height: 36,
+                background: t.surface,
+                borderRadius: 10,
+                boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: 0,
+                border: `1px solid ${t.border}`,
+              }}
+              title="No notifications"
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
+                <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </div>
+        </div>
+      </div>
+      </div>
+
+      {/* Filters Row */}
+      <div className="flex items-center justify-end gap-3 mb-6">
           {/* Clock-in Filter */}
           <div className="flex items-center gap-2 p-1 rounded-lg" style={{ background: t.border }}>
             <button
@@ -339,7 +373,6 @@ function AttendancePage() {
             </div>
           </button>
           )}
-        </div>
       </div>
 
       {/* 2-Column Layout */}
