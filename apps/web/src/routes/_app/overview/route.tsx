@@ -426,7 +426,7 @@ function OverviewPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {pendingLeave > 0 && (
                   <Link
-                    to="/leave/requests"
+                    to="/leave"
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '12px 16px', borderRadius: 12,
@@ -748,14 +748,14 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
   onLeaveEntries: { employee_id: string; policy_name: string }[]
 }) {
   const [hovered, setHovered] = useState<string | null>(null)
-  const notClockedIn = Math.max(0, totalEmployees - present - late - trueAbsent - onLeaveCount)
+  const pending = Math.max(0, totalEmployees - present - late - trueAbsent - onLeaveCount)
 
   const segments = [
     { label: 'On Time', value: present, color: colors.ok },
     { label: 'Late', value: late, color: colors.warn },
     { label: 'On Leave', value: onLeaveCount, color: colors.accentMid },
     { label: 'Absent', value: trueAbsent, color: colors.err },
-    { label: 'Not Clocked In', value: notClockedIn, color: 'rgba(255,255,255,0.07)', legendColor: 'rgba(255,255,255,0.2)' },
+    { label: 'Pending', value: pending, color: 'rgba(255,255,255,0.07)', legendColor: 'rgba(255,255,255,0.2)' },
   ]
 
   return (
