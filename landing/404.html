@@ -209,12 +209,97 @@
       color: var(--accent);
     }
 
+    /* ── Floating Support Button ── */
+    .support-float {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .support-card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      font-size: 14px;
+      color: var(--ink-900);
+      box-shadow: 0 6px 24px rgba(99, 87, 232, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+      opacity: 0;
+      transform: translateY(8px) scale(0.95);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+      max-width: 280px;
+    }
+    .support-card.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .support-card-header {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--ink-900);
+    }
+    .support-card-text {
+      font-size: 13px;
+      color: var(--ink-500);
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .support-card-email {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent);
+      font-weight: 500;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--ink-50);
+      transition: background 0.2s ease;
+    }
+    .support-card-email:hover {
+      background: #E8E6FB;
+    }
+    .support-btn {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--accent-mid) 0%, var(--accent) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(99, 87, 232, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: none;
+    }
+    .support-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 24px rgba(99, 87, 232, 0.4), 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .support-btn svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+      transition: transform 0.3s ease;
+    }
+    .support-btn.active svg {
+      transform: rotate(180deg);
+    }
+
     @media (max-width: 640px) {
       .logo { margin-bottom: 40px; }
       .error-code { margin-bottom: 20px; }
       h1 { margin-bottom: 12px; }
       p { font-size: 15px; margin-bottom: 32px; }
       .suggestions { margin-top: 40px; padding-top: 32px; }
+      .support-float { bottom: 20px; right: 20px; }
+      .support-btn { width: 52px; height: 52px; }
+      .support-card { max-width: calc(100vw - 40px); }
     }
   </style>
 </head>
@@ -262,5 +347,68 @@
       </div>
     </div>
   </div>
+
+  <!-- Floating Support Button -->
+  <div class="support-float">
+    <div class="support-card" id="supportCard">
+      <div class="support-card-header">We're all ears 👂</div>
+      <div class="support-card-text">No bots. No tickets. Just real founders who built this, use it daily, and genuinely want to hear from you.</div>
+      <a href="mailto:my@workived.com" class="support-card-email">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        my@workived.com
+      </a>
+    </div>
+    <button class="support-btn" id="supportBtn" aria-label="Contact support">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    console.log('🔍 404 Error Page loaded successfully!');
+    console.log('🏖️ Fun fact: This page exists because it doesn\'t exist. Philosophy major vibes.');
+    console.log('');
+    console.log('📊 Status Report:');
+    console.log('   ✅ Our logo SVG: Still inline. Still fast.');
+    console.log('   ✅ Tracking scripts: Still zero. Still proud.');
+    console.log('   ❌ The page you\'re looking for: Taking a leave day apparently.');
+    console.log('');
+    console.log('🤔 Pro tip: Check the URL for typos. Or maybe you found a bug?');
+    console.log('🐛 If this is a broken link, we actually want to know: my@workived.com');
+    console.log('');
+    console.log('💡 Or you could just head back home and pretend this never happened.');
+    console.log('👈 That purple button up there? It\'ll take you back. We won\'t judge.');
+    console.log('');
+    console.log('🎭 Meanwhile, our actual app has 98%+ test coverage.');
+    console.log('   This 404 page? It\'s more of a vibe check tbh.');
+    
+    // Support button toggle
+    const supportBtn = document.getElementById('supportBtn');
+    const supportCard = document.getElementById('supportCard');
+    
+    supportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpening = !supportBtn.classList.contains('active');
+      supportBtn.classList.toggle('active');
+      supportCard.classList.toggle('active');
+      
+      if (isOpening) {
+        console.log('💬 Support opened on 404! Lost AND curious. We like your style.');
+      } else {
+        console.log('👋 Support closed. But seriously, go back home. You\'re lost.');
+      }
+    });
+    
+    // Close support card when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!supportCard.contains(e.target) && !supportBtn.contains(e.target)) {
+        supportBtn.classList.remove('active');
+        supportCard.classList.remove('active');
+      }
+    });
+  </script>
 </body>
 </html>
