@@ -620,14 +620,14 @@ function OverviewPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Receipt size={18} style={{ color: colors.ok }} />
-                    <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: t.text, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
+                    <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: colors.okText, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
                       Claims Budget
                     </h3>
                   </div>
                   <Link
                     to="/claims"
                     className="text-xs font-semibold transition-opacity hover:opacity-100"
-                    style={{ color: t.textMuted, textDecoration: 'none' }}
+                    style={{ color: colors.okText, opacity: 0.65, textDecoration: 'none' }}
                   >
                     View all
                   </Link>
@@ -645,7 +645,7 @@ function OverviewPage() {
                   }}>
                     {formatMoney(remaining > 0 ? remaining : 0, currency)}
                   </span>
-                  <span style={{ fontSize: 13, color: t.textMuted, fontWeight: 500 }}>
+                  <span style={{ fontSize: 13, color: colors.okText, opacity: 0.65, fontWeight: 500 }}>
                     remaining
                   </span>
                 </div>
@@ -663,12 +663,12 @@ function OverviewPage() {
 
                 {/* Spent vs limit */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5 }}>
-                  <span style={{ color: t.textMuted, fontWeight: 500 }}>
-                    Spent: <span style={{ color: t.text, fontWeight: 700 }}>{formatMoney(totalSpent, currency)}</span>
+                  <span style={{ color: colors.okText, opacity: 0.65, fontWeight: 500 }}>
+                    Spent: <span style={{ color: colors.okText, opacity: 1, fontWeight: 700 }}>{formatMoney(totalSpent, currency)}</span>
                   </span>
                   {totalLimit > 0 && (
-                    <span style={{ color: t.textMuted, fontWeight: 500 }}>
-                      Limit: <span style={{ color: t.text, fontWeight: 700 }}>{formatMoney(totalLimit, currency)}</span>
+                    <span style={{ color: colors.okText, opacity: 0.65, fontWeight: 500 }}>
+                      Limit: <span style={{ color: colors.okText, opacity: 1, fontWeight: 700 }}>{formatMoney(totalLimit, currency)}</span>
                     </span>
                   )}
                 </div>
