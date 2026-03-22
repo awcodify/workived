@@ -617,11 +617,14 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
 
   const [receipt, setReceipt] = useState<File | null>(null)
   const [receiptPreview, setReceiptPreview] = useState<string | null>(null)
+  const [amountDisplay, setAmountDisplay] = useState<string>('')
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    setValue,
+    clearErrors,
   } = useForm<ClaimFormData>({
     defaultValues: {
       category_id: categoryId,
@@ -630,6 +633,29 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
   })
 
   const selectedCategory = categories?.find((c) => c.id === categoryId)
+
+  const formatNumberWithCommas = (value: string): string => {
+    // Remove all non-digit characters
+    const digitsOnly = value.replace(/\D/g, '')
+    
+    // Format with thousand separators
+    return digitsOnly.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  }
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value
+    const formatted = formatNumberWithCommas(input)
+    setAmountDisplay(formatted)
+    
+    // Store raw number value for form submission
+    const rawValue = input.replace(/\D/g, '')
+    setValue('amount', rawValue)
+    
+    // Validate
+    if (rawValue && parseInt(rawValue) > 0) {
+      clearErrors('amount')
+    }
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -775,14 +801,10 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
             </label>
             <input
               id="amount"
-              type="number"
-              step="1"
-              min="1"
-              {...register('amount', { 
-                required: 'Amount is required', 
-                min: { value: 1, message: 'Amount must be at least 1' },
-                validate: (value) => parseInt(value) > 0 || 'Amount must be greater than zero'
-              })}
+              type="text"
+              inputMode="numeric"
+              value={amountDisplay}
+              onChange={handleAmountChange}
               placeholder="0"
               autoFocus
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
@@ -792,6 +814,18 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
                 borderRadius: 10,
                 color: t.text,
               }}
+            />
+            <input
+              type="hidden"
+              {...register('amount', { 
+                required: 'Amount is required', 
+                validate: (value) => {
+                  const num = parseInt(value)
+                  if (!value || isNaN(num)) return 'Amount is required'
+                  if (num < 1) return 'Amount must be at least 1'
+                  return true
+                }
+              })}
             />
             {errors.amount && (
               <p className="text-xs mt-1" style={{ color: colors.errText }}>

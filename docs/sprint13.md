@@ -603,6 +603,13 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
   - [x] ✅ Added useEffect to auto-switch from "Approvals" to "My Requests" when pendingCount becomes 0
   - [x] ✅ Consistent UX across both modules
 
+#### Claims Amount Input Formatting
+- [x] ✅ Add automatic comma formatting for claim amount input
+  - [x] ✅ Frontend: Changed amount input from number to text with comma separators
+  - [x] ✅ Real-time formatting as user types (e.g., 1000000 → 1,000,000)
+  - [x] ✅ Hidden field stores raw numeric value for form submission
+  - [x] ✅ Improved readability for large amounts
+
 ### Testing
 - [x] ✅ Test: Ricko (member + subordinate) sees Approvals tab
 - [x] ✅ Test: Jefry (member without subordinate) does NOT see Approvals tab
@@ -619,6 +626,8 @@ Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
 - [ ] Test: Settings modal backdrop blur works
 - [ ] Test: Leave policy days_per_year update → balances updated
 - [ ] Test: Claim category monthly_limit update → balances updated
+- [ ] Test: Claim amount input shows commas (1000000 → 1,000,000)
+- [ ] Test: Claim submission with formatted amount works correctly
 
 ### Documentation
 - [x] ✅ Update Sprint 13 progress
