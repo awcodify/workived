@@ -743,33 +743,34 @@ function DateRangePicker({ startDate, endDate, onStartDateChange, onEndDateChang
   const [tempEndDate, setTempEndDate] = useState<Date | null>(endDate ? new Date(endDate) : null)
 
   const handleDateClick = (date: Date) => {
-    const isoDate = date.toISOString().split('T')[0]
-    if (!isoDate) return
+    // Use local date formatting to avoid timezone issues
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const isoDate = `${year}-${month}-${day}`
     
     if (selectingStart) {
       // First click - set start date
       setTempStartDate(date)
       onStartDateChange(isoDate)
-      
-      // If clicking same date again, set as single day
-      if (tempStartDate && tempStartDate.toDateString() === date.toDateString()) {
-        setTempEndDate(date)
-        onEndDateChange(isoDate)
-        setSelectingStart(true)
-      } else {
-        // Clear end date and wait for second selection
-        setTempEndDate(null)
-        onEndDateChange('')
-        setSelectingStart(false)
-      }
+      setTempEndDate(null)
+      onEndDateChange('')
+      setSelectingStart(false)
     } else {
       // Second click - set end date
-      if (tempStartDate && date < tempStartDate) {
+      if (tempStartDate && date.toDateString() === tempStartDate.toDateString()) {
+        // Clicking same date - set as single-day leave
+        setTempEndDate(date)
+        onEndDateChange(isoDate)
+      } else if (tempStartDate && date < tempStartDate) {
         // If end date is before start, swap them
-        const startIso = tempStartDate.toISOString().split('T')[0]
+        const startYear = tempStartDate.getFullYear()
+        const startMonth = String(tempStartDate.getMonth() + 1).padStart(2, '0')
+        const startDay = String(tempStartDate.getDate()).padStart(2, '0')
+        const startIso = `${startYear}-${startMonth}-${startDay}`
         setTempEndDate(tempStartDate)
         setTempStartDate(date)
-        if (startIso) onEndDateChange(startIso)
+        onEndDateChange(startIso)
         onStartDateChange(isoDate)
       } else {
         setTempEndDate(date)

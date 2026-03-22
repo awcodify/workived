@@ -494,6 +494,12 @@ func RequireManager() gin.HandlerFunc {
 - [ ] Test: Ahmad (admin) sees all approvals
 - [ ] Test: Claims default tab stays on "My Requests" for non-approvers
 - [ ] Test: Tasks approval visibility (Ricko sees as creator, manager as assignee, Jefry doesn't see)
+- [ ] Test: **Double-click date picker** — Click same day twice to create single-day leave
+- [ ] Test: **Create request after cancel** — Cancel request, then create new request on same date
+
+### New Issues Fixed (Sprint 13.5)
+1. ✅ **Double-click date picker** — Fixed state timing issue preventing same-day click detection
+2. ⚠️ **Create request after cancel** — Backend logic correct (needs testing to verify)
 
 ### Documentation
 - [x] ✅ Update Sprint 13 progress
