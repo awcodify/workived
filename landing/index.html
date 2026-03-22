@@ -48,7 +48,7 @@
   </script>
 
   <!-- Favicon (inline SVG) -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'><path d='M20 8L8 14L20 20L32 14Z' fill='%236357E8'/><path d='M8 22L20 28L32 22' stroke='%239B8FF7' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M8 28L20 34L32 28' stroke='%236357E8' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><defs><linearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'><stop offset='0%25' stop-color='%239B8FF7'/><stop offset='100%25' stop-color='%236357E8'/></linearGradient></defs><rect x='1' y='1' width='46' height='46' rx='12' fill='url(%23g)'/><rect x='16' y='11' width='22' height='7' rx='3' fill='white' opacity='0.35'/><rect x='13' y='19' width='24' height='7' rx='3' fill='white' opacity='0.6'/><rect x='10' y='27' width='26' height='7' rx='3' fill='white'/></svg>">
 
   <!-- Plus Jakarta Sans from Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -128,14 +128,18 @@
       padding: 28px 40px;
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
-    .logo-icon { flex-shrink: 0; }
+    .logo-icon { 
+      flex-shrink: 0;
+      display: block;
+    }
     .logo-wordmark {
-      font-size: 22px;
+      font-size: 24px;
       font-weight: 800;
       letter-spacing: -0.04em;
       color: var(--ink-900);
+      line-height: 1;
     }
 
     /* ── Hero ── */
@@ -195,7 +199,6 @@
       font-size: clamp(16px, 2.5vw, 20px);
       color: var(--ink-500);
       line-height: 1.7;
-      max-width: 720px;
       margin-bottom: 48px;
     }
 
@@ -461,6 +464,102 @@
       border-top: 1px solid var(--ink-100);
     }
 
+    /* ── Floating Support Button ── */
+    .support-float {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .support-card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      font-size: 14px;
+      color: var(--ink-900);
+      box-shadow: 0 6px 24px rgba(99, 87, 232, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+      opacity: 0;
+      transform: translateY(8px) scale(0.95);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+      max-width: 280px;
+    }
+    .support-card.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .support-card-header {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--ink-900);
+    }
+    .support-card-text {
+      font-size: 13px;
+      color: var(--ink-500);
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .support-card-email {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent);
+      font-weight: 500;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--ink-50);
+      transition: background 0.2s ease;
+    }
+    .support-card-email:hover {
+      background: #E8E6FB;
+    }
+    .support-btn {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--accent-mid) 0%, var(--accent) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(99, 87, 232, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: none;
+      position: relative;
+    }
+    .support-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 24px rgba(99, 87, 232, 0.4), 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .support-btn svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+      transition: transform 0.3s ease;
+    }
+    .support-btn.active svg {
+      transform: rotate(180deg);
+    }
+    .support-btn.buzz {
+      animation: buzz 0.5s ease-in-out;
+    }
+    @keyframes buzz {
+      0%, 100% { transform: translateX(0) rotate(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-3px) rotate(-2deg); }
+      20%, 40%, 60%, 80% { transform: translateX(3px) rotate(2deg); }
+    }
+    @media (max-width: 640px) {
+      .support-float { bottom: 20px; right: 20px; }
+      .support-btn { width: 52px; height: 52px; }
+      .support-card { max-width: calc(100vw - 40px); }
+    }
+
     /* ── Scroll animations ── */
     .reveal {
       opacity: 0;
@@ -500,16 +599,17 @@
   <div class="page">
     <!-- Header -->
     <header class="header">
-      <svg class="logo-icon" width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="logo-icon" width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#9B8FF7"/>
             <stop offset="100%" stop-color="#6357E8"/>
           </linearGradient>
         </defs>
-        <path d="M20 8L8 14L20 20L32 14Z" fill="url(#g)" opacity="0.9"/>
-        <path d="M8 22L20 28L32 22" stroke="url(#g)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
-        <path d="M8 28L20 34L32 28" stroke="#6357E8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+        <rect x="1" y="1" width="46" height="46" rx="12" fill="url(#g)"/>
+        <rect x="16" y="11" width="22" height="7" rx="3" fill="white" opacity="0.35"/>
+        <rect x="13" y="19" width="24" height="7" rx="3" fill="white" opacity="0.6"/>
+        <rect x="10" y="27" width="26" height="7" rx="3" fill="white"/>
       </svg>
       <span class="logo-wordmark">Workived</span>
     </header>
@@ -527,8 +627,8 @@
       </h1>
 
       <p class="subtitle">
-        Born from frustration. We use it every day — and now it's yours.<br>
-        Free for almost everything. No hidden costs.
+        Born from frustration with enterprise costs. We literally built the leave feature while on leave.<br>
+        Now we use it daily, and it's yours — free for almost everything. No hidden costs.
       </p>
 
       <div class="markets">
@@ -723,11 +823,33 @@
 
     <!-- Footer -->
     <footer class="footer">
+      <a href="mailto:my@workived.com" style="color: var(--accent); text-decoration: none; margin-right: 12px;">my@workived.com</a>
+      <span style="color: var(--ink-200); margin-right: 12px;">•</span>
       © 2026 Workived. Built for modern founders.
     </footer>
   </div>
 
+  <!-- Floating Support Button -->
+  <div class="support-float">
+    <div class="support-card" id="supportCard">
+      <div class="support-card-header">We're all ears 👂</div>
+      <div class="support-card-text">No bots. No tickets. Just real founders who built this, use it daily, and genuinely want to hear from you.</div>
+      <a href="mailto:my@workived.com" class="support-card-email">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+        my@workived.com
+      </a>
+    </div>
+    <button class="support-btn" id="supportBtn" aria-label="Contact support">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+      </svg>
+    </button>
+  </div>
+
   <script>
+    // Scroll reveal animations
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
@@ -737,6 +859,126 @@
       { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
     );
     document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+    // Support button toggle
+    const supportBtn = document.getElementById('supportBtn');
+    const supportCard = document.getElementById('supportCard');
+    let autoOpenDismissed = false;
+    
+    // Create persistent audio context
+    let audioContext;
+    let audioEnabled = false;
+    
+    // Initialize audio context on first user interaction
+    function initAudio() {
+      if (!audioEnabled) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        audioEnabled = true;
+        console.log('Audio enabled');
+      }
+    }
+    
+    // Enable audio on any user interaction
+    document.addEventListener('click', initAudio, { once: true });
+    document.addEventListener('touchstart', initAudio, { once: true });
+    document.addEventListener('keydown', initAudio, { once: true });
+    
+    // Create notification sound using Web Audio API
+    async function playNotificationSound() {
+      try {
+        // Initialize audio if not already done
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        // Resume audio context if suspended (required by browser autoplay policy)
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+        
+        const oscillator = audioContext.createOscillator();
+        const gainNode = audioContext.createGain();
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Pleasant notification tone (two beeps)
+        oscillator.frequency.value = 800;
+        oscillator.type = 'sine';
+        
+        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+        
+        oscillator.start(audioContext.currentTime);
+        oscillator.stop(audioContext.currentTime + 0.1);
+        
+        // Second beep
+        const oscillator2 = audioContext.createOscillator();
+        const gainNode2 = audioContext.createGain();
+        oscillator2.connect(gainNode2);
+        gainNode2.connect(audioContext.destination);
+        oscillator2.frequency.value = 1000;
+        oscillator2.type = 'sine';
+        gainNode2.gain.setValueAtTime(0.3, audioContext.currentTime + 0.15);
+        gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.25);
+        oscillator2.start(audioContext.currentTime + 0.15);
+        oscillator2.stop(audioContext.currentTime + 0.25);
+        
+        console.log('Notification sound played');
+      } catch (e) {
+        console.log('Audio notification failed:', e);
+      }
+    }
+    
+    // Vibrate on mobile devices
+    function vibrateDevice() {
+      if ('vibrate' in navigator) {
+        // Two short vibrations: 100ms, pause 50ms, 100ms
+        navigator.vibrate([100, 50, 100]);
+      }
+    }
+    
+    supportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      supportBtn.classList.toggle('active');
+      supportCard.classList.toggle('active');
+      autoOpenDismissed = true; // User interacted, don't auto-close
+    });
+
+    // Close support card when clicking outside
+    document.addEventListener('click', (e) => {
+      if (!supportCard.contains(e.target) && !supportBtn.contains(e.target)) {
+        supportBtn.classList.remove('active');
+        supportCard.classList.remove('active');
+      }
+    });
+
+    // Auto-open animation sequence
+    setTimeout(() => {
+      // Play notification sound and vibrate
+      playNotificationSound();
+      vibrateDevice();
+      
+      // First, buzz the button to get attention
+      supportBtn.classList.add('buzz');
+      
+      // After buzz completes, open the card
+      setTimeout(() => {
+        supportBtn.classList.remove('buzz');
+        if (!autoOpenDismissed) {
+          supportBtn.classList.add('active');
+          supportCard.classList.add('active');
+        }
+        
+        // Auto-close after 5 seconds if user hasn't interacted
+        setTimeout(() => {
+          if (!autoOpenDismissed) {
+            supportBtn.classList.remove('active');
+            supportCard.classList.remove('active');
+          }
+        }, 10000);
+      }, 600);
+    }, 1000); // Start sequence 3 seconds after page load
   </script>
 
 </body>
