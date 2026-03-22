@@ -173,7 +173,7 @@ function PeoplePage() {
           >
             <div></div>
             <div>Employee</div>
-            <div>Manager</div>
+            <div>Reporting to</div>
             <div>Department</div>
             <div>Status</div>
           </div>
