@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Check, X } from 'lucide-react'
 import { colors } from '@/design/tokens'
 
@@ -71,9 +71,41 @@ export function RequestListItem({
   const [rejectReason, setRejectReason] = useState('')
   const [rejectError, setRejectError] = useState('')
   const [showDetails, setShowDetails] = useState(false)
+  
+  // Two-click confirmation state
+  const [confirmingApprove, setConfirmingApprove] = useState(false)
+  const confirmTimeoutRef = useRef<number | null>(null)
+  
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (confirmTimeoutRef.current) {
+        clearTimeout(confirmTimeoutRef.current)
+      }
+    }
+  }, [])
 
   const handleApprove = async () => {
     if (!actions.onApprove) return
+    
+    // First click: enter confirmation mode
+    if (!confirmingApprove) {
+      setConfirmingApprove(true)
+      
+      // Auto-reset after 3 seconds
+      confirmTimeoutRef.current = setTimeout(() => {
+        setConfirmingApprove(false)
+      }, 3000)
+      
+      return
+    }
+    
+    // Second click: execute approval
+    if (confirmTimeoutRef.current) {
+      clearTimeout(confirmTimeoutRef.current)
+    }
+    setConfirmingApprove(false)
+    
     try {
       await actions.onApprove(request.id)
     } catch (error) {
@@ -196,15 +228,20 @@ export function RequestListItem({
                     disabled={actions.isPendingApprove}
                     className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
                     style={{
-                      width: 32,
+                      width: confirmingApprove ? 'auto' : 32,
+                      minWidth: 32,
                       height: 32,
-                      background: colors.ok,
+                      paddingLeft: confirmingApprove ? 12 : 0,
+                      paddingRight: confirmingApprove ? 12 : 0,
+                      background: confirmingApprove ? colors.warn : colors.ok,
                       color: '#FFFFFF',
                       borderRadius: 8,
+                      fontSize: confirmingApprove ? '12px' : undefined,
+                      fontWeight: confirmingApprove ? 700 : undefined,
                     }}
-                    title="Approve"
+                    title={confirmingApprove ? 'Click again to confirm' : 'Approve'}
                   >
-                    <Check size={16} strokeWidth={3} />
+                    {confirmingApprove ? 'Sure?' : <Check size={16} strokeWidth={3} />}
                   </button>
                 )}
                 {actions.onReject && (

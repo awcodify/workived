@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Check, X } from 'lucide-react'
 import { colors } from '@/design/tokens'
 import { RequestListItem, RequestListItemTheme, RequestData, RequestListItemConfig } from './RequestListItem'
@@ -35,10 +35,41 @@ export function EmployeeRequestGroup({
   const [rejectReason, setRejectReason] = useState('')
   const [rejectError, setRejectError] = useState('')
   
+  // Two-click confirmation state
+  const [confirmingApproveAll, setConfirmingApproveAll] = useState(false)
+  const confirmTimeoutRef = useRef<number | null>(null)
+  
+  // Clean up timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (confirmTimeoutRef.current) {
+        clearTimeout(confirmTimeoutRef.current)
+      }
+    }
+  }, [])
+  
   const requestCount = requests.length
   const summaryText = config.getSummaryText ? config.getSummaryText(requests) : `${requests.reduce((sum, r) => sum + (r.total_days || 0), 0)} days total`
   
   const handleApproveAll = async () => {
+    // First click: enter confirmation mode
+    if (!confirmingApproveAll) {
+      setConfirmingApproveAll(true)
+      
+      // Auto-reset after 3 seconds
+      confirmTimeoutRef.current = setTimeout(() => {
+        setConfirmingApproveAll(false)
+      }, 3000)
+      
+      return
+    }
+    
+    // Second click: execute approval
+    if (confirmTimeoutRef.current) {
+      clearTimeout(confirmTimeoutRef.current)
+    }
+    setConfirmingApproveAll(false)
+    
     try {
       await actions.onApproveAll(requests)
     } catch (error) {
@@ -117,15 +148,20 @@ export function EmployeeRequestGroup({
                 disabled={actions.isPendingApprove}
                 className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
                 style={{
-                  width: 32,
+                  width: confirmingApproveAll ? 'auto' : 32,
+                  minWidth: 32,
                   height: 32,
-                  background: colors.ok,
+                  paddingLeft: confirmingApproveAll ? 12 : 0,
+                  paddingRight: confirmingApproveAll ? 12 : 0,
+                  background: confirmingApproveAll ? colors.warn : colors.ok,
                   color: '#FFFFFF',
                   borderRadius: 8,
+                  fontSize: confirmingApproveAll ? '12px' : undefined,
+                  fontWeight: confirmingApproveAll ? 700 : undefined,
                 }}
-                title={`Approve all ${requestCount} requests`}
+                title={confirmingApproveAll ? 'Click again to confirm' : `Approve all ${requestCount} requests`}
               >
-                <Check size={16} strokeWidth={3} />
+                {confirmingApproveAll ? 'Sure?' : <Check size={16} strokeWidth={3} />}
               </button>
               
               <button

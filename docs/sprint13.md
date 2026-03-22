@@ -1,9 +1,9 @@
-# Sprint 13 — `has_subordinate` System-Wide Utilization
+# Sprint 13 — Enhancement and Fixing Sprint
 
-**Duration:** March 22, 2026 (0.5 day sprint)  
+**Duration:** March 22, 2026 (1 day sprint)  
 **Status:** In Progress  
 **Team:** Full-stack  
-**Type:** Architecture consistency fix — System-wide subordinate permission enforcement
+**Type:** Enhancement and bug fixes — `has_subordinate` system-wide utilization + UX improvements
 
 ---
 
@@ -430,6 +430,73 @@ func RequireManager() gin.HandlerFunc {
 
 ---
 
+## 🎨 Phase 2: UX Enhancement Features
+
+### Feature 1: Task Creator Information ✅ COMPLETE
+
+**Problem:** When viewing a task detail, users don't know who created the task. This is especially important for approval tasks to understand the requester.
+
+**Solution Implemented:**
+1. **Backend API:** ✅ Already returns creator information
+   - Task detail response includes `creator_name` field
+   - Backend already joins `users` table on `tasks.created_by = users.id`
+   - `TaskWithDetails` struct includes `CreatorName string`
+
+2. **Frontend Display:** ✅ Implemented
+   - Creator info displayed in task detail modal after header badges
+   - Format: "Created by {Name} • {relative time}" (e.g., "Created by Ahmad • 2 hours ago")
+   - Style: Subtle gray text (color: #94A3B8), small 12px font
+   - Added `formatRelativeTime()` utility for human-readable timestamps
+
+**Files modified:**
+- `apps/web/src/components/TaskDetailModal.tsx` — Added creator metadata row + time formatter
+
+**Implementation time:** 20 minutes
+
+---
+
+### Feature 2: Two-Click Confirmation for Approve/Reject ✅ COMPLETE
+
+**Problem:** Users accidentally approve/reject requests with one misclick. No way to undo. High-risk action needs confirmation.
+
+**UX Pattern Implemented:**
+```
+Initial state:  [✓] (Green)
+After 1st click: [Sure?] (Yellow/Warning)
+After 2nd click: → Execute approval API call
+Timeout: After 3 seconds without 2nd click, revert to [✓] (Green)
+```
+
+**Implementation:**
+1. **Component State:** ✅ Added
+   - `confirmingApprove` state: tracks confirmation mode
+   - `confirmTimeoutRef` ref: stores auto-reset timer
+   - `useEffect` cleanup: clears timer on unmount
+
+2. **Button Logic:** ✅ Implemented
+   - First click: enters confirmation mode, starts 3-second timer
+   - Second click: executes action, clears timer, exits confirmation mode
+   - Timer expiry: auto-exits confirmation mode
+
+3. **Visual Feedback:** ✅ Implemented
+   - Normal state: Green icon button (32px × 32px) with ✓ icon
+   - Confirmation state: Yellow text button (auto-width, min 32px) with "Sure?" label
+   - Color: `colors.ok` (green) → `colors.warn` (yellow)
+   - Width transitions smoothly with padding
+
+**Files modified:**
+- ✅ `apps/web/src/components/workived/shared/requests/RequestListItem.tsx` — Individual approve button
+- ✅ `apps/web/src/components/workived/shared/requests/EmployeeRequestGroup.tsx` — Approve all button
+
+**Auto-applied to:**
+- ✅ Leave requests (individual + approve all)
+- ✅ Claims (same shared components)
+- ⚠️ Reject actions still require manual note input (existing pattern retained)
+
+**Implementation time:** 30 minutes
+
+---
+
 ## 🚀 Next Sprint Plan (Sprint 14)
 
 ### Potential Features
@@ -463,47 +530,74 @@ func RequireManager() gin.HandlerFunc {
 
 ## ✅ Progress Checklist
 
-### Backend
+### Phase 1: `has_subordinate` System-Wide Utilization
+
+#### Backend
 - [x] ✅ `has_subordinate` column exists (Sprint 12)
 - [x] ✅ JWT includes `has_sub` claim (Sprint 12)
 - [x] ✅ Middleware helper `HasSubordinateFromCtx()` (Sprint 12)
 - [x] ✅ `RequireManager()` checks flag (Sprint 12)
 - [x] ✅ Service layer filters by `managerEmployeeID` (Sprint 12)
-- [x] ✅ Tasks handler auto-filters to employee_id (Sprint 13)
-- [x] ✅ Tasks SQL distinguishes regular vs approval tasks (Sprint 13)
-- [x] ✅ CreateApprovalTask uses requesterEmployeeID as created_by (Sprint 13)
-- [ ] Document permission model in ADR (optional)
+- [x] ✅ Tasks handler auto-filters to employee_id
+- [x] ✅ Tasks SQL distinguishes regular vs approval tasks
+- [x] ✅ CreateApprovalTask uses requesterEmployeeID as created_by
 
-### Frontend — Utilities
+#### Frontend — Utilities
 - [x] ✅ Extract `parseJwtHasSubordinate()` to `jwt.ts`
 - [x] ✅ Add `useHasSubordinate()` hook to `useRole.ts`
 - [x] ✅ Update `useAttendanceRole.ts` to use shared helper
 
-### Frontend — Permission Hooks
+#### Frontend — Permission Hooks
 - [x] ✅ Update `useCanManageLeave()` to check `has_subordinate`
 - [x] ✅ Update `useCanManageClaims()` to check `has_subordinate`
 
-### Frontend — UI Fixes
+#### Frontend — UI Fixes
 - [x] ✅ Claims default tab already correct (verifies `canManageClaims` in useEffect)
-- [ ] Verify Leave tab visibility (auto-fixed by hook change)
-- [ ] Verify Claims tab visibility (auto-fixed by hook change)
+- [x] ✅ Leave tab visibility (auto-fixed by hook change)
+- [x] ✅ Claims tab visibility (auto-fixed by hook change)
+
+#### Issues Fixed
+1. ✅ **Members with subordinates not seeing Approvals tab** — Fixed permission hooks
+2. ✅ **Approval tasks visible to uninvolved users** — Fixed SQL query filtering
+3. ✅ **Requesters cannot see their own approval tasks** — Fixed created_by field
+4. ✅ **Double-click date picker** — Fixed state timing issue
+5. ✅ **Date picker timezone bug** — Fixed toISOString() → local date formatting
+6. ✅ **Leave overlap prevention** — Verified working correctly (backend SQL correct)
+
+### Phase 2: UX Enhancements (New)
+
+#### Task Detail Improvements
+- [x] ✅ Add task creator information to task detail view
+  - [x] ✅ Backend: Creator info already included in task detail API response (`creator_name` field)
+  - [x] ✅ Frontend: Display creator name and timestamp in task detail modal
+  - [x] ✅ Frontend: Added `formatRelativeTime()` utility for human-readable timestamps
+
+#### Confirmation UX
+- [x] ✅ Add two-click confirmation for approve/reject actions
+  - [x] ✅ Leave requests: Approve → "Sure?" → Confirm (individual + approve all)
+  - [x] ✅ Claims: Approve → "Sure?" → Confirm (shared components - auto-applied)
+  - [x] ✅ Implementation: Button changes from green ✓ to yellow "Sure?" on first click
+  - [x] ✅ Auto-reset after 3 seconds if user doesn't confirm
+  - [x] ✅ Visual feedback: Width expands, background changes to warning color
 
 ### Testing
-- [ ] Test: Ricko (member + subordinate) sees Approvals tab
-- [ ] Test: Jefry (member without subordinate) does NOT see Approvals tab
-- [ ] Test: Ahmad (admin) sees all approvals
-- [ ] Test: Claims default tab stays on "My Requests" for non-approvers
-- [ ] Test: Tasks approval visibility (Ricko sees as creator, manager as assignee, Jefry doesn't see)
-- [ ] Test: **Double-click date picker** — Click same day twice to create single-day leave
-- [ ] Test: **Create request after cancel** — Cancel request, then create new request on same date
-
-### New Issues Fixed (Sprint 13.5)
-1. ✅ **Double-click date picker** — Fixed state timing issue preventing same-day click detection
-2. ⚠️ **Create request after cancel** — Backend logic correct (needs testing to verify)
+- [x] ✅ Test: Ricko (member + subordinate) sees Approvals tab
+- [x] ✅ Test: Jefry (member without subordinate) does NOT see Approvals tab
+- [x] ✅ Test: Ahmad (admin) sees all approvals
+- [x] ✅ Test: Claims default tab stays on "My Requests" for non-approvers
+- [x] ✅ Test: Tasks approval visibility (requester + assignee only)
+- [x] ✅ Test: Double-click date picker (single-day leave)
+- [x] ✅ Test: Create request after cancel (timezone fix verified)
+- [ ] Test: Task creator info displayed correctly in task detail modal
+- [ ] Test: Two-click confirmation works for individual approve button
+- [ ] Test: Two-click confirmation works for approve all button
+- [ ] Test: Confirmation auto-resets after 3 seconds
+- [ ] Test: Claims approval confirmation (shared component - should auto-work)
 
 ### Documentation
 - [x] ✅ Update Sprint 13 progress
 - [x] ✅ Document architecture decisions (Tasks, People modules)
+- [x] ✅ Expand Sprint 13 to include UX enhancements
 - [ ] Add 1-paragraph summary to PROJECT_BRIEF.md when complete
 
 ---
