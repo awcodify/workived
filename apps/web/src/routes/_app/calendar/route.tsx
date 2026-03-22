@@ -97,8 +97,8 @@ function CalendarPage() {
 
   return (
     <div
-      className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
-      style={{ background: moduleBackgrounds.calendar }}
+      className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      style={{ background: moduleBackgrounds.calendar, paddingBottom: '160px' }}
     >
       {/* Header */}
       <div className="mb-6">

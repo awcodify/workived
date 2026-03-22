@@ -198,8 +198,8 @@ function AttendancePage() {
 
   return (
     <div
-      className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
-      style={{ background: moduleBackgrounds.attendance }}
+      className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      style={{ background: moduleBackgrounds.attendance, paddingBottom: '160px' }}
     >
       {/* Header with Title and Toggle */}
       <div className="flex items-center justify-between mb-6">

@@ -94,8 +94,8 @@ function ReportsPage() {
 
   return (
     <div
-      className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
-      style={{ background: moduleBackgrounds.reports }}
+      className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      style={{ background: moduleBackgrounds.reports, paddingBottom: '160px' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">

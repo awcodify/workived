@@ -438,8 +438,8 @@ function TasksPage() {
 
   return (
     <div
-      className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
-      style={{ background: moduleBackgrounds.tasks }}  // Use design tokens
+      className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      style={{ background: moduleBackgrounds.tasks, paddingBottom: '160px' }}  // Use design tokens
     >
       {/* Header */}
       <div className="mb-6">

@@ -222,8 +222,8 @@ function OverviewPage() {
 
   return (
     <div
-      className="min-h-screen px-6 py-6 md:px-11 md:py-8 pb-24"
-      style={{ background: bg }}
+      className="min-h-screen px-6 py-6 md:px-11 md:py-8"
+      style={{ background: bg, paddingBottom: '160px' }}
     >
       {/* Header: Greeting left, Date/clock right */}
       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6" style={{ marginBottom: 24 }}>

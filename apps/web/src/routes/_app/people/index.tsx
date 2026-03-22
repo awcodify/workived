@@ -66,7 +66,7 @@ function PeoplePage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
-      style={{ background: bg }}
+      style={{ background: bg, paddingBottom: '160px' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
