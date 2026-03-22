@@ -39,14 +39,16 @@ export const colors = {
 // ── MODULE BACKGROUNDS ────────────────────────────────────────
 // Each module is a full-screen world with its own colour temperature
 export const moduleBackgrounds = {
-  overview:    '#0C0C0F',  // deep violet night
-  people:      '#080A12',  // deep midnight navy
+  dark:        '#0C0C0F',  // shared dark background for attendance/tasks/reports
+  overview:    '#F8F9FA',  // light neutral gray
+  people:      '#FFF5F7',  // soft pink tint
   attendance:  '#F3F4F6',  // light gray (light mode)
   leave:       '#F3F2FB',  // soft violet
   claims:      '#F0FDF9',  // soft mint green
   tasks:       '#F5F5F0',  // warm paper beige (kanban board)
   reports:     '#0F0F1A',  // deep indigo night
   calendar:    '#FFF8F3',  // warm amber cream
+  settings:    '#0F0F1A',  // deep indigo night (same as reports)
 } as const
 
 // ── DOCK THEMES ───────────────────────────────────────────────
@@ -77,14 +79,15 @@ const _dockLight = {
 } as const
 
 export const dockThemes = {
-  overview:   _dock,
-  people:     _dock,
+  overview:   _dockLight,
+  people:     _dockLight,
   attendance: _dockLight,
   leave:      _dockLight,
   claims:     _dockLight,
   tasks:      _dockLight,  // Light dock for light background
   reports:    _dock,
   calendar:   _dockLight,
+  settings:   _dock,  // Dark dock for dark background
 } as const
 
 // ── MODULE THEMES ─────────────────────────────────────────────
@@ -92,26 +95,26 @@ export const dockThemes = {
 // All dark modules share the same structure so pages never hardcode rgba().
 export const moduleThemes = {
   overview: {
-    text:         '#FFE6F0', // soft warm white-pink for unique people module
-    textMuted:    'rgba(200,190,255,0.45)',
-    surface:      'rgba(255,255,255,0.05)',
-    surfaceHover: 'rgba(255,255,255,0.10)',
-    accent:       'rgba(255,255,255,0.12)',
+    text:         '#0F0E13',
+    textMuted:    '#6B7280',
+    surface:      '#FFFFFF',
+    surfaceHover: '#F9FAFB',
+    accent:       '#6357E8',
     accentText:   '#FFFFFF',
-    border:       'rgba(255,255,255,0.10)',
-    input:        'rgba(255,255,255,0.07)',
-    inputBorder:  'rgba(255,255,255,0.12)',
+    border:       '#E5E7EB',
+    input:        '#FFFFFF',
+    inputBorder:  '#E5E7EB',
   },
   people: {
-    text:         '#FFFFFF',
-    textMuted:    '#B0AEBE', // gentle violet/neutral
-    surface:      '#080A12', // deep navy, matches people background
-    surfaceHover: '#18141A', // slightly lighter navy
-    accent:       '#75293c', // soft, friendly pink for highlights
+    text:         '#0F0E13',
+    textMuted:    '#6B7280',
+    surface:      '#FFFFFF',
+    surfaceHover: '#F9FAFB',
+    accent:       '#EC4899',
     accentText:   '#FFFFFF',
-    border:       '#2A2230', // deep muted border
-    input:        '#18141A',
-    inputBorder:  '#2A2230',
+    border:       '#E5E7EB',
+    input:        '#FFFFFF',
+    inputBorder:  '#E5E7EB',
   },
   attendance: {
     text:         '#0F0E13',
@@ -183,8 +186,8 @@ export const moduleThemes = {
 
 // ── LOGO MARK COLOURS PER MODULE ─────────────────────────────
 export const logoMarkColors = {
-  overview:    { bg: '#1E1A3A', primary: '#9B8FF7', textPrimary: '#FFFFFF', textAccent: '#9B8FF7' },
-  people:      { bg: '#0D1224', primary: '#FF8AAE', textPrimary: '#FFFFFF', textAccent: '#FF8AAE' },
+  overview:    { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
+  people:      { bg: '#FCE7F3', primary: '#EC4899', textPrimary: '#0F0E13', textAccent: '#EC4899' },
   attendance:  { bg: '#1E2026', primary: '#5BB8F5', textPrimary: '#FFFFFF', textAccent: '#5BB8F5' },
   leave:       { bg: '#DEDAF8', primary: '#6357E8', textPrimary: '#0F0E13', textAccent: '#6357E8' },
   claims:      { bg: '#D1FAE5', primary: '#10B981', textPrimary: '#0F0E13', textAccent: '#10B981' },

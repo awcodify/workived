@@ -76,7 +76,7 @@ function RegisterPage() {
       {/* Left Side - Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
-        style={{ background: moduleBackgrounds.overview }}
+        style={{ background: moduleBackgrounds.dark }}
       >
         <div>
           <WorkivedLogo size={48} showWordmark={true} variant="light" />

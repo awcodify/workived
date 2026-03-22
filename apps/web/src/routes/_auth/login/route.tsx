@@ -59,7 +59,7 @@ function LoginPage() {
       {/* Left Side - Black Background with Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
-        style={{ background: moduleBackgrounds.overview }}
+        style={{ background: moduleBackgrounds.dark }}
       >
         {/* Logo */}
         <div>

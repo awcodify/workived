@@ -93,7 +93,7 @@ function MembersPage() {
   const isFreePlan = org?.plan === 'free'
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: moduleBackgrounds.overview }}>
+    <div className="min-h-screen flex flex-col" style={{ background: moduleBackgrounds.settings }}>
       {/* Header */}
       <div className="px-11 pt-10 pb-2">
         <WorkivedLogo size={32} showWordmark variant="light" />

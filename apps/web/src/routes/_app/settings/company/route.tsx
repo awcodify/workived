@@ -783,7 +783,7 @@ function CompanyPage() {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ background: moduleBackgrounds.overview }}
+      style={{ background: moduleBackgrounds.settings }}
     >
       <a
         href="#main-content"

@@ -30,6 +30,7 @@ function getCurrentModule(pathname: string): ModuleKey {
   if (pathname.startsWith('/calendar')) return 'calendar'
   if (pathname.startsWith('/reports')) return 'reports'
   if (pathname.startsWith('/tasks')) return 'tasks'
+  if (pathname.startsWith('/settings')) return 'settings'
   return 'overview'
 }
 

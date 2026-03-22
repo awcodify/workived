@@ -9,10 +9,12 @@ import { useMyClaimBalances, useClaimNotificationCount } from '@/lib/hooks/useCl
 import { useCanManageLeave, useCanManageClaims } from '@/lib/hooks/useRole'
 import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { formatMoney } from '@/lib/utils/money'
-import { moduleBackgrounds, colors, typography } from '@/design/tokens'
+import { moduleBackgrounds, moduleThemes, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { Users, CalendarDays, Receipt, AlertCircle, ChevronRight } from 'lucide-react'
+
+const t = moduleThemes.overview
 
 // ── Tooltip ──────────────────────────────────────────────────────
 import { useRef, useState as useTooltipState } from 'react'
@@ -233,12 +235,12 @@ function OverviewPage() {
               fontWeight: typography.display.weight,
               letterSpacing: typography.display.tracking,
               lineHeight: typography.display.lineHeight,
-              color: colors.ink0,
+              color: t.text,
             }}
           >
             {greeting}
             <br />
-            <span style={{ color: colors.accentMid }}>{firstName}</span> <span aria-label="wave" role="img">👋</span>
+            <span style={{ color: colors.accent }}>{firstName}</span> <span aria-label="wave" role="img">👋</span>
           </h1>
         </div>
 
@@ -250,21 +252,21 @@ function OverviewPage() {
               style={{
                 fontSize: 15,
                 fontWeight: 600,
-                color: 'rgba(255,255,255,0.32)',
+                color: t.textMuted,
                 letterSpacing: '0.10em',
                 lineHeight: 1.2,
               }}
             >
               {formatDateLabel(tz)}
             </p>
-            <span style={{ width: 1, height: 22, background: 'rgba(255,255,255,0.10)', borderRadius: 2 }} />
+            <span style={{ width: 1, height: 22, background: t.border, borderRadius: 2 }} />
             <div className="flex items-baseline gap-2">
               <p
                 style={{
                   fontFamily: typography.fontMono,
                   fontSize: 22,
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.6)',
+                  color: t.text,
                   letterSpacing: '-0.02em',
                   lineHeight: 1,
                 }}
@@ -275,7 +277,7 @@ function OverviewPage() {
                 style={{
                   fontSize: 13,
                   fontWeight: 700,
-                  color: 'rgba(255,255,255,0.3)',
+                  color: t.textMuted,
                   letterSpacing: '0.04em',
                 }}
               >
@@ -288,17 +290,18 @@ function OverviewPage() {
             style={{
               minWidth: 36,
               height: 36,
-              background: 'rgba(255,255,255,0.10)',
+              background: t.surface,
               borderRadius: 10,
               boxShadow: '0 1px 4px 0 rgba(0,0,0,0.04)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               padding: 0,
+              border: `1px solid ${t.border}`,
             }}
             title="No notifications"
           >
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accentMid, flexShrink: 0 }}>
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" style={{ color: colors.accent, flexShrink: 0 }}>
               <path d="M18 16v-5a6 6 0 10-12 0v5a2 2 0 01-2 2h16a2 2 0 01-2-2z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
@@ -311,19 +314,20 @@ function OverviewPage() {
         style={{
           maxWidth: 680,
           margin: '0 auto 24px auto',
-          background: 'rgba(255,255,255,0.07)',
+          background: t.surface,
           borderRadius: 16,
-          boxShadow: '0 4px 24px 0 rgba(0,0,0,0.10)',
+          boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)',
           padding: '22px 40px',
           display: 'flex',
           alignItems: 'center',
           gap: 22,
+          border: `1px solid ${t.border}`,
         }}
       >
-        <span style={{ fontSize: 32, color: colors.accentMid, marginRight: 8 }}>❝</span>
+        <span style={{ fontSize: 32, color: colors.accent, marginRight: 8 }}>❝</span>
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 17, color: colors.ink0, fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>{dailyQuote.text}</p>
-          <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', fontWeight: 500, textAlign: 'right' }}>— {dailyQuote.author}</p>
+          <p style={{ fontSize: 17, color: t.text, fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>{dailyQuote.text}</p>
+          <p style={{ fontSize: 13, color: t.textMuted, fontWeight: 500, textAlign: 'right' }}>— {dailyQuote.author}</p>
         </div>
       </div>
 
@@ -337,27 +341,28 @@ function OverviewPage() {
         <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* My Attendance Card */}
-          <AttendanceCard variant="dark" />
+          <AttendanceCard variant="light" />
 
           {/* Upcoming Holidays */}
           {upcomingHolidays.length > 0 && (
             <div style={{
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: `1px solid ${t.border}`,
               borderRadius: 18,
-              boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
+              boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
               padding: '22px 28px',
+              background: t.surface,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <CalendarDays size={18} style={{ color: '#FCD34D' }} />
-                  <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
+                  <CalendarDays size={18} style={{ color: '#F59E0B' }} />
+                  <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: t.text, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
                     Upcoming
                   </h3>
                 </div>
                 <Link
                   to="/calendar"
                   className="text-xs font-semibold transition-opacity hover:opacity-100"
-                  style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
+                  style={{ color: t.textMuted, textDecoration: 'none' }}
                 >
                   View calendar
                 </Link>
@@ -373,23 +378,23 @@ function OverviewPage() {
                       style={{
                         display: 'flex', alignItems: 'center', gap: 14,
                         padding: '10px 14px', borderRadius: 12,
-                        background: 'rgba(252, 211, 77, 0.04)',
-                        border: '1px solid rgba(252, 211, 77, 0.08)',
+                        background: 'rgba(245, 158, 11, 0.08)',
+                        border: '1px solid rgba(245, 158, 11, 0.15)',
                       }}
                     >
                       <div style={{
                         width: 44, minWidth: 44, textAlign: 'center',
                         padding: '4px 0', borderRadius: 8,
-                        background: 'rgba(252, 211, 77, 0.08)',
+                        background: 'rgba(245, 158, 11, 0.12)',
                       }}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(252, 211, 77, 0.6)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(245, 158, 11, 0.7)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                           {dayName}
                         </div>
-                        <div style={{ fontSize: 14, fontWeight: 800, color: '#FCD34D', letterSpacing: '-0.01em' }}>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: '#F59E0B', letterSpacing: '-0.01em' }}>
                           {monthDay}
                         </div>
                       </div>
-                      <span style={{ fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.75)' }}>
+                      <span style={{ fontSize: 13.5, fontWeight: 600, color: t.text }}>
                         {h.name}
                       </span>
                     </div>
@@ -406,20 +411,21 @@ function OverviewPage() {
           {/* Pending Approvals Card (managers only) */}
           {totalPending > 0 && (
             <div style={{
-              border: '1px solid rgba(255,255,255,0.10)',
+              border: `1px solid ${t.border}`,
               borderRadius: 18,
-              boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
+              boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
               padding: '22px 28px',
+              background: t.surface,
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <div style={{
                   width: 32, height: 32, borderRadius: 10,
-                  background: 'rgba(212, 64, 64, 0.12)',
+                  background: colors.errDim,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
                   <AlertCircle size={17} style={{ color: colors.err }} />
                 </div>
-                <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: colors.ink0, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
+                <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: t.text, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
                   Pending Approvals
                 </h3>
               </div>
@@ -430,20 +436,21 @@ function OverviewPage() {
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '12px 16px', borderRadius: 12,
-                      background: 'rgba(255,255,255,0.04)',
+                      background: t.surfaceHover,
                       textDecoration: 'none',
                       transition: 'background 0.15s',
+                      border: `1px solid ${t.border}`,
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = t.surface }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = t.surfaceHover }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <CalendarDays size={16} style={{ color: colors.accentMid }} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: colors.ink0 }}>
+                      <CalendarDays size={16} style={{ color: colors.accent }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
                         {pendingLeave} leave request{pendingLeave > 1 ? 's' : ''}
                       </span>
                     </div>
-                    <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                    <ChevronRight size={16} style={{ color: t.textMuted }} />
                   </Link>
                 )}
                 {pendingClaims > 0 && (
@@ -452,20 +459,21 @@ function OverviewPage() {
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '12px 16px', borderRadius: 12,
-                      background: 'rgba(255,255,255,0.04)',
+                      background: t.surfaceHover,
                       textDecoration: 'none',
                       transition: 'background 0.15s',
+                      border: `1px solid ${t.border}`,
                     }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.04)' }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = t.surface }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = t.surfaceHover }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Receipt size={16} style={{ color: '#34D399' }} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: colors.ink0 }}>
+                      <Receipt size={16} style={{ color: colors.ok }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
                         {pendingClaims} claim{pendingClaims > 1 ? 's' : ''} to review
                       </span>
                     </div>
-                    <ChevronRight size={16} style={{ color: 'rgba(255,255,255,0.3)' }} />
+                    <ChevronRight size={16} style={{ color: t.textMuted }} />
                   </Link>
                 )}
               </div>
@@ -488,25 +496,25 @@ function OverviewPage() {
             
             return (
               <div style={{
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: `1px solid ${t.border}`,
                 borderRadius: 18,
-                background: 'rgba(26, 32, 44, 0.85)',
+                background: t.surface,
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
-                boxShadow: '0 2px 16px 0 rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05) inset',
+                boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
                 padding: '28px',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <CalendarDays size={18} style={{ color: colors.accentMid }} />
-                    <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: colors.ink0, letterSpacing: typography.h2.tracking, marginBottom: 0 }}>
+                    <CalendarDays size={18} style={{ color: colors.accent }} />
+                    <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: t.text, letterSpacing: typography.h2.tracking, marginBottom: 0 }}>
                       Annual Leave ({currentYear})
                     </h3>
                   </div>
                   <Link
                     to="/leave"
                     className="text-xs font-semibold transition-opacity hover:opacity-100"
-                    style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
+                    style={{ color: t.textMuted, textDecoration: 'none' }}
                   >
                     View all
                   </Link>
@@ -518,13 +526,13 @@ function OverviewPage() {
                     fontFamily: typography.fontMono, 
                     fontSize: 44, 
                     fontWeight: 800, 
-                    color: available > 0 ? colors.ok : 'rgba(255,255,255,0.3)',
+                    color: available > 0 ? colors.ok : t.textMuted,
                     letterSpacing: '-0.02em',
                     lineHeight: 1,
                   }}>
                     {available === 999 ? '∞' : available.toFixed(1)}
                   </span>
-                  <span style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}>
+                  <span style={{ fontSize: 15, color: t.textMuted, fontWeight: 600 }}>
                     {available === 999 ? 'days' : `/ ${total} days`}
                   </span>
                 </div>
@@ -533,7 +541,7 @@ function OverviewPage() {
                 <div style={{ marginBottom: 12 }}>
                   <div style={{ 
                     height: 8, 
-                    background: 'rgba(255,255,255,0.1)', 
+                    background: colors.ink100,
                     borderRadius: 4,
                     overflow: 'hidden',
                     position: 'relative',
@@ -572,16 +580,16 @@ function OverviewPage() {
                 {/* Stats */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
                   <div>
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Entitled: </span>
-                    <span style={{ color: colors.ink0, fontWeight: 700 }}>{annualLeave.entitled_days === 999 ? '∞' : annualLeave.entitled_days}</span>
+                    <span style={{ color: t.textMuted, fontWeight: 500 }}>Entitled: </span>
+                    <span style={{ color: t.text, fontWeight: 700 }}>{annualLeave.entitled_days === 999 ? '∞' : annualLeave.entitled_days}</span>
                   </div>
                   <div>
-                    <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Used: </span>
-                    <span style={{ color: colors.ink0, fontWeight: 700 }}>{annualLeave.used_days}</span>
+                    <span style={{ color: t.textMuted, fontWeight: 500 }}>Used: </span>
+                    <span style={{ color: t.text, fontWeight: 700 }}>{annualLeave.used_days}</span>
                   </div>
                   {annualLeave.pending_days > 0 && (
                     <div>
-                      <span style={{ color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Pending: </span>
+                      <span style={{ color: t.textMuted, fontWeight: 500 }}>Pending: </span>
                       <span style={{ color: colors.warn, fontWeight: 700 }}>{annualLeave.pending_days}</span>
                     </div>
                   )}
@@ -600,25 +608,25 @@ function OverviewPage() {
 
             return (
               <div style={{
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: `1px solid ${t.border}`,
                 borderRadius: 18,
-                background: 'rgba(16, 185, 129, 0.08)',
+                background: colors.okDim,
                 backdropFilter: 'blur(12px)',
                 WebkitBackdropFilter: 'blur(12px)',
-                boxShadow: '0 2px 16px 0 rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05) inset',
+                boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
                 padding: '24px 28px',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Receipt size={18} style={{ color: '#34D399' }} />
-                    <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: colors.ink0, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
+                    <Receipt size={18} style={{ color: colors.ok }} />
+                    <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: t.text, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
                       Claims Budget
                     </h3>
                   </div>
                   <Link
                     to="/claims"
                     className="text-xs font-semibold transition-opacity hover:opacity-100"
-                    style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
+                    style={{ color: t.textMuted, textDecoration: 'none' }}
                   >
                     View all
                   </Link>
@@ -630,36 +638,36 @@ function OverviewPage() {
                     fontFamily: typography.fontMono,
                     fontSize: 28,
                     fontWeight: 800,
-                    color: remaining > 0 ? '#34D399' : colors.err,
+                    color: remaining > 0 ? colors.ok : colors.err,
                     letterSpacing: '-0.02em',
                     lineHeight: 1,
                   }}>
                     {formatMoney(remaining > 0 ? remaining : 0, currency)}
                   </span>
-                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                  <span style={{ fontSize: 13, color: t.textMuted, fontWeight: 500 }}>
                     remaining
                   </span>
                 </div>
 
                 {/* Progress bar */}
-                <div style={{ height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
+                <div style={{ height: 6, background: colors.ink100, borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
                   <div style={{
                     width: `${usagePercent}%`,
                     height: '100%',
                     borderRadius: 3,
-                    background: usagePercent > 80 ? colors.warn : '#34D399',
+                    background: usagePercent > 80 ? colors.warn : colors.ok,
                     transition: 'width 0.3s ease',
                   }} />
                 </div>
 
                 {/* Spent vs limit */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5 }}>
-                  <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
-                    Spent: <span style={{ color: colors.ink0, fontWeight: 700 }}>{formatMoney(totalSpent, currency)}</span>
+                  <span style={{ color: t.textMuted, fontWeight: 500 }}>
+                    Spent: <span style={{ color: t.text, fontWeight: 700 }}>{formatMoney(totalSpent, currency)}</span>
                   </span>
                   {totalLimit > 0 && (
-                    <span style={{ color: 'rgba(255,255,255,0.45)', fontWeight: 500 }}>
-                      Limit: <span style={{ color: colors.ink0, fontWeight: 700 }}>{formatMoney(totalLimit, currency)}</span>
+                    <span style={{ color: t.textMuted, fontWeight: 500 }}>
+                      Limit: <span style={{ color: t.text, fontWeight: 700 }}>{formatMoney(totalLimit, currency)}</span>
                     </span>
                   )}
                 </div>
@@ -753,29 +761,30 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
   const segments = [
     { label: 'On Time', value: present, color: colors.ok },
     { label: 'Late', value: late, color: colors.warn },
-    { label: 'On Leave', value: onLeaveCount, color: colors.accentMid },
+    { label: 'On Leave', value: onLeaveCount, color: colors.accent },
     { label: 'Absent', value: trueAbsent, color: colors.err },
-    { label: 'Pending', value: pending, color: 'rgba(255,255,255,0.07)', legendColor: 'rgba(255,255,255,0.2)' },
+    { label: 'Pending', value: pending, color: colors.ink150, legendColor: t.textMuted },
   ]
 
   return (
     <div style={{
-      border: '1px solid rgba(255,255,255,0.10)',
+      border: `1px solid ${t.border}`,
       borderRadius: 18,
-      boxShadow: '0 2px 16px 0 rgba(0,0,0,0.08)',
+      boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
+      background: t.surface,
     }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 24px 0 24px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Users size={20} style={{ color: colors.accentMid, flexShrink: 0 }} />
-          <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: 'rgba(255,255,255,0.7)', letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
+          <Users size={20} style={{ color: colors.accent, flexShrink: 0 }} />
+          <h3 style={{ fontSize: typography.h2.size, fontWeight: typography.h2.weight, color: t.text, letterSpacing: typography.h2.tracking, lineHeight: typography.h2.lineHeight, marginBottom: 0 }}>
             Team pulse
           </h3>
         </div>
         <Link
           to="/attendance"
           className="text-xs font-semibold transition-opacity hover:opacity-100"
-          style={{ color: 'rgba(255,255,255,0.45)', textDecoration: 'none' }}
+          style={{ color: t.textMuted, textDecoration: 'none' }}
         >
           View all
         </Link>
@@ -803,14 +812,14 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
                   transition: 'opacity 0.15s',
                   padding: '3px 6px',
                   borderRadius: 6,
-                  background: hovered === s.label ? 'rgba(255,255,255,0.04)' : 'transparent',
+                  background: hovered === s.label ? t.surfaceHover : 'transparent',
                 }}
                 onMouseEnter={() => setHovered(s.label)}
                 onMouseLeave={() => setHovered(null)}
               >
                 <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.legendColor ?? s.color, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', fontWeight: 500, flex: 1 }}>{s.label}</span>
-                <span style={{ fontFamily: typography.fontMono, fontSize: 13, fontWeight: 700, color: s.value > 0 ? (s.legendColor ?? s.color) : 'rgba(255,255,255,0.2)' }}>
+                <span style={{ fontSize: 12, color: t.textMuted, fontWeight: 500, flex: 1 }}>{s.label}</span>
+                <span style={{ fontFamily: typography.fontMono, fontSize: 13, fontWeight: 700, color: s.value > 0 ? (s.legendColor ?? s.color) : t.textMuted }}>
                   {s.value}
                 </span>
               </div>
@@ -820,7 +829,7 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
       </div>
 
       {/* Divider */}
-      <div style={{ margin: '14px 24px 0 24px', borderTop: '1px solid rgba(255,255,255,0.06)' }} />
+      <div style={{ margin: '14px 24px 0 24px', borderTop: `1px solid ${t.border}` }} />
 
       {/* Team member list — highlight on hover, no filtering */}
       <div style={{ padding: '12px 24px 20px 24px' }}>
@@ -828,7 +837,7 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
           {teamMembers.slice(0, 8).map((m) => {
             const category = getStatusCategory(m)
             const seg = segments.find((s) => s.label === category)
-            const statusColor = seg?.legendColor ?? seg?.color ?? 'rgba(255,255,255,0.15)'
+            const statusColor = seg?.legendColor ?? seg?.color ?? colors.ink300
             const att = m.attendance
             const isPresent = att?.status === 'present' || att?.status === 'late'
             const isMatch = !hovered || category === hovered
@@ -856,7 +865,7 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
                     </div>
                     {leaveEntry && (
                       <div style={{ fontSize: 12.5, color: '#e0e0e0', marginBottom: 2 }}>
-                        <span style={{ fontWeight: 600 }}>Leave:</span> <span style={{ color: colors.accentMid, fontWeight: 600 }}>{leaveEntry.policy_name}</span>
+                        <span style={{ fontWeight: 600 }}>Leave:</span> <span style={{ color: colors.accent, fontWeight: 600 }}>{leaveEntry.policy_name}</span>
                       </div>
                     )}
                     <div style={{ fontSize: 12.5, color: '#e0e0e0' }}>
@@ -869,7 +878,7 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
                   style={{
                     display: 'flex', alignItems: 'center',
                     padding: '7px 10px', borderRadius: 10,
-                    background: isMatch && hovered ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.035)',
+                    background: isMatch && hovered ? t.surfaceHover : t.surface,
                     opacity: isMatch ? 1 : 0.25,
                     borderLeft: isMatch && hovered ? `2px solid ${statusColor}` : '2px solid transparent',
                     transition: 'opacity 0.18s, background 0.18s, border-color 0.18s',
@@ -878,12 +887,12 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
                     <Avatar name={m.full_name} id={m.id} size={24} />
-                    <span className="truncate" style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.88)' }}>
+                    <span className="truncate" style={{ fontSize: 13, fontWeight: 600, color: t.text }}>
                       {m.full_name}
                     </span>
                   </div>
                   {isPresent && att?.clock_in_at && (
-                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginRight: 8 }}>
+                    <span style={{ fontFamily: typography.fontMono, fontSize: 11, color: t.textMuted, fontWeight: 600, marginRight: 8 }}>
                       {workedHours}
                     </span>
                   )}
@@ -907,7 +916,7 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
           <Link
             to="/attendance"
             className="text-xs font-semibold transition-opacity hover:opacity-100"
-            style={{ color: 'rgba(255,255,255,0.35)', textDecoration: 'none', textAlign: 'center', display: 'block', marginTop: 8 }}
+            style={{ color: t.textMuted, textDecoration: 'none', textAlign: 'center', display: 'block', marginTop: 8 }}
           >
             +{totalEmployees - 8} more
           </Link>
@@ -958,7 +967,7 @@ function DonutChart({ size, segments, total, centerLabel, hovered, onHover, show
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: 'rotate(-90deg)' }} aria-label={`Donut chart: ${segments.map(s => `${s.label} ${s.value}`).join(', ')}`}>
           {/* Background ring */}
-          <circle cx={center} cy={center} r={radius} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={strokeWidth} />
+          <circle cx={center} cy={center} r={radius} fill="none" stroke={colors.ink100} strokeWidth={strokeWidth} />
           {/* Segments */}
           {arcs.map(({ seg, length, offset }) =>
             length > 0 ? (
@@ -991,16 +1000,16 @@ function DonutChart({ size, segments, total, centerLabel, hovered, onHover, show
               <p style={{ fontSize: size * 0.17, fontWeight: 800, color: hoveredSeg.color, lineHeight: 1, fontFamily: typography.fontMono }}>
                 {hoveredSeg.value}
               </p>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 3, fontWeight: 600 }}>
+              <p style={{ fontSize: 10, color: t.textMuted, marginTop: 3, fontWeight: 600 }}>
                 {hoveredSeg.label}
               </p>
             </>
           ) : (
             <>
-              <p style={{ fontSize: size * 0.17, fontWeight: 800, color: 'rgba(255,255,255,0.9)', lineHeight: 1, fontFamily: typography.fontMono }}>
+              <p style={{ fontSize: size * 0.17, fontWeight: 800, color: t.text, lineHeight: 1, fontFamily: typography.fontMono }}>
                 {total}
               </p>
-              <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
+              <p style={{ fontSize: 10, color: t.textMuted, marginTop: 3, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>
                 {centerLabel}
               </p>
             </>
