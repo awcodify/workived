@@ -540,6 +540,112 @@ paths:
                     items:
                       $ref: "#/components/schemas/OrgChartNode"
 
+  # ── Setup Wizard ───────────────────────────────────────────────────────────
+  /setup/status:
+    get:
+      operationId: getSetupStatus
+      summary: Get setup wizard status
+      description: Retrieves the current state of the organization setup wizard
+      tags: [Setup]
+      responses:
+        "200":
+          description: Setup status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/SetupStatus"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /setup/templates:
+    get:
+      operationId: getSetupTemplates
+      summary: Get setup wizard templates
+      description: Retrieves all available templates for the organization's country (work schedules, leave policies, claim categories)
+      tags: [Setup]
+      responses:
+        "200":
+          description: Available templates
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/SetupTemplatesResponse"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /setup/complete:
+    post:
+      operationId: completeSetup
+      summary: Complete setup wizard
+      description: Processes all setup wizard choices in a single transaction (work schedule, leave policies, claim categories, team invitations)
+      tags: [Setup]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteSetupRequest"
+      responses:
+        "201":
+          description: Setup completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CompleteSetupResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /setup/skip:
+    post:
+      operationId: skipSetup
+      summary: Skip setup wizard
+      description: Marks the setup wizard as skipped to prevent redirect loops
+      tags: [Setup]
+      responses:
+        "200":
+          description: Setup skipped successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      skipped:
+                        type: boolean
+                  message:
+                    type: string
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
   # ── Departments ───────────────────────────────────────────────────────────
   /departments:
     get:
@@ -2365,6 +2471,12 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
 
   # ── Schemas ─────────────────────────────────────────────────────────────
   schemas:
@@ -2576,6 +2688,269 @@ components:
         role:
           type: string
           enum: [admin, member]
+
+    # ── Setup Wizard ──────────────────────────────────────────────────────
+    SetupStatus:
+      type: object
+      properties:
+        needs_setup:
+          type: boolean
+          description: Whether the organisation needs to complete the setup wizard
+        skipped:
+          type: boolean
+          description: Whether the setup wizard was explicitly skipped
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the setup was completed
+        work_schedule_exists:
+          type: boolean
+          description: Whether a work schedule has been configured
+        leave_policies_count:
+          type: integer
+          description: Number of active leave policies
+        claim_categories_count:
+          type: integer
+          description: Number of active claim categories
+        members_count:
+          type: integer
+          description: Number of organisation members
+
+    SetupTemplatesResponse:
+      type: object
+      properties:
+        work_schedules:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkScheduleTemplate"
+        leave_policies:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeavePolicyTemplate"
+        claim_categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClaimCategoryTemplate"
+
+    WorkScheduleTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        country_code:
+          type: string
+          examples: ["ID", "AE"]
+        name:
+          type: string
+        description:
+          type: string
+        work_days:
+          type: array
+          items:
+            type: integer
+          description: "1=Mon, 2=Tue, ..., 7=Sun"
+        start_time:
+          type: string
+          format: time
+          examples: ["08:00:00"]
+        end_time:
+          type: string
+          format: time
+          examples: ["17:00:00"]
+        sort_order:
+          type: integer
+
+    LeavePolicyTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        country_code:
+          type: string
+          examples: ["ID", "AE"]
+        name:
+          type: string
+        description:
+          type: string
+        entitled_days_per_year:
+          type: number
+          format: float
+        is_carry_over_allowed:
+          type: boolean
+        max_carry_over_days:
+          type: number
+          format: float
+          nullable: true
+        is_accrued:
+          type: boolean
+        requires_approval:
+          type: boolean
+        sort_order:
+          type: integer
+
+    ClaimCategoryTemplate:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        country_code:
+          type: string
+          examples: ["ID", "AE"]
+        name:
+          type: string
+        description:
+          type: string
+        monthly_limit:
+          type: integer
+          format: int64
+          nullable: true
+          description: Monthly limit in smallest currency unit (e.g., cents). NULL means unlimited.
+        currency_code:
+          type: string
+          nullable: true
+          description: ISO 4217 currency code. NULL when monthly_limit is NULL.
+        requires_receipt:
+          type: boolean
+        sort_order:
+          type: integer
+
+    CompleteSetupRequest:
+      type: object
+      required: [work_schedule, leave_policies, claim_categories]
+      properties:
+        work_schedule:
+          $ref: "#/components/schemas/WorkScheduleChoice"
+        leave_policies:
+          $ref: "#/components/schemas/LeavePolicySelection"
+        claim_categories:
+          $ref: "#/components/schemas/ClaimCategorySelection"
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvitationInput"
+          maxItems: 10
+
+    WorkScheduleChoice:
+      type: object
+      properties:
+        template_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: XOR with custom_schedule
+        custom_schedule:
+          $ref: "#/components/schemas/CustomScheduleInput"
+          nullable: true
+          description: Only if template_id is null
+
+    CustomScheduleInput:
+      type: object
+      required: [name, work_days, start_time, end_time]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        work_days:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+            maximum: 7
+          minItems: 1
+          maxItems: 7
+          description: "1=Mon, 2=Tue, ..., 7=Sun"
+        start_time:
+          type: string
+          format: time
+          examples: ["08:00"]
+        end_time:
+          type: string
+          format: time
+          examples: ["17:00"]
+
+    LeavePolicySelection:
+      type: object
+      required: [template_ids]
+      properties:
+        template_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+        customizations:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/LeavePolicyCustomization"
+
+    LeavePolicyCustomization:
+      type: object
+      properties:
+        days_per_year:
+          type: number
+          format: float
+
+    ClaimCategorySelection:
+      type: object
+      required: [template_ids]
+      properties:
+        template_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+        customizations:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/ClaimCategoryCustomization"
+
+    ClaimCategoryCustomization:
+      type: object
+      properties:
+        monthly_limit:
+          type: integer
+          format: int64
+
+    InvitationInput:
+      type: object
+      required: [email, role]
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [admin, member, hr_admin, manager, finance]
+
+    CompleteSetupResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        work_schedule_id:
+          type: string
+          format: uuid
+        leave_policy_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        claim_category_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        invitation_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
 
     # ── Employee ──────────────────────────────────────────────────────────
     Employee:
@@ -3002,34 +3377,6 @@ components:
         requires_approval:
           type: boolean
 
-    LeavePolicyTemplate:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        country_code:
-          type: string
-          enum: [ID, AE, MY, SG]
-        name:
-          type: string
-        description:
-          type: string
-        entitled_days_per_year:
-          type: number
-          format: float
-        is_carry_over_allowed:
-          type: boolean
-        max_carry_over_days:
-          type: number
-          format: float
-        is_accrued:
-          type: boolean
-        requires_approval:
-          type: boolean
-        sort_order:
-          type: integer
-
     ImportPoliciesRequest:
       type: object
       required: [template_ids]
@@ -3248,31 +3595,6 @@ components:
           maxLength: 3
         requires_receipt:
           type: boolean
-
-    ClaimCategoryTemplate:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        default_limit:
-          type: integer
-          nullable: true
-          description: Suggested monthly limit
-        currency_code:
-          type: string
-          minLength: 3
-          maxLength: 3
-        requires_receipt:
-          type: boolean
-        country_code:
-          type: string
-          nullable: true
-          description: Country this template is tailored for (ID, AE, MY, SG)
-        description:
-          type: string
-          nullable: true
 
     ClaimBalanceWithCategory:
       type: object

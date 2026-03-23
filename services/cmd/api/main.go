@@ -26,6 +26,7 @@ import (
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/internal/platform/storage"
+	"github.com/workived/services/internal/setup"
 	"github.com/workived/services/internal/tasks"
 	"github.com/workived/services/pkg/email"
 	"github.com/workived/services/pkg/logger"
@@ -99,6 +100,7 @@ func main() {
 	tasksRepo := tasks.NewRepository(db, log)
 	adminRepo := admin.NewRepository(db)
 	auditRepo := audit.NewRepository(db)
+	setupRepo := setup.NewRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
@@ -111,6 +113,7 @@ func main() {
 	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender), claims.WithTasksService(tasksSvc))
 	leaveSvc := leave.NewService(leaveRepo, orgRepo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender), leave.WithTasksService(tasksSvc))
 	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log))
+	setupSvc := setup.NewService(setupRepo, log)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	authHandler := auth.NewHandler(authSvc)
@@ -152,6 +155,8 @@ func main() {
 		}
 		return emp.ID, nil
 	}, log)
+
+	setupHandler := setup.NewHandler(setupSvc, log)
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -214,6 +219,7 @@ func main() {
 	leaveHandler.RegisterRoutes(authed)
 	claimsHandler.RegisterRoutes(authed)
 	tasksHandler.RegisterRoutes(authed)
+	setupHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)
