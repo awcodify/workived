@@ -98,7 +98,7 @@ BEGIN
     RAISE NOTICE '✓ Created employee record for new@rizkitech.com (reports to Ahmad)';
 
     -- 6. Create leave policies
-    INSERT INTO leave_policies (id, organisation_id, name, days_per_year, carry_over_max_days, is_active)
+    INSERT INTO leave_policies (id, organisation_id, name, days_per_year, carry_over_days, is_active)
     VALUES 
         (gen_random_uuid(), v_org_id, 'Annual Leave', 12, 6, true),
         (gen_random_uuid(), v_org_id, 'Sick Leave', 7, 0, true),
