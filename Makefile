@@ -45,11 +45,19 @@ seed: ## Seed test data (run after migrate-up)
 	@docker exec -i infra-postgres-1 psql -U workived -d workived < scripts/seed_test_data.sql
 	@echo "✓ Database seeded successfully"
 
-reset-db: infra-down infra-up ## Reset database (WARNING: destroys all data)
+reset-db: ## Reset database (WARNING: destroys all data and volumes)
+	@echo "⚠️  WARNING: This will delete all database data and volumes!"
+	@echo "Stopping containers and removing volumes..."
+	$(DOCKER_COMPOSE) down -v
+	@echo "Starting fresh infrastructure..."
+	$(DOCKER_COMPOSE) up -d postgres redis minio mailcatcher
 	@echo "Waiting for postgres to be ready..."
-	@sleep 3
+	@sleep 5
+	@echo "Running migrations..."
 	@$(MAKE) migrate-up
+	@echo "Seeding data..."
 	@$(MAKE) seed
+	@echo "✓ Database reset complete"
 
 # ── API ───────────────────────────────────────────────────────────────────────
 
