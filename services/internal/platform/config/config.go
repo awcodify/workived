@@ -2,9 +2,11 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/viper"
 )
 
@@ -66,6 +68,17 @@ func Load() (*Config, error) {
 	var cfg Config
 	if err := v.Unmarshal(&cfg); err != nil {
 		return nil, fmt.Errorf("config unmarshal: %w", err)
+	}
+
+	// Debug: log what viper actually sees (only in debug mode)
+	if strings.ToLower(cfg.LogLevel) == "debug" {
+		log := zerolog.New(os.Stdout).With().Timestamp().Logger()
+		log.Debug().
+			Str("viper_jwt_secret", v.GetString("JWT_SECRET")).
+			Int("viper_jwt_secret_len", len(v.GetString("JWT_SECRET"))).
+			Str("config_jwt_secret", cfg.JWTSecret).
+			Int("config_jwt_secret_len", len(cfg.JWTSecret)).
+			Msg("config debug: JWT_SECRET loading")
 	}
 
 	if cfg.JWTSecret == "" {
