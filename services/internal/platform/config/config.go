@@ -60,7 +60,31 @@ func Load() (*Config, error) {
 	v.AddConfigPath("../../")
 
 	v.AutomaticEnv()
-	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	// Explicitly bind environment variables to config keys
+	// This is required for unmarshaling to work correctly with AutomaticEnv
+	v.BindEnv("ENV")
+	v.BindEnv("PORT")
+	v.BindEnv("LOG_LEVEL")
+	v.BindEnv("DATABASE_URL")
+	v.BindEnv("REDIS_URL")
+	v.BindEnv("JWT_SECRET")
+	v.BindEnv("JWT_ACCESS_TTL")
+	v.BindEnv("JWT_REFRESH_TTL")
+	v.BindEnv("S3_ENDPOINT")
+	v.BindEnv("S3_BUCKET")
+	v.BindEnv("S3_REGION")
+	v.BindEnv("S3_USE_SSL")
+	v.BindEnv("AWS_ACCESS_KEY_ID")
+	v.BindEnv("AWS_SECRET_ACCESS_KEY")
+	v.BindEnv("SMTP_HOST")
+	v.BindEnv("SMTP_PORT")
+	v.BindEnv("SMTP_USER")
+	v.BindEnv("SMTP_PASS")
+	v.BindEnv("EMAIL_FROM")
+	v.BindEnv("EMAIL_ENABLED")
+	v.BindEnv("APP_URL")
+	v.BindEnv("API_URL")
 
 	// best-effort read of .env file; env vars take precedence
 	_ = v.ReadInConfig()
