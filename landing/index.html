@@ -203,22 +203,50 @@
     }
 
     .markets {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      margin-top: 40px;
-      font-size: 13px;
-      color: var(--ink-300);
+      margin-top: 48px;
     }
     .markets-label {
+      font-size: 12px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.1em;
+      color: var(--ink-300);
+      text-align: center;
+      margin-bottom: 20px;
     }
-    .market-flags {
+    .market-cards {
       display: flex;
-      gap: 8px;
-      font-size: 20px;
+      align-items: center;
+      gap: 12px;
+      justify-content: center;
+    }
+    .market-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .market-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06);
+    }
+    .flag-svg {
+      width: 32px;
+      height: 24px;
+      border-radius: 4px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+      flex-shrink: 0;
+    }
+    .country-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-700);
+      letter-spacing: -0.01em;
     }
 
     .scroll-hint {
@@ -232,11 +260,17 @@
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
+      cursor: pointer;
+      transition: color 0.2s ease;
+    }
+    .scroll-hint:hover {
+      color: var(--accent);
     }
     .scroll-arrow {
       width: 20px;
       height: 20px;
       animation: bounce 2s ease-in-out infinite;
+      transition: color 0.2s ease;
     }
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
@@ -636,6 +670,17 @@
       .feature-block { margin-bottom: 64px; gap: 32px; }
       .footer { padding: 24px 20px; }
       .scroll-hint { margin-top: 40px; }
+      .market-card {
+        padding: 10px 16px;
+        gap: 10px;
+      }
+      .flag-svg {
+        width: 28px;
+        height: 21px;
+      }
+      .country-name {
+        font-size: 13px;
+      }
     }
   </style>
 </head>
@@ -679,11 +724,28 @@
       </p>
 
       <div class="markets">
-        <span class="markets-label">Launching in</span>
-        <div class="market-flags" title="Indonesia & UAE">🇮🇩 🇦🇪</div>
+        <div class="markets-label">Launching in</div>
+        <div class="market-cards">
+          <div class="market-card">
+            <svg class="flag-svg" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
+              <rect width="3" height="1" fill="#FF0000"/>
+              <rect y="1" width="3" height="1" fill="#FFFFFF"/>
+            </svg>
+            <span class="country-name">Indonesia</span>
+          </div>
+          <div class="market-card">
+            <svg class="flag-svg" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
+              <rect width="3" height="2" fill="#00732F"/>
+              <rect y="0.666" width="3" height="0.667" fill="#FFFFFF"/>
+              <rect y="1.333" width="3" height="0.667" fill="#000000"/>
+              <rect width="0.5" height="2" fill="#FF0000"/>
+            </svg>
+            <span class="country-name">UAE</span>
+          </div>
+        </div>
       </div>
 
-      <div class="scroll-hint">
+      <div class="scroll-hint" id="scrollHint">
         <span>See what's inside</span>
         <svg class="scroll-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10 4L10 16M10 16L5 11M10 16L15 11"/>
@@ -692,7 +754,7 @@
     </section>
 
     <!-- ═══════════ FEATURES ═══════════ -->
-    <section class="features-section">
+    <section class="features-section" id="features">
 
       <div class="section-header reveal">
         <span class="label">Everything you need</span>
@@ -905,6 +967,12 @@
     console.log('💜 Made with love (and dangerously high caffeine levels) by founders who dogfood everything');
     console.log('☕️ Fun fact: This code was written at 3am. Somehow it still works.');
     console.log('🎨 We\'re hiring: Must love purple gradients. Also, must tolerate dad jokes.');
+    
+    // Scroll hint click handler
+    document.getElementById('scrollHint').addEventListener('click', () => {
+      document.getElementById('features').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      console.log('📜 Smooth scrolling engaged! Wheee~ 🎢');
+    });
     
     // Scroll reveal animations
     const observer = new IntersectionObserver(
