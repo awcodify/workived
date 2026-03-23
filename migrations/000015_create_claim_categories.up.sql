@@ -4,7 +4,8 @@ CREATE TABLE claim_categories (
     organisation_id  UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
     name             VARCHAR(100) NOT NULL,
     monthly_limit    BIGINT,              -- Pro tier: NULL = no cap
-    currency_code    CHAR(3),
+    currency_code    CHAR(3) NOT NULL,
+    is_unlimited     BOOLEAN NOT NULL DEFAULT FALSE,
     requires_receipt BOOLEAN NOT NULL DEFAULT TRUE,
     is_active        BOOLEAN NOT NULL DEFAULT TRUE,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),

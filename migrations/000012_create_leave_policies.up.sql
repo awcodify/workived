@@ -3,7 +3,9 @@ CREATE TABLE leave_policies (
     id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organisation_id   UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
     name              VARCHAR(100) NOT NULL,
+    description       TEXT,
     days_per_year     NUMERIC(5,1) NOT NULL,
+    is_unlimited      BOOLEAN NOT NULL DEFAULT FALSE,
     carry_over_days   NUMERIC(5,1) NOT NULL DEFAULT 0,
     min_tenure_days   INT NOT NULL DEFAULT 0,   -- eligibility threshold
     requires_approval BOOLEAN NOT NULL DEFAULT TRUE,

@@ -35,8 +35,15 @@ migrate-create: ## Create a new migration pair  e.g. make migrate-create name=ad
 	migrate create -ext sql -dir $(MIGRATIONS_DIR) -seq $(name)
 
 seed: ## Seed test data (run after migrate-up)
+	@echo "Seeding configuration data..."
+	@docker exec -i infra-postgres-1 psql -U workived -d workived < scripts/seed_config.sql
+	@echo "Seeding public holidays..."
+	@docker exec -i infra-postgres-1 psql -U workived -d workived < scripts/seed_holidays.sql
+	@echo "Seeding policy templates..."
+	@docker exec -i infra-postgres-1 psql -U workived -d workived < scripts/seed_templates.sql
 	@echo "Seeding test data..."
-	@docker exec -i workived-postgres psql -U workived -d workived < scripts/seed_test_data.sql
+	@docker exec -i infra-postgres-1 psql -U workived -d workived < scripts/seed_test_data.sql
+	@echo "✓ Database seeded successfully"
 
 reset-db: infra-down infra-up ## Reset database (WARNING: destroys all data)
 	@echo "Waiting for postgres to be ready..."

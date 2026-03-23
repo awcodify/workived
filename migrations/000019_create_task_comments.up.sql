@@ -3,6 +3,7 @@ CREATE TABLE task_comments (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organisation_id  UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
     task_id          UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    parent_id        UUID REFERENCES task_comments(id) ON DELETE CASCADE,
     author_id        UUID NOT NULL REFERENCES employees(id) ON DELETE RESTRICT,
     body             TEXT NOT NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
