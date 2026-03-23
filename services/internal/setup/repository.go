@@ -29,7 +29,7 @@ func (r *Repository) GetSetupStatus(ctx context.Context, orgID uuid.UUID) (*Setu
 			(SELECT COUNT(*) FROM claim_categories WHERE organisation_id = $1 AND is_active = TRUE) AS claim_categories_count,
 			(SELECT COUNT(*) FROM organisation_members WHERE organisation_id = $1) AS members_count
 		FROM organisations o
-		WHERE o.id = $1 AND o.organisation_id = $1
+	WHERE o.id = $1
 	`
 
 	var status SetupStatus
@@ -266,7 +266,7 @@ func (r *Repository) GetOrganisationCountryCode(ctx context.Context, orgID uuid.
 	query := `
 		SELECT country_code
 		FROM organisations
-		WHERE id = $1 AND organisation_id = $1
+		WHERE id = $1
 	`
 
 	var countryCode string
