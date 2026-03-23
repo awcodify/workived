@@ -406,7 +406,49 @@ function OverviewPage() {
           )}
 
           {/* Annual Leave Balance Card */}
-          {leaveBalances && leaveBalances.length > 0 && (() => {
+          {(() => {
+            if (!leaveBalances || leaveBalances.length === 0) {
+              // Empty state
+              return (
+                <div style={{
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 18,
+                  background: t.surface,
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
+                  padding: '28px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 200,
+                  textAlign: 'center',
+                }}>
+                  <CalendarDays size={40} style={{ color: t.textMuted, opacity: 0.3, marginBottom: 16 }} />
+                  <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: t.text, letterSpacing: typography.h3.tracking, marginBottom: 8 }}>
+                    No Leave Balance
+                  </h3>
+                  <p style={{ fontSize: 14, color: t.textMuted, marginBottom: 16, maxWidth: 280 }}>
+                    Leave policies haven't been set up yet. Complete the setup wizard or go to Leave page to configure.
+                  </p>
+                  <Link
+                    to="/leave"
+                    className="text-sm font-semibold transition-opacity hover:opacity-80"
+                    style={{ 
+                      color: colors.accent, 
+                      textDecoration: 'none',
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      border: `1px solid ${colors.accent}`,
+                    }}
+                  >
+                    Go to Leave page
+                  </Link>
+                </div>
+              )
+            }
+            
             const annualLeave = leaveBalances.find(b => 
               b.policy_name.toLowerCase().includes('annual') || 
               b.policy_name.toLowerCase().includes('vacation')
@@ -524,7 +566,50 @@ function OverviewPage() {
           })()}
 
           {/* Claims Budget Card */}
-          {claimBalances && claimBalances.length > 0 && (() => {
+          {(() => {
+            if (!claimBalances || claimBalances.length === 0) {
+              // Empty state
+              return (
+                <div style={{
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 18,
+                  background: colors.okDim,
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
+                  padding: '28px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: 180,
+                  textAlign: 'center',
+                }}>
+                  <Receipt size={40} style={{ color: colors.okText, opacity: 0.3, marginBottom: 16 }} />
+                  <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: colors.okText, letterSpacing: typography.h3.tracking, marginBottom: 8 }}>
+                    No Claims Budget
+                  </h3>
+                  <p style={{ fontSize: 14, color: colors.okText, opacity: 0.7, marginBottom: 16, maxWidth: 280 }}>
+                    Claim categories haven't been configured yet. Complete the setup wizard or go to Claims page to configure.
+                  </p>
+                  <Link
+                    to="/claims"
+                    className="text-sm font-semibold transition-opacity hover:opacity-80"
+                    style={{ 
+                      color: colors.ok, 
+                      textDecoration: 'none',
+                      padding: '8px 16px',
+                      borderRadius: 8,
+                      border: `1px solid ${colors.ok}`,
+                      background: colors.ink0,
+                    }}
+                  >
+                    Go to Claims page
+                  </Link>
+                </div>
+              )
+            }
+            
             const totalSpent = claimBalances.reduce((sum, b) => sum + b.total_spent, 0)
             const totalLimit = claimBalances.reduce((sum, b) => sum + (b.monthly_limit ?? 0), 0)
             const currency = claimBalances[0]?.currency_code ?? 'IDR'
