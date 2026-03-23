@@ -11,10 +11,18 @@ CREATE TABLE organisations (
                              CHECK (plan IN ('free', 'pro', 'enterprise')),
     plan_employee_limit  INT DEFAULT 25,              -- NULL = unlimited (Pro+)
     logo_url             TEXT,
+    setup_completed_at   TIMESTAMPTZ,                 -- NULL = setup wizard pending
+    setup_skipped        BOOLEAN NOT NULL DEFAULT FALSE,
     is_active            BOOLEAN NOT NULL DEFAULT TRUE,
     created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX idx_organisations_setup ON organisations(setup_completed_at) 
+    WHERE setup_completed_at IS NULL;
+
+COMMENT ON COLUMN organisations.setup_completed_at IS 'When organization setup wizard was completed. NULL = setup pending.';
+COMMENT ON COLUMN organisations.setup_skipped IS 'True if user explicitly skipped setup wizard.';
 
 CREATE TRIGGER set_organisations_updated_at
     BEFORE UPDATE ON organisations

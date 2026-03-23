@@ -10,6 +10,7 @@ CREATE TABLE claim_category_templates (
     sort_order          INT NOT NULL,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
+    UNIQUE (country_code, name),
     CONSTRAINT check_monthly_limit_currency CHECK (
         (monthly_limit IS NULL AND currency_code IS NULL) OR 
         (monthly_limit IS NOT NULL AND currency_code IS NOT NULL)

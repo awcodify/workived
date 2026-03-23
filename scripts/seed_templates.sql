@@ -1,6 +1,23 @@
 -- Seed policy templates for Workived
--- Leave policy templates and claim category templates for Indonesia and UAE
+-- Work schedule templates, leave policy templates and claim category templates for Indonesia and UAE
 -- Run after migrations
+
+-- Work Schedule Templates - Indonesia
+INSERT INTO work_schedule_templates (country_code, name, description, work_days, start_time, end_time, sort_order)
+VALUES
+  ('ID', 'Standard Office Hours', 'Monday to Friday, 8:00 AM - 5:00 PM. Typical for office-based work.', ARRAY[1,2,3,4,5], '08:00:00', '17:00:00', 1),
+  ('ID', 'Retail/Service Hours', 'Monday to Saturday, 9:00 AM - 6:00 PM. Common for retail and service industries.', ARRAY[1,2,3,4,5,6], '09:00:00', '18:00:00', 2),
+  ('ID', 'Morning Shift', 'Monday to Sunday, 7:00 AM - 3:00 PM. Common for manufacturing and shift work.', ARRAY[1,2,3,4,5,6,7], '07:00:00', '15:00:00', 3),
+  ('ID', 'Afternoon Shift', 'Monday to Sunday, 3:00 PM - 11:00 PM. Second shift for 24-hour operations.', ARRAY[1,2,3,4,5,6,7], '15:00:00', '23:00:00', 4)
+ON CONFLICT (country_code, name) DO NOTHING;
+
+-- Work Schedule Templates - UAE
+INSERT INTO work_schedule_templates (country_code, name, description, work_days, start_time, end_time, sort_order)
+VALUES
+  ('AE', 'UAE Standard Week', 'Sunday to Thursday, 9:00 AM - 6:00 PM. Standard UAE working week as per labor law.', ARRAY[7,1,2,3,4], '09:00:00', '18:00:00', 1),
+  ('AE', 'UAE Extended Hours', 'Sunday to Thursday, 8:00 AM - 5:00 PM. Alternative schedule with earlier start.', ARRAY[7,1,2,3,4], '08:00:00', '17:00:00', 2),
+  ('AE', 'UAE Retail Schedule', 'Sunday to Thursday, 10:00 AM - 7:00 PM. Common for retail and customer-facing businesses.', ARRAY[7,1,2,3,4,5,6], '10:00:00', '19:00:00', 3)
+ON CONFLICT (country_code, name) DO NOTHING;
 
 -- Leave Policy Templates - Indonesia
 INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, sort_order)
@@ -31,10 +48,10 @@ VALUES
   ('ID', 'Meals & Entertainment', 'Business meals and client entertainment', 500000, 'IDR', TRUE, 2),
   ('ID', 'Mobile & Internet', 'Phone bills and data plans for work', 300000, 'IDR', TRUE, 3),
   ('ID', 'Office Equipment', 'Computer accessories, stationery, and office supplies', 500000, 'IDR', TRUE, 4),
-  ('ID', 'Training & Development', 'Courses, certifications, and professional development', NULL, 'IDR', TRUE, 5),
+  ('ID', 'Training & Development', 'Courses, certifications, and professional development', NULL, NULL, TRUE, 5),
   ('ID', 'Medical Reimbursement', 'Medical expenses not covered by BPJS', 2000000, 'IDR', TRUE, 6),
   ('ID', 'Parking & Toll', 'Parking fees and toll roads', 200000, 'IDR', TRUE, 7),
-  ('ID', 'Other', 'Miscellaneous business expenses', NULL, 'IDR', TRUE, 8)
+  ('ID', 'Other', 'Miscellaneous business expenses', NULL, NULL, TRUE, 8)
 ON CONFLICT (country_code, name) DO NOTHING;
 
 -- Claim Category Templates - UAE
@@ -44,11 +61,17 @@ VALUES
   ('AE', 'Meals & Entertainment', 'Business meals and client entertainment', 1000, 'AED', TRUE, 2),
   ('AE', 'Mobile & Internet', 'Phone bills and data plans for work', 500, 'AED', TRUE, 3),
   ('AE', 'Office Equipment', 'Computer accessories, stationery, and office supplies', 1500, 'AED', TRUE, 4),
-  ('AE', 'Training & Development', 'Courses, certifications, and professional development', NULL, 'AED', TRUE, 5),
+  ('AE', 'Training & Development', 'Courses, certifications, and professional development', NULL, NULL, TRUE, 5),
   ('AE', 'Medical Reimbursement', 'Medical expenses not covered by insurance', 3000, 'AED', TRUE, 6),
   ('AE', 'Parking & Salik', 'Parking fees and Salik toll gates', 500, 'AED', TRUE, 7),
-  ('AE', 'Other', 'Miscellaneous business expenses', NULL, 'AED', TRUE, 8)
+  ('AE', 'Other', 'Miscellaneous business expenses', NULL, NULL, TRUE, 8)
 ON CONFLICT (country_code, name) DO NOTHING;
+
+SELECT 
+    COUNT(*) FILTER (WHERE country_code = 'ID') || ' Indonesia work schedule templates' as id_schedules,
+    COUNT(*) FILTER (WHERE country_code = 'AE') || ' UAE work schedule templates' as ae_schedules,
+    COUNT(*) || ' total work schedule templates' as total_schedules
+FROM work_schedule_templates;
 
 SELECT 
     COUNT(*) FILTER (WHERE country_code = 'ID') || ' Indonesia leave templates' as id_leave,

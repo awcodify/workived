@@ -12,6 +12,7 @@ CREATE TABLE leave_policy_templates (
     sort_order              INT NOT NULL,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     
+    UNIQUE (country_code, name),
     CONSTRAINT check_carry_over CHECK (
         NOT is_carry_over_allowed OR max_carry_over_days IS NOT NULL
     )
