@@ -24,5 +24,6 @@ FROM alpine:3.19
 RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /
 COPY --from=builder /api /api
+COPY --from=builder /app/internal/admin/templates /internal/admin/templates
 EXPOSE 8080
 ENTRYPOINT ["/api"]
