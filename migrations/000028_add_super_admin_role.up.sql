@@ -26,9 +26,3 @@ CREATE TABLE admin_config (
     updated_by       UUID REFERENCES users(id) ON DELETE SET NULL,
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Seed initial admin config
-INSERT INTO admin_config (key, value, description) VALUES
-    ('maintenance_mode', 'false', 'Enable maintenance mode - blocks all user access'),
-    ('allow_free_signups', 'true', 'Allow new free tier signups'),
-    ('max_free_tier_orgs', '1000', 'Maximum number of free tier organisations');

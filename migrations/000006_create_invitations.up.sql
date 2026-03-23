@@ -3,7 +3,6 @@ CREATE TABLE invitations (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     organisation_id  UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
     email            VARCHAR(255) NOT NULL,
-    employee_id      UUID REFERENCES employees(id) ON DELETE SET NULL,
     role             VARCHAR(20) NOT NULL DEFAULT 'member'
                          CHECK (role IN ('admin', 'member', 'hr_admin', 'manager', 'finance', 'super_admin')),
     invited_by       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

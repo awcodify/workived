@@ -1,4 +1,4 @@
--- 000032_add_employee_id_to_invitations.up.sql
+-- 000010_add_employee_link_to_invitations.up.sql
 -- Allows an invitation to pre-link to an existing employee record.
 -- When accepted, the employee.user_id is set automatically.
 
