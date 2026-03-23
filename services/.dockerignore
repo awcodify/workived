@@ -1,0 +1,35 @@
+# Ignore build artifacts
+api
+bin/
+coverage.out
+coverage.html
+test_results.txt
+
+# Ignore test files (optional - comment out if you want to include tests in image)
+# *_test.go
+
+# Ignore development files
+.env
+.env.*
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore CI/CD files
+.github/
+
+# Ignore documentation
+*.md
+README.md
+CLAUDE.md
+
+# Ignore git
+.git/
+.gitignore
+
+# Ignore scripts not needed in container
+scripts/

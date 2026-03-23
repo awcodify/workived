@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine AS builder
+FROM golang:1.25-alpine AS builder
 
 # Set Go proxy and environment for better Railway compatibility
 ENV GOPROXY=https://proxy.golang.org,direct \
