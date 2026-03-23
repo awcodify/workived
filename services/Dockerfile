@@ -1,11 +1,24 @@
 FROM golang:1.22-alpine AS builder
 
-WORKDIR /app
-COPY go.mod go.sum ./
-RUN go mod download
+# Set Go proxy and environment for better Railway compatibility
+ENV GOPROXY=https://proxy.golang.org,direct \
+    GOSUMDB=sum.golang.org \
+    CGO_ENABLED=0 \
+    GOOS=linux
 
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies with verbose output for debugging
+RUN go mod download && go mod verify
+
+# Copy source code
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -o /api ./cmd/api
+
+# Build the application
+RUN go build -o /api ./cmd/api
 
 FROM alpine:3.19
 RUN apk --no-cache add ca-certificates tzdata
