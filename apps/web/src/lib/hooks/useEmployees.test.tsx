@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import React, { type ReactNode } from 'react'
+import { createElement, type ReactNode } from 'react'
 import { employeeKeys, useEmployeeWorkload } from '@/lib/hooks/useEmployees'
 import { employeesApi } from '@/lib/api/employees'
 
@@ -175,10 +175,10 @@ describe('useEmployeeWorkload', () => {
 
     const data = result.current.data!
     expect(data).toHaveLength(3)
-    expect(data[0].workload.status).toBe('available')
-    expect(data[1].workload.status).toBe('overloaded')
-    expect(data[2].workload.status).toBe('on_leave')
-    expect(data[2].leave.is_on_leave).toBe(true)
+    expect(data[0]?.workload.status).toBe('available')
+    expect(data[1]?.workload.status).toBe('overloaded')
+    expect(data[2]?.workload.status).toBe('on_leave')
+    expect(data[2]?.leave.is_on_leave).toBe(true)
   })
 
   it('should handle API errors', async () => {

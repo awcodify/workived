@@ -10,6 +10,7 @@ const mockUpdateMutate = vi.fn()
 
 vi.mock('@/lib/hooks/useEmployees', () => ({
   useEmployee: vi.fn(),
+  useEmployees: vi.fn(),
   useCreateEmployee: vi.fn(),
   useUpdateEmployee: vi.fn(),
 }))
@@ -44,7 +45,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   }
 })
 
-import { useEmployee, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
+import { useEmployee, useEmployees, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
 import { useUnlinkedMembers } from '@/lib/hooks/useInvitations'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -76,6 +77,12 @@ function makeUnlinkedMember(overrides: Partial<UnlinkedMember> = {}): UnlinkedMe
 }
 
 function setupDefaultMocks() {
+  vi.mocked(useEmployees).mockReturnValue({
+    data: undefined,
+    isLoading: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any)
+
   vi.mocked(useCreateEmployee).mockReturnValue({
     mutate: mockCreateMutate,
     isPending: false,

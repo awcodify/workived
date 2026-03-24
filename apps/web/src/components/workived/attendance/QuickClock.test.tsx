@@ -108,19 +108,19 @@ describe('QuickClock', () => {
     expect(screen.getByText(/clocked in at/i)).toBeInTheDocument()
   })
 
-  it('shows note input when not clocked out', () => {
+  it('shows note input in inline layout', () => {
     setupDefaultMocks()
-    render(<QuickClock />)
+    render(<QuickClock layout="inline" />)
     expect(screen.getByPlaceholderText('Note (optional)')).toBeInTheDocument()
   })
 
-  it('shows no-employee message when no employee linked', () => {
+  it('returns null when no employee linked', () => {
     setupDefaultMocks({ employee: null })
-    render(<QuickClock />)
-    expect(screen.getByText(/no employee record linked/i)).toBeInTheDocument()
+    const { container } = render(<QuickClock />)
+    expect(container.firstChild).toBeNull()
   })
 
-  it('shows "Done for today" after clocking out', () => {
+  it('shows "Completed for today" after clocking out in sidebar mode', () => {
     setupDefaultMocks({
       entries: [makeEntry({
         employee_id: 'emp-1',
@@ -129,8 +129,19 @@ describe('QuickClock', () => {
       })],
     })
     render(<QuickClock />)
-    expect(screen.getByText('Done for today')).toBeInTheDocument()
-    expect(screen.getByText('You worked')).toBeInTheDocument()
+    expect(screen.getByText('Completed for today')).toBeInTheDocument()
+  })
+
+  it('shows "You worked today" after clocking out in inline mode', () => {
+    setupDefaultMocks({
+      entries: [makeEntry({
+        employee_id: 'emp-1',
+        clock_in_at: '2026-03-19T01:00:00Z',
+        clock_out_at: '2026-03-19T09:00:00Z',
+      })],
+    })
+    render(<QuickClock layout="inline" />)
+    expect(screen.getByText('You worked today')).toBeInTheDocument()
   })
 
   it('hides note input and buttons after clocking out', () => {
@@ -183,7 +194,7 @@ describe('QuickClock', () => {
     expect(container.innerHTML).toBe('')
   })
 
-  it('shows late indicator when clocked in late', () => {
+  it('shows late indicator when clocked in late (inline mode)', () => {
     setupDefaultMocks({
       entries: [makeEntry({
         employee_id: 'emp-1',
@@ -191,7 +202,7 @@ describe('QuickClock', () => {
         status: 'late',
       })],
     })
-    render(<QuickClock />)
-    expect(screen.getByText('(Late)')).toBeInTheDocument()
+    render(<QuickClock layout="inline" />)
+    expect(screen.getByText('Late')).toBeInTheDocument()
   })
 })

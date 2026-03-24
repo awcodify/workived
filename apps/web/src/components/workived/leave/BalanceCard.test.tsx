@@ -41,8 +41,8 @@ describe('BalanceCard', () => {
     // Entitled section
     expect(screen.getByText('Entitled')).toBeInTheDocument()
     expect(screen.getByText('12')).toBeInTheDocument()
-    // Used section
-    expect(screen.getByText('Used')).toBeInTheDocument()
+    // Used section - appears in stats and legend
+    expect(screen.getAllByText('Used').length).toBeGreaterThan(0)
     expect(screen.getByText('5')).toBeInTheDocument()
     // Should show carried over (3) in the third column since carried_over_days > 0
     expect(screen.getByText('Carried')).toBeInTheDocument()
@@ -62,9 +62,9 @@ describe('BalanceCard', () => {
   it('renders progress bar with legend', () => {
     render(<BalanceCard balance={mockBalance} />)
     expect(screen.getByText('Usage')).toBeInTheDocument()
-    // Legend items
-    expect(screen.getByText('Used')).toBeInTheDocument()
-    expect(screen.getByText('Pending')).toBeInTheDocument()
+    // Legend items - some appear in multiple places
+    expect(screen.getAllByText('Used').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Pending').length).toBeGreaterThan(0)
     expect(screen.getByText('Available')).toBeInTheDocument()
   })
 
@@ -76,8 +76,8 @@ describe('BalanceCard', () => {
     render(<BalanceCard balance={balanceNoCarry} />)
     // 12 + 0 - 5 - 2 = 5.0
     expect(screen.getByText('5.0')).toBeInTheDocument()
-    // Should show pending in third column when no carried over
-    expect(screen.getByText('Pending')).toBeInTheDocument()
+    // Should show pending in third column when no carried over - appears in multiple places
+    expect(screen.getAllByText('Pending').length).toBeGreaterThan(0)
   })
 
   it('handles fully used balance', () => {
@@ -140,10 +140,10 @@ describe('BalanceCard', () => {
     render(<BalanceCard balance={mockBalance} variant="compact" />)
     // Year should not be shown in compact
     expect(screen.queryByText('2025')).not.toBeInTheDocument()
-    // Legend items should not be shown
-    const usedLabels = screen.queryAllByText('Used')
-    // Only one 'Used' from the inline stats, not from legend
-    expect(usedLabels).toHaveLength(1)
+    // Legend should not be shown (no standalone 'Used', 'Pending', 'Available' labels)
+    // Only inline stats with 'Used:' should exist
+    expect(screen.getByText(/Used:/)).toBeInTheDocument()
+    expect(screen.queryByText('Available')).not.toBeInTheDocument()
   })
 
   it('compact variant shows inline stats', () => {

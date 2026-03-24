@@ -29,7 +29,7 @@ describe('useEnabledFeatures', () => {
 
   it('fetches enabled features', async () => {
     const mockFeatures = { reports: true, tasks: false }
-    vi.mocked(features.getEnabled).mockResolvedValue({ data: mockFeatures })
+    vi.mocked(features.getEnabled).mockResolvedValue(mockFeatures)
 
     const { result } = renderHook(() => useEnabledFeatures(), {
       wrapper: createWrapper(),

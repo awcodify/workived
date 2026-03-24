@@ -48,15 +48,15 @@ describe('WelcomeStep', () => {
     expect(skipButton).toBeDisabled()
   })
 
-  it('displays all 4 wizard steps', () => {
+  it('displays all 3 wizard steps', () => {
     const onNext = vi.fn()
     const onSkip = vi.fn()
 
     render(<WelcomeStep onNext={onNext} onSkip={onSkip} isSkipping={false} />)
 
-    expect(screen.getByText(/Work Schedule/i)).toBeInTheDocument()
-    expect(screen.getByText(/Leave Policies/i)).toBeInTheDocument()
-    expect(screen.getByText(/Claim Categories/i)).toBeInTheDocument()
-    expect(screen.getByText(/Invite Team/i)).toBeInTheDocument()
+    expect(screen.getAllByText(/Work Schedule/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Leave Policies/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/Claim Categories/i).length).toBeGreaterThan(0)
+    // Note: Invite Team step was removed from setup wizard
   })
 })
