@@ -20,25 +20,25 @@ VALUES
 ON CONFLICT (country_code, name) DO NOTHING;
 
 -- Leave Policy Templates - Indonesia
-INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, sort_order)
+INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, gender_eligibility, sort_order)
 VALUES
-  ('ID', 'Annual Leave', 'Minimum 12 days per year as per Indonesian labor law (UU No. 13/2003)', 12, TRUE, 6, TRUE, TRUE, 1),
-  ('ID', 'Sick Leave', 'Unlimited sick leave with doctor''s note. Company pays first 3 months, then BPJS Kesehatan', 999, FALSE, NULL, FALSE, FALSE, 2),
-  ('ID', 'Maternity Leave', '90 days (18 weeks) as per UU Ketenagakerjaan. Can be split before/after delivery', 90, FALSE, NULL, FALSE, TRUE, 3),
-  ('ID', 'Paternity Leave', '2 days for childbirth or adoption', 2, FALSE, NULL, FALSE, TRUE, 4),
-  ('ID', 'Compassionate Leave', '2 days for immediate family bereavement', 2, FALSE, NULL, FALSE, TRUE, 5),
-  ('ID', 'Hajj Leave', 'Special leave for pilgrimage (10 days). Granted once per employment period with manager approval', 10, FALSE, NULL, FALSE, TRUE, 6)
+  ('ID', 'Annual Leave', 'Minimum 12 days per year as per Indonesian labor law (UU No. 13/2003)', 12, TRUE, 6, TRUE, TRUE, 'all', 1),
+  ('ID', 'Sick Leave', 'Unlimited sick leave with doctor''s note. Company pays first 3 months, then BPJS Kesehatan', 999, FALSE, NULL, FALSE, FALSE, 'all', 2),
+  ('ID', 'Maternity Leave', '90 days (18 weeks) as per UU Ketenagakerjaan. Can be split before/after delivery', 90, FALSE, NULL, FALSE, TRUE, 'female', 3),
+  ('ID', 'Paternity Leave', '2 days for childbirth or adoption', 2, FALSE, NULL, FALSE, TRUE, 'male', 4),
+  ('ID', 'Compassionate Leave', '2 days for immediate family bereavement', 2, FALSE, NULL, FALSE, TRUE, 'all', 5),
+  ('ID', 'Hajj Leave', 'Special leave for pilgrimage (10 days). Granted once per employment period with manager approval', 10, FALSE, NULL, FALSE, TRUE, 'all', 6)
 ON CONFLICT (country_code, name) DO NOTHING;
 
 -- Leave Policy Templates - UAE
-INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, sort_order)
+INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, gender_eligibility, sort_order)
 VALUES
-  ('AE', 'Annual Leave', 'Minimum 30 days per year as per UAE Labor Law. Accrues monthly after completing 1 year of service', 30, TRUE, 30, TRUE, TRUE, 1),
-  ('AE', 'Sick Leave', '90 days sick leave per year. Full pay first 15 days, half pay next 30 days, unpaid thereafter. Medical certificate required after 2 days', 90, FALSE, NULL, FALSE, FALSE, 2),
-  ('AE', 'Maternity Leave', '60 days maternity leave. Full pay first 45 days, half pay remaining 15 days. Must have worked 1 year. Can be extended 45 days unpaid', 60, FALSE, NULL, FALSE, TRUE, 3),
-  ('AE', 'Paternity Leave', '5 days paternity leave within 6 months of childbirth', 5, FALSE, NULL, FALSE, TRUE, 4),
-  ('AE', 'Compassionate Leave', '5 days bereavement leave for immediate family members', 5, FALSE, NULL, FALSE, TRUE, 5),
-  ('AE', 'Hajj/Umrah Leave', '30 days special leave for Hajj (once during employment). Subject to manager approval and operational requirements', 30, FALSE, NULL, FALSE, TRUE, 6)
+  ('AE', 'Annual Leave', 'Minimum 30 days per year as per UAE Labor Law. Accrues monthly after completing 1 year of service', 30, TRUE, 30, TRUE, TRUE, 'all', 1),
+  ('AE', 'Sick Leave', '90 days sick leave per year. Full pay first 15 days, half pay next 30 days, unpaid thereafter. Medical certificate required after 2 days', 90, FALSE, NULL, FALSE, FALSE, 'all', 2),
+  ('AE', 'Maternity Leave', '60 days maternity leave. Full pay first 45 days, half pay remaining 15 days. Must have worked 1 year. Can be extended 45 days unpaid', 60, FALSE, NULL, FALSE, TRUE, 'female', 3),
+  ('AE', 'Paternity Leave', '5 days paternity leave within 6 months of childbirth', 5, FALSE, NULL, FALSE, TRUE, 'male', 4),
+  ('AE', 'Compassionate Leave', '5 days bereavement leave for immediate family members', 5, FALSE, NULL, FALSE, TRUE, 'all', 5),
+  ('AE', 'Hajj/Umrah Leave', '30 days special leave for Hajj (once during employment). Subject to manager approval and operational requirements', 30, FALSE, NULL, FALSE, TRUE, 'all', 6)
 ON CONFLICT (country_code, name) DO NOTHING;
 
 -- Claim Category Templates - Indonesia

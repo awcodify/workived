@@ -7,6 +7,7 @@ CREATE TABLE employees (
     full_name        VARCHAR(255) NOT NULL,
     email            VARCHAR(255),  -- Nullable - not all employees need email
     phone            VARCHAR(30),
+    gender           VARCHAR(10) CHECK (gender IN ('male', 'female')),  -- NULL = not specified
     department_id    UUID REFERENCES departments(id) ON DELETE SET NULL,
     job_title        VARCHAR(150),
     reporting_to     UUID REFERENCES employees(id) ON DELETE SET NULL,

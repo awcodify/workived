@@ -4,7 +4,7 @@ CREATE TABLE task_lists (
     organisation_id        UUID NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
     name                   VARCHAR(100) NOT NULL,
     position               INT NOT NULL DEFAULT 0,
-    auto_complete_enabled  BOOLEAN NOT NULL DEFAULT FALSE,
+    is_final_state         BOOLEAN NOT NULL DEFAULT FALSE,
     is_active              BOOLEAN NOT NULL DEFAULT TRUE,
     created_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at             TIMESTAMPTZ NOT NULL DEFAULT NOW(),

@@ -612,9 +612,9 @@ function OverviewPage() {
             
             const totalSpent = claimBalances.reduce((sum, b) => sum + b.total_spent, 0)
             const totalLimit = claimBalances.reduce((sum, b) => sum + (b.monthly_limit ?? 0), 0)
-            const currency = claimBalances[0]?.currency_code ?? 'IDR'
-            const usagePercent = totalLimit > 0 ? Math.min((totalSpent / totalLimit) * 100, 100) : 0
+            const currency = claimBalances[0]?.currency_code ?? 'AED'
             const remaining = totalLimit - totalSpent
+            const remainingPercent = totalLimit > 0 ? Math.max(((totalLimit - totalSpent) / totalLimit) * 100, 0) : 100
 
             return (
               <div style={{
@@ -648,7 +648,7 @@ function OverviewPage() {
                     fontFamily: typography.fontMono,
                     fontSize: 28,
                     fontWeight: 800,
-                    color: remaining > 0 ? colors.ok : colors.err,
+                    color: remainingPercent > 50 ? colors.ok : remainingPercent > 20 ? colors.warn : colors.err,
                     letterSpacing: '-0.02em',
                     lineHeight: 1,
                   }}>
@@ -662,10 +662,10 @@ function OverviewPage() {
                 {/* Progress bar */}
                 <div style={{ height: 6, background: colors.ink100, borderRadius: 3, overflow: 'hidden', marginBottom: 10 }}>
                   <div style={{
-                    width: `${usagePercent}%`,
+                    width: `${remainingPercent}%`,
                     height: '100%',
                     borderRadius: 3,
-                    background: usagePercent > 80 ? colors.warn : colors.ok,
+                    background: remainingPercent > 50 ? colors.ok : remainingPercent > 20 ? colors.warn : colors.err,
                     transition: 'width 0.3s ease',
                   }} />
                 </div>

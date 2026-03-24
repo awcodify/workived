@@ -16,6 +16,7 @@ DECLARE
     v_sick_leave_id UUID;
     v_unpaid_leave_id UUID;    v_current_year INT := EXTRACT(YEAR FROM CURRENT_DATE);
     v_current_month INT := EXTRACT(MONTH FROM CURRENT_DATE);
+    v_currency CHAR(3);
 BEGIN
     -- Check if test org already exists
     SELECT id INTO v_org_id FROM organisations WHERE slug = 'rizki-tech';
@@ -42,6 +43,9 @@ BEGIN
     )
     RETURNING id INTO v_org_id;
     RAISE NOTICE '✓ Created organization: % (%)', 'Rizki Tech', v_org_id;
+
+    -- Read org currency for dynamic use in claims
+    SELECT currency_code INTO v_currency FROM organisations WHERE id = v_org_id;
 
     -- 2. Create owner user (ahmad@workived.com with password: 12345678)
     INSERT INTO users (id, email, full_name, password_hash, is_verified, is_active)
@@ -209,14 +213,14 @@ BEGIN
       AND lp.is_active = true;
     RAISE NOTICE '✓ Created leave balances for all employees';
 
-    -- 9. Create claim categories (Indonesian categories)
+    -- 9. Create claim categories (uses org currency)
     INSERT INTO claim_categories (id, organisation_id, name, monthly_limit, currency_code, requires_receipt)
-    VALUES 
-        (gen_random_uuid(), v_org_id, 'Transport', 500000, 'IDR', false),
-        (gen_random_uuid(), v_org_id, 'Meal Allowance', 1000000, 'IDR', false),
-        (gen_random_uuid(), v_org_id, 'Medical', 2000000, 'IDR', true),
-        (gen_random_uuid(), v_org_id, 'Internet', 300000, 'IDR', true),
-        (gen_random_uuid(), v_org_id, 'Phone', 200000, 'IDR', true);
+    VALUES
+        (gen_random_uuid(), v_org_id, 'Transport', 500000, v_currency, false),
+        (gen_random_uuid(), v_org_id, 'Meal Allowance', 1000000, v_currency, false),
+        (gen_random_uuid(), v_org_id, 'Medical', 2000000, v_currency, true),
+        (gen_random_uuid(), v_org_id, 'Internet', 300000, v_currency, true),
+        (gen_random_uuid(), v_org_id, 'Phone', 200000, v_currency, true);
     RAISE NOTICE '✓ Created 5 claim categories';
 
     -- 10. Create claim balances for all employees for current month
@@ -234,11 +238,11 @@ BEGIN
     SELECT id INTO v_transport_cat FROM claim_categories 
     WHERE organisation_id = v_org_id AND name = 'Transport' LIMIT 1;
 
-    -- 11. Create a few sample claims for ahmad
+    -- 11. Create a few sample claims for ahmad (uses org currency)
     INSERT INTO claims (organisation_id, employee_id, category_id, amount, currency_code, status, claim_date, description)
-    VALUES 
-        (v_org_id, v_ahmad_emp_id, v_transport_cat, 50000, 'IDR', 'approved', CURRENT_DATE - INTERVAL '5 days', 'Taxi to client meeting'),
-        (v_org_id, v_ahmad_emp_id, v_transport_cat, 75000, 'IDR', 'pending', CURRENT_DATE - INTERVAL '2 days', 'Grab to office');
+    VALUES
+        (v_org_id, v_ahmad_emp_id, v_transport_cat, 50000, v_currency, 'approved', CURRENT_DATE - INTERVAL '5 days', 'Taxi to client meeting'),
+        (v_org_id, v_ahmad_emp_id, v_transport_cat, 75000, v_currency, 'pending', CURRENT_DATE - INTERVAL '2 days', 'Grab to office');
     RAISE NOTICE '✓ Created 2 sample claims for ahmad@workived.com';
 
     -- Get leave policy IDs for sample leave requests

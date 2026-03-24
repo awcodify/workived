@@ -120,7 +120,27 @@ func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
 
 // ── Org CRUD ─────────────────────────────────────────────────────────────────
 
+// reservedSlugs contains org slugs that cannot be registered by users.
+var reservedSlugs = map[string]bool{
+	"workived": true, "admin": true, "api": true, "app": true,
+	"www": true, "mail": true, "root": true, "null": true,
+	"undefined": true, "help": true, "support": true, "billing": true,
+	"docs": true, "status": true, "blog": true, "login": true,
+	"register": true, "dashboard": true, "settings": true, "internal": true,
+	"system": true, "test": true, "demo": true, "staging": true,
+}
+
 func (s *Service) Create(ctx context.Context, ownerID uuid.UUID, req CreateOrgRequest) (*CreateOrgResponse, error) {
+	// Validate slug: min 3 chars, not reserved
+	slug := strings.ToLower(strings.TrimSpace(req.Slug))
+	if len(slug) < 3 {
+		return nil, apperr.New(apperr.CodeValidation, "organisation slug must be at least 3 characters")
+	}
+	if reservedSlugs[slug] {
+		return nil, apperr.New(apperr.CodeValidation, "this organisation name is reserved")
+	}
+	req.Slug = slug
+
 	org, err := s.repo.Create(ctx, req, ownerID)
 	if err != nil {
 		s.log.Error().Err(err).

@@ -9,6 +9,8 @@ CREATE TABLE leave_policy_templates (
     max_carry_over_days     NUMERIC(5,1),
     is_accrued              BOOLEAN NOT NULL DEFAULT FALSE,
     requires_approval       BOOLEAN NOT NULL DEFAULT TRUE,
+    gender_eligibility      VARCHAR(10) NOT NULL DEFAULT 'all'
+                                CHECK (gender_eligibility IN ('all', 'male', 'female')),
     sort_order              INT NOT NULL,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     

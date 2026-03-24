@@ -9,10 +9,12 @@ CREATE TABLE claims (
     description      TEXT,
     receipt_url      TEXT,                    -- S3 key
     status           VARCHAR(20) NOT NULL DEFAULT 'pending'
-                         CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')),
+                         CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled', 'paid')),
     reviewed_by      UUID REFERENCES employees(id) ON DELETE SET NULL,
     reviewed_at      TIMESTAMPTZ,
     review_note      TEXT,
+    paid_at          TIMESTAMPTZ,
+    paid_by          UUID REFERENCES employees(id) ON DELETE SET NULL,
     claim_date       DATE NOT NULL,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()

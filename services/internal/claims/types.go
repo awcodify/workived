@@ -47,8 +47,10 @@ type Claim struct {
 	ReceiptURL     *string   `json:"receipt_url,omitempty"` // S3 key, not full URL
 	Status         string    `json:"status"`                // approval.Status*
 	approval.ReviewInfo
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	PaidAt    *time.Time `json:"paid_at,omitempty"`
+	PaidBy    *uuid.UUID `json:"paid_by,omitempty"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
 }
 
 // ClaimWithDetails is a denormalized view for display.
@@ -114,6 +116,10 @@ type ApproveClaimRequest struct {
 
 type RejectClaimRequest struct {
 	ReviewNote string `json:"review_note" binding:"required,max=500"`
+}
+
+type MarkAsPaidRequest struct {
+	ReviewNote *string `json:"review_note,omitempty"`
 }
 
 type ImportCategoriesRequest struct {
