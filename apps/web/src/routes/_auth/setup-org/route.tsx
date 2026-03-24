@@ -78,8 +78,8 @@ function InvitationCard({
 const COUNTRIES = [
   { code: 'ID', name: 'Indonesia', timezone: 'Asia/Jakarta', currency: 'IDR' },
   { code: 'AE', name: 'United Arab Emirates', timezone: 'Asia/Dubai', currency: 'AED' },
-  { code: 'MY', name: 'Malaysia', timezone: 'Asia/Kuala_Lumpur', currency: 'MYR' },
-  { code: 'SG', name: 'Singapore', timezone: 'Asia/Singapore', currency: 'SGD' },
+  // { code: 'MY', name: 'Malaysia', timezone: 'Asia/Kuala_Lumpur', currency: 'MYR' },
+  // { code: 'SG', name: 'Singapore', timezone: 'Asia/Singapore', currency: 'SGD' },
 ] as const
 
 const setupOrgSchema = z.object({
@@ -138,7 +138,7 @@ function SetupOrgPage() {
       if (currentUser) {
         setAccessToken({ access_token: result.access_token, user: currentUser })
       }
-      navigate({ to: '/overview' })
+      navigate({ to: '/setup' })
     },
   })
 

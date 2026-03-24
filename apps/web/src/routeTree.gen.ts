@@ -27,6 +27,7 @@ import { Route as AppFeatureDisabledRouteRouteImport } from './routes/_app/featu
 import { Route as AppClaimsRouteRouteImport } from './routes/_app/claims/route'
 import { Route as AppCalendarRouteRouteImport } from './routes/_app/calendar/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
+import { Route as AppSetupIndexRouteImport } from './routes/_app/setup/index'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppLeaveIndexRouteImport } from './routes/_app/leave/index'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims/index'
@@ -128,6 +129,11 @@ const AppAttendanceRouteRoute = AppAttendanceRouteRouteImport.update({
   path: '/attendance',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppSetupIndexRoute = AppSetupIndexRouteImport.update({
+  id: '/setup/',
+  path: '/setup/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/claims/': typeof AppClaimsIndexRoute
   '/leave/': typeof AppLeaveIndexRoute
   '/people/': typeof AppPeopleIndexRoute
+  '/setup/': typeof AppSetupIndexRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/claims/categories/': typeof AppClaimsCategoriesIndexRoute
@@ -242,6 +249,7 @@ export interface FileRoutesByTo {
   '/claims': typeof AppClaimsIndexRoute
   '/leave': typeof AppLeaveIndexRoute
   '/people': typeof AppPeopleIndexRoute
+  '/setup': typeof AppSetupIndexRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/claims/categories': typeof AppClaimsCategoriesIndexRoute
@@ -275,6 +283,7 @@ export interface FileRoutesById {
   '/_app/claims/': typeof AppClaimsIndexRoute
   '/_app/leave/': typeof AppLeaveIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
+  '/_app/setup/': typeof AppSetupIndexRoute
   '/_app/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/_app/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/_app/claims/categories/': typeof AppClaimsCategoriesIndexRoute
@@ -307,6 +316,7 @@ export interface FileRouteTypes {
     | '/claims/'
     | '/leave/'
     | '/people/'
+    | '/setup/'
     | '/leave/policies/$id'
     | '/leave/policies/new'
     | '/claims/categories/'
@@ -333,6 +343,7 @@ export interface FileRouteTypes {
     | '/claims'
     | '/leave'
     | '/people'
+    | '/setup'
     | '/leave/policies/$id'
     | '/leave/policies/new'
     | '/claims/categories'
@@ -365,6 +376,7 @@ export interface FileRouteTypes {
     | '/_app/claims/'
     | '/_app/leave/'
     | '/_app/people/'
+    | '/_app/setup/'
     | '/_app/leave/policies/$id'
     | '/_app/leave/policies/new'
     | '/_app/claims/categories/'
@@ -503,6 +515,13 @@ declare module '@tanstack/react-router' {
       path: '/attendance'
       fullPath: '/attendance'
       preLoaderRoute: typeof AppAttendanceRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/setup/': {
+      id: '/_app/setup/'
+      path: '/setup'
+      fullPath: '/setup/'
+      preLoaderRoute: typeof AppSetupIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/people/': {
@@ -676,6 +695,7 @@ interface AppRouteRouteChildren {
   AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
   AppTasksRouteRoute: typeof AppTasksRouteRoute
   AppOrgChartRoute: typeof AppOrgChartRoute
+  AppSetupIndexRoute: typeof AppSetupIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -690,6 +710,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
   AppTasksRouteRoute: AppTasksRouteRoute,
   AppOrgChartRoute: AppOrgChartRoute,
+  AppSetupIndexRoute: AppSetupIndexRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(

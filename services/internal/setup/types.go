@@ -97,7 +97,7 @@ type CompleteSetupRequest struct {
 	WorkSchedule    WorkScheduleChoice     `json:"work_schedule" validate:"required"`
 	LeavePolicies   LeavePolicySelection   `json:"leave_policies"`
 	ClaimCategories ClaimCategorySelection `json:"claim_categories"`
-	Invitations     []InvitationInput      `json:"invitations" validate:"max=10"`
+	// Invitations removed - users can invite team members from Settings after setup
 }
 
 // LeavePolicySelection contains template IDs and optional customizations
@@ -118,5 +118,4 @@ type CompleteSetupResponse struct {
 	WorkScheduleID   uuid.UUID   `json:"work_schedule_id"`
 	LeavePolicyIDs   []uuid.UUID `json:"leave_policy_ids"`
 	ClaimCategoryIDs []uuid.UUID `json:"claim_category_ids"`
-	InvitationIDs    []uuid.UUID `json:"invitation_ids"`
 }

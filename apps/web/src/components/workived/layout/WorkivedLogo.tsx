@@ -1,7 +1,7 @@
 /**
  * WorkivedLogo — Official Workived logo component
  * 
- * A layered geometric icon representing team structure and organization.
+ * A layered geometric icon with stacked bars representing organization hierarchy.
  * Can be used with or without the wordmark.
  */
 
@@ -43,7 +43,7 @@ export function WorkivedLogo({ size = 40, showWordmark = true, variant = 'gradie
         <svg
           width={size}
           height={size}
-          viewBox="0 0 40 40"
+          viewBox="0 0 48 48"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -56,31 +56,46 @@ export function WorkivedLogo({ size = 40, showWordmark = true, variant = 'gradie
             </defs>
           )}
           
-          {/* Base layer - largest */}
-          <path
-            d="M20 8L8 14L20 20L32 14L20 8Z"
+          {/* Background rounded rectangle */}
+          <rect 
+            x="1" 
+            y="1" 
+            width="46" 
+            height="46" 
+            rx="12" 
             fill={isGradient ? 'url(#logoGradient)' : colors.primary}
-            opacity={0.9}
           />
           
-          {/* Middle layer */}
-          <path
-            d="M8 22L20 28L32 22"
-            stroke={isGradient ? 'url(#logoGradient)' : colors.primary}
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.85}
+          {/* Top bar - shortest */}
+          <rect 
+            x="16" 
+            y="11" 
+            width="22" 
+            height="7" 
+            rx="3" 
+            fill={variant === 'light' ? 'rgba(0,0,0,0.35)' : 'white'} 
+            opacity="0.35"
           />
           
-          {/* Top layer */}
-          <path
-            d="M8 28L20 34L32 28"
-            stroke={isGradient ? 'url(#logoGradient)' : colors.secondary}
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.9}
+          {/* Middle bar - medium */}
+          <rect 
+            x="13" 
+            y="19" 
+            width="24" 
+            height="7" 
+            rx="3" 
+            fill={variant === 'light' ? 'rgba(0,0,0,0.6)' : 'white'} 
+            opacity="0.6"
+          />
+          
+          {/* Bottom bar - longest */}
+          <rect 
+            x="10" 
+            y="27" 
+            width="26" 
+            height="7" 
+            rx="3" 
+            fill={variant === 'light' ? 'rgba(0,0,0,1)' : 'white'}
           />
         </svg>
       </div>

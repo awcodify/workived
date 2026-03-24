@@ -3,6 +3,7 @@ package organisation
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -43,10 +44,24 @@ func (r *Repository) Create(ctx context.Context, req CreateOrgRequest, ownerID u
 		return nil, err
 	}
 
+	// Create employee record for the owner using their user details
+	var employeeID uuid.UUID
+	err = tx.QueryRow(ctx, `
+		INSERT INTO employees (organisation_id, user_id, full_name, email, start_date, is_active)
+		SELECT $1, u.id, u.full_name, u.email, CURRENT_DATE, TRUE
+		FROM users u
+		WHERE u.id = $2
+		RETURNING id
+	`, org.ID, ownerID).Scan(&employeeID)
+	if err != nil {
+		return nil, fmt.Errorf("create employee for owner: %w", err)
+	}
+
+	// Create org member with linked employee_id
 	_, err = tx.Exec(ctx, `
-		INSERT INTO organisation_members (organisation_id, user_id, role, joined_at)
-		VALUES ($1, $2, 'owner', NOW())
-	`, org.ID, ownerID)
+		INSERT INTO organisation_members (organisation_id, user_id, role, employee_id, joined_at)
+		VALUES ($1, $2, 'owner', $3, NOW())
+	`, org.ID, ownerID, employeeID)
 	if err != nil {
 		return nil, err
 	}

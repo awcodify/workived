@@ -655,6 +655,108 @@ export interface TaskFilters {
   limit?: number
 }
 
+// ── Setup Wizard  ────────────────────────────────────────────
+export interface SetupStatus {
+  needs_setup: boolean
+  skipped: boolean
+  completed_at?: string
+  work_schedule_exists: boolean
+  leave_policies_count: number
+  claim_categories_count: number
+  members_count: number
+}
+
+export interface WorkScheduleTemplate {
+  id: string
+  country_code: string
+  name: string
+  description: string
+  work_days: number[]  // 1=Mon, 7=Sun
+  start_time: string   // HH:MM
+  end_time: string     // HH:MM
+  sort_order: number
+}
+
+export interface LeavePolicyTemplate {
+  id: string
+  country_code: string
+  name: string
+  description: string
+  entitled_days_per_year: number
+  is_carry_over_allowed: boolean
+  max_carry_over_days: number
+  is_accrued: boolean
+  requires_approval: boolean
+  sort_order: number
+}
+
+export interface ClaimCategoryTemplate {
+  id: string
+  country_code: string
+  name: string
+  description: string
+  monthly_limit?: number
+  currency_code?: string
+  requires_receipt: boolean
+  sort_order: number
+}
+
+export interface SetupTemplatesResponse {
+  work_schedules: WorkScheduleTemplate[]
+  leave_policies: LeavePolicyTemplate[]
+  claim_categories: ClaimCategoryTemplate[]
+}
+
+export interface CustomScheduleInput {
+  name: string
+  work_days: number[]
+  start_time: string
+  end_time: string
+}
+
+export interface WorkScheduleChoice {
+  template_id?: string
+  custom_schedule?: CustomScheduleInput
+}
+
+export interface LeavePolicyCustomization {
+  days_per_year?: number
+}
+
+export interface ClaimCategoryCustomization {
+  monthly_limit?: number
+}
+
+export interface LeavePolicySelection {
+  template_ids: string[]
+  customizations?: Record<string, LeavePolicyCustomization>
+}
+
+export interface ClaimCategorySelection {
+  template_ids: string[]
+  customizations?: Record<string, ClaimCategoryCustomization>
+}
+
+export interface InvitationInput {
+  email: string
+  role: MemberRole
+}
+
+export interface CompleteSetupRequest {
+  work_schedule: WorkScheduleChoice
+  leave_policies: LeavePolicySelection
+  claim_categories: ClaimCategorySelection
+  invitations?: InvitationInput[]
+}
+
+export interface CompleteSetupResponse {
+  success: boolean
+  work_schedule_id: string
+  leave_policy_ids: string[]
+  claim_category_ids: string[]
+  invitation_ids: string[]
+}
+
 // ── API wrapper ──────────────────────────────────────────────
 // All API responses are wrapped in {"data": ...}
 export interface ApiResponse<T> {

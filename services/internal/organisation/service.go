@@ -123,12 +123,21 @@ func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
 func (s *Service) Create(ctx context.Context, ownerID uuid.UUID, req CreateOrgRequest) (*CreateOrgResponse, error) {
 	org, err := s.repo.Create(ctx, req, ownerID)
 	if err != nil {
+		s.log.Error().Err(err).
+			Str("owner_id", ownerID.String()).
+			Str("org_name", req.Name).
+			Str("org_slug", req.Slug).
+			Msg("failed to create organisation")
 		return nil, fmt.Errorf("create organisation: %w", err)
 	}
 	// Issue a new JWT so the caller immediately has org context without re-logging in.
 	// Owner never has subordinates initially
 	accessToken, err := s.tokenIssuer.IssueAccessToken(ownerID, org.ID, "owner", false)
 	if err != nil {
+		s.log.Error().Err(err).
+			Str("owner_id", ownerID.String()).
+			Str("org_id", org.ID.String()).
+			Msg("failed to issue access token after org creation")
 		return nil, fmt.Errorf("issue access token after org creation: %w", err)
 	}
 	return &CreateOrgResponse{AccessToken: accessToken, Organisation: org}, nil

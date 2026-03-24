@@ -28,7 +28,7 @@ BEGIN
     RAISE NOTICE 'Creating test organization and data...';
 
     -- 1. Create test organization
-    INSERT INTO organisations (id, name, slug, country_code, timezone, currency_code, plan, work_days)
+    INSERT INTO organisations (id, name, slug, country_code, timezone, currency_code, plan, work_days, setup_completed_at)
     VALUES (
         gen_random_uuid(),
         'Rizki Tech',
@@ -37,7 +37,8 @@ BEGIN
         'Asia/Jakarta',
         'IDR',
         'free',
-        ARRAY[1,2,3,4,5]  -- Monday to Friday
+        ARRAY[1,2,3,4,5],  -- Monday to Friday
+        NOW()  -- Mark setup as completed
     )
     RETURNING id INTO v_org_id;
     RAISE NOTICE '✓ Created organization: % (%)', 'Rizki Tech', v_org_id;
@@ -174,7 +175,22 @@ BEGIN
 
     RAISE NOTICE '✓ Created 5 additional employees';
 
-    -- 6. Create leave policies
+    -- 6. Create work schedule (Monday-Friday, 8am-5pm)
+    INSERT INTO work_schedules (
+        id, organisation_id, name, is_default, 
+        work_days, start_time, end_time
+    ) VALUES (
+        gen_random_uuid(),
+        v_org_id,
+        'Standard Office Hours',
+        true,
+        ARRAY[1,2,3,4,5],  -- Monday to Friday
+        '08:00',
+        '17:00'
+    );
+    RAISE NOTICE '✓ Created work schedule (Mon-Fri, 8am-5pm)';
+
+    -- 7. Create leave policies
     INSERT INTO leave_policies (id, organisation_id, name, days_per_year, carry_over_days, is_active)
     VALUES 
         (gen_random_uuid(), v_org_id, 'Annual Leave', 12, 6, true),
@@ -182,7 +198,7 @@ BEGIN
         (gen_random_uuid(), v_org_id, 'Unpaid Leave', 0, 0, true);
     RAISE NOTICE '✓ Created 3 leave policies';
 
-    -- 7. Create leave balances for both employees for current year
+    -- 8. Create leave balances for all employees for current year
     INSERT INTO leave_balances (organisation_id, employee_id, leave_policy_id, year, entitled_days)
     SELECT v_org_id, e.id, lp.id, v_current_year, lp.days_per_year
     FROM employees e
@@ -193,7 +209,7 @@ BEGIN
       AND lp.is_active = true;
     RAISE NOTICE '✓ Created leave balances for all employees';
 
-    -- 8. Create claim categories (Indonesian categories)
+    -- 9. Create claim categories (Indonesian categories)
     INSERT INTO claim_categories (id, organisation_id, name, monthly_limit, currency_code, requires_receipt)
     VALUES 
         (gen_random_uuid(), v_org_id, 'Transport', 500000, 'IDR', false),
@@ -203,7 +219,7 @@ BEGIN
         (gen_random_uuid(), v_org_id, 'Phone', 200000, 'IDR', true);
     RAISE NOTICE '✓ Created 5 claim categories';
 
-    -- 9. Create claim balances for both employees for current month
+    -- 10. Create claim balances for all employees for current month
     INSERT INTO claim_balances (organisation_id, employee_id, category_id, year, month, currency_code, monthly_limit)
     SELECT v_org_id, e.id, cc.id, v_current_year, v_current_month, cc.currency_code, cc.monthly_limit
     FROM employees e
@@ -218,7 +234,7 @@ BEGIN
     SELECT id INTO v_transport_cat FROM claim_categories 
     WHERE organisation_id = v_org_id AND name = 'Transport' LIMIT 1;
 
-    -- 10. Create a few sample claims for ahmad
+    -- 11. Create a few sample claims for ahmad
     INSERT INTO claims (organisation_id, employee_id, category_id, amount, currency_code, status, claim_date, description)
     VALUES 
         (v_org_id, v_ahmad_emp_id, v_transport_cat, 50000, 'IDR', 'approved', CURRENT_DATE - INTERVAL '5 days', 'Taxi to client meeting'),
@@ -235,7 +251,7 @@ BEGIN
     SELECT id INTO v_unpaid_leave_id FROM leave_policies 
     WHERE organisation_id = v_org_id AND name = 'Unpaid Leave' LIMIT 1;
 
-    -- 10.5. Create sample leave requests for calendar visibility
+    -- 12. Create sample leave requests for calendar visibility
     INSERT INTO leave_requests (
         id, organisation_id, employee_id, leave_policy_id, 
         start_date, end_date, total_days, status, reason
@@ -297,7 +313,7 @@ BEGIN
 
     RAISE NOTICE '✓ Created 11 leave requests (7 approved, 2 pending, 2 rejected) across all employees';
 
-    -- 11. Create attendance records (past 14 days with various patterns)
+    -- 13. Create attendance records (past 14 days with various patterns)
     INSERT INTO attendance_records (organisation_id, employee_id, date, clock_in_at, clock_out_at, is_late, clock_in_lat, clock_in_lng)
     VALUES 
         -- Ahmad (CEO): Regular attendance, mostly on-time
@@ -383,6 +399,7 @@ BEGIN
     RAISE NOTICE '     → Only Ahmad has user account. Others need invitation.';
     RAISE NOTICE '';
     RAISE NOTICE 'Data created:';
+    RAISE NOTICE '  • 1 Work schedule (Mon-Fri, 8am-5pm)';
     RAISE NOTICE '  • 3 Leave policies (Annual: 12 days, Sick: 7 days, Unpaid: 0 days)';
     RAISE NOTICE '  • 5 Claim categories (Transport, Meal, Medical, Internet, Phone)';
     RAISE NOTICE '  • Leave balances for all 6 employees (current year)';

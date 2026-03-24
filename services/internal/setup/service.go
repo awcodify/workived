@@ -147,20 +147,7 @@ func (s *Service) CompleteSetup(ctx context.Context, orgID uuid.UUID, req *Compl
 	}
 	response.ClaimCategoryIDs = claimCategoryIDs
 
-	// 4. Create invitations (optional)
-	var invitationIDs []uuid.UUID
-	for _, invite := range req.Invitations {
-		invitationID, err := s.repo.CreateInvitation(ctx, tx, orgID, invite.Email, invite.Role)
-		if err != nil {
-			// Log but don't fail the entire setup if invitation fails (user can re-invite later)
-			s.logger.Warn().Err(err).Str("email", invite.Email).Msg("failed to create invitation during setup")
-			continue
-		}
-		invitationIDs = append(invitationIDs, invitationID)
-	}
-	response.InvitationIDs = invitationIDs
-
-	// 5. Mark setup as complete
+	// 4. Mark setup as complete
 	if err := s.repo.MarkSetupComplete(ctx, tx, orgID); err != nil {
 		s.logger.Error().Err(err).Str("org_id", orgID.String()).Msg("failed to mark setup complete")
 		return nil, apperr.Internal()
@@ -179,7 +166,6 @@ func (s *Service) CompleteSetup(ctx context.Context, orgID uuid.UUID, req *Compl
 		Str("work_schedule_id", workScheduleID.String()).
 		Int("leave_policies", len(leavePolicyIDs)).
 		Int("claim_categories", len(claimCategoryIDs)).
-		Int("invitations", len(invitationIDs)).
 		Msg("setup wizard completed successfully")
 
 	return response, nil
@@ -241,11 +227,6 @@ func (s *Service) ValidateCompleteSetupRequest(req *CompleteSetupRequest) error 
 	// Validate claim categories
 	if len(req.ClaimCategories.TemplateIDs) == 0 {
 		return errors.New("at least one claim category must be selected")
-	}
-
-	// Validate invitations (max 10)
-	if len(req.Invitations) > 10 {
-		return errors.New("maximum 10 invitations allowed during setup")
 	}
 
 	return nil

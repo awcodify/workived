@@ -3,6 +3,7 @@ package setup
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -140,7 +141,7 @@ func (r *Repository) MarkSetupComplete(ctx context.Context, tx pgx.Tx, orgID uui
 	query := `
 		UPDATE organisations
 		SET setup_completed_at = NOW(), setup_skipped = FALSE, updated_at = NOW()
-		WHERE id = $1 AND organisation_id = $1
+		WHERE id = $1
 	`
 
 	_, err := tx.Exec(ctx, query, orgID)
@@ -152,7 +153,7 @@ func (r *Repository) MarkSetupSkipped(ctx context.Context, orgID uuid.UUID) erro
 	query := `
 		UPDATE organisations
 		SET setup_skipped = TRUE, updated_at = NOW()
-		WHERE id = $1 AND organisation_id = $1
+		WHERE id = $1
 	`
 
 	_, err := r.db.Exec(ctx, query, orgID)
@@ -189,24 +190,26 @@ func (r *Repository) CreateCustomWorkSchedule(ctx context.Context, tx pgx.Tx, or
 
 // CreateLeavePolicyFromTemplate creates a leave policy from template with optional customization
 func (r *Repository) CreateLeavePolicyFromTemplate(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID, customization *LeavePolicyCustomization) (uuid.UUID, error) {
+	// Create the policy and get the entitled days
 	query := `
-		INSERT INTO leave_policies (
-			organisation_id, name, description, entitled_days_per_year, 
-			is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, is_active
+		WITH new_policy AS (
+			INSERT INTO leave_policies (
+				organisation_id, name, description, days_per_year, 
+				carry_over_days, requires_approval, is_active
+			)
+			SELECT 
+				$1, 
+				name, 
+				description, 
+				COALESCE($3, entitled_days_per_year),
+				COALESCE(max_carry_over_days, 0),
+				requires_approval, 
+				TRUE
+			FROM leave_policy_templates
+			WHERE id = $2
+			RETURNING id, days_per_year
 		)
-		SELECT 
-			$1, 
-			name, 
-			description, 
-			COALESCE($3, entitled_days_per_year),
-			is_carry_over_allowed, 
-			max_carry_over_days, 
-			is_accrued, 
-			requires_approval, 
-			TRUE
-		FROM leave_policy_templates
-		WHERE id = $2
-		RETURNING id
+		SELECT id, days_per_year FROM new_policy
 	`
 
 	var daysPerYear *float64
@@ -215,26 +218,46 @@ func (r *Repository) CreateLeavePolicyFromTemplate(ctx context.Context, tx pgx.T
 	}
 
 	var policyID uuid.UUID
-	err := tx.QueryRow(ctx, query, orgID, templateID, daysPerYear).Scan(&policyID)
-	return policyID, err
+	var entitledDays float64
+	err := tx.QueryRow(ctx, query, orgID, templateID, daysPerYear).Scan(&policyID, &entitledDays)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	// Create leave balances for all active employees for the current year
+	currentYear := time.Now().Year()
+	balanceQuery := `
+		INSERT INTO leave_balances (organisation_id, employee_id, leave_policy_id, year, entitled_days)
+		SELECT $1, id, $2, $3, $4
+		FROM employees
+		WHERE organisation_id = $1 AND is_active = true
+		ON CONFLICT (employee_id, leave_policy_id, year) DO NOTHING
+	`
+
+	_, err = tx.Exec(ctx, balanceQuery, orgID, policyID, currentYear, entitledDays)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return policyID, nil
 }
 
 // CreateClaimCategoryFromTemplate creates a claim category from template with optional customization
 func (r *Repository) CreateClaimCategoryFromTemplate(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID, customization *ClaimCategoryCustomization) (uuid.UUID, error) {
 	query := `
 		INSERT INTO claim_categories (
-			organisation_id, name, description, monthly_limit, currency_code, requires_receipt, is_active
+			organisation_id, name, monthly_limit, currency_code, requires_receipt, is_active
 		)
 		SELECT 
 			$1, 
-			name, 
-			description, 
-			COALESCE($3, monthly_limit),
-			currency_code,
-			requires_receipt, 
+			t.name, 
+			COALESCE($3, t.monthly_limit),
+			COALESCE(t.currency_code, o.currency_code),
+			t.requires_receipt, 
 			TRUE
-		FROM claim_category_templates
-		WHERE id = $2
+		FROM claim_category_templates t
+		CROSS JOIN organisations o
+		WHERE t.id = $2 AND o.id = $1
 		RETURNING id
 	`
 

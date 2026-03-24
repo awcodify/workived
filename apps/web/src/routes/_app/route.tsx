@@ -1,22 +1,37 @@
-import { createFileRoute, Outlet, redirect } from '@tanstack/react-router'
+import { createFileRoute, Outlet, redirect, useMatches } from '@tanstack/react-router'
 import { useAuthStore } from '@/lib/stores/auth'
 import { Dock } from '@/components/workived/dock/Dock'
+import { getSetupStatus } from '@/lib/api/setup'
 
 export const Route = createFileRoute('/_app')({
-  beforeLoad: () => {
+  beforeLoad: async ({ location }) => {
     const { accessToken } = useAuthStore.getState()
     if (!accessToken) {
       throw redirect({ to: '/login' })
+    }
+
+    // Setup wizard guard: redirect to /setup if setup is needed and not skipped
+    // Allow access to /setup itself to avoid infinite redirect
+    if (location.pathname !== '/setup') {
+      const setupStatus = await getSetupStatus()
+      if (setupStatus.needs_setup && !setupStatus.skipped) {
+        throw redirect({ to: '/setup' })
+      }
     }
   },
   component: AppLayout,
 })
 
 function AppLayout() {
+  const matches = useMatches()
+  const isSetupPage = matches.some(match => 
+    match.pathname.startsWith('/setup')
+  )
+
   return (
     <div className="min-h-screen">
       <Outlet />
-      <Dock />
+      {!isSetupPage && <Dock />}
     </div>
   )
 }
