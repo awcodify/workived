@@ -18,10 +18,11 @@ import { WelcomeStep } from './steps/WelcomeStep'
 import { WorkScheduleStep } from './steps/WorkScheduleStep'
 import { LeavePoliciesStep } from './steps/LeavePoliciesStep'
 import { ClaimCategoriesStep } from './steps/ClaimCategoriesStep'
+import { PreviewStep } from './steps/PreviewStep'
 import { SuccessStep } from './steps/SuccessStep'
 import { AlreadyCompletedStep } from './steps/AlreadyCompletedStep'
 
-type Step = 'welcome' | 'workSchedule' | 'leavePolicies' | 'claimCategories' | 'success'
+type Step = 'welcome' | 'workSchedule' | 'leavePolicies' | 'claimCategories' | 'preview' | 'success'
 
 export interface WizardState {
   // Work Schedule
@@ -103,6 +104,7 @@ export function SetupWizard() {
       'workSchedule',
       'leavePolicies',
       'claimCategories',
+      'preview',
       'success',
     ]
     const currentIndex = stepOrder.indexOf(currentStep)
@@ -118,6 +120,7 @@ export function SetupWizard() {
       'workSchedule',
       'leavePolicies',
       'claimCategories',
+      'preview',
       'success',
     ]
     const currentIndex = stepOrder.indexOf(currentStep)
@@ -131,11 +134,8 @@ export function SetupWizard() {
     skipMutation.mutate()
   }
 
-  const handleComplete = async (finalClaimSelection?: {
-    selectedClaimCategories: ClaimCategoryTemplate[]
-    claimCategoryCustomizations: Record<string, ClaimCategoryCustomization>
-  }) => {
-    // Build request from wizard state, using final selection if provided
+  const handleComplete = async () => {
+    // Build request from wizard state
     const request = {
       work_schedule: wizardState.selectedWorkScheduleTemplate
         ? { template_id: wizardState.selectedWorkScheduleTemplate.id }
@@ -145,8 +145,8 @@ export function SetupWizard() {
         customizations: wizardState.leavePolicyCustomizations,
       },
       claim_categories: {
-        template_ids: (finalClaimSelection?.selectedClaimCategories || wizardState.selectedClaimCategories).map((c) => c.id),
-        customizations: finalClaimSelection?.claimCategoryCustomizations || wizardState.claimCategoryCustomizations,
+        template_ids: wizardState.selectedClaimCategories.map((c) => c.id),
+        customizations: wizardState.claimCategoryCustomizations,
       },
     }
 
@@ -230,11 +230,18 @@ export function SetupWizard() {
           templates={templates?.claim_categories ?? []}
           selected={wizardState.selectedClaimCategories}
           customizations={wizardState.claimCategoryCustomizations}
-          onNext={(selection) => {
-            updateWizardState(selection)
-            handleComplete(selection)
-          }}
+          onNext={(selection) => handleNext(selection)}
           onBack={handleBack}
+        />
+      )}
+
+      {currentStep === 'preview' && (
+        <PreviewStep
+          wizardState={wizardState}
+          templates={templates}
+          onConfirm={() => handleComplete()}
+          onBack={handleBack}
+          isSubmitting={completeMutation.isPending}
         />
       )}
 
