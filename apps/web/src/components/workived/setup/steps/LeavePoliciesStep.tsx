@@ -205,7 +205,7 @@ export function LeavePoliciesStep({
                           borderRadius: 8,
                           background: colors.ink0,
                           color: colors.ink900,
-                          border: `1px solid ${colors.ink200}`,
+                          border: `1px solid ${colors.ink150}`,
                         }}
                       >
                         −
@@ -241,7 +241,7 @@ export function LeavePoliciesStep({
                           borderRadius: 8,
                           background: colors.ink0,
                           color: colors.ink900,
-                          border: `1px solid ${colors.ink200}`,
+                          border: `1px solid ${colors.ink150}`,
                         }}
                       >
                         +

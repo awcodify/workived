@@ -107,7 +107,8 @@ export function SetupWizard() {
     ]
     const currentIndex = stepOrder.indexOf(currentStep)
     if (currentIndex < stepOrder.length - 1) {
-      setCurrentStep(stepOrder[currentIndex + 1])
+      const nextStep = stepOrder[currentIndex + 1]
+      if (nextStep) setCurrentStep(nextStep)
     }
   }
 
@@ -121,7 +122,8 @@ export function SetupWizard() {
     ]
     const currentIndex = stepOrder.indexOf(currentStep)
     if (currentIndex > 0) {
-      setCurrentStep(stepOrder[currentIndex - 1])
+      const prevStep = stepOrder[currentIndex - 1]
+      if (prevStep) setCurrentStep(prevStep)
     }
   }
 

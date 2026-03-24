@@ -59,7 +59,7 @@ export function EmployeeRequestGroup({
       // Auto-reset after 3 seconds
       confirmTimeoutRef.current = setTimeout(() => {
         setConfirmingApproveAll(false)
-      }, 3000)
+      }, 3000) as unknown as number
       
       return
     }

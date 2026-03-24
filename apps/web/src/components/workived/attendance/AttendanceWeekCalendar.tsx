@@ -26,6 +26,18 @@ const statusConfig = {
     icon: XCircle,
     label: 'Absent',
   },
+  'on_leave': {
+    color: '#8B5CF6',
+    bgColor: 'rgba(139, 92, 246, 0.12)',
+    icon: Coffee,
+    label: 'On Leave',
+  },
+  'overtime': {
+    color: '#06B6D4',
+    bgColor: 'rgba(6, 182, 212, 0.12)',
+    icon: Clock,
+    label: 'Overtime',
+  },
   'weekend': {
     color: 'rgba(255,255,255,0.35)',
     bgColor: 'rgba(255,255,255,0.04)',

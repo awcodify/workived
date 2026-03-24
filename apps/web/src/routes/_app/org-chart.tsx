@@ -83,6 +83,7 @@ function OrgNode({ node }: { node: OrgChartNode }) {
         <Link
           to="/people/$id"
           params={{ id: node.id }}
+          search={{ user_id: undefined }}
           className="flex flex-col items-center gap-2 transition-all duration-150"
           style={{
             background: t.surface,
@@ -218,6 +219,7 @@ function EmptyState() {
         <Link
           to="/people/$id"
           params={{ id: 'new' }}
+          search={{ user_id: undefined }}
           className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 mt-2 transition-colors hover:opacity-90"
           style={{
             background: t.accent,

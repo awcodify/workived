@@ -7,7 +7,7 @@ export const Route = createFileRoute('/_app')({
   beforeLoad: async ({ location }) => {
     const { accessToken } = useAuthStore.getState()
     if (!accessToken) {
-      throw redirect({ to: '/login' })
+      throw redirect({ to: '/login', search: { redirect: undefined } })
     }
 
     // Setup wizard guard: redirect to /setup if setup is needed and not skipped

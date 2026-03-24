@@ -17,7 +17,7 @@ export function useLogout() {
     },
     onSuccess: () => {
       // Redirect to login page
-      router.navigate({ to: '/login' })
+      router.navigate({ to: '/login', search: { redirect: undefined } })
     },
   })
 }

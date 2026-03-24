@@ -48,7 +48,7 @@ export function AlreadyCompletedStep({ completedAt, onContinue }: AlreadyComplet
       </h1>
 
       {/* Description */}
-      <p className="mb-2 text-lg" style={{ color: colors.ink600 }}>
+      <p className="mb-2 text-lg" style={{ color: colors.ink500 }}>
         You've already completed the setup wizard {formatDate(completedAt)}.
       </p>
       <p className="mb-12 text-base" style={{ color: colors.ink500 }}>

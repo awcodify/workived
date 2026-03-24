@@ -52,7 +52,9 @@ export function QuickClock({
     if (!hasClockedIn || hasClockedOut || !myEntry?.clock_in_at) return
 
     const updateTimer = () => {
-      const clockIn = new Date(myEntry.clock_in_at)
+      const clockInTime = myEntry.clock_in_at
+      if (!clockInTime) return
+      const clockIn = new Date(clockInTime)
       const now = new Date()
       const diffMs = now.getTime() - clockIn.getTime()
       
@@ -117,7 +119,7 @@ export function QuickClock({
                     className="text-xs font-bold uppercase tracking-wider mb-1" 
                     style={{ color: variant === 'dark' ? 'rgba(255,255,255,0.5)' : '#9333EA' }}
                   >
-                    {formatDate(new Date().toISOString(), tz, 'dayname')}, {formatDate(new Date().toISOString(), tz, 'date-short')}
+                    {new Date().toLocaleDateString('en', { timeZone: tz, weekday: 'long' })}, {new Date().toLocaleDateString('en', { timeZone: tz, month: 'short', day: 'numeric' })}
                   </div>
                   <div 
                     className="font-mono font-black tabular-nums"

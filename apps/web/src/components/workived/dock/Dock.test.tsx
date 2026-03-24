@@ -3,8 +3,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import React from 'react'
 
 vi.mock('@tanstack/react-router', () => ({
-  Link: ({ children, to, ...props }: Record<string, unknown>) => (
-    <a href={to as string} {...props}>
+  Link: ({ children, to, ...props }: { children: React.ReactNode; to: string } & Record<string, unknown>) => (
+    <a href={to} {...props}>
       {children}
     </a>
   ),

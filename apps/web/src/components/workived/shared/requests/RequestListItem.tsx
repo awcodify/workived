@@ -95,7 +95,7 @@ export function RequestListItem({
       // Auto-reset after 3 seconds
       confirmTimeoutRef.current = setTimeout(() => {
         setConfirmingApprove(false)
-      }, 3000)
+      }, 3000) as unknown as number
       
       return
     }

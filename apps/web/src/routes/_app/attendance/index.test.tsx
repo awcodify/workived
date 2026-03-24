@@ -97,6 +97,7 @@ function setupDefaultMocks() {
   } as any)
 
   vi.mocked(useAttendanceRole).mockReturnValue({
+    canViewOwn: true,
     canViewTeam: true,
     canViewAll: true,
   })

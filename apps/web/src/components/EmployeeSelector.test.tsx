@@ -5,17 +5,17 @@ import { EmployeeSelector } from './EmployeeSelector'
 import type { Employee, EmployeeWorkload } from '@/types/api'
 
 const mockEmployees: Employee[] = [
-  { id: '1', full_name: 'Alice Available', email: 'alice@test.com', department_id: '1', hire_date: '2020-01-01', position: 'Developer', is_active: true, created_at: '', updated_at: '' },
-  { id: '2', full_name: 'Bob Overloaded', email: 'bob@test.com', department_id: '1', hire_date: '2020-01-01', position: 'Developer', is_active: true, created_at: '', updated_at: '' },
-  { id: '3', full_name: 'Charlie Warning', email: 'charlie@test.com', department_id: '1', hire_date: '2020-01-01', position: 'Developer', is_active: true, created_at: '', updated_at: '' },
-  { id: '4', full_name: 'Diana OnLeave', email: 'diana@test.com', department_id: '1', hire_date: '2020-01-01', position: 'Developer', is_active: true, created_at: '', updated_at: '' },
+  { id: '1', organisation_id: 'org1', full_name: 'Alice Available', email: 'alice@test.com', department_id: '1', employment_type: 'full_time', status: 'active', start_date: '2020-01-01', is_active: true, created_at: '', updated_at: '' },
+  { id: '2', organisation_id: 'org1', full_name: 'Bob Overloaded', email: 'bob@test.com', department_id: '1', employment_type: 'full_time', status: 'active', start_date: '2020-01-01', is_active: true, created_at: '', updated_at: '' },
+  { id: '3', organisation_id: 'org1', full_name: 'Charlie Warning', email: 'charlie@test.com', department_id: '1', employment_type: 'full_time', status: 'active', start_date: '2020-01-01', is_active: true, created_at: '', updated_at: '' },
+  { id: '4', organisation_id: 'org1', full_name: 'Diana OnLeave', email: 'diana@test.com', department_id: '1', employment_type: 'full_time', status: 'active', start_date: '2020-01-01', is_active: true, created_at: '', updated_at: '' },
 ]
 
 const mockWorkloadData: Record<string, EmployeeWorkload> = {
-  '1': { employee_id: '1', full_name: 'Alice Available', workload: { active_tasks: 2, completed_tasks: 10, status: 'available', avg_completion_time_hours: 24, on_time_completion_rate: 90 } },
-  '2': { employee_id: '2', full_name: 'Bob Overloaded', workload: { active_tasks: 8, completed_tasks: 5, status: 'overloaded', avg_completion_time_hours: 48, on_time_completion_rate: 60 } },
-  '3': { employee_id: '3', full_name: 'Charlie Warning', workload: { active_tasks: 5, completed_tasks: 8, status: 'warning', avg_completion_time_hours: 36, on_time_completion_rate: 75 } },
-  '4': { employee_id: '4', full_name: 'Diana OnLeave', workload: { active_tasks: 0, completed_tasks: 15, status: 'on_leave', avg_completion_time_hours: 20, on_time_completion_rate: 95 } },
+  '1': { employee_id: '1', full_name: 'Alice Available', workload: { active_tasks: 2, overdue_tasks: 0, status: 'available' }, leave: { is_on_leave: false, is_upcoming_leave: false } },
+  '2': { employee_id: '2', full_name: 'Bob Overloaded', workload: { active_tasks: 8, overdue_tasks: 2, status: 'overloaded' }, leave: { is_on_leave: false, is_upcoming_leave: false } },
+  '3': { employee_id: '3', full_name: 'Charlie Warning', workload: { active_tasks: 5, overdue_tasks: 1, status: 'warning' }, leave: { is_on_leave: false, is_upcoming_leave: false } },
+  '4': { employee_id: '4', full_name: 'Diana OnLeave', workload: { active_tasks: 0, overdue_tasks: 0, status: 'on_leave' }, leave: { is_on_leave: true, is_upcoming_leave: false, leave_start: '2026-03-20', leave_end: '2026-03-27' } },
 }
 
 const getEmployeeWorkload = (id: string) => mockWorkloadData[id]

@@ -48,8 +48,10 @@ vi.mock('@/lib/stores/auth', () => {
     user: { id: 'u1', full_name: 'Ahmad', email: 'a@b.com' },
     isAuthenticated: () => mockIsAuthenticated,
   }
-  const useAuthStore = vi.fn((selector: (s: typeof state) => unknown) => selector(state))
-  useAuthStore.getState = () => state
+  const useAuthStore = Object.assign(
+    vi.fn((selector: (s: typeof state) => unknown) => selector(state)),
+    { getState: () => state }
+  )
   return { useAuthStore }
 })
 
