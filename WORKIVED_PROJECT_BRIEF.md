@@ -686,10 +686,10 @@ API_URL=http://localhost:8080
 
 ---
 
-*Last updated: March 22, 2026*  
-*Current Sprint: Sprint 13 🎯 Planned (Permission Infrastructure Unification)*  
-*Recent Sprint: Sprint 12 ✅ Complete (Attendance Dashboard Revamp + has_subordinate, March 22)*  
-*Status: Sprint 12 ✅ Complete → Sprint 13 🎯 Next (Cross-module permission fixes)*  
-*Sprint Documentation:* [sprint8.md](./docs/sprint8.md) | [sprint9.md](./docs/sprint9.md) | [sprint11.md](./docs/sprint11.md) | [sprint12.md](./docs/sprint12.md)  
+*Last updated: March 24, 2026*  
+*Current Sprint: Sprint 14 ✅ COMPLETE (Registration Flow Critical Fix, March 24)*  
+*Recent Sprint: Sprint 13 ✅ Complete (Enhancement and Fixing Sprint — has_subordinate system-wide + UX improvements + Dark mode beta, March 22)*  
+*Status: Sprint 13 ✅ Complete → Sprint 14 ✅ Complete → Sprint 15 🎯 Next (Testing Infrastructure + Workload Intelligence)*  
+*Sprint Documentation:* [sprint8.md](./docs/sprint8.md) | [sprint9.md](./docs/sprint9.md) | [sprint11.md](./docs/sprint11.md) | [sprint12.md](./docs/sprint12.md) | [sprint13.md](./docs/sprint13.md) | [sprint14.md](./docs/sprint14.md)  
 *Product Roadmap:* [docs/ROADMAP.md](./docs/ROADMAP.md) — Sprint priorities & competitive positioning  
 *Feature Backlog:* [docs/backlog/](./docs/backlog/) — Organized by theme (HR, system, monetization, advanced)
