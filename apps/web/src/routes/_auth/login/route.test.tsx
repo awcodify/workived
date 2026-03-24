@@ -185,12 +185,14 @@ describe('LoginPage', () => {
   })
 
   it('validateSearch extracts redirect from search params', () => {
-    const result = Route.options.validateSearch!({ redirect: '/people' })
+    const validateFn = Route.options.validateSearch as (search: Record<string, unknown>) => { redirect?: string }
+    const result = validateFn({ redirect: '/people' })
     expect(result).toEqual({ redirect: '/people' })
   })
 
   it('validateSearch returns undefined when redirect is absent', () => {
-    const result = Route.options.validateSearch!({})
+    const validateFn = Route.options.validateSearch as (search: Record<string, unknown>) => { redirect?: string }
+    const result = validateFn({})
     expect(result).toEqual({ redirect: undefined })
   })
 })

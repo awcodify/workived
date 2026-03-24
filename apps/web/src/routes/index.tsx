@@ -7,7 +7,7 @@ export const Route = createFileRoute('/')({
     if (accessToken) {
       throw redirect({ to: '/overview' })
     } else {
-      throw redirect({ to: '/login' })
+      throw redirect({ to: '/login', search: { redirect: undefined } })
     }
   },
 })

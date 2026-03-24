@@ -16,7 +16,7 @@ export const Route = createFileRoute('/_auth/setup-org')({
   beforeLoad: () => {
     const { accessToken } = useAuthStore.getState()
     if (!accessToken) {
-      throw redirect({ to: '/login' })
+      throw redirect({ to: '/login', search: { redirect: undefined } })
     }
   },
   component: SetupOrgPage,

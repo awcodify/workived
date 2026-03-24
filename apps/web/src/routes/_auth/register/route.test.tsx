@@ -116,12 +116,14 @@ describe('RegisterPage', () => {
   })
 
   it('validateSearch extracts invite_token from search params', () => {
-    const result = Route.options.validateSearch!({ invite_token: 'abc123' })
+    const validateFn = Route.options.validateSearch as (search: Record<string, unknown>) => { invite_token?: string }
+    const result = validateFn({ invite_token: 'abc123' })
     expect(result).toEqual({ invite_token: 'abc123' })
   })
 
   it('validateSearch returns undefined when invite_token absent', () => {
-    const result = Route.options.validateSearch!({})
+    const validateFn = Route.options.validateSearch as (search: Record<string, unknown>) => { invite_token?: string }
+    const result = validateFn({})
     expect(result).toEqual({ invite_token: undefined })
   })
 

@@ -136,8 +136,15 @@ describe('InviteAcceptPage', () => {
     mockIsAuthenticated = true
     vi.spyOn(Route, 'useSearch').mockReturnValue({ token: 'abc-token-123' })
     vi.mocked(organisationsApi.acceptInvitation).mockResolvedValue({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: { data: { access_token: 'new-tok', organisation: null, member: null } } as any,
+      data: { data: { 
+        access_token: 'new-tok', 
+        organisation: null as any, 
+        member: null as any 
+      } },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as any,
     })
     renderInvite()
 
@@ -152,8 +159,15 @@ describe('InviteAcceptPage', () => {
     mockIsAuthenticated = true
     vi.spyOn(Route, 'useSearch').mockReturnValue({ token: 'abc-token-123' })
     vi.mocked(organisationsApi.acceptInvitation).mockResolvedValue({
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      data: { data: { access_token: 'new-tok', organisation: null, member: null } } as any,
+      data: { data: { 
+        access_token: 'new-tok', 
+        organisation: null as any, 
+        member: null as any 
+      } },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as any,
     })
     renderInvite()
 
