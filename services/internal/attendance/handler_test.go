@@ -603,7 +603,9 @@ func TestHandler_DailyReport_OrgWideVisibility(t *testing.T) {
 
 	// Verify response contains all org employees
 	var resp map[string][]attendance.DailyEntry
-	json.Unmarshal(w.Body.Bytes(), &resp)
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("Failed to unmarshal response: %v", err)
+	}
 	if len(resp["data"]) != 2 {
 		t.Errorf("Expected 2 employees in response, got %d", len(resp["data"]))
 	}

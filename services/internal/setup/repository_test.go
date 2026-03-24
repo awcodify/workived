@@ -20,6 +20,7 @@ func getTestDB(t *testing.T) *pgxpool.Pool {
 	}
 
 	// Use existing docker-compose database for tests
+	//nolint:gosec // hardcoded test credentials are acceptable in tests
 	dbURL := "postgres://workived:workived@localhost:5432/workived?sslmode=disable"
 
 	pool, err := pgxpool.New(context.Background(), dbURL)
@@ -240,7 +241,7 @@ func TestRepository_MarkSetupComplete(t *testing.T) {
 
 	tx, err := repo.BeginTx(context.Background())
 	require.NoError(t, err)
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 
 	err = repo.MarkSetupComplete(context.Background(), tx, orgID)
 	require.NoError(t, err)
@@ -273,7 +274,7 @@ func TestRepository_CreateWorkScheduleFromTemplate(t *testing.T) {
 
 	tx, err := repo.BeginTx(context.Background())
 	require.NoError(t, err)
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 
 	scheduleID, err := repo.CreateWorkScheduleFromTemplate(context.Background(), tx, orgID, templateID)
 
@@ -294,7 +295,7 @@ func TestRepository_CreateCustomWorkSchedule(t *testing.T) {
 
 	tx, err := repo.BeginTx(context.Background())
 	require.NoError(t, err)
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 
 	input := &CustomScheduleInput{
 		Name:      "Test Custom Schedule",
@@ -328,7 +329,7 @@ func TestRepository_CreateLeavePolicyFromTemplate(t *testing.T) {
 
 	tx, err := repo.BeginTx(context.Background())
 	require.NoError(t, err)
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 
 	policyID, err := repo.CreateLeavePolicyFromTemplate(context.Background(), tx, orgID, templateID, nil)
 
@@ -355,7 +356,7 @@ func TestRepository_CreateLeavePolicyFromTemplate_WithCustomization(t *testing.T
 
 	tx, err := repo.BeginTx(context.Background())
 	require.NoError(t, err)
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 
 	customDays := 15.0
 	customization := &LeavePolicyCustomization{
@@ -399,7 +400,7 @@ func TestRepository_CreateClaimCategoryFromTemplate(t *testing.T) {
 
 	tx, err := repo.BeginTx(context.Background())
 	require.NoError(t, err)
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 
 	categoryID, err := repo.CreateClaimCategoryFromTemplate(context.Background(), tx, orgID, templateID, nil)
 
@@ -438,7 +439,7 @@ func TestRepository_CreateClaimCategoryFromTemplate_WithCustomization(t *testing
 
 	tx, err := repo.BeginTx(context.Background())
 	require.NoError(t, err)
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 
 	customLimit := int64(500000)
 	customization := &ClaimCategoryCustomization{
@@ -464,7 +465,7 @@ func TestRepository_CreateInvitation(t *testing.T) {
 
 	tx, err := repo.BeginTx(context.Background())
 	require.NoError(t, err)
-	defer tx.Rollback(context.Background())
+	defer func() { _ = tx.Rollback(context.Background()) }()
 
 	invitationID, err := repo.CreateInvitation(context.Background(), tx, orgID, "test@example.com", "member")
 
@@ -505,7 +506,7 @@ func TestRepository_IntegrationFlow(t *testing.T) {
 	// Step 3: Complete setup in transaction
 	tx, err := repo.BeginTx(ctx)
 	require.NoError(t, err)
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	// Create work schedule
 	scheduleID, err := repo.CreateWorkScheduleFromTemplate(ctx, tx, orgID, wsTemplates[0].ID)

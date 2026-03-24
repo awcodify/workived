@@ -455,7 +455,7 @@ func (r *Repository) GetWorkload(ctx context.Context, orgID uuid.UUID) ([]Employ
 
 		// Check for upcoming leave (next 7 days)
 		if nextStart != nil && !isOnLeave {
-			daysUntilLeave := int(nextStart.Sub(time.Now()).Hours() / 24)
+			daysUntilLeave := int(time.Until(*nextStart).Hours() / 24)
 			if daysUntilLeave >= 0 && daysUntilLeave <= 7 {
 				w.Leave.IsUpcomingLeave = true
 				w.Leave.LeaveStart = nextStart

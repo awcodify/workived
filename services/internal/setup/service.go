@@ -88,7 +88,7 @@ func (s *Service) CompleteSetup(ctx context.Context, orgID uuid.UUID, req *Compl
 		s.logger.Error().Err(err).Msg("failed to begin transaction")
 		return nil, apperr.Internal()
 	}
-	defer tx.Rollback(ctx)
+	defer func() { _ = tx.Rollback(ctx) }()
 
 	response := &CompleteSetupResponse{Success: false}
 

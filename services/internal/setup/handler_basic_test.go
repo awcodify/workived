@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/assert"
 )
@@ -78,9 +77,4 @@ func TestHandler_NewHandlerSetsFields(t *testing.T) {
 	assert.Equal(t, svc, handler.service)
 	// Logger field is set but may be wrapped, so just check it's not nil
 	assert.NotNil(t, handler.logger)
-}
-
-// Mock for OrgID in context (mimics middleware)
-func mockOrgContext() uuid.UUID {
-	return uuid.MustParse("00000000-0000-0000-0000-000000000001")
 }

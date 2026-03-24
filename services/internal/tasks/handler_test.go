@@ -88,7 +88,6 @@ type fakeService struct {
 	ensureDefaultListsFn   func(ctx context.Context, orgID uuid.UUID) error
 	listTasksFn            func(ctx context.Context, orgID uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error)
 	getTaskFn              func(ctx context.Context, orgID, id uuid.UUID) (*tasks.TaskWithDetails, error)
-	getTaskByApprovalFn    func(ctx context.Context, approvalType string, approvalID uuid.UUID) (*tasks.TaskWithDetails, error)
 	createTaskFn           func(ctx context.Context, orgID, createdBy uuid.UUID, req tasks.CreateTaskRequest, actorUserID ...uuid.UUID) (*tasks.Task, error)
 	updateTaskFn           func(ctx context.Context, orgID, id uuid.UUID, req tasks.UpdateTaskRequest, actorUserID ...uuid.UUID) (*tasks.Task, error)
 	moveTaskFn             func(ctx context.Context, orgID, taskID uuid.UUID, req tasks.MoveTaskRequest, actorUserID ...uuid.UUID) (*tasks.Task, error)
