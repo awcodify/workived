@@ -123,6 +123,9 @@ func (f *fakeRepo) UpdateBalancePending(ctx context.Context, tx pgx.Tx, balanceI
 func (f *fakeRepo) ApproveBalanceUpdate(ctx context.Context, tx pgx.Tx, balanceID uuid.UUID, totalDays float64) error {
 	return f.approveBalUpdateFn(ctx, tx, balanceID, totalDays)
 }
+func (f *fakeRepo) UpdateBalanceEntitledDays(ctx context.Context, orgID, policyID uuid.UUID, year int, newEntitledDays float64) error {
+	return nil
+}
 func (f *fakeRepo) CreateRequest(ctx context.Context, tx pgx.Tx, orgID, employeeID, policyID uuid.UUID, startDate, endDate string, totalDays float64, reason *string) (*leave.Request, error) {
 	return f.createRequestFn(ctx, tx, orgID, employeeID, policyID, startDate, endDate, totalDays, reason)
 }
@@ -958,7 +961,7 @@ func TestService_SubmitRequest(t *testing.T) {
 			}
 
 			svc := newTestService(repo, orgRepo)
-			req, err := svc.SubmitRequest(context.Background(), testOrgID, testEmpID, tt.input)
+			req, err := svc.SubmitRequest(context.Background(), testOrgID, testEmpID, "member", tt.input)
 
 			if tt.wantErr {
 				if err == nil {

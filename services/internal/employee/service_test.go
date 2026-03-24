@@ -26,6 +26,10 @@ func (f *fakeOrgRepo) GetOrgPlanInfo(_ context.Context, _ uuid.UUID) (string, *i
 	return f.plan, f.limit, nil
 }
 
+func (f *fakeOrgRepo) UpdateManagerSubordinateFlag(_ context.Context, _ uuid.UUID, _ uuid.UUID) error {
+	return nil
+}
+
 type fakeEmpRepo struct {
 	employees      map[uuid.UUID]*employee.Employee
 	count          int

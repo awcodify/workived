@@ -32,6 +32,7 @@ type mockAttService struct {
 	empMonthlySummaryFn func(ctx context.Context, orgID, empID uuid.UUID, f attendance.MonthlyReportFilters) (*attendance.MonthlySummary, error)
 	getEmployeeWeekFn   func(ctx context.Context, orgID, empID uuid.UUID, startDate string) (*attendance.WeekCalendar, error)
 	getTeamWeekFn       func(ctx context.Context, orgID, managerEmpID uuid.UUID, startDate string) ([]attendance.TeamWeekEntry, error)
+	getAllWeekFn        func(ctx context.Context, orgID uuid.UUID, startDate string) ([]attendance.TeamWeekEntry, error)
 }
 
 func (m *mockAttService) ClockIn(ctx context.Context, orgID uuid.UUID, req attendance.ClockInRequest) (*attendance.Record, error) {
@@ -61,6 +62,12 @@ func (m *mockAttService) GetEmployeeWeek(ctx context.Context, orgID, empID uuid.
 func (m *mockAttService) GetTeamWeek(ctx context.Context, orgID, managerEmpID uuid.UUID, startDate string) ([]attendance.TeamWeekEntry, error) {
 	if m.getTeamWeekFn != nil {
 		return m.getTeamWeekFn(ctx, orgID, managerEmpID, startDate)
+	}
+	return nil, nil
+}
+func (m *mockAttService) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate string) ([]attendance.TeamWeekEntry, error) {
+	if m.getAllWeekFn != nil {
+		return m.getAllWeekFn(ctx, orgID, startDate)
 	}
 	return nil, nil
 }

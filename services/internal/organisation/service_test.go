@@ -90,13 +90,13 @@ func (f *fakeRepo) GetOrgPlanInfo(_ context.Context, orgID uuid.UUID) (string, *
 	return org.Plan, org.PlanEmployeeLimit, nil
 }
 
-func (f *fakeRepo) GetMemberOrgID(_ context.Context, userID uuid.UUID) (uuid.UUID, string, error) {
+func (f *fakeRepo) GetMemberOrgID(_ context.Context, userID uuid.UUID) (uuid.UUID, string, bool, error) {
 	for _, m := range f.members {
 		if m.UserID == userID && m.IsActive {
-			return m.OrgID, m.Role, nil
+			return m.OrgID, m.Role, m.HasSubordinate, nil
 		}
 	}
-	return uuid.Nil, "", errors.New("no membership")
+	return uuid.Nil, "", false, errors.New("no membership")
 }
 
 func (f *fakeRepo) GetActiveMember(_ context.Context, orgID, userID uuid.UUID) (*organisation.Member, error) {
@@ -361,7 +361,7 @@ type fakeTokenIssuer struct {
 	calls     int
 }
 
-func (f *fakeTokenIssuer) IssueAccessToken(_, _ uuid.UUID, _ string) (string, error) {
+func (f *fakeTokenIssuer) IssueAccessToken(_, _ uuid.UUID, _ string, _ bool) (string, error) {
 	f.calls++
 	if f.err != nil && (f.failAfter < 0 || f.calls > f.failAfter) {
 		return "", f.err

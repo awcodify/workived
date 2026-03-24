@@ -101,15 +101,11 @@ func TestCompleteSetupRequest(t *testing.T) {
 			TemplateIDs:    []uuid.UUID{claimCategoryID},
 			Customizations: make(map[string]ClaimCategoryCustomization),
 		},
-		Invitations: []InvitationInput{
-			{Email: "team@example.com", Role: "member"},
-		},
 	}
 
 	assert.NotNil(t, req.WorkSchedule.TemplateID)
 	assert.Nil(t, req.WorkSchedule.CustomSchedule)
 	assert.Equal(t, 1, len(req.LeavePolicies.TemplateIDs))
-	assert.Equal(t, 1, len(req.Invitations))
 }
 
 func TestCustomScheduleInput(t *testing.T) {
@@ -129,19 +125,16 @@ func TestCompleteSetupResponse(t *testing.T) {
 	workScheduleID := uuid.New()
 	leavePolicyID := uuid.New()
 	claimCategoryID := uuid.New()
-	invitationID := uuid.New()
 
 	response := CompleteSetupResponse{
 		Success:          true,
 		WorkScheduleID:   workScheduleID,
 		LeavePolicyIDs:   []uuid.UUID{leavePolicyID},
 		ClaimCategoryIDs: []uuid.UUID{claimCategoryID},
-		InvitationIDs:    []uuid.UUID{invitationID},
 	}
 
 	assert.True(t, response.Success)
 	assert.Equal(t, workScheduleID, response.WorkScheduleID)
 	assert.Equal(t, 1, len(response.LeavePolicyIDs))
 	assert.Equal(t, 1, len(response.ClaimCategoryIDs))
-	assert.Equal(t, 1, len(response.InvitationIDs))
 }

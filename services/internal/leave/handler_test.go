@@ -29,7 +29,7 @@ type fakeService struct {
 	deactivatePolicyFn func(ctx context.Context, orgID, policyID uuid.UUID) error
 	listBalancesFn     func(ctx context.Context, orgID uuid.UUID, year int) ([]leave.BalanceWithPolicy, error)
 	listMyBalancesFn   func(ctx context.Context, orgID, employeeID uuid.UUID, year int) ([]leave.BalanceWithPolicy, error)
-	submitRequestFn    func(ctx context.Context, orgID, employeeID uuid.UUID, input leave.SubmitRequestInput) (*leave.Request, error)
+	submitRequestFn    func(ctx context.Context, orgID, employeeID uuid.UUID, role string, input leave.SubmitRequestInput) (*leave.Request, error)
 	listRequestsFn     func(ctx context.Context, orgID uuid.UUID, filter leave.ListRequestsFilter, role string, managerEmployeeID *uuid.UUID) ([]leave.RequestWithDetails, error)
 	listMyRequestsFn   func(ctx context.Context, orgID, employeeID uuid.UUID) ([]leave.RequestWithDetails, error)
 	approveRequestFn   func(ctx context.Context, orgID, reviewerEmployeeID, requestID uuid.UUID) (*leave.Request, error)
@@ -80,9 +80,9 @@ func (f *fakeService) ListMyBalances(ctx context.Context, orgID, employeeID uuid
 	return []leave.BalanceWithPolicy{}, nil
 }
 
-func (f *fakeService) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID, input leave.SubmitRequestInput) (*leave.Request, error) {
+func (f *fakeService) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID, role string, input leave.SubmitRequestInput) (*leave.Request, error) {
 	if f.submitRequestFn != nil {
-		return f.submitRequestFn(ctx, orgID, employeeID, input)
+		return f.submitRequestFn(ctx, orgID, employeeID, role, input)
 	}
 	return &leave.Request{ID: testReqID}, nil
 }
@@ -514,7 +514,7 @@ func TestHandler_SubmitRequest(t *testing.T) {
 		name       string
 		body       any
 		empLookup  leave.EmployeeLookupFunc
-		svcFn      func(ctx context.Context, orgID, employeeID uuid.UUID, input leave.SubmitRequestInput) (*leave.Request, error)
+		svcFn      func(ctx context.Context, orgID, employeeID uuid.UUID, role string, input leave.SubmitRequestInput) (*leave.Request, error)
 		wantStatus int
 	}{
 		{
@@ -546,7 +546,7 @@ func TestHandler_SubmitRequest(t *testing.T) {
 		{
 			name: "409 — service conflict error",
 			body: validBody,
-			svcFn: func(_ context.Context, _, _ uuid.UUID, _ leave.SubmitRequestInput) (*leave.Request, error) {
+			svcFn: func(_ context.Context, _, _ uuid.UUID, _ string, _ leave.SubmitRequestInput) (*leave.Request, error) {
 				return nil, apperr.Conflict("overlapping leave request")
 			},
 			wantStatus: http.StatusConflict,
@@ -554,7 +554,7 @@ func TestHandler_SubmitRequest(t *testing.T) {
 		{
 			name: "500 — service internal error",
 			body: validBody,
-			svcFn: func(_ context.Context, _, _ uuid.UUID, _ leave.SubmitRequestInput) (*leave.Request, error) {
+			svcFn: func(_ context.Context, _, _ uuid.UUID, _ string, _ leave.SubmitRequestInput) (*leave.Request, error) {
 				return nil, apperr.Internal()
 			},
 			wantStatus: http.StatusInternalServerError,

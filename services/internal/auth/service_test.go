@@ -123,8 +123,8 @@ func (f *fakeAuthRepo) ConsumeToken(_ context.Context, tokenHash string) error {
 
 type fakeOrgRepo struct{}
 
-func (f *fakeOrgRepo) GetMemberOrgID(_ context.Context, _ uuid.UUID) (uuid.UUID, string, error) {
-	return uuid.Nil, "", errors.New("no org")
+func (f *fakeOrgRepo) GetMemberOrgID(_ context.Context, _ uuid.UUID) (uuid.UUID, string, bool, error) {
+	return uuid.Nil, "", false, errors.New("no org")
 }
 
 // ── Tests ─────────────────────────────────────────────────────────────────────

@@ -230,6 +230,9 @@ func (m *mockRepo) EnsureBalance(context.Context, uuid.UUID, uuid.UUID, uuid.UUI
 func (m *mockRepo) UpdateBalancePending(context.Context, pgx.Tx, uuid.UUID, float64) error {
 	return nil
 }
+func (m *mockRepo) UpdateBalanceEntitledDays(context.Context, uuid.UUID, uuid.UUID, int, float64) error {
+	return nil
+}
 func (m *mockRepo) ApproveBalanceUpdate(context.Context, pgx.Tx, uuid.UUID, float64) error {
 	return nil
 }

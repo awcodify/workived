@@ -259,26 +259,7 @@ func TestValidateCompleteSetupRequest_NoClaimCategories(t *testing.T) {
 	assert.Contains(t, err.Error(), "at least one claim category")
 }
 
-func TestValidateCompleteSetupRequest_TooManyInvitations(t *testing.T) {
-	svc := &Service{repo: &Repository{}}
-
-	templateID := uuid.New()
-	invitations := make([]InvitationInput, 11)
-	for i := range invitations {
-		invitations[i] = InvitationInput{Email: "test@example.com", Role: "member"}
-	}
-
-	req := &CompleteSetupRequest{
-		WorkSchedule:    WorkScheduleChoice{TemplateID: &templateID},
-		LeavePolicies:   LeavePolicySelection{TemplateIDs: []uuid.UUID{uuid.New()}},
-		ClaimCategories: ClaimCategorySelection{TemplateIDs: []uuid.UUID{uuid.New()}},
-		Invitations:     invitations,
-	}
-
-	err := svc.ValidateCompleteSetupRequest(req)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "maximum 10 invitations")
-}
+// TestValidateCompleteSetupRequest_TooManyInvitations removed - invitations no longer part of setup
 
 func TestValidateCompleteSetupRequest_CustomScheduleEmptyName(t *testing.T) {
 	svc := &Service{repo: &Repository{}}
@@ -768,52 +749,4 @@ func TestService_CompleteSetup_CustomWorkSchedule(t *testing.T) {
 	assert.True(t, result.Success)
 }
 
-func TestService_CompleteSetup_WithInvitations(t *testing.T) {
-	orgID := uuid.New()
-	templateID := uuid.New()
-	mockTx := &MockTx{}
-
-	invitationCreated := false
-
-	mockRepo := &MockRepository{
-		GetSetupStatusFunc: func(ctx context.Context, id uuid.UUID) (*SetupStatus, error) {
-			return &SetupStatus{NeedsSetup: true}, nil
-		},
-		BeginTxFunc: func(ctx context.Context) (pgx.Tx, error) {
-			return mockTx, nil
-		},
-		CreateWorkScheduleFromTemplateFunc: func(ctx context.Context, tx pgx.Tx, oid, tid uuid.UUID) (uuid.UUID, error) {
-			return uuid.New(), nil
-		},
-		CreateLeavePolicyFromTemplateFunc: func(ctx context.Context, tx pgx.Tx, oid, tid uuid.UUID, custom *LeavePolicyCustomization) (uuid.UUID, error) {
-			return uuid.New(), nil
-		},
-		CreateClaimCategoryFromTemplateFunc: func(ctx context.Context, tx pgx.Tx, oid, tid uuid.UUID, custom *ClaimCategoryCustomization) (uuid.UUID, error) {
-			return uuid.New(), nil
-		},
-		CreateInvitationFunc: func(ctx context.Context, tx pgx.Tx, oid uuid.UUID, email, role string) (uuid.UUID, error) {
-			invitationCreated = true
-			return uuid.New(), nil
-		},
-		MarkSetupCompleteFunc: func(ctx context.Context, tx pgx.Tx, id uuid.UUID) error {
-			return nil
-		},
-	}
-
-	svc := NewService(mockRepo, zerolog.Nop())
-	req := &CompleteSetupRequest{
-		WorkSchedule:    WorkScheduleChoice{TemplateID: &templateID},
-		LeavePolicies:   LeavePolicySelection{TemplateIDs: []uuid.UUID{uuid.New()}},
-		ClaimCategories: ClaimCategorySelection{TemplateIDs: []uuid.UUID{uuid.New()}},
-		Invitations: []InvitationInput{
-			{Email: "colleague@example.com", Role: "member"},
-		},
-	}
-
-	result, err := svc.CompleteSetup(context.Background(), orgID, req)
-
-	require.NoError(t, err)
-	assert.True(t, result.Success)
-	assert.True(t, invitationCreated)
-	assert.Len(t, result.InvitationIDs, 1)
-}
+// TestService_CompleteSetup_WithInvitations removed - invitations no longer part of setup
