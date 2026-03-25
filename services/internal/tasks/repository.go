@@ -195,15 +195,21 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 			       ELSE TRUE END
 		  ))
 		  AND (
-			  -- Auto-archive: hide completed tasks older than 30 days (unless explicitly filtering for completed)
+			  -- Auto-archive: hide completed tasks older than N days (unless explicitly filtering for completed)
 			  $5 = 'completed'
 			  OR t.completed_at IS NULL
-			  OR t.completed_at > NOW() - INTERVAL '30 days'
+			  OR $8::int = 0
+			  OR t.completed_at > NOW() - ($8::int || ' days')::interval
 		  )
 		  AND ($6::timestamptz IS NULL OR t.created_at < $6::timestamptz)
 		ORDER BY t.created_at DESC
 		LIMIT $7
 	`
+
+	archiveDays := filters.ArchiveDays
+	if archiveDays == 0 {
+		archiveDays = DefaultArchiveDays
+	}
 
 	rows, err := r.db.Query(ctx, query,
 		orgID,
@@ -213,6 +219,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 		filters.Status,
 		nilIfEmpty(cursor.Value),
 		limit+1,
+		archiveDays,
 	)
 	if err != nil {
 		return nil, err

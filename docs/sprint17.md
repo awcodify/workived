@@ -1,11 +1,11 @@
 # Sprint 17 — Gender Leave UI, Claim Status Colors, OpenAPI Auth, Budget Periods
 
-**Duration:** March 25–26, 2026
-**Status:** 🏃 IN PROGRESS
+**Duration:** March 25, 2026
+**Status:** ✅ COMPLETE
 **Team:** Full stack
 **Type:** Feature completion + polish + new feature
 
-**Summary:** Complete gender-based leave frontend (backend done in Sprint 16), fix claim status color semantics, secure OpenAPI docs, add claim budget period policies (monthly/yearly), and auto-archive completed tasks.
+**Summary:** Completed gender-based leave frontend + employee gender field, config-driven claim status color semantics, HTTP Basic Auth on OpenAPI docs, claim budget period policies (monthly/yearly) with CTE-based aggregation, and configurable auto-archive for completed tasks (default 7 days).
 
 ---
 
@@ -180,35 +180,37 @@ Frontend files:
 
 **🏗️ Architect:**
 
-**Decision:** On-read filter (not cron job).
+**Decision:** On-read filter (not cron job), configurable per-request via `TaskFilters.ArchiveDays`.
 
-**Why not cron?** Cron adds infrastructure complexity (scheduler, idempotency, missed runs). On-read filter is simpler: tasks in `is_final_state` lists with `completed_at` older than N days are excluded from the response.
+**Why not cron?** Cron adds infrastructure complexity (scheduler, idempotency, missed runs). On-read filter is simpler: completed tasks older than N days are excluded from the response.
 
 **Implementation:**
 ```sql
--- In ListTasks query, add:
+-- In ListTasks query:
 AND (
-  tl.is_final_state = FALSE
-  OR t.completed_at IS NULL
-  OR t.completed_at > NOW() - INTERVAL '30 days'
+  $5 = 'completed'           -- show all when explicitly filtering completed
+  OR t.completed_at IS NULL   -- always show pending tasks
+  OR $8::int = 0              -- 0 = archiving disabled
+  OR t.completed_at > NOW() - ($8::int || ' days')::interval
 )
 ```
 
-Default: 30 days. Configurable per org later (not Sprint 17 — YAGNI).
+Default: **7 days** (`DefaultArchiveDays` constant). Configurable via `TaskFilters.ArchiveDays`. When board config UI is built, will read from org settings and pass through handler.
 
-**No migration needed.** Pure query filter.
+**No migration needed.** Pure query filter + types change.
 
 **Trade-offs:**
 | Option | Pros | Cons | Verdict |
 |--------|------|------|---------|
 | On-read filter | No infra, instant | Old tasks still in DB | ✅ Pick this |
 | Cron soft-delete | Cleaner DB | Needs scheduler, recovery | Over-engineered |
-| Org setting | Flexible | Needs migration + UI | Sprint 18 if demand |
+| Org setting | Flexible | Needs migration + UI | Future (when board config UI exists) |
 
 **👨‍💻 Engineer:**
 
 Backend files:
-- `services/internal/tasks/repository.go` — add filter to `ListTasks` query
+- `services/internal/tasks/types.go` — added `ArchiveDays int` to `TaskFilters`, `DefaultArchiveDays = 7` constant
+- `services/internal/tasks/repository.go` — `ListTasks` query uses `$8::int` param for configurable interval
 
 Frontend: no changes needed (tasks simply stop appearing).
 
@@ -236,6 +238,47 @@ Frontend: no changes needed (tasks simply stop appearing).
 
 ---
 
-## ✅ Sprint 17 Complete
+## ✅ Sprint 17 Complete (March 25, 2026)
 
-*(To be filled on completion)*
+**5 tasks shipped:**
+
+1. **Claim status color semantics** — Config-driven `StatusColors` map per module. Claims: approved=grey (middle state), paid=green (terminal). Leave: approved=green (terminal). Shared components accept color overrides.
+
+2. **OpenAPI `/docs` basic auth** — `gin.BasicAuth()` on `/docs` route group. Controlled by `DOCS_USERNAME`/`DOCS_PASSWORD` env vars. Disabled when either is empty (secure default). 9 tests.
+
+3. **Gender-based leave + employee gender field** — Full-stack: gender field added to employee create/edit (backend types, repository SQL, frontend forms). Leave policy create/edit has gender eligibility segmented control (All/Male/Female). Leave balance list filters by employee gender. Backend validates at submission.
+
+4. **Claim budget period policies** — Migration 000037 adds `budget_period` column to `claim_categories` (monthly/yearly, default monthly). CTE-based `ListBalancesByEmployee` aggregates yearly categories across all months. `GetYearlySpent` repo method for budget validation. Frontend: segmented control in category modal, dynamic label ("Monthly/Yearly Limit"), balance cards show period context ("/month" or "/year").
+
+5. **Auto-archive done tasks** — Configurable on-read filter in `ListTasks` query. `TaskFilters.ArchiveDays` field with `DefaultArchiveDays = 7`. Parameterized interval (`$8::int || ' days'`). Completed tasks older than N days hidden by default; still visible when explicitly filtering for `completed`. Value of 0 disables archiving. Ready for future board config UI.
+
+**Files changed (backend):**
+- `services/internal/claims/types.go` — `BudgetPeriod` on Category, ClaimBalanceWithCategory, request structs
+- `services/internal/claims/repository.go` — budget_period in all category CRUD, CTE balance query, `GetYearlySpent`
+- `services/internal/claims/service.go` — yearly budget validation in `SubmitClaim`, `GetYearlySpent` in repo interface
+- `services/internal/claims/service_test.go` — fake repo updated with `GetYearlySpent`
+- `services/internal/tasks/types.go` — `ArchiveDays` filter field, `DefaultArchiveDays` constant
+- `services/internal/tasks/repository.go` — parameterized archive interval in `ListTasks`
+- `services/internal/employee/types.go` — `Gender` in Create/Update request structs
+- `services/internal/employee/repository.go` — gender in INSERT/UPDATE SQL
+- `services/internal/platform/config/config.go` — `DocsUsername`, `DocsPassword` fields
+- `services/cmd/api/docs.go` — `gin.BasicAuth()` middleware
+- `services/cmd/api/docs_test.go` — 9 auth tests
+- `services/cmd/api/openapi.yaml` — budget_period on 3 schemas
+- `migrations/000037_add_budget_period_to_claim_categories.up.sql` + `.down.sql`
+
+**Files changed (frontend):**
+- `apps/web/src/types/api.ts` — budget_period, gender on multiple types
+- `apps/web/src/components/workived/shared/requests/RequestListItem.tsx` — config-driven StatusColors
+- `apps/web/src/components/workived/shared/requests/RequestDetailsModal.tsx` — StatusColors prop
+- `apps/web/src/components/workived/claims/ClaimRequestConfig.tsx` — claimStatusColors map
+- `apps/web/src/components/workived/claims/CategoryModal.tsx` — budget period segmented control
+- `apps/web/src/routes/_app/claims/index.tsx` — period context on balance bars
+- `apps/web/src/routes/_app/claims/categories/index.tsx` — period label on cards
+- `apps/web/src/routes/_app/leave/index.tsx` — gender-based balance filtering
+- `apps/web/src/routes/_app/leave/policies/new.tsx` — gender eligibility control
+- `apps/web/src/routes/_app/leave/policies/$id.tsx` — gender eligibility control
+- `apps/web/src/routes/_app/people/$id/route.tsx` — gender field in create/edit forms
+- `apps/web/src/lib/validations/leave.ts` — gender_eligibility in Zod schema
+
+**Test counts:** 171 claims+tasks Go tests passing, TypeScript clean build.

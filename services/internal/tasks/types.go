@@ -132,13 +132,16 @@ type ToggleReactionRequest struct {
 // ── Filter types ─────────────────────────────────────────────────────────────
 
 type TaskFilters struct {
-	TaskListID *string `form:"task_list_id"`
-	AssigneeID *string `form:"assignee_id"`
-	Priority   *string `form:"priority"`
-	Status     *string `form:"status"` // completed, pending
-	Cursor     string  `form:"cursor"`
-	Limit      int     `form:"limit"`
+	TaskListID  *string `form:"task_list_id"`
+	AssigneeID  *string `form:"assignee_id"`
+	Priority    *string `form:"priority"`
+	Status      *string `form:"status"` // completed, pending
+	Cursor      string  `form:"cursor"`
+	Limit       int     `form:"limit"`
+	ArchiveDays int     `form:"-"` // Days after completion before auto-archiving (default: 7, 0 = disabled)
 }
+
+const DefaultArchiveDays = 7
 
 // ── Repository Interface ─────────────────────────────────────────────────────
 
