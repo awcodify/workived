@@ -187,10 +187,11 @@ describe('QuickClock', () => {
     expect(screen.getByRole('button', { name: /clocking out/i })).toBeInTheDocument()
   })
 
-  it('returns null while employee is loading', () => {
+  it('shows skeleton while employee is loading', () => {
     setupDefaultMocks({ empLoading: true })
     const { container } = render(<QuickClock />)
-    expect(container.innerHTML).toBe('')
+    // Should render a skeleton with animate-pulse class
+    expect(container.querySelector('.animate-pulse')).toBeTruthy()
   })
 
   it('shows late indicator when clocked in late (inline mode)', () => {

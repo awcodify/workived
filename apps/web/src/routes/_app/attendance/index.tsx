@@ -10,6 +10,7 @@ import { Avatar } from '@/components/workived/layout/Avatar'
 import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { Skeleton } from '@/components/workived/shared/Skeleton'
 
 const t = moduleThemes.attendance
 
@@ -49,9 +50,12 @@ function AttendancePage() {
   const weekStart = useMemo(() => getMondayOfWeek(tz, weekOffset), [tz, weekOffset])
   
   // Conditionally fetch based on role to avoid 404 errors
-  const { data: myWeek } = useMyWeek(weekStart)
-  const { data: teamWeek } = useTeamWeek(weekStart, role.canViewTeam)
-  const { data: allWeek } = useAllWeek(weekStart, role.canViewAll)
+  const { data: myWeek, isLoading: myWeekLoading } = useMyWeek(weekStart)
+  const { data: teamWeek, isLoading: teamWeekLoading } = useTeamWeek(weekStart, role.canViewTeam)
+  const { data: allWeek, isLoading: allWeekLoading } = useAllWeek(weekStart, role.canViewAll)
+  
+  // Determine if we're loading any data
+  const isLoading = myWeekLoading || (role.canViewTeam && teamWeekLoading) || (role.canViewAll && allWeekLoading)
   
   // Check if we can navigate to next week (cannot go to future)
   const canNavigateNext = !isWeekInFuture(getMondayOfWeek(tz, weekOffset + 1), tz)
@@ -491,18 +495,24 @@ function AttendancePage() {
 
             {/* Table Body */}
             <div>
-              {getEmployeeList().map((employee) => (
-                <EmployeeRow
-                  key={employee.employee_id}
-                  employee={employee}
-                  date={date}
-                  tz={tz}
-                />
-              ))}
+              {isLoading ? (
+                <AttendanceTableSkeleton />
+              ) : (
+                <>
+                  {getEmployeeList().map((employee) => (
+                    <EmployeeRow
+                      key={employee.employee_id}
+                      employee={employee}
+                      date={date}
+                      tz={tz}
+                    />
+                  ))}
+                </>
+              )}
             </div>
 
             {/* Empty State */}
-            {getEmployeeList().length === 0 && (
+            {!isLoading && getEmployeeList().length === 0 && (
               <div className="px-6 py-12 text-center">
                 <p className="text-sm font-bold" style={{ color: t.textMuted }}>
                   No employees to display
@@ -744,6 +754,48 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Attendance Table Skeleton ──────────────────────────────────
+
+function AttendanceTableSkeleton() {
+  return (
+    <div>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div
+          key={i}
+          className="px-6 py-4 border-b animate-pulse"
+          style={{ borderColor: t.border }}
+        >
+          <div className="flex items-center gap-6">
+            {/* Avatar skeleton */}
+            <Skeleton width={40} height={40} borderRadius={10} />
+            
+            {/* Name */}
+            <div className="flex-1">
+              <Skeleton width="40%" height={14} style={{ marginBottom: 4 }} />
+              <Skeleton width="30%" height={12} />
+            </div>
+            
+            {/* Clock In */}
+            <div className="w-32 flex justify-center">
+              <Skeleton width={80} height={28} borderRadius={999} />
+            </div>
+            
+            {/* Clock Out */}
+            <div className="w-32 flex justify-center">
+              <Skeleton width={80} height={28} borderRadius={999} />
+            </div>
+            
+            {/* Note */}
+            <div className="w-40">
+              <Skeleton width="60%" height={12} />
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }

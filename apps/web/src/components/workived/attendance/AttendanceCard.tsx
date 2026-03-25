@@ -5,6 +5,7 @@ import { useMyWeek, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
 import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { colors, typography } from '@/design/tokens'
 import { Clock, LogIn, LogOut, Timer } from 'lucide-react'
+import { Skeleton } from '@/components/workived/shared/Skeleton'
 
 interface AttendanceCardProps {
   /** Visual variant: 'dark' for dark pages (overview), 'light' for light pages (attendance) */
@@ -68,8 +69,8 @@ export function AttendanceCard({ variant = 'dark', className = '', style = {} }:
   const today = todayISO(tz)
   const weekStart = useMemo(() => getMondayOfWeek(tz, 0), [tz])
 
-  const { data: myEmployee } = useMyEmployee()
-  const { data: myWeek } = useMyWeek(weekStart)
+  const { data: myEmployee, isLoading: empLoading } = useMyEmployee()
+  const { data: myWeek, isLoading: weekLoading } = useMyWeek(weekStart)
 
   const clockIn = useClockIn()
   const clockOut = useClockOut()
@@ -93,6 +94,11 @@ export function AttendanceCard({ variant = 'dark', className = '', style = {} }:
   
   const handleClockOut = () => {
     clockOut.mutate({ note: note || undefined }, { onSuccess: () => setNote('') })
+  }
+
+  // Show loading state while fetching data
+  if (empLoading || weekLoading) {
+    return <ClockCardSkeleton variant={variant} className={className} style={style} />
   }
 
   // Variant-specific styling
@@ -421,6 +427,65 @@ export function AttendanceCard({ variant = 'dark', className = '', style = {} }:
               </div>
             </>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Clock Card Skeleton ──────────────────────────────────────────
+
+interface ClockCardSkeletonProps {
+  variant?: 'dark' | 'light'
+  className?: string
+  style?: React.CSSProperties
+}
+
+function ClockCardSkeleton({ variant = 'dark', className = '', style = {} }: ClockCardSkeletonProps) {
+  const cardStyles = variant === 'light' ? {
+    border: '1px solid rgba(139,92,246,0.2)',
+    background: 'linear-gradient(135deg, rgba(139,92,246,0.85) 0%, rgba(124,58,237,0.90) 100%)',
+    boxShadow: '0 4px 24px 0 rgba(139,92,246,0.25), 0 0 0 1px rgba(255,255,255,0.1) inset',
+  } : {
+    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(74, 63, 191, 0.50)',
+    boxShadow: '0 2px 16px 0 rgba(0,0,0,0.15), 0 0 0 1px rgba(255,255,255,0.05) inset',
+  }
+
+  return (
+    <div
+      className={className}
+      style={{
+        borderRadius: 18,
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        color: colors.ink0,
+        position: 'relative',
+        overflow: 'hidden',
+        ...cardStyles,
+        ...style,
+      }}
+    >
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '18px 28px 0 28px' }}>
+        <Timer size={20} style={{ color: variant === 'light' ? colors.ink0 : colors.accentMid, flexShrink: 0 }} />
+        <Skeleton width="60%" height={20} style={{ background: 'rgba(255, 255, 255, 0.2)' }} />
+      </div>
+
+      {/* Content */}
+      <div style={{ marginTop: 20, padding: '0 28px 28px 28px' }}>
+        <div className="space-y-4 animate-pulse">
+          {/* Big time display */}
+          <Skeleton width={180} height={56} style={{ background: 'rgba(255, 255, 255, 0.2)' }} />
+          
+          {/* Description text */}
+          <Skeleton width="70%" height={16} style={{ background: 'rgba(255, 255, 255, 0.15)' }} />
+          
+          {/* Input + Button row */}
+          <div className="flex gap-2 mt-6">
+            <Skeleton width="100%" height={44} borderRadius={12} style={{ background: 'rgba(255, 255, 255, 0.1)' }} />
+            <Skeleton width={120} height={44} borderRadius={12} style={{ background: 'rgba(255, 255, 255, 0.2)' }} />
+          </div>
         </div>
       </div>
     </div>

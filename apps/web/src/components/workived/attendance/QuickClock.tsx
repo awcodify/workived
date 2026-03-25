@@ -4,6 +4,7 @@ import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useDailyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
 import { todayISO, formatDate } from '@/lib/utils/date'
 import { Clock, LogIn, LogOut, CheckCircle2, Timer } from 'lucide-react'
+import { Skeleton } from '@/components/workived/shared/Skeleton'
 
 interface QuickClockProps {
   /** Layout mode: 'sidebar' = compact cards, 'inline' = full width with note input */
@@ -34,7 +35,7 @@ export function QuickClock({
   const today = todayISO(tz)
 
   const { data: myEmployee, isLoading: empLoading } = useMyEmployee()
-  const { data: dailyEntries } = useDailyReport(today)
+  const { data: dailyEntries, isLoading: dailyLoading } = useDailyReport(today)
 
   const clockIn = useClockIn()
   const clockOut = useClockOut()
@@ -88,7 +89,10 @@ export function QuickClock({
     )
   }
 
-  if (empLoading) return null
+  // Show loading state
+  if (empLoading || dailyLoading) {
+    return <QuickClockSkeleton layout={layout} variant={variant} className={className} style={style} />
+  }
 
   // User has no employee record — cannot clock in
   if (!myEmployee) {
@@ -565,6 +569,83 @@ export function QuickClock({
           )
         })()
       )}
+    </div>
+  )
+}
+
+// ── Quick Clock Skeleton ────────────────────────────────────────
+
+interface QuickClockSkeletonProps {
+  layout?: 'sidebar' | 'inline'
+  variant?: 'light' | 'dark'
+  className?: string
+  style?: React.CSSProperties
+}
+
+function QuickClockSkeleton({ layout = 'sidebar', variant = 'light', className = '', style = {} }: QuickClockSkeletonProps) {
+  if (layout === 'sidebar') {
+    return (
+      <div className={`space-y-3 ${className}`} style={style}>
+        {/* Welcome card skeleton */}
+        <div 
+          className="py-5 px-5 animate-pulse"
+          style={{
+            background: variant === 'dark' 
+              ? 'rgba(74, 63, 191, 0.30)'
+              : 'linear-gradient(135deg, #FAF5FF 0%, #F3E8FF 100%)',
+            borderRadius: 12,
+            border: `1px solid ${variant === 'dark' ? 'rgba(255,255,255,0.08)' : '#E9D5FF'}`,
+          }}
+        >
+          <div className="text-center space-y-3">
+            <Skeleton width={32} height={32} borderRadius="50%" style={{ margin: '0 auto', background: 'rgba(139,92,246,0.2)' }} />
+            <div className="space-y-2">
+              <Skeleton width="60%" height={12} style={{ margin: '0 auto', background: 'rgba(139,92,246,0.15)' }} />
+              <Skeleton width={120} height={28} style={{ margin: '0 auto', background: 'rgba(139,92,246,0.2)' }} />
+            </div>
+            <Skeleton width="50%" height={12} style={{ margin: '0 auto', background: 'rgba(139,92,246,0.15)' }} />
+          </div>
+        </div>
+
+        {/* Button skeleton */}
+        <Skeleton 
+          width="100%" 
+          height={60} 
+          borderRadius={12}
+          style={{
+            background: 'linear-gradient(135deg, rgba(139,92,246,0.3) 0%, rgba(124,58,237,0.3) 100%)',
+          }}
+        />
+      </div>
+    )
+  }
+
+  // Inline layout skeleton
+  const isDark = variant === 'dark'
+  return (
+    <div className={className} style={{ marginTop: 10, padding: '0 28px 28px 28px', ...style }}>
+      <div className="animate-pulse space-y-4">
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <Skeleton width={28} height={28} borderRadius={8} style={{ background: isDark ? 'rgba(18,160,92,0.2)' : 'rgba(139,92,246,0.2)' }} />
+          <Skeleton width={120} height={12} style={{ background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
+        </div>
+        
+        {/* Big time display */}
+        <div className="flex items-baseline gap-3">
+          <Skeleton width={200} height={64} style={{ background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)' }} />
+          <Skeleton width={60} height={22} style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} />
+        </div>
+        
+        {/* Description */}
+        <Skeleton width="60%" height={16} style={{ background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }} />
+        
+        {/* Input + Button */}
+        <div className="flex gap-2 mt-6">
+          <Skeleton width="100%" height={48} borderRadius={12} style={{ background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)' }} />
+          <Skeleton width={100} height={48} borderRadius={12} style={{ background: 'rgba(139,92,246,0.3)' }} />
+        </div>
+      </div>
     </div>
   )
 }
