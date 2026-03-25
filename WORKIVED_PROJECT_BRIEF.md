@@ -686,10 +686,10 @@ API_URL=http://localhost:8080
 
 ---
 
-*Last updated: March 24, 2026*  
-*Current Sprint: Sprint 15 ✅ COMPLETE (Code Quality & TypeScript Excellence, March 24)*  
-*Recent Sprint: Sprint 14 ✅ Complete (Registration Flow Critical Fix, March 24)*  
-*Status: Sprint 14 ✅ Complete → Sprint 15 ✅ Complete → Sprint 16 🎯 Next (Monetization: Pro Plan Paywall + Landing Page)*  
-*Sprint Documentation:* [sprint8.md](./docs/sprint8.md) | [sprint9.md](./docs/sprint9.md) | [sprint11.md](./docs/sprint11.md) | [sprint12.md](./docs/sprint12.md) | [sprint13.md](./docs/sprint13.md) | [sprint14.md](./docs/sprint14.md) | [sprint15.md](./docs/sprint15.md)  
-*Product Roadmap:* [docs/ROADMAP.md](./docs/ROADMAP.md) — Sprint priorities & competitive positioning  
+*Last updated: March 25, 2026*
+*Current Sprint: Sprint 16 ✅ COMPLETE (Claims Payment Flow, Hierarchical Approval, Gender Leave, March 25)*
+*Recent Sprint: Sprint 15 ✅ Complete (Code Quality & TypeScript Excellence, March 24)*
+*Status: Sprint 15 ✅ Complete → Sprint 16 ✅ Complete → Sprint 17 🎯 Next (Gender Leave Frontend, OpenAPI Auth, Claim Budget Periods)*
+*Sprint Documentation:* [sprint8.md](./docs/sprint8.md) | [sprint9.md](./docs/sprint9.md) | [sprint11.md](./docs/sprint11.md) | [sprint12.md](./docs/sprint12.md) | [sprint13.md](./docs/sprint13.md) | [sprint14.md](./docs/sprint14.md) | [sprint15.md](./docs/sprint15.md) | [sprint16.md](./docs/sprint16.md)
+*Product Roadmap:* [docs/ROADMAP.md](./docs/ROADMAP.md) — Sprint priorities & competitive positioning
 *Feature Backlog:* [docs/backlog/](./docs/backlog/) — Organized by theme (HR, system, monetization, advanced)

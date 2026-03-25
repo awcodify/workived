@@ -5,7 +5,7 @@
 **Team:** Backend
 **Type:** Feature completion + test quality
 
-**Summary:** Two targeted backend features: (1) Claims payment terminal state (`StatusPaid`), completing the claims lifecycle from submit → approve → pay. (2) Gender-based leave eligibility (`GenderEligibility`) on leave policies, enabling maternity/paternity/parental leave gates. Additionally, comprehensive unit tests were added across both modules — 360 tests passing, 85–89% service+handler coverage, with an honest assessment of remaining gaps (repository layer, 0% — integration tests needed).
+**Summary:** Full claims payment flow (backend + frontend), gender-based leave eligibility (backend), hierarchical multi-level approval (backend + frontend), and notification/tab visibility fixes (frontend). Claims lifecycle completed: submit → approve → pay with `MarkAsPaidSheet` modal. Recursive CTE replaces flat `reporting_to` check — any manager in the ancestor chain can now approve. Dock badge and tab visibility are now data-driven (not JWT-gated). 360+ backend tests passing, 85–89% service+handler coverage. Frontend 405+ tests passing.
 
 ---
 
@@ -75,9 +75,15 @@ func (s *Service) MarkAsPaid(ctx context.Context, orgID, claimID, actorID uuid.U
 ```
 POST /api/claims/:id/pay
 ```
-- Requires `manager` or `owner` role
+- Requires `owner`, `admin`, `hr_admin`, `finance`, or `super_admin` role
 - Reads `claim_id` from URL path, `actor_id` from JWT context
 - Returns updated `Claim` with `paid_at`, `paid_by` populated
+
+**Frontend — Claims Payment UI:**
+- `MarkAsPaidSheet` modal: centered overlay with employee avatar, name, category, hero amount, approved date, confirm/cancel buttons, error recovery
+- `PendingPaymentRow` component: approved claims listed under "Pending Payment" section (gated on `canPayClaims`)
+- `useMarkAsPaid` hook: calls `POST /api/claims/:id/pay`, invalidates claims cache
+- `useCanPayClaims` hook: returns `true` for owner/admin/hr_admin/finance/super_admin roles
 
 ---
 
@@ -122,6 +128,64 @@ if policy.GenderEligibility != nil {
     }
 }
 ```
+
+---
+
+### Feature 3: Hierarchical Multi-Level Approval
+
+**Problem:** Approval queries used flat `e.reporting_to = $X` — only direct managers could see/approve requests. In a chain like `1.1.1 → 1.1 → 1 → CEO`, employee 1 couldn't see requests from 1.1.1.
+
+**Fix:** Replaced flat lookups with `WITH RECURSIVE` CTEs in all three locations:
+
+**`employee/repository.go` — `VerifyManagerRelationship`:**
+- Walks UP the ancestor chain from employee to check if reviewer is an ancestor
+- Returns `CodeForbidden` (not `CodeNotFound`) when relationship doesn't hold
+
+**`claims/repository.go` — `ListClaims`:**
+- Recursive CTE builds full subordinate tree from `managerEmployeeID`
+- `AND ($8::uuid IS NULL OR c.employee_id IN (SELECT id FROM subordinates))`
+
+**`leave/repository.go` — `ListRequests` + `CountPendingRequests`:**
+- Same recursive CTE pattern for subordinate tree
+- Unified from two-branch dynamic SQL to single recursive query
+
+**`claims/handler.go`:**
+- `manager` role now uses hierarchical filter (passes `managerEmployeeID`)
+- Org-wide view limited to: `owner`, `admin`, `hr_admin`, `super_admin`, `finance`
+
+### Feature 4: Data-Driven Tab & Notification Visibility
+
+**Problem:** Approvals tab and dock notification badges were gated on `useCanManageClaims`/`useCanManageLeave`, which relied on JWT `has_subordinate` claim. This claim is baked at login time — if org chart changes after login, JWT is stale and tabs silently hide.
+
+**Fix (frontend):**
+
+**`lib/hooks/useRole.ts`:**
+- `manager` role now always returns `true` for `useCanManageClaims`/`useCanManageLeave` (RBAC permissions are hardcoded, not derived from JWT)
+- Only `member`/`finance` roles still check `hasSubordinate`
+
+**`routes/_app/claims/index.tsx` + `routes/_app/leave/index.tsx`:**
+- Removed `canManageClaims`/`canManageLeave` from tab visibility, auto-switch effects, and tab content rendering
+- Tab shows whenever API returns items (pendingCount > 0 || approvedCount > 0)
+- Purely data-driven: if data comes back, show UI
+
+**`lib/hooks/useLeave.ts` — `useLeaveNotificationCount`:**
+- Removed `enabled: canManage` gate
+- Shares query key with `useAllRequests({ status: 'pending' })` for cache consistency
+- Uses `select` to return count from shared data
+
+**`lib/hooks/useClaims.ts` — `useClaimNotificationCount`:**
+- Shares query key with `useAllClaims()` for cache consistency
+- Uses `select` to filter pending claims and return count
+
+**`components/workived/dock/Dock.tsx`:**
+- Removed `canManageLeave`/`canManageClaims` conditionals from notification counts
+- Counts now use raw values from hooks directly
+
+### Feature 5: Workspace Name Validation
+
+**Already shipped in Sprint 16 codebase:**
+- `organisation/service.go`: `reservedSlugs` blocklist (workived, admin, api, www, root, etc.)
+- Minimum 3-character slug enforced at `Service.Create()`
 
 ---
 
@@ -218,6 +282,18 @@ org_id: 92aff524-..., message: "failed to list task lists"
 **Root cause:** Budget card showed 0/total when no claims were submitted, instead of full green bar.
 **Fix:** Empty used amount should render as 100% green bar (unused = available = full).
 
+### Manager couldn't see subordinate's approval requests
+**Root cause:** All three SQL queries used flat `e.reporting_to = $X` — only works for direct reports. In chain `1.1.1 → 1.1 → 1`, employee 1 couldn't see 1.1.1's requests.
+**Fix:** Recursive CTE in `ListClaims`, `ListRequests`, `CountPendingRequests`, and `VerifyManagerRelationship`.
+
+### Approvals tab hidden despite API returning pending items
+**Root cause:** Tab visibility gated on `useCanManageClaims()`/`useCanManageLeave()`, which checked JWT `has_subordinate` claim. Claim is baked at login — stale after org chart changes.
+**Fix:** Removed `canManage*` gating from tab visibility. Tabs are now purely data-driven.
+
+### Dock notification badges always showing 0
+**Root cause:** (1) `useLeaveNotificationCount` had `enabled: canManage` that silently disabled the query. (2) Dock and tab used different query keys, producing inconsistent results.
+**Fix:** Removed `enabled` gate. Unified query keys between dock and tab via TanStack Query `select` transformation.
+
 ---
 
 ## 📊 Metrics
@@ -231,18 +307,31 @@ org_id: 92aff524-..., message: "failed to list task lists"
 - **Lint:** 0 issues (`golangci-lint run ./...`)
 
 ### Files Changed
+
+**Backend:**
 - `approval/types.go` — `StatusPaid`, updated `ValidStatus`, `IsFinalStatus`
-- `claims/repository.go` — `paid_at`/`paid_by` scan, `MarkAsPaid` method
+- `claims/repository.go` — `paid_at`/`paid_by` scan, `MarkAsPaid` method, recursive CTE for `ListClaims`
 - `claims/service.go` — `MarkAsPaid` service method
-- `claims/handler.go` — `POST /:id/pay` route
-- `employee/repository.go` — `GetEmployeeGender` method
+- `claims/handler.go` — `POST /:id/pay` route, hierarchical manager filter
+- `claims/handler_test.go` — +5 test functions, updated manager role regression test
+- `claims/service_test.go` — +12 test functions
+- `employee/repository.go` — `GetEmployeeGender`, recursive ancestor CTE in `VerifyManagerRelationship`
 - `leave/types.go` — `GenderEligibility` field across policy structs
-- `leave/repository.go` — `gender_eligibility` in all policy queries
+- `leave/repository.go` — `gender_eligibility` in policy queries, recursive CTE for `ListRequests` + `CountPendingRequests`
 - `leave/service.go` — gender eligibility check in `SubmitRequest`
 - `leave/service_test.go` — +15 test functions
 - `leave/handler_test.go` — +5 test functions
-- `claims/service_test.go` — +12 test functions
-- `claims/handler_test.go` — +5 test functions
+- `organisation/service.go` — `reservedSlugs` blocklist + 3-char minimum slug validation
+
+**Frontend:**
+- `components/workived/claims/MarkAsPaidSheet.tsx` — new: centered payment confirmation modal
+- `components/workived/claims/MarkAsPaidSheet.test.tsx` — new: 9 test cases
+- `routes/_app/claims/index.tsx` — `PendingPaymentRow`, `MarkAsPaidSheet` integration, removed `canManageClaims` tab gating
+- `routes/_app/leave/index.tsx` — removed `canManageLeave` tab gating
+- `lib/hooks/useRole.ts` — `useCanPayClaims` new hook, `useCanManageClaims`/`useCanManageLeave` manager fix
+- `lib/hooks/useClaims.ts` — `useClaimNotificationCount` shares cache with `useAllClaims`
+- `lib/hooks/useLeave.ts` — `useLeaveNotificationCount` shares cache with `useAllRequests`
+- `components/workived/dock/Dock.tsx` — removed `canManage*` conditionals from notification counts
 
 ---
 
@@ -273,25 +362,14 @@ Fire-and-forget goroutines (`go s.sendEmail(...)`) are hard to test. Current app
 
 ## 🚀 Next Sprint Plan (Sprint 17)
 
-### Candidate Focus Areas
+### Must Ship
+1. **Gender-based leave — frontend** — Policy form gender toggle, hide ineligible leave types, error states *(S: 1 day)*
+2. **OpenAPI auth on `/docs`** — HTTP basic auth middleware on Swagger UI *(XS: half day)*
+3. **Claim status color fix** — `approved` in claims = grey (waiting for payment), `paid` = green (terminal). Leave `approved` stays green (terminal). *(XS: 15 min)*
 
-Based on the `/review` session and backlog:
-
-#### High Priority
-1. **Fix `is_final_state` migration** — Deploy the column that task list queries require *(blocker)*
-2. **Claim currency fix** — Frontend reads `currency_code` from response *(1-2 hours)*
-3. **Claim budget card** — Green full bar when unused *(1 hour)*
-4. **OpenAPI auth on `/docs`** — Protect Swagger UI with basic auth *(half day)*
-
-#### Medium Priority
-5. **Claims payment flow — frontend** — Add "Mark as Paid" button on approved claims (finance role)
-6. **Gender-based leave — frontend** — Hide leave types the employee is not eligible for
-7. **Integration tests (repository layer)** — `testcontainers-go` for cross-org isolation and SQL correctness
-8. **Workspace/org name validation** — Minimum length, reserved names (`workived`, `google`, `root`)
-
-#### Lower Priority
-9. **Employee profile expansion** — Personal data, documents, gender field (needed for gender-based leave)
-10. **Notification system** — Company events, announcements, new joiner
+### High Value (if capacity allows)
+4. **Claim budget period policies** — Add `budget_period` field: monthly (default), yearly, unlimited. Adjust balance calculations. *(M: 3-4 days)*
+5. **Auto-archive done tasks** — Org-level setting: auto-hide tasks in `is_final_state` after N days *(S: 1 day)*
 
 ### Technical Debt
 - ⚠️ Repository layer at 0% test coverage — integration tests needed
@@ -300,7 +378,6 @@ Based on the `/review` session and backlog:
 - ⚠️ `noUnusedLocals` still disabled in `tsconfig.json`
 
 ### Risks
-- **Claims payment UX** — Needs design: who can pay? finance role? owner only? button placement?
 - **Gender field on employee** — Currently stored in DB but no UI to set it; gender-based leave gates are live but employees have no way to set their gender profile
 - **Integration test infra** — `testcontainers-go` requires Docker in CI; verify before committing to this approach
 
@@ -308,10 +385,16 @@ Based on the `/review` session and backlog:
 
 ## ✅ Sprint 16 Complete
 
-**Claims lifecycle completed.** Submit → approve → pay flow is fully implemented with audit trail and proper terminal state modeling.
+**Claims lifecycle completed.** Submit → approve → pay flow is fully implemented (backend + frontend) with `MarkAsPaidSheet` modal, role-gated to finance/owner/admin roles. Audit trail and terminal state modeling in place.
 
-**Gender-based leave gates live.** Maternity/paternity/parental leave types can now enforce gender eligibility at policy level.
+**Hierarchical approval chain fixed.** Recursive CTE replaces flat `reporting_to` check across claims, leave, and employee verification. Any manager in the ancestor chain can now see and approve requests.
 
-**Test suite significantly improved.** 360 tests passing, 85–89% service+handler coverage. Repository layer remains the key untested risk — integration tests are the next quality milestone.
+**Tab/dock visibility now data-driven.** No longer depends on JWT `has_subordinate` claim. If the API returns items, the UI shows them. Dock badges share TanStack Query cache with tab data for consistency.
 
-**Key numbers:** +160 tests, 0 new lint issues, 0 compile errors, 2 features shipped.
+**Gender-based leave gates live.** Backend validates gender eligibility at policy level. Frontend pending (Sprint 17).
+
+**Workspace name validation shipped.** Reserved names blocklist + 3-char minimum on org slugs.
+
+**Test suite significantly improved.** 360+ backend tests, 405+ frontend tests. 85–89% service+handler coverage. Repository layer remains the key untested risk.
+
+**Key numbers:** +160 backend tests, 5 features shipped (3 full-stack, 2 backend-only), 0 new lint issues, 0 compile errors.
