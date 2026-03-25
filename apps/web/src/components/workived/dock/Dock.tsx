@@ -1,11 +1,12 @@
-import { Link, useMatches } from '@tanstack/react-router'
-import { LayoutDashboard, Users, Clock, Calendar, CalendarDays, Receipt, BarChart3, CheckSquare } from 'lucide-react'
+import { Link, useMatches, useRouter } from '@tanstack/react-router'
+import { LayoutDashboard, Users, Clock, Calendar, CalendarDays, Receipt, BarChart3, CheckSquare, Loader2 } from 'lucide-react'
 import { dockThemes, useDockTheme } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 import { SettingsMenu } from './SettingsMenu'
 import { useEnabledFeatures } from '@/lib/hooks/useFeatures'
 import { useLeaveNotificationCount } from '@/lib/hooks/useLeave'
 import { useClaimNotificationCount } from '@/lib/hooks/useClaims'
+import { useEffect, useState } from 'react'
 
 type ModuleKey = keyof typeof dockThemes
 type ThemableModule = 'overview' | 'people'
@@ -34,9 +35,11 @@ function getCurrentModule(pathname: string): ModuleKey {
 }
 
 export function Dock() {
+  const router = useRouter()
   const matches = useMatches()
   const pathname = matches[matches.length - 1]?.pathname ?? '/'
   const currentModule = getCurrentModule(pathname)
+  const [loadingPath, setLoadingPath] = useState<string | null>(null)
   
   // Use themed dock for overview/people, static for others
   const overviewDockTheme = useDockTheme('overview')
@@ -67,6 +70,14 @@ export function Dock() {
     (item) => item.featureKey === null || features === undefined || features[item.featureKey] === true
   )
 
+  // Clear loading state when navigation completes
+  useEffect(() => {
+    const unsubscribe = router.subscribe('onLoad', () => {
+      setLoadingPath(null)
+    })
+    return unsubscribe
+  }, [router])
+
   return (
     <nav
       className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
@@ -87,12 +98,14 @@ export function Dock() {
           const isActive = pathname === item.to || pathname.startsWith(item.to + '/')
           const Icon = item.icon
           const notificationCount = item.notificationKey ? notificationCounts[item.notificationKey] || 0 : 0
+          const isLoading = loadingPath === item.to
           
           return (
             <Link
               key={item.to}
               to={item.to}
               className="group relative"
+              onClick={() => setLoadingPath(item.to)}
             >
               <div
                 className={cn(
@@ -116,29 +129,40 @@ export function Dock() {
                   }
                 }}
               >
-                {/* Icon with notification badge */}
+                {/* Icon with notification badge and loading spinner */}
                 <div className="relative group-hover:scale-110 group-hover:-translate-y-0.5 transition-all duration-300">
-                  <Icon
-                    size={20}
-                    className="group-hover:rotate-6 transition-transform duration-300"
-                    style={{ 
-                      color: isActive ? theme.active.icon : theme.icon,
-                      strokeWidth: isActive ? 2.5 : 2,
-                      transition: 'all 0.2s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.color = theme.active.icon
-                        e.currentTarget.style.strokeWidth = '2.5'
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!isActive) {
-                        e.currentTarget.style.color = theme.icon
-                        e.currentTarget.style.strokeWidth = '2'
-                      }
-                    }}
-                  />
+                  {isLoading ? (
+                    <Loader2
+                      size={20}
+                      className="animate-spin"
+                      style={{ 
+                        color: theme.active.icon,
+                        strokeWidth: 2.5,
+                      }}
+                    />
+                  ) : (
+                    <Icon
+                      size={20}
+                      className="group-hover:rotate-6 transition-transform duration-300"
+                      style={{ 
+                        color: isActive ? theme.active.icon : theme.icon,
+                        strokeWidth: isActive ? 2.5 : 2,
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.color = theme.active.icon
+                          e.currentTarget.style.strokeWidth = '2.5'
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isActive) {
+                          e.currentTarget.style.color = theme.icon
+                          e.currentTarget.style.strokeWidth = '2'
+                        }
+                      }}
+                    />
+                  )}
                   
                   {/* Notification badge */}
                   {notificationCount > 0 && (

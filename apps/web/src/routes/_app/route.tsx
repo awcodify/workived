@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect, useMatches } from '@tanstack/react-router'
 import { useAuthStore } from '@/lib/stores/auth'
 import { Dock } from '@/components/workived/dock/Dock'
+import { LoadingBar } from '@/components/workived/shared/LoadingBar'
 import { getSetupStatus } from '@/lib/api/setup'
 
 export const Route = createFileRoute('/_app')({
@@ -30,6 +31,7 @@ function AppLayout() {
 
   return (
     <div className="min-h-screen">
+      <LoadingBar />
       <Outlet />
       {!isSetupPage && <Dock />}
     </div>
