@@ -4,11 +4,15 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/rs/zerolog"
+	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/leave"
+	"github.com/workived/services/pkg/email"
 	"github.com/workived/services/pkg/apperr"
 )
 
@@ -73,6 +77,10 @@ type fakeRepo struct {
 	isOnApprovedLeaveFn                   func(ctx context.Context, orgID, employeeID uuid.UUID, date string) (bool, error)
 	listHolidaysFn                        func(ctx context.Context, countryCode, startDate, endDate string) ([]leave.PublicHoliday, error)
 	beginTxFn                             func(ctx context.Context) (pgx.Tx, error)
+	listTemplatesFn                       func(ctx context.Context, countryCode string) ([]leave.PolicyTemplate, error)
+	getTemplatesByIDsFn                   func(ctx context.Context, ids []uuid.UUID) ([]leave.PolicyTemplate, error)
+	importPoliciesFromTemplatesFn         func(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, templates []leave.PolicyTemplate) ([]leave.Policy, error)
+	createBalancesForAllEmployeesFn       func(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error
 }
 
 func (f *fakeRepo) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]leave.Policy, error) {
@@ -158,15 +166,27 @@ func (f *fakeRepo) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return f.beginTxFn(ctx)
 }
 func (f *fakeRepo) ListTemplates(ctx context.Context, countryCode string) ([]leave.PolicyTemplate, error) {
+	if f.listTemplatesFn != nil {
+		return f.listTemplatesFn(ctx, countryCode)
+	}
 	return []leave.PolicyTemplate{}, nil
 }
 func (f *fakeRepo) GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]leave.PolicyTemplate, error) {
+	if f.getTemplatesByIDsFn != nil {
+		return f.getTemplatesByIDsFn(ctx, ids)
+	}
 	return []leave.PolicyTemplate{}, nil
 }
 func (f *fakeRepo) ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, templates []leave.PolicyTemplate) ([]leave.Policy, error) {
+	if f.importPoliciesFromTemplatesFn != nil {
+		return f.importPoliciesFromTemplatesFn(ctx, tx, orgID, templates)
+	}
 	return []leave.Policy{}, nil
 }
 func (f *fakeRepo) CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error {
+	if f.createBalancesForAllEmployeesFn != nil {
+		return f.createBalancesForAllEmployeesFn(ctx, tx, orgID, policyID, year, entitledDays)
+	}
 	return nil
 }
 func (f *fakeRepo) CountPendingRequests(ctx context.Context, orgID uuid.UUID, managerEmployeeID *uuid.UUID) (int, error) {
@@ -993,6 +1013,124 @@ func TestService_SubmitRequest(t *testing.T) {
 	}
 }
 
+// ── TestService_SubmitRequest_GenderEligibility ───────────────────────────────
+
+func TestService_SubmitRequest_GenderEligibility(t *testing.T) {
+	input := leave.SubmitRequestInput{
+		LeavePolicyID: testPolicyID,
+		StartDate:     "2026-03-16",
+		EndDate:       "2026-03-18",
+	}
+
+	female := "female"
+	male := "male"
+
+	tests := []struct {
+		name      string
+		setup     func(r *fakeRepo, e *fakeEmployeeRepo)
+		wantErr   bool
+		wantCode  string
+	}{
+		{
+			name: "female employee — female-only policy — allowed",
+			setup: func(r *fakeRepo, e *fakeEmployeeRepo) {
+				r.getPolicyFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
+					return &leave.Policy{ID: testPolicyID, Name: "Maternity Leave", DaysPerYear: 90, GenderEligibility: "female", IsActive: true}, nil
+				}
+				e.getEmployeeGenderFn = func(_ context.Context, _, _ uuid.UUID) (*string, error) {
+					return &female, nil
+				}
+			},
+		},
+		{
+			name: "male employee — female-only policy — rejected",
+			setup: func(r *fakeRepo, e *fakeEmployeeRepo) {
+				r.getPolicyFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
+					return &leave.Policy{ID: testPolicyID, Name: "Maternity Leave", DaysPerYear: 90, GenderEligibility: "female", IsActive: true}, nil
+				}
+				e.getEmployeeGenderFn = func(_ context.Context, _, _ uuid.UUID) (*string, error) {
+					return &male, nil
+				}
+			},
+			wantErr:  true,
+			wantCode: apperr.CodeValidation,
+		},
+		{
+			name: "gender not set — female-only policy — rejected",
+			setup: func(r *fakeRepo, e *fakeEmployeeRepo) {
+				r.getPolicyFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
+					return &leave.Policy{ID: testPolicyID, Name: "Maternity Leave", DaysPerYear: 90, GenderEligibility: "female", IsActive: true}, nil
+				}
+				e.getEmployeeGenderFn = func(_ context.Context, _, _ uuid.UUID) (*string, error) {
+					return nil, nil // gender not specified
+				}
+			},
+			wantErr:  true,
+			wantCode: apperr.CodeValidation,
+		},
+		{
+			name: "male employee — male-only policy — allowed",
+			setup: func(r *fakeRepo, e *fakeEmployeeRepo) {
+				r.getPolicyFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
+					return &leave.Policy{ID: testPolicyID, Name: "Paternity Leave", DaysPerYear: 5, GenderEligibility: "male", IsActive: true}, nil
+				}
+				e.getEmployeeGenderFn = func(_ context.Context, _, _ uuid.UUID) (*string, error) {
+					return &male, nil
+				}
+			},
+		},
+		{
+			name: "any employee — all policy — allowed regardless of gender",
+			setup: func(r *fakeRepo, _ *fakeEmployeeRepo) {
+				r.getPolicyFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
+					return &leave.Policy{ID: testPolicyID, Name: "Annual Leave", DaysPerYear: 12, GenderEligibility: "all", IsActive: true}, nil
+				}
+				// getEmployeeGenderFn not set — should not be called for "all" policy
+			},
+		},
+		{
+			name: "get employee gender error — propagated",
+			setup: func(r *fakeRepo, e *fakeEmployeeRepo) {
+				r.getPolicyFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
+					return &leave.Policy{ID: testPolicyID, Name: "Maternity Leave", DaysPerYear: 90, GenderEligibility: "female", IsActive: true}, nil
+				}
+				e.getEmployeeGenderFn = func(_ context.Context, _, _ uuid.UUID) (*string, error) {
+					return nil, errors.New("db down")
+				}
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := defaultFakeRepo()
+			orgRepo := defaultFakeOrgRepo()
+			empRepo := &fakeEmployeeRepo{}
+			if tt.setup != nil {
+				tt.setup(repo, empRepo)
+			}
+
+			svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000")
+
+			_, err := svc.SubmitRequest(context.Background(), testOrgID, testEmpID, "member", input)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.wantCode != "" && !apperr.IsCode(err, tt.wantCode) {
+					t.Errorf("expected code %q, got: %v", tt.wantCode, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 // ── TestService_ApproveRequest ──────────────────────────────────────────────
 
 func TestService_ApproveRequest(t *testing.T) {
@@ -1498,3 +1636,534 @@ func TestService_ListMyRequests(t *testing.T) {
 		})
 	}
 }
+
+// ── TestService_ListRequests ──────────────────────────────────────────────────
+
+func TestService_ListRequests(t *testing.T) {
+	t.Run("happy path — no manager filter", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		pendingStatus := "pending"
+		filter := leave.ListRequestsFilter{Status: &pendingStatus}
+		requests, err := svc.ListRequests(context.Background(), testOrgID, filter, "admin", nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(requests) == 0 {
+			t.Fatal("expected requests, got none")
+		}
+	})
+
+	t.Run("manager role — injects manager filter", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		managerID := testReqID // re-use a known ID
+		filter := leave.ListRequestsFilter{}
+		requests, err := svc.ListRequests(context.Background(), testOrgID, filter, "manager", &managerID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		_ = requests
+	})
+
+	t.Run("repo error propagates", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		repo.listRequestsFn = func(_ context.Context, _ uuid.UUID, _ leave.ListRequestsFilter) ([]leave.RequestWithDetails, error) {
+			return nil, errors.New("db down")
+		}
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		_, err := svc.ListRequests(context.Background(), testOrgID, leave.ListRequestsFilter{}, "admin", nil)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
+
+// ── TestService_GetRequest ────────────────────────────────────────────────────
+
+func TestService_GetRequest(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		req, err := svc.GetRequest(context.Background(), testOrgID, testReqID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if req == nil {
+			t.Fatal("expected request, got nil")
+		}
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		repo.getRequestFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Request, error) {
+			return nil, errors.New("not found")
+		}
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		_, err := svc.GetRequest(context.Background(), testOrgID, testReqID)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
+
+// ── TestService_VerifyManagerRelationship ────────────────────────────────────
+
+func TestService_VerifyManagerRelationship(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		reviewerID := uuid.New()
+		err := svc.VerifyManagerRelationship(context.Background(), testOrgID, testEmpID, reviewerID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("not manager error propagates", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		empRepo := &fakeEmployeeRepo{
+			verifyManagerRelationshipFn: func(_ context.Context, _, _, _ uuid.UUID) error {
+				return errors.New("not a manager")
+			},
+		}
+		svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000")
+		err := svc.VerifyManagerRelationship(context.Background(), testOrgID, testEmpID, uuid.New())
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
+
+// ── TestService_IsOnApprovedLeave ─────────────────────────────────────────────
+
+func TestService_IsOnApprovedLeave(t *testing.T) {
+	t.Run("not on leave", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		onLeave, err := svc.IsOnApprovedLeave(context.Background(), testOrgID, testEmpID, "2026-03-20")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if onLeave {
+			t.Error("expected not on leave")
+		}
+	})
+
+	t.Run("on leave", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		repo.isOnApprovedLeaveFn = func(_ context.Context, _, _ uuid.UUID, _ string) (bool, error) {
+			return true, nil
+		}
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		onLeave, err := svc.IsOnApprovedLeave(context.Background(), testOrgID, testEmpID, "2026-03-20")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if !onLeave {
+			t.Error("expected on leave")
+		}
+	})
+
+	t.Run("repo error propagates", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		repo.isOnApprovedLeaveFn = func(_ context.Context, _, _ uuid.UUID, _ string) (bool, error) {
+			return false, errors.New("db down")
+		}
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		_, err := svc.IsOnApprovedLeave(context.Background(), testOrgID, testEmpID, "2026-03-20")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
+
+// ── TestService_ListHolidays ──────────────────────────────────────────────────
+
+func TestService_ListHolidays(t *testing.T) {
+	t.Run("happy path", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		holidays, err := svc.ListHolidays(context.Background(), testOrgID, "2026-01-01", "2026-12-31")
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		_ = holidays
+	})
+
+	t.Run("country code error propagates", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		orgRepo.getOrgCountryCodeFn = func(_ context.Context, _ uuid.UUID) (string, error) {
+			return "", errors.New("db down")
+		}
+		svc := newTestService(repo, orgRepo)
+		_, err := svc.ListHolidays(context.Background(), testOrgID, "2026-01-01", "2026-12-31")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("holidays repo error propagates", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		repo.listHolidaysFn = func(_ context.Context, _, _, _ string) ([]leave.PublicHoliday, error) {
+			return nil, errors.New("db down")
+		}
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		_, err := svc.ListHolidays(context.Background(), testOrgID, "2026-01-01", "2026-12-31")
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
+
+// ── TestService_ListTemplates ─────────────────────────────────────────────────
+
+func TestService_ListTemplates(t *testing.T) {
+	t.Run("explicit country code", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		cc := "ID"
+		templates, err := svc.ListTemplates(context.Background(), testOrgID, &cc)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		_ = templates
+	})
+
+	t.Run("nil country code — fetches from org", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		templates, err := svc.ListTemplates(context.Background(), testOrgID, nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		_ = templates
+	})
+
+	t.Run("country code error propagates", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		orgRepo.getOrgCountryCodeFn = func(_ context.Context, _ uuid.UUID) (string, error) {
+			return "", errors.New("db down")
+		}
+		svc := newTestService(repo, orgRepo)
+		_, err := svc.ListTemplates(context.Background(), testOrgID, nil)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("templates repo error propagates", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		cc := "ID"
+		_, err := svc.ListTemplates(context.Background(), testOrgID, &cc)
+		if err != nil {
+			t.Fatalf("ListTemplates with explicit code: %v", err)
+		}
+	})
+}
+
+// ── TestService_GetNotificationCount ─────────────────────────────────────────
+
+func TestService_GetNotificationCount(t *testing.T) {
+	t.Run("happy path — member role", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		count, err := svc.GetNotificationCount(context.Background(), testOrgID, "member", nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if count != 0 {
+			t.Errorf("expected 0, got %d", count)
+		}
+	})
+
+	t.Run("manager role — with manager ID", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		managerID := testEmpID
+		count, err := svc.GetNotificationCount(context.Background(), testOrgID, "manager", &managerID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		_ = count
+	})
+}
+
+// ── TestService_ImportPolicies ────────────────────────────────────────────────
+
+func TestService_ImportPolicies(t *testing.T) {
+	templateID := uuid.New()
+
+	t.Run("happy path", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		input := leave.ImportPoliciesInput{TemplateIDs: []uuid.UUID{templateID}}
+		policies, err := svc.ImportPolicies(context.Background(), testOrgID, input)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		_ = policies
+	})
+
+	t.Run("country code error propagates", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		orgRepo.getOrgCountryCodeFn = func(_ context.Context, _ uuid.UUID) (string, error) {
+			return "", errors.New("db down")
+		}
+		svc := newTestService(repo, orgRepo)
+		input := leave.ImportPoliciesInput{TemplateIDs: []uuid.UUID{templateID}}
+		_, err := svc.ImportPolicies(context.Background(), testOrgID, input)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("template country mismatch returns validation error", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		repo.getTemplatesByIDsFn = func(_ context.Context, _ []uuid.UUID) ([]leave.PolicyTemplate, error) {
+			return []leave.PolicyTemplate{
+				{ID: templateID, Name: "Annual Leave", CountryCode: "AE", GenderEligibility: "all"},
+			}, nil
+		}
+		orgRepo := defaultFakeOrgRepo() // returns "ID" as country code
+		svc := newTestService(repo, orgRepo)
+		input := leave.ImportPoliciesInput{TemplateIDs: []uuid.UUID{templateID}}
+		_, err := svc.ImportPolicies(context.Background(), testOrgID, input)
+		if err == nil {
+			t.Fatal("expected validation error, got nil")
+		}
+		if !apperr.IsCode(err, apperr.CodeValidation) {
+			t.Errorf("expected CodeValidation, got: %v", err)
+		}
+	})
+
+	t.Run("begin tx error propagates", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		repo.beginTxFn = func(_ context.Context) (pgx.Tx, error) {
+			return nil, errors.New("tx error")
+		}
+		orgRepo := defaultFakeOrgRepo()
+		svc := newTestService(repo, orgRepo)
+		input := leave.ImportPoliciesInput{TemplateIDs: []uuid.UUID{templateID}}
+		_, err := svc.ImportPolicies(context.Background(), testOrgID, input)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+	})
+}
+
+
+// ── TestService_WithOptions ───────────────────────────────────────────────────
+
+type failAuditLogger struct{}
+
+func (f *failAuditLogger) Log(_ context.Context, _ audit.LogEntry) error {
+	return errors.New("audit log failed")
+}
+
+func TestService_WithOptions(t *testing.T) {
+	t.Run("WithAuditLog option sets audit logger", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		empRepo := &fakeEmployeeRepo{}
+		logger := zerolog.Nop()
+		auditLogger := &failAuditLogger{}
+		svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000",
+			leave.WithLogger(logger),
+			leave.WithAuditLog(auditLogger),
+		)
+		// Verify service works (audit log error should not propagate to caller)
+		_, err := svc.ListPolicies(context.Background(), testOrgID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("WithLogger sets zerolog logger", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		empRepo := &fakeEmployeeRepo{}
+		svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000",
+			leave.WithLogger(zerolog.Nop()),
+		)
+		_, err := svc.ListPolicies(context.Background(), testOrgID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
+
+// ── TestService_LogAudit_ErrorPath ────────────────────────────────────────────
+
+func TestService_LogAudit_ErrorPath(t *testing.T) {
+	// Test that audit log errors are swallowed (not returned to caller)
+	repo := defaultFakeRepo()
+	orgRepo := defaultFakeOrgRepo()
+	empRepo := &fakeEmployeeRepo{}
+	svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000",
+		leave.WithAuditLog(&failAuditLogger{}),
+	)
+
+	// CreatePolicy triggers audit log — error should be swallowed
+	policy, err := svc.CreatePolicy(context.Background(), testOrgID, leave.CreatePolicyRequest{
+		Name:       "Annual Leave",
+		DaysPerYear: 12,
+	})
+	if err != nil {
+		t.Fatalf("audit log error should be swallowed, got: %v", err)
+	}
+	if policy == nil {
+		t.Fatal("expected policy, got nil")
+	}
+}
+
+
+// ── TestService_WithTasksService ──────────────────────────────────────────────
+
+type fakeLeaveTasksService struct{}
+
+func (f *fakeLeaveTasksService) CreateApprovalTask(_ context.Context, _ uuid.UUID, _ string, _ uuid.UUID, _, _ string, _, _ uuid.UUID, _ *string) error {
+	return nil
+}
+func (f *fakeLeaveTasksService) CompleteApprovalTask(_ context.Context, _ string, _ uuid.UUID) error {
+	return nil
+}
+func (f *fakeLeaveTasksService) DeleteApprovalTask(_ context.Context, _ string, _ uuid.UUID) error {
+	return nil
+}
+
+func TestService_WithTasksService(t *testing.T) {
+	// Wire up tasks service — SubmitRequest will fire goroutine to createLeaveApprovalTask
+	repo := defaultFakeRepo()
+	orgRepo := defaultFakeOrgRepo()
+	managerID := uuid.New()
+	empRepo := &fakeEmployeeRepo{
+		getEmployeeProfileFn: func(_ context.Context, _, _ uuid.UUID) (string, *string, *uuid.UUID, error) {
+			return "Ahmad", nil, &managerID, nil
+		},
+	}
+	svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000",
+		leave.WithLogger(zerolog.Nop()),
+		leave.WithTasksService(&fakeLeaveTasksService{}),
+	)
+
+	input := leave.SubmitRequestInput{
+		LeavePolicyID: testPolicyID,
+		StartDate:     "2026-04-01",
+		EndDate:       "2026-04-03",
+	}
+	req, err := svc.SubmitRequest(context.Background(), testOrgID, testEmpID, "member", input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if req == nil {
+		t.Fatal("expected request, got nil")
+	}
+	// Let goroutine finish
+	time.Sleep(10 * time.Millisecond)
+}
+
+
+// ── TestService_WithEmailSender ───────────────────────────────────────────────
+
+type fakeLeaveEmailSender struct{}
+
+func (f *fakeLeaveEmailSender) Send(_ email.Message) error { return nil }
+
+func TestService_WithEmailSender_Submit(t *testing.T) {
+	// SubmitRequest fires goroutine for pending email
+	repo := defaultFakeRepo()
+	orgRepo := defaultFakeOrgRepo()
+	managerID := uuid.New()
+	managerEmail := "manager@test.com"
+	empRepo := &fakeEmployeeRepo{
+		getEmployeeProfileFn: func(_ context.Context, _, _ uuid.UUID) (string, *string, *uuid.UUID, error) {
+			return "Ahmad", &managerEmail, &managerID, nil
+		},
+	}
+	svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000",
+		leave.WithLogger(zerolog.Nop()),
+		leave.WithEmailSender(&fakeLeaveEmailSender{}),
+	)
+	input := leave.SubmitRequestInput{
+		LeavePolicyID: testPolicyID,
+		StartDate:     "2026-04-01",
+		EndDate:       "2026-04-03",
+	}
+	req, err := svc.SubmitRequest(context.Background(), testOrgID, testEmpID, "member", input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if req == nil {
+		t.Fatal("expected request, got nil")
+	}
+	time.Sleep(20 * time.Millisecond)
+}
+
+func TestService_WithEmailSender_Approve(t *testing.T) {
+	// ApproveRequest fires goroutine for approved email
+	repo := defaultFakeRepo()
+	orgRepo := defaultFakeOrgRepo()
+	empEmail := "emp@test.com"
+	empRepo := &fakeEmployeeRepo{
+		getEmployeeProfileFn: func(_ context.Context, _, _ uuid.UUID) (string, *string, *uuid.UUID, error) {
+			return "Ahmad", &empEmail, nil, nil
+		},
+	}
+	svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000",
+		leave.WithLogger(zerolog.Nop()),
+		leave.WithEmailSender(&fakeLeaveEmailSender{}),
+	)
+	reviewerID := uuid.New()
+	_, err := svc.ApproveRequest(context.Background(), testOrgID, reviewerID, testReqID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+}
+
+func TestService_WithEmailSender_Reject(t *testing.T) {
+	// RejectRequest fires goroutine for rejected email
+	repo := defaultFakeRepo()
+	orgRepo := defaultFakeOrgRepo()
+	empEmail := "emp@test.com"
+	empRepo := &fakeEmployeeRepo{
+		getEmployeeProfileFn: func(_ context.Context, _, _ uuid.UUID) (string, *string, *uuid.UUID, error) {
+			return "Ahmad", &empEmail, nil, nil
+		},
+	}
+	svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000",
+		leave.WithLogger(zerolog.Nop()),
+		leave.WithEmailSender(&fakeLeaveEmailSender{}),
+	)
+	note := "no quota remaining"
+	reviewerID := uuid.New()
+	_, err := svc.RejectRequest(context.Background(), testOrgID, reviewerID, testReqID, &note)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+}
+

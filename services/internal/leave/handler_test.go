@@ -36,6 +36,9 @@ type fakeService struct {
 	rejectRequestFn    func(ctx context.Context, orgID, reviewerEmployeeID, requestID uuid.UUID, note *string) (*leave.Request, error)
 	cancelRequestFn    func(ctx context.Context, orgID, employeeID, requestID uuid.UUID) (*leave.Request, error)
 	getCalendarFn      func(ctx context.Context, orgID uuid.UUID, year, month int) ([]leave.CalendarEntry, error)
+	getRequestFn       func(ctx context.Context, orgID, requestID uuid.UUID) (*leave.Request, error)
+	listTemplatesFn    func(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]leave.PolicyTemplate, error)
+	importPoliciesFn   func(ctx context.Context, orgID uuid.UUID, input leave.ImportPoliciesInput) ([]leave.Policy, error)
 }
 
 func (f *fakeService) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]leave.Policy, error) {
@@ -138,6 +141,9 @@ func (f *fakeService) GetNotificationCount(ctx context.Context, orgID uuid.UUID,
 }
 
 func (f *fakeService) GetRequest(ctx context.Context, orgID, requestID uuid.UUID) (*leave.Request, error) {
+	if f.getRequestFn != nil {
+		return f.getRequestFn(ctx, orgID, requestID)
+	}
 	return &leave.Request{ID: requestID, Status: "pending"}, nil
 }
 
@@ -146,10 +152,16 @@ func (f *fakeService) VerifyManagerRelationship(ctx context.Context, orgID, empl
 }
 
 func (f *fakeService) ListTemplates(ctx context.Context, orgID uuid.UUID, countryCode *string) ([]leave.PolicyTemplate, error) {
+	if f.listTemplatesFn != nil {
+		return f.listTemplatesFn(ctx, orgID, countryCode)
+	}
 	return []leave.PolicyTemplate{}, nil
 }
 
 func (f *fakeService) ImportPolicies(ctx context.Context, orgID uuid.UUID, input leave.ImportPoliciesInput) ([]leave.Policy, error) {
+	if f.importPoliciesFn != nil {
+		return f.importPoliciesFn(ctx, orgID, input)
+	}
 	return []leave.Policy{}, nil
 }
 
@@ -925,4 +937,176 @@ func TestHandler_GetCalendar(t *testing.T) {
 			}
 		})
 	}
+}
+
+// ── TestHandler_GetRequest ────────────────────────────────────────────────────
+
+func TestHandler_GetRequest(t *testing.T) {
+	tests := []struct {
+		name       string
+		paramID    string
+		svcFn      func(ctx context.Context, orgID, requestID uuid.UUID) (*leave.Request, error)
+		wantStatus int
+	}{
+		{
+			name:       "200 — happy path",
+			paramID:    testReqID.String(),
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "400 — invalid UUID",
+			paramID:    "not-a-uuid",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "404 — not found",
+			paramID: testReqID.String(),
+			svcFn: func(_ context.Context, _, _ uuid.UUID) (*leave.Request, error) {
+				return nil, apperr.NotFound("leave request")
+			},
+			wantStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &fakeService{}
+			if tt.svcFn != nil {
+				svc.getRequestFn = func(ctx context.Context, orgID, requestID uuid.UUID) (*leave.Request, error) {
+					return tt.svcFn(ctx, orgID, requestID)
+				}
+			}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(http.MethodGet, "/api/v1/leave/requests/"+tt.paramID, nil)
+			newRouter(svc).ServeHTTP(w, req)
+			assertStatus(t, w, tt.wantStatus)
+		})
+	}
+}
+
+// ── TestHandler_ListHolidays ──────────────────────────────────────────────────
+
+func TestHandler_ListHolidays(t *testing.T) {
+	tests := []struct {
+		name       string
+		query      string
+		wantStatus int
+	}{
+		{
+			name:       "200 — happy path",
+			query:      "?start_date=2026-01-01&end_date=2026-12-31",
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "400 — missing start_date",
+			query:      "?end_date=2026-12-31",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "400 — missing end_date",
+			query:      "?start_date=2026-01-01",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "400 — both missing",
+			query:      "",
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &fakeService{}
+			w := httptest.NewRecorder()
+			req, _ := http.NewRequest(http.MethodGet, "/api/v1/leave/holidays"+tt.query, nil)
+			newRouter(svc).ServeHTTP(w, req)
+			assertStatus(t, w, tt.wantStatus)
+		})
+	}
+}
+
+// ── TestHandler_GetNotificationCount ─────────────────────────────────────────
+
+func TestHandler_GetNotificationCount(t *testing.T) {
+	t.Run("200 — admin gets global count", func(t *testing.T) {
+		svc := &fakeService{}
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/leave/notifications/count", nil)
+		newRouter(svc).ServeHTTP(w, req)
+		assertStatus(t, w, http.StatusOK)
+		assertHasDataKey(t, w)
+	})
+}
+
+// ── TestHandler_ListTemplates ─────────────────────────────────────────────────
+
+func TestHandler_ListTemplates(t *testing.T) {
+	t.Run("200 — no country code", func(t *testing.T) {
+		svc := &fakeService{}
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/leave/templates", nil)
+		newRouter(svc).ServeHTTP(w, req)
+		assertStatus(t, w, http.StatusOK)
+		assertHasDataKey(t, w)
+	})
+
+	t.Run("200 — with country code", func(t *testing.T) {
+		svc := &fakeService{}
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/leave/templates?country_code=ID", nil)
+		newRouter(svc).ServeHTTP(w, req)
+		assertStatus(t, w, http.StatusOK)
+		assertHasDataKey(t, w)
+	})
+
+	t.Run("500 — service error", func(t *testing.T) {
+		svc := &fakeService{
+			listTemplatesFn: func(_ context.Context, _ uuid.UUID, _ *string) ([]leave.PolicyTemplate, error) {
+				return nil, apperr.Internal()
+			},
+		}
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/leave/templates", nil)
+		newRouter(svc).ServeHTTP(w, req)
+		assertStatus(t, w, http.StatusInternalServerError)
+	})
+}
+
+// ── TestHandler_ImportPolicies ────────────────────────────────────────────────
+
+func TestHandler_ImportPolicies(t *testing.T) {
+	templateID := uuid.New()
+
+	t.Run("201 — happy path", func(t *testing.T) {
+		svc := &fakeService{}
+		w := httptest.NewRecorder()
+		body := jsonBody(t, leave.ImportPoliciesInput{TemplateIDs: []uuid.UUID{templateID}})
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/leave/policies/import", body)
+		req.Header.Set("Content-Type", "application/json")
+		newRouter(svc).ServeHTTP(w, req)
+		assertStatus(t, w, http.StatusCreated)
+	})
+
+	t.Run("400 — invalid JSON", func(t *testing.T) {
+		svc := &fakeService{}
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/leave/policies/import", bytes.NewBufferString("{invalid"))
+		req.Header.Set("Content-Type", "application/json")
+		newRouter(svc).ServeHTTP(w, req)
+		assertStatus(t, w, http.StatusBadRequest)
+	})
+
+	t.Run("500 — service error", func(t *testing.T) {
+		svc := &fakeService{
+			importPoliciesFn: func(_ context.Context, _ uuid.UUID, _ leave.ImportPoliciesInput) ([]leave.Policy, error) {
+				return nil, apperr.Internal()
+			},
+		}
+		w := httptest.NewRecorder()
+		body := jsonBody(t, leave.ImportPoliciesInput{TemplateIDs: []uuid.UUID{templateID}})
+		req, _ := http.NewRequest(http.MethodPost, "/api/v1/leave/policies/import", body)
+		req.Header.Set("Content-Type", "application/json")
+		newRouter(svc).ServeHTTP(w, req)
+		assertStatus(t, w, http.StatusInternalServerError)
+	})
 }
