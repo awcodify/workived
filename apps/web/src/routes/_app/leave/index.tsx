@@ -14,6 +14,7 @@ import { submitRequestSchema, type SubmitRequestFormData } from '@/lib/validatio
 import { calculateWorkingDays, calculateAvailableDays } from '@/lib/utils/leave'
 import { RequestListItem, EmployeeRequestGroup, type RequestData } from '@/components/workived/shared/requests'
 import { createLeaveRequestConfig, leaveRequestTheme } from '@/components/workived/leave/LeaveRequestConfig'
+import { RequestTableSkeleton } from '@/components/workived/shared/Skeleton'
 
 const t = moduleThemes.leave
 
@@ -26,8 +27,8 @@ function LeaveDashboard() {
   const currentYear = new Date().getFullYear()
   const { data: rawBalances, isLoading } = useMyBalances(currentYear)
   const { data: allBalances } = useAllBalances(currentYear) // For approval balance context
-  const { data: pendingRequests } = useAllRequests({ status: 'pending' })
-  const { data: myRequests } = useMyRequests()
+  const { data: pendingRequests, isLoading: pendingLoading } = useAllRequests({ status: 'pending' })
+  const { data: myRequests, isLoading: myRequestsLoading } = useMyRequests()
   const { data: policies } = usePolicies()
   const { data: myEmployee } = useMyEmployee()
   const canManageLeave = useCanManageLeave()
@@ -356,7 +357,10 @@ function LeaveDashboard() {
           {/* Tab Content */}
           {activeTab === 'approvals' && (
             <div>
-              {!pendingRequests || pendingRequests.length === 0 ? (
+              {/* Loading state */}
+              {pendingLoading ? (
+                <RequestTableSkeleton count={3} surfaceColor={t.surface} borderColor={t.border} />
+              ) : !pendingRequests || pendingRequests.length === 0 ? (
                 <div
                   className="flex flex-col items-center justify-center text-center"
                   style={{
@@ -458,7 +462,10 @@ function LeaveDashboard() {
 
           {activeTab === 'my-requests' && (
             <div>
-              {!myRequests || myRequests.length === 0 ? (
+              {/* Loading state */}
+              {myRequestsLoading ? (
+                <RequestTableSkeleton count={3} surfaceColor={t.surface} borderColor={t.border} />
+              ) : !myRequests || myRequests.length === 0 ? (
                 <div
                   className="flex flex-col items-center justify-center text-center"
                   style={{

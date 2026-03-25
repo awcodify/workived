@@ -15,6 +15,7 @@ import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { Users, CalendarDays, Receipt, AlertCircle, ChevronRight } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
+import { BalanceCardSkeleton, TeamMemberSkeleton, ListSkeleton } from '@/components/workived/shared/Skeleton'
 
 // ── Tooltip ──────────────────────────────────────────────────────
 import { useRef, useState as useTooltipState } from 'react'
@@ -115,10 +116,10 @@ function OverviewPage() {
   // Leave balances for current year
   const currentYear = new Date().getFullYear()
   const currentMonth = new Date().getMonth() + 1
-  const { data: leaveBalances } = useMyBalances(currentYear)
+  const { data: leaveBalances, isLoading: leaveLoading } = useMyBalances(currentYear)
 
   // Claims data
-  const { data: claimBalances } = useMyClaimBalances(currentYear, currentMonth)
+  const { data: claimBalances, isLoading: claimLoading } = useMyClaimBalances(currentYear, currentMonth)
 
   // Calendar data — who's on leave today + upcoming holidays
   const { data: calendarEntries } = useCalendar(currentYear, currentMonth)
@@ -407,6 +408,11 @@ function OverviewPage() {
 
           {/* Annual Leave Balance Card */}
           {(() => {
+            if (leaveLoading) {
+              // Loading state
+              return <BalanceCardSkeleton surfaceColor={t.surface} borderColor={t.border} />
+            }
+
             if (!leaveBalances || leaveBalances.length === 0) {
               // Empty state
               return (
@@ -567,6 +573,37 @@ function OverviewPage() {
 
           {/* Claims Budget Card */}
           {(() => {
+            if (claimLoading) {
+              // Loading state - use okDim background to match claims theme
+              return (
+                <div style={{
+                  border: `1px solid ${t.border}`,
+                  borderRadius: 18,
+                  background: colors.okDim,
+                  backdropFilter: 'blur(12px)',
+                  WebkitBackdropFilter: 'blur(12px)',
+                  boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
+                  padding: '24px 28px',
+                }}>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Receipt size={18} style={{ color: colors.ok }} />
+                        <div style={{ width: 100, height: 16, borderRadius: 4, background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+                      </div>
+                      <div style={{ width: 50, height: 12, borderRadius: 4, background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+                    </div>
+                    <div style={{ width: 120, height: 28, borderRadius: 4, background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+                    <div style={{ width: '100%', height: 6, borderRadius: 3, background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+                    <div className="flex justify-between">
+                      <div style={{ width: 80, height: 12, borderRadius: 4, background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+                      <div style={{ width: 80, height: 12, borderRadius: 4, background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              )
+            }
+
             if (!claimBalances || claimBalances.length === 0) {
               // Empty state
               return (
@@ -688,15 +725,19 @@ function OverviewPage() {
 
         {/* ═══ RIGHT COLUMN: Team Pulse ═══ */}
         <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
-          <TeamPulseCard
-            teamMembers={teamMembers}
-            present={present}
-            late={late}
-            onLeaveCount={onLeaveCount}
-            trueAbsent={trueAbsent}
-            totalEmployees={totalEmployees}
-            onLeaveEntries={onLeaveEntries}
-          />
+          {empLoading || dailyLoading ? (
+            <TeamPulseSkeleton />
+          ) : (
+            <TeamPulseCard
+              teamMembers={teamMembers}
+              present={present}
+              late={late}
+              onLeaveCount={onLeaveCount}
+              trueAbsent={trueAbsent}
+              totalEmployees={totalEmployees}
+              onLeaveEntries={onLeaveEntries}
+            />
+          )}
         </div>
       </div>
 
@@ -941,6 +982,45 @@ interface DonutSegment {
   label: string
   value: number
   color: string
+}
+
+function TeamPulseSkeleton() {
+  const t = useModuleTheme('overview')
+  return (
+    <div style={{
+      border: `1px solid ${t.border}`,
+      borderRadius: 18,
+      boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
+      background: t.surface,
+      padding: '18px 24px 20px 24px',
+    }}>
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Users size={20} style={{ color: colors.accent }} />
+          <div style={{ width: 100, height: 18, borderRadius: 4, background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+        </div>
+        <div style={{ width: 60, height: 12, borderRadius: 4, background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+      </div>
+      {/* Chart placeholder */}
+      <div className="flex items-center gap-4 mb-4">
+        <div style={{ width: 110, height: 110, borderRadius: '50%', background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+        <div className="flex-1 space-y-2">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} style={{ width: '100%', height: 20, borderRadius: 6, background: 'rgba(0, 0, 0, 0.08)' }} className="animate-pulse" />
+          ))}
+        </div>
+      </div>
+      {/* Divider */}
+      <div style={{ borderTop: `1px solid ${t.border}`, marginBottom: 12 }} />
+      {/* Team member list */}
+      <div className="space-y-2">
+        {[1, 2, 3, 4].map((i) => (
+          <TeamMemberSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function DonutChart({ size, segments, total, centerLabel, hovered, onHover, showPercent }: {

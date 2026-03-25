@@ -22,6 +22,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { RequestListItem, EmployeeRequestGroup, type RequestData } from '@/components/workived/shared/requests'
 import { createClaimRequestConfig, claimRequestTheme } from '@/components/workived/claims/ClaimRequestConfig'
+import { RequestTableSkeleton } from '@/components/workived/shared/Skeleton'
 
 const t = moduleThemes.claims
 
@@ -40,8 +41,8 @@ function ClaimsDashboard() {
   const currentMonth = now.getMonth() + 1
 
   const { data: balances, isLoading } = useMyClaimBalances(currentYear, currentMonth)
-  const { data: allClaims } = useAllClaims() // For approvals
-  const { data: myClaimsResponse } = useMyClaims() // For "My Requests" tab
+  const { data: allClaims, isLoading: allClaimsLoading } = useAllClaims() // For approvals
+  const { data: myClaimsResponse, isLoading: myClaimsLoading } = useMyClaims() // For "My Requests" tab
   
   const approveMutation = useApproveClaim()
   const rejectMutation = useRejectClaim()
@@ -368,8 +369,13 @@ function ClaimsDashboard() {
           {/* Tab Content */}
           {activeTab === 'approvals' && (
             <div className="space-y-4">
-              {/* ── Needs Approval section ── */}
-              {pendingClaims.length > 0 && (
+              {/* Loading state */}
+              {allClaimsLoading ? (
+                <RequestTableSkeleton count={3} surfaceColor={t.surface} borderColor={t.border} />
+              ) : (
+                <>
+                  {/* ── Needs Approval section ── */}
+                  {pendingClaims.length > 0 && (
                 <div>
                   <p
                     className="font-semibold mb-2"
@@ -501,12 +507,17 @@ function ClaimsDashboard() {
                   </p>
                 </div>
               )}
+                </>
+              )}
             </div>
           )}
 
           {activeTab === 'my-requests' && (
             <div>
-              {myClaims.length === 0 ? (
+              {/* Loading state */}
+              {myClaimsLoading ? (
+                <RequestTableSkeleton count={3} surfaceColor={t.surface} borderColor={t.border} />
+              ) : myClaims.length === 0 ? (
                 <div
                   className="flex flex-col items-center justify-center text-center"
                   style={{
