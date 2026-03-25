@@ -12,14 +12,14 @@ type ModuleKey = keyof typeof dockThemes
 type ThemableModule = 'overview' | 'people'
 
 const NAV_ITEMS = [
-  { to: '/overview', label: 'Overview', icon: LayoutDashboard, module: 'overview' as ModuleKey, featureKey: null, notificationKey: null },
-  { to: '/attendance', label: 'Attendance', icon: Clock, module: 'attendance' as ModuleKey, featureKey: null, notificationKey: 'attendance' },
-  { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey, featureKey: 'tasks', notificationKey: 'tasks' },
-  { to: '/leave', label: 'Leave', icon: Calendar, module: 'leave' as ModuleKey, featureKey: null, notificationKey: 'leave' },
-  { to: '/claims', label: 'Claims', icon: Receipt, module: 'claims' as ModuleKey, featureKey: null, notificationKey: 'claims' },
-  { to: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'calendar' as ModuleKey, featureKey: null, notificationKey: null },
-  { to: '/reports', label: 'Reports', icon: BarChart3, module: 'reports' as ModuleKey, featureKey: 'reports', notificationKey: null },
-  { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey, featureKey: null, notificationKey: 'people' }
+  { to: '/overview', label: 'Overview', icon: LayoutDashboard, module: 'overview' as ModuleKey, featureKey: null, notificationKey: null, hideOnMobile: false },
+  { to: '/attendance', label: 'Attendance', icon: Clock, module: 'attendance' as ModuleKey, featureKey: null, notificationKey: 'attendance', hideOnMobile: false },
+  { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey, featureKey: 'tasks', notificationKey: 'tasks', hideOnMobile: true },
+  { to: '/leave', label: 'Leave', icon: Calendar, module: 'leave' as ModuleKey, featureKey: null, notificationKey: 'leave', hideOnMobile: false },
+  { to: '/claims', label: 'Claims', icon: Receipt, module: 'claims' as ModuleKey, featureKey: null, notificationKey: 'claims', hideOnMobile: false },
+  { to: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'calendar' as ModuleKey, featureKey: null, notificationKey: null, hideOnMobile: false },
+  { to: '/reports', label: 'Reports', icon: BarChart3, module: 'reports' as ModuleKey, featureKey: 'reports', notificationKey: null, hideOnMobile: false },
+  { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey, featureKey: null, notificationKey: 'people', hideOnMobile: false }
 ] as const
 
 function getCurrentModule(pathname: string): ModuleKey {
@@ -104,7 +104,7 @@ export function Dock() {
             <Link
               key={item.to}
               to={item.to}
-              className="group relative"
+              className={cn("group relative", item.hideOnMobile && "hidden md:flex")}
               onClick={() => setLoadingPath(item.to)}
             >
               <div
