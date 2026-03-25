@@ -732,6 +732,9 @@ func (s *Service) MarkAsPaid(ctx context.Context, orgID, paidByEmployeeID, claim
 		Str("currency", claim.CurrencyCode).
 		Msg("claim.paid")
 
+	// Send paid notification email (best effort, async)
+	go s.sendClaimPaidEmail(context.Background(), orgID, claim.EmployeeID, paidByEmployeeID, claimID, reviewNote)
+
 	return claim, nil
 }
 
@@ -865,6 +868,73 @@ func (s *Service) sendClaimApprovedEmail(ctx context.Context, orgID, employeeID,
 	}
 
 	s.log.Info().Str("claim_id", claimID.String()).Str("employee_email", *empEmail).Msg("claim approved email sent")
+}
+
+func (s *Service) sendClaimPaidEmail(ctx context.Context, orgID, employeeID, paidByEmployeeID, claimID uuid.UUID, reviewNote *string) {
+	// Get claim details
+	claim, err := s.repo.GetClaim(ctx, orgID, claimID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("claim_id", claimID.String()).Msg("failed to get claim for paid email")
+		return
+	}
+
+	// Get category name
+	category, err := s.repo.GetCategory(ctx, orgID, claim.CategoryID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("category_id", claim.CategoryID.String()).Msg("failed to get category for paid email")
+		return
+	}
+
+	// Get employee info
+	empName, empEmail, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("failed to get employee profile for paid email")
+		return
+	}
+
+	// Skip if employee has no email
+	if empEmail == nil || *empEmail == "" {
+		s.log.Debug().Str("employee_id", employeeID.String()).Msg("employee has no email, skipping claim paid notification")
+		return
+	}
+
+	// Get payer name
+	paidByName, _, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, paidByEmployeeID)
+	if err != nil {
+		s.log.Warn().Err(err).Str("paid_by_id", paidByEmployeeID.String()).Msg("failed to get payer profile for paid email")
+		paidByName = "Finance" // fallback
+	}
+
+	// Format amount for display
+	amountFormatted := fmt.Sprintf("%s %.2f", claim.CurrencyCode, float64(claim.Amount)/100.0)
+
+	// Render template
+	subject, bodyHTML, _, err := email.ClaimPaidTemplate.Render(map[string]any{
+		"EmployeeName":    empName,
+		"PaidByName":      paidByName,
+		"CategoryName":    category.Name,
+		"AmountFormatted": amountFormatted,
+		"ClaimDate":       claim.ClaimDate.Format("2006-01-02"),
+		"ReviewNote":      reviewNote,
+		"AppURL":          s.appURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Msg("failed to render claim paid email template")
+		return
+	}
+
+	// Send email
+	if err := s.email.Send(email.Message{
+		To:      []string{*empEmail},
+		Subject: subject,
+		Body:    bodyHTML,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("employee_email", *empEmail).Msg("failed to send claim paid email")
+		return
+	}
+
+	s.log.Info().Str("claim_id", claimID.String()).Str("employee_email", *empEmail).Msg("claim paid email sent")
 }
 
 func (s *Service) sendClaimRejectedEmail(ctx context.Context, orgID, employeeID, reviewerEmployeeID, claimID uuid.UUID, reviewNote *string) {

@@ -57,6 +57,13 @@ var (
 		BodyText: claimRejectedText,
 	}
 
+	// ClaimPaidTemplate notifies employees when their claim has been paid.
+	ClaimPaidTemplate = Template{
+		Subject:  "Your {{.CategoryName}} claim has been paid",
+		BodyHTML: claimPaidHTML,
+		BodyText: claimPaidText,
+	}
+
 	// LeavePendingApprovalTemplate notifies managers of new leave requests.
 	LeavePendingApprovalTemplate = Template{
 		Subject:  "New leave request from {{.EmployeeName}} requires your approval",
@@ -333,6 +340,43 @@ Date: {{.ClaimDate}}
 {{if .ReviewNote}}Reason: {{.ReviewNote}}{{end}}
 
 If you have questions, please contact your manager or HR.`
+
+const claimPaidHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #12A05C; font-size: 24px; margin-bottom: 20px;">💰 Your Claim Has Been Paid</h1>
+        <p>Hi {{.EmployeeName}},</p>
+        <p>Your claim has been marked as paid by <strong>{{.PaidByName}}</strong>.</p>
+        <div style="background: #E8F7EE; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #12A05C;">
+            <p style="margin: 5px 0;"><strong>Category:</strong> {{.CategoryName}}</p>
+            <p style="margin: 5px 0;"><strong>Amount:</strong> {{.AmountFormatted}}</p>
+            <p style="margin: 5px 0;"><strong>Date:</strong> {{.ClaimDate}}</p>
+            {{if .ReviewNote}}<p style="margin: 5px 0;"><strong>Note:</strong> {{.ReviewNote}}</p>{{end}}
+        </div>
+        <p style="margin: 30px 0;">
+            <a href="{{.AppURL}}/claims" style="background: #6357E8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View All Claims</a>
+        </p>
+    </div>
+</body>
+</html>`
+
+const claimPaidText = ` Your Claim Has Been Paid
+
+Hi {{.EmployeeName}},
+
+Your claim has been marked as paid by {{.PaidByName}}.
+
+Category: {{.CategoryName}}
+Amount: {{.AmountFormatted}}
+Date: {{.ClaimDate}}
+{{if .ReviewNote}}Note: {{.ReviewNote}}{{end}}
+
+View all your claims here:
+{{.AppURL}}/claims`
 
 // ── Leave Notifications ───────────────────────────────────────────────────────
 

@@ -16,6 +16,7 @@ import {
 import { useCanManageClaims, useCanPayClaims, useRole } from '@/lib/hooks/useRole'
 import { MarkAsPaidSheet } from '@/components/workived/claims/MarkAsPaidSheet'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
+import { formatMoney } from '@/lib/utils/money'
 import { moduleBackgrounds, moduleThemes, typography, colors, getAvatarColor } from '@/design/tokens'
 import type { ClaimBalanceWithCategory, ClaimWithDetails } from '@/types/api'
 import { useState, useEffect } from 'react'
@@ -96,7 +97,7 @@ function ClaimsDashboard() {
             </h1>
             <p className="text-sm mt-2" style={{ color: t.textMuted }}>
               {totalLimit > 0
-                ? `${new Intl.NumberFormat('id-ID').format(totalLimit - totalSpent)} remaining`
+                ? `${formatMoney(totalLimit - totalSpent, balances?.[0]?.currency_code ?? 'AED')} remaining`
                 : 'Track your expenses'}
             </p>
           </div>
