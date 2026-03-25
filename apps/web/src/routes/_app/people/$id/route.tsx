@@ -29,6 +29,7 @@ const baseSchema = z.object({
   department_id: z.string().optional().or(z.literal('')),
   reporting_to: z.string().optional().or(z.literal('')),
   employment_type: z.enum(['full_time', 'part_time', 'contract', 'intern']),
+  gender: z.enum(['male', 'female']).optional().or(z.literal('')),
   start_date: z.string().min(1, 'Start date is required'),
 })
 
@@ -79,6 +80,7 @@ function NewEmployeePage() {
       department_id: '',
       reporting_to: '',
       employment_type: 'full_time',
+      gender: '',
       start_date: '',
       // If arriving from Members page with a user_id, pre-select member mode
       email_mode: preselectedUserId ? 'member' : 'member',
@@ -114,6 +116,7 @@ function NewEmployeePage() {
       job_title: data.job_title || undefined,
       department_id: data.department_id || undefined,
       employment_type: data.employment_type,
+      gender: data.gender === 'male' || data.gender === 'female' ? data.gender : undefined,
       start_date: data.start_date,
     }
 
@@ -327,12 +330,24 @@ function NewEmployeePage() {
               </Field>
 
               <Field label="Phone (optional)" error={form.formState.errors.phone?.message}>
-                <input 
-                  className="form-input-dark" 
+                <input
+                  className="form-input-dark"
                   placeholder="e.g., +62 812 3456 7890"
                   style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('phone')} 
+                  {...form.register('phone')}
                 />
+              </Field>
+
+              <Field label="Gender (optional)">
+                <select
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('gender')}
+                >
+                  <option value="">— Not specified —</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
               </Field>
             </div>
           </div>
@@ -345,11 +360,11 @@ function NewEmployeePage() {
 
             <div className="p-5 space-y-4">
               <Field label="Job title (optional)" error={form.formState.errors.job_title?.message}>
-                <input 
-                  className="form-input-dark" 
+                <input
+                  className="form-input-dark"
                   placeholder="e.g., Senior Designer"
                   style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('job_title')} 
+                  {...form.register('job_title')}
                 />
               </Field>
 
@@ -385,9 +400,9 @@ function NewEmployeePage() {
                 <input
                   type="date"
                   className="form-input-dark cursor-pointer"
-                  style={{ 
-                    background: t.input, 
-                    border: `1px solid ${t.inputBorder}`, 
+                  style={{
+                    background: t.input,
+                    border: `1px solid ${t.inputBorder}`,
                     color: t.text,
                   }}
                   {...form.register('start_date')}
@@ -446,6 +461,7 @@ function EditEmployeePage({ id }: { id: string }) {
       department_id: '',
       reporting_to: '',
       employment_type: 'full_time',
+      gender: '',
       status: 'active',
       start_date: '',
       end_date: '',
@@ -461,6 +477,7 @@ function EditEmployeePage({ id }: { id: string }) {
         department_id: employee.department_id ?? '',
         reporting_to: employee.reporting_to ?? '',
         employment_type: employee.employment_type,
+        gender: employee.gender ?? '',
         status: employee.status ?? 'active',
         start_date: employee.start_date,
         end_date: employee.end_date ?? '',
@@ -475,6 +492,7 @@ function EditEmployeePage({ id }: { id: string }) {
       job_title: data.job_title || undefined,
       department_id: data.department_id || undefined,
       reporting_to: data.reporting_to || undefined,
+      gender: data.gender === 'male' || data.gender === 'female' ? data.gender : undefined,
       end_date: data.end_date || undefined,
     }
     updateMutation.mutate(clean, {
@@ -550,12 +568,24 @@ function EditEmployeePage({ id }: { id: string }) {
               )}
 
               <Field label="Phone (optional)" error={form.formState.errors.phone?.message}>
-                <input 
-                  className="form-input-dark" 
+                <input
+                  className="form-input-dark"
                   placeholder="e.g., +62 812 3456 7890"
                   style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('phone')} 
+                  {...form.register('phone')}
                 />
+              </Field>
+
+              <Field label="Gender (optional)">
+                <select
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('gender')}
+                >
+                  <option value="">— Not specified —</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                </select>
               </Field>
             </div>
           </div>
@@ -568,11 +598,11 @@ function EditEmployeePage({ id }: { id: string }) {
 
             <div className="p-5 space-y-4">
               <Field label="Job title (optional)" error={form.formState.errors.job_title?.message}>
-                <input 
-                  className="form-input-dark" 
+                <input
+                  className="form-input-dark"
                   placeholder="e.g., Senior Designer"
                   style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('job_title')} 
+                  {...form.register('job_title')}
                 />
               </Field>
 
