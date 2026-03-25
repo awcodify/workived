@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, X, Settings } from 'lucide-react'
 import { useMyBalances, useAllRequests, useMyRequests, useAllBalances, useApproveRequest, useRejectRequest, useCancelRequest, useSubmitRequest, usePolicies } from '@/lib/hooks/useLeave'
+import { useMyEmployee } from '@/lib/hooks/useEmployees'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { useCanManageLeave, useRole } from '@/lib/hooks/useRole'
@@ -23,11 +24,22 @@ export const Route = createFileRoute('/_app/leave/')({
 function LeaveDashboard() {
   const navigate = useNavigate()
   const currentYear = new Date().getFullYear()
-  const { data: balances, isLoading } = useMyBalances(currentYear)
+  const { data: rawBalances, isLoading } = useMyBalances(currentYear)
   const { data: allBalances } = useAllBalances(currentYear) // For approval balance context
   const { data: pendingRequests } = useAllRequests({ status: 'pending' })
   const { data: myRequests } = useMyRequests()
+  const { data: policies } = usePolicies()
+  const { data: myEmployee } = useMyEmployee()
   const canManageLeave = useCanManageLeave()
+
+  // Filter balances by gender eligibility — hide leave types the employee is not eligible for.
+  // If employee has no gender set or policy has no restriction, show the balance.
+  const balances = rawBalances?.filter((b) => {
+    const policy = policies?.find((p) => p.id === b.leave_policy_id)
+    if (!policy?.gender_eligibility) return true // no restriction
+    if (!myEmployee?.gender) return true // employee gender not set — show all, backend validates at submission
+    return policy.gender_eligibility === myEmployee.gender
+  })
   
   const approveMutation = useApproveRequest()
   const rejectMutation = useRejectRequest()

@@ -14,9 +14,20 @@ var openapiSpec []byte
 //
 //	GET /docs              → Scalar UI (modern API explorer)
 //	GET /docs/openapi.yaml → raw OpenAPI 3.1 spec
-func registerDocsRoutes(r *gin.Engine) {
-	r.GET("/docs", serveScalarUI)
-	r.GET("/docs/openapi.yaml", serveOpenAPISpec)
+//
+// If username and password are provided, routes are protected with HTTP Basic Auth.
+// If either is empty, the docs endpoints are not registered (secure by default).
+func registerDocsRoutes(r *gin.Engine, username, password string) {
+	if username == "" || password == "" {
+		return // docs disabled when credentials not configured
+	}
+
+	docs := r.Group("/docs", gin.BasicAuth(gin.Accounts{
+		username: password,
+	}))
+
+	docs.GET("", serveScalarUI)
+	docs.GET("/openapi.yaml", serveOpenAPISpec)
 }
 
 func serveOpenAPISpec(c *gin.Context) {

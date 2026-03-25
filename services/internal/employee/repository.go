@@ -111,15 +111,15 @@ func (r *Repository) Create(ctx context.Context, orgID uuid.UUID, req CreateEmpl
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO employees (
 			organisation_id, user_id, employee_code, full_name, email, phone,
-			department_id, job_title, employment_type, reporting_to, start_date
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11::date)
+			department_id, job_title, employment_type, reporting_to, gender, start_date
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::date)
 		RETURNING id, organisation_id, user_id, employee_code,
 		          full_name, email, phone, department_id, job_title,
 		          employment_type, status, reporting_to, gender, start_date, end_date,
 		          base_salary, salary_currency, custom_fields,
 		          is_active, created_at, updated_at
 	`, orgID, req.UserID, req.EmployeeCode, req.FullName, req.Email, req.Phone,
-		req.DepartmentID, req.JobTitle, req.EmploymentType, req.ReportingTo, req.StartDate).
+		req.DepartmentID, req.JobTitle, req.EmploymentType, req.ReportingTo, req.Gender, req.StartDate).
 		Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
@@ -233,7 +233,8 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 			employment_type = COALESCE($7, employment_type),
 			status          = COALESCE($8, status),
 			reporting_to    = COALESCE($9, reporting_to),
-			end_date        = COALESCE($10::date, end_date)
+			gender          = COALESCE($10, gender),
+			end_date        = COALESCE($11::date, end_date)
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, user_id, employee_code,
 		          full_name, email, phone, department_id, job_title,
@@ -242,7 +243,7 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 		          is_active, created_at, updated_at
 	`, orgID, id,
 		req.FullName, req.Phone, req.DepartmentID, req.JobTitle,
-		req.EmploymentType, req.Status, req.ReportingTo, req.EndDate).
+		req.EmploymentType, req.Status, req.ReportingTo, req.Gender, req.EndDate).
 		Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,

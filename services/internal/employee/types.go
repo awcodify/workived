@@ -63,6 +63,7 @@ type CreateEmployeeRequest struct {
 	JobTitle       *string    `json:"job_title"        validate:"omitempty,max=150"`
 	EmploymentType string     `json:"employment_type"  validate:"required,oneof=full_time part_time contract intern"`
 	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`
+	Gender         *string    `json:"gender"           validate:"omitempty,oneof=male female"`
 	StartDate      string     `json:"start_date"       validate:"required"`
 	EmployeeCode   *string    `json:"employee_code"    validate:"omitempty,max=50"`
 }
@@ -74,6 +75,7 @@ type UpdateEmployeeRequest struct {
 	JobTitle       *string    `json:"job_title"        validate:"omitempty,max=150"`
 	EmploymentType *string    `json:"employment_type"  validate:"omitempty,oneof=full_time part_time contract intern"`
 	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`
+	Gender         *string    `json:"gender"           validate:"omitempty,oneof=male female"`
 	Status         *string    `json:"status"           validate:"omitempty,oneof=active on_leave probation inactive"`
 	EndDate        *string    `json:"end_date"         validate:"omitempty"`
 }

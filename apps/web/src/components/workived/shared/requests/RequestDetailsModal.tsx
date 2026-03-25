@@ -1,6 +1,6 @@
 import { X } from 'lucide-react'
 import { colors, typography } from '@/design/tokens'
-import { RequestListItemTheme, RequestData } from './RequestListItem'
+import { RequestListItemTheme, RequestData, StatusColors, defaultStatusColors } from './RequestListItem'
 
 export interface RequestDetailsField {
   label: string
@@ -18,9 +18,10 @@ export interface RequestDetailsModalProps {
   config: RequestDetailsModalConfig
   theme: RequestListItemTheme
   onClose: () => void
+  statusColors?: Record<string, StatusColors>
 }
 
-export function RequestDetailsModal({ request, config, theme, onClose }: RequestDetailsModalProps) {
+export function RequestDetailsModal({ request, config, theme, onClose, statusColors }: RequestDetailsModalProps) {
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -72,19 +73,18 @@ export function RequestDetailsModal({ request, config, theme, onClose }: Request
             <p className="text-xs font-semibold" style={{ color: theme.textMuted }}>
               Status
             </p>
-            <span
-              className="inline-block text-xs font-semibold px-2 py-1 rounded mt-1"
-              style={{
-                background: request.status === 'pending' ? colors.warnDim : 
-                           request.status === 'approved' ? colors.okDim :
-                           request.status === 'rejected' ? colors.errDim : colors.ink100,
-                color: request.status === 'pending' ? colors.warnText :
-                       request.status === 'approved' ? colors.okText :
-                       request.status === 'rejected' ? colors.errText : colors.ink500,
-              }}
-            >
-              {request.status.toUpperCase()}
-            </span>
+            {(() => {
+              const colorMap = statusColors ?? defaultStatusColors
+              const sc = colorMap[request.status] ?? { bg: colors.ink100, text: colors.ink500 }
+              return (
+                <span
+                  className="inline-block text-xs font-semibold px-2 py-1 rounded mt-1"
+                  style={{ background: sc.bg, color: sc.text }}
+                >
+                  {request.status.toUpperCase()}
+                </span>
+              )
+            })()}
           </div>
 
           <div>

@@ -164,6 +164,7 @@ export interface Employee {
   department_name?: string
   reporting_to?: string
   manager_name?: string
+  gender?: 'male' | 'female' | null
   employment_type: 'full_time' | 'part_time' | 'contract' | 'intern'
   status: 'active' | 'probation' | 'inactive'
   start_date: string
@@ -313,6 +314,7 @@ export interface LeavePolicy {
   carry_over_days: number
   min_tenure_days: number
   requires_approval: boolean
+  gender_eligibility?: 'male' | 'female' | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -401,6 +403,7 @@ export interface CreatePolicyInput {
   carry_over_days?: number
   min_tenure_days?: number
   requires_approval?: boolean
+  gender_eligibility?: 'male' | 'female' | null
 }
 
 export interface UpdatePolicyInput {
@@ -410,6 +413,7 @@ export interface UpdatePolicyInput {
   carry_over_days?: number
   min_tenure_days?: number
   requires_approval?: boolean
+  gender_eligibility?: 'male' | 'female' | null
 }
 
 export interface SubmitRequestInput {
@@ -690,6 +694,7 @@ export interface LeavePolicyTemplate {
   max_carry_over_days: number
   is_accrued: boolean
   requires_approval: boolean
+  gender_eligibility?: 'male' | 'female' | null
   sort_order: number
 }
 

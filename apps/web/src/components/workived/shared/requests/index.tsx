@@ -1,10 +1,11 @@
-export { RequestListItem } from './RequestListItem'
-export type { 
-  RequestListItemProps, 
-  RequestListItemConfig, 
+export { RequestListItem, defaultStatusColors } from './RequestListItem'
+export type {
+  RequestListItemProps,
+  RequestListItemConfig,
   RequestListItemActions,
   RequestListItemTheme,
-  RequestData 
+  RequestData,
+  StatusColors,
 } from './RequestListItem'
 
 export { EmployeeRequestGroup } from './EmployeeRequestGroup'

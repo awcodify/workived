@@ -20,6 +20,7 @@ function NewPolicyPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CreatePolicyFormData>({
     resolver: zodResolver(createPolicySchema),
@@ -29,10 +30,12 @@ function NewPolicyPage() {
       carry_over_days: 0,
       min_tenure_days: 0,
       requires_approval: true,
+      gender_eligibility: null,
     },
   })
 
   const requiresApproval = watch('requires_approval')
+  const genderEligibility = watch('gender_eligibility')
 
   const onSubmit = async (data: CreatePolicyFormData) => {
     try {
@@ -240,6 +243,44 @@ function NewPolicyPage() {
               {requiresApproval
                 ? 'Employees need manager/admin approval to take leave'
                 : 'Employees can take leave immediately without approval'}
+            </p>
+          </div>
+
+          {/* Gender Eligibility */}
+          <div className="mb-6">
+            <label
+              className="block font-semibold mb-2"
+              style={{
+                fontSize: typography.label.size,
+                color: t.text,
+              }}
+            >
+              Eligible Gender
+            </label>
+            <div className="flex gap-2">
+              {([
+                { value: null, label: 'All' },
+                { value: 'male' as const, label: 'Male' },
+                { value: 'female' as const, label: 'Female' },
+              ]).map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  onClick={() => setValue('gender_eligibility', option.value)}
+                  className="px-4 py-2 text-sm font-semibold transition-all"
+                  style={{
+                    background: genderEligibility === option.value ? t.accent : t.input,
+                    color: genderEligibility === option.value ? t.accentText : t.text,
+                    border: `1px solid ${genderEligibility === option.value ? t.accent : t.inputBorder}`,
+                    borderRadius: 10,
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+              Restrict this leave type to a specific gender (e.g., maternity, paternity)
             </p>
           </div>
 

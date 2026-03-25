@@ -191,7 +191,8 @@ func main() {
 	})
 
 	// API docs — Scalar UI at /docs, spec at /docs/openapi.yaml
-	registerDocsRoutes(r)
+	// Protected with HTTP Basic Auth; disabled if credentials not set.
+	registerDocsRoutes(r, cfg.DocsUsername, cfg.DocsPassword)
 
 	v1 := r.Group("/api/v1")
 

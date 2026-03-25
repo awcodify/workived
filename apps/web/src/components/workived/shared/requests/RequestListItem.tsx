@@ -35,6 +35,19 @@ export interface RequestListItemActions {
   isPendingCancel?: boolean
 }
 
+export interface StatusColors {
+  bg: string
+  text: string
+}
+
+// Default status color map (used by leave and other modules)
+export const defaultStatusColors: Record<string, StatusColors> = {
+  pending: { bg: colors.warnDim, text: colors.warnText },
+  approved: { bg: colors.okDim, text: colors.okText },
+  rejected: { bg: colors.errDim, text: colors.errText },
+  cancelled: { bg: colors.ink100, text: colors.ink500 },
+}
+
 export interface RequestListItemConfig {
   // What to display as the main title
   getTitle: (request: RequestData) => string
@@ -48,6 +61,8 @@ export interface RequestListItemConfig {
   getRightContent?: (request: RequestData, variant: 'my' | 'approval') => React.ReactNode
   // Custom details modal component
   DetailsModal: React.ComponentType<{ request: RequestData; onClose: () => void }>
+  // Optional custom status color map (defaults to defaultStatusColors)
+  statusColors?: Record<string, StatusColors>
 }
 
 export interface RequestListItemProps {
@@ -184,21 +199,18 @@ export function RequestListItem({
                 {config.getTitle(request)}
               </p>
               {/* Only show status badge for 'my' variant or non-pending statuses */}
-              {(variant === 'my' || request.status !== 'pending') && (
-                <span
-                  className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase"
-                  style={{
-                    background: request.status === 'pending' ? colors.warnDim : 
-                               request.status === 'approved' ? colors.okDim :
-                               request.status === 'rejected' ? colors.errDim : colors.ink100,
-                    color: request.status === 'pending' ? colors.warnText :
-                           request.status === 'approved' ? colors.okText :
-                           request.status === 'rejected' ? colors.errText : colors.ink500,
-                  }}
-                >
-                  {request.status}
-                </span>
-              )}
+              {(variant === 'my' || request.status !== 'pending') && (() => {
+                const colorMap = config.statusColors ?? defaultStatusColors
+                const sc = colorMap[request.status] ?? { bg: colors.ink100, text: colors.ink500 }
+                return (
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.5 rounded uppercase"
+                    style={{ background: sc.bg, color: sc.text }}
+                  >
+                    {request.status}
+                  </span>
+                )
+              })()}
             </div>
             {/* Extra Info (e.g., balance impact) */}
             {config.getExtraInfo && config.getExtraInfo(request, variant)}

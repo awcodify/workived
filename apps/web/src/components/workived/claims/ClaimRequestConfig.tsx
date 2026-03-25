@@ -1,15 +1,25 @@
 import type { ClaimWithDetails, ClaimBalanceWithCategory } from '@/types/api'
-import { moduleThemes } from '@/design/tokens'
-import { 
-  RequestListItemConfig, 
-  RequestListItemTheme, 
-  RequestData, 
+import { moduleThemes, colors } from '@/design/tokens'
+import {
+  RequestListItemConfig,
+  RequestListItemTheme,
+  RequestData,
   RequestDetailsModalConfig,
-  RequestDetailsField
+  RequestDetailsField,
+  StatusColors,
 } from '@/components/workived/shared/requests'
 import { RequestDetailsModal } from '@/components/workived/shared/requests'
 
 const theme = moduleThemes.claims
+
+// Claims: approved = grey (waiting for payment), paid = green (terminal)
+export const claimStatusColors: Record<string, StatusColors> = {
+  pending: { bg: colors.warnDim, text: colors.warnText },
+  approved: { bg: colors.ink100, text: colors.ink500 },
+  paid: { bg: colors.okDim, text: colors.okText },
+  rejected: { bg: colors.errDim, text: colors.errText },
+  cancelled: { bg: colors.ink100, text: colors.ink500 },
+}
 
 export const claimRequestTheme: RequestListItemTheme = {
   text: theme.text,
@@ -146,7 +156,8 @@ export function createClaimRequestConfig(balance?: ClaimBalanceWithCategory): Re
         reason: claim.description,
       }
       
-      return <RequestDetailsModal request={mappedRequest} config={config} theme={claimRequestTheme} onClose={props.onClose} />
+      return <RequestDetailsModal request={mappedRequest} config={config} theme={claimRequestTheme} onClose={props.onClose} statusColors={claimStatusColors} />
     },
+    statusColors: claimStatusColors,
   }
 }

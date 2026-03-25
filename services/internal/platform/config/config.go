@@ -38,6 +38,9 @@ type Config struct {
 
 	AppURL string `mapstructure:"APP_URL"`
 	APIURL string `mapstructure:"API_URL"`
+
+	DocsUsername string `mapstructure:"DOCS_USERNAME"`
+	DocsPassword string `mapstructure:"DOCS_PASSWORD"`
 }
 
 func Load() (*Config, error) {
@@ -85,6 +88,8 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("EMAIL_ENABLED")
 	_ = v.BindEnv("APP_URL")
 	_ = v.BindEnv("API_URL")
+	_ = v.BindEnv("DOCS_USERNAME")
+	_ = v.BindEnv("DOCS_PASSWORD")
 
 	// best-effort read of .env file; env vars take precedence
 	_ = v.ReadInConfig()

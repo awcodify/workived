@@ -26,6 +26,7 @@ function EditPolicyPage() {
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<UpdatePolicyFormData>({
     resolver: zodResolver(updatePolicySchema),
@@ -35,6 +36,7 @@ function EditPolicyPage() {
       carry_over_days: 0,
       min_tenure_days: 0,
       requires_approval: true,
+      gender_eligibility: null,
     },
   })
 
@@ -47,11 +49,13 @@ function EditPolicyPage() {
         carry_over_days: policy.carry_over_days,
         min_tenure_days: policy.min_tenure_days,
         requires_approval: policy.requires_approval,
+        gender_eligibility: policy.gender_eligibility ?? null,
       })
     }
   }, [policy, reset])
 
   const requiresApproval = watch('requires_approval')
+  const genderEligibility = watch('gender_eligibility')
 
   const onSubmit = async (data: UpdatePolicyFormData) => {
     try {
@@ -284,6 +288,44 @@ function EditPolicyPage() {
               {requiresApproval
                 ? 'Employees need manager/admin approval to take leave'
                 : 'Employees can take leave immediately without approval'}
+            </p>
+          </div>
+
+          {/* Gender Eligibility */}
+          <div className="mb-6">
+            <label
+              className="block font-semibold mb-2"
+              style={{
+                fontSize: typography.label.size,
+                color: t.text,
+              }}
+            >
+              Eligible Gender
+            </label>
+            <div className="flex gap-2">
+              {([
+                { value: null, label: 'All' },
+                { value: 'male' as const, label: 'Male' },
+                { value: 'female' as const, label: 'Female' },
+              ]).map((option) => (
+                <button
+                  key={option.label}
+                  type="button"
+                  onClick={() => setValue('gender_eligibility', option.value)}
+                  className="px-4 py-2 text-sm font-semibold transition-all"
+                  style={{
+                    background: genderEligibility === option.value ? t.accent : t.input,
+                    color: genderEligibility === option.value ? t.accentText : t.text,
+                    border: `1px solid ${genderEligibility === option.value ? t.accent : t.inputBorder}`,
+                    borderRadius: 10,
+                  }}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+              Restrict this leave type to a specific gender (e.g., maternity, paternity)
             </p>
           </div>
 
