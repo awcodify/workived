@@ -458,10 +458,12 @@ export interface Claim {
   description: string
   claim_date: string  // YYYY-MM-DD
   receipt_url?: string  // Presigned URL (15min expiry)
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'paid'
   reviewed_by?: string
   reviewed_at?: string
   review_note?: string
+  paid_at?: string
+  paid_by?: string
   created_at: string
   updated_at: string
 }
@@ -469,6 +471,7 @@ export interface Claim {
 export interface ClaimWithDetails extends Claim {
   employee_name: string
   category_name: string
+  paid_by_name?: string
 }
 
 export interface ClaimBalance {

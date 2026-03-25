@@ -32,15 +32,13 @@ export function formatClaimAmount(amount: number, currencyCode: string): string 
 }
 
 function formatCompactMoney(amount: number, currencyCode: string): string {
-  const absAmount = Math.abs(amount)
-  if (absAmount >= 1_000_000) {
-    const millions = amount / 1_000_000
-    return `Rp ${millions.toFixed(1)}M`
-  } else if (absAmount >= 1_000) {
-    const thousands = Math.floor(amount / 1_000)
-    return `Rp ${thousands}K`
+  if (currencyCode === 'IDR') {
+    const absAmount = Math.abs(amount)
+    if (absAmount >= 1_000_000) return `Rp ${(amount / 1_000_000).toFixed(1)}M`
+    if (absAmount >= 1_000) return `Rp ${Math.floor(amount / 1_000)}K`
+    return `Rp ${amount.toLocaleString('id-ID')}`
   }
-  return `Rp ${amount.toLocaleString()}`
+  return formatClaimAmount(amount, currencyCode)
 }
 
 export function createClaimRequestConfig(balance?: ClaimBalanceWithCategory): RequestListItemConfig {

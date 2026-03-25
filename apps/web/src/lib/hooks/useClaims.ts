@@ -164,6 +164,17 @@ export function useCancelClaim() {
   })
 }
 
+export function useMarkAsPaid() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => claimsApi.markAsPaid(id).then((r) => r.data.data),
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: claimsKeys.claims() })
+      qc.invalidateQueries({ queryKey: claimsKeys.claim(id) })
+    },
+  })
+}
+
 // ── Balance Hooks ────────────────────────────────────────────
 export function useMyClaimBalances(year: number, month: number) {
   return useQuery({
@@ -183,14 +194,14 @@ export function useMonthlySummary(year: number, month: number) {
 }
 
 // ── Notification Hooks ───────────────────────────────────────────
+// Reuses the same query key as useAllClaims() so the dock badge and the claims
+// tab share cache — no extra API call when both are mounted.
 export function useClaimNotificationCount() {
   return useQuery({
-    queryKey: [...claimsKeys.all, 'notification-count'],
-    queryFn: async () => {
-      const response = await claimsApi.listClaims({ status: 'pending' })
-      return response.data.data?.length ?? 0
-    },
-    staleTime: 30 * 1000, // 30 seconds - refresh frequently for notifications
-    refetchInterval: 60 * 1000, // Auto-refresh every minute
+    queryKey: claimsKeys.allClaims(),
+    queryFn: () => claimsApi.listClaims().then((r) => r.data),
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+    select: (data) => data?.data?.filter((c) => c.status === 'pending').length ?? 0,
   })
 }

@@ -102,8 +102,10 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	claims.POST("/:id/approve", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermTeamClaimsApprove, middleware.PermClaimsWrite), h.ApproveClaim)
 	claims.POST("/:id/reject", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermTeamClaimsApprove, middleware.PermClaimsWrite), h.RejectClaim)
 
-	// Payment — admin only (mark approved claims as paid)
-	claims.POST("/:id/pay", middleware.Require(middleware.PermClaimsWrite), h.MarkAsPaid)
+	// Payment — role-gated inside handler (owner/admin/hr_admin/finance/super_admin).
+	// PermSelfClaims is the coarse auth gate (all roles have it); precise role check
+	// is enforced in the handler body to allow hr_admin and finance through.
+	claims.POST("/:id/pay", middleware.Require(middleware.PermSelfClaims), h.MarkAsPaid)
 
 	// Reporting — approvers + admins
 	claims.GET("/summary", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermClaimsWrite, middleware.PermTeamClaimsApprove), h.GetMonthlySummary)
@@ -375,13 +377,16 @@ func (h *Handler) ListClaims(c *gin.Context) {
 	userID := middleware.UserIDFromCtx(c)
 	role := middleware.RoleFromCtx(c)
 
-	// For non-admin roles, filter by direct reports (reporting_to relationship)
-	// Admins (owner, admin, hr_admin) can see all claims
+	// Admin/finance roles see all org claims.
+	// Manager/member roles see their full subordinate tree via a recursive CTE
+	// in the repository — so 1 can see claims from 1.1.1 even though 1.1 is
+	// the direct manager.
 	var managerEmployeeID *uuid.UUID
-	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	hasOrgWideClaimsView := role == "owner" || role == "admin" || role == "hr_admin" ||
+		role == "super_admin" || role == "finance"
 
-	if !hasFullApprovalRights {
-		// Lookup current user's employee_id to filter by their direct reports
+	if !hasOrgWideClaimsView {
+		// Pass this user's employee_id as the root of the hierarchy filter.
 		empID, err := h.empLookup(c.Request.Context(), orgID, userID)
 		if err != nil {
 			h.logAndRespondError(c, err, "failed to lookup employee for claims filtering", map[string]string{
@@ -656,6 +661,17 @@ func (h *Handler) CancelClaim(c *gin.Context) {
 func (h *Handler) MarkAsPaid(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
+
+	// Payment requires finance or admin-level access.
+	// PermClaimsWrite is also held by "member" (for team claim visibility), so we
+	// gate payment with an explicit role check rather than relying on the permission alone.
+	canPay := role == "owner" || role == "admin" || role == "hr_admin" ||
+		role == "super_admin" || role == "finance"
+	if !canPay {
+		c.JSON(http.StatusForbidden, apperr.Response(apperr.New(apperr.CodeForbidden, "only admin or finance roles can mark claims as paid")))
+		return
+	}
 
 	claimID, err := uuid.Parse(c.Param("id"))
 	if err != nil {

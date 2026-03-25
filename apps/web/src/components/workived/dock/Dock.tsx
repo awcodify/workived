@@ -6,8 +6,6 @@ import { SettingsMenu } from './SettingsMenu'
 import { useEnabledFeatures } from '@/lib/hooks/useFeatures'
 import { useLeaveNotificationCount } from '@/lib/hooks/useLeave'
 import { useClaimNotificationCount } from '@/lib/hooks/useClaims'
-import { useCanManageLeave } from '@/lib/hooks/useRole'
-import { useCanManageClaims } from '@/lib/hooks/useRole'
 
 type ModuleKey = keyof typeof dockThemes
 type ThemableModule = 'overview' | 'people'
@@ -50,18 +48,18 @@ export function Dock() {
   
   const { data: features } = useEnabledFeatures()
   
-  // Get real notification counts
-  const canManageLeave = useCanManageLeave()
-  const canManageClaims = useCanManageClaims()
+  // Get real notification counts.
+  // Do NOT gate on canManageLeave/canManageClaims — JWT has_subordinate can be
+  // stale after org chart changes. The API returns 0 for users with no pending
+  // approvals, so the badge count is always accurate from the server.
   const { data: leaveCount } = useLeaveNotificationCount()
   const { data: claimCount } = useClaimNotificationCount()
-  
-  // Build notification counts object
+
   const notificationCounts = {
     people: 0,
     attendance: 0,
-    leave: canManageLeave ? (leaveCount ?? 0) : 0,
-    claims: canManageClaims ? (claimCount ?? 0) : 0,
+    leave: leaveCount ?? 0,
+    claims: claimCount ?? 0,
     tasks: 0,
   }
 

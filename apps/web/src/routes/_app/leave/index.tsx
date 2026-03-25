@@ -45,19 +45,20 @@ function LeaveDashboard() {
     return sum + available
   }, 0) ?? 0
 
-  // Smart default: show approvals only if manager AND has pending items
+  // Smart default: switch to approvals when API returns pending items.
+  // Do NOT gate on canManageLeave — JWT has_subordinate can be stale.
   useEffect(() => {
-    if (canManageLeave && pendingCount > 0) {
+    if (pendingCount > 0) {
       setActiveTab('approvals')
     }
-  }, [canManageLeave, pendingCount])
+  }, [pendingCount])
 
   // Smart tab switching: if on Approvals tab and no pending requests, switch to My Requests
   useEffect(() => {
-    if (canManageLeave && pendingCount === 0 && activeTab === 'approvals') {
+    if (pendingCount === 0 && activeTab === 'approvals') {
       setActiveTab('my-requests')
     }
-  }, [canManageLeave, pendingCount, activeTab])
+  }, [pendingCount, activeTab])
 
   return (
     <div
@@ -294,7 +295,7 @@ function LeaveDashboard() {
         <div>
           {/* Tab Headers */}
           <div className="flex items-center gap-2 mb-4">
-            {canManageLeave && pendingCount > 0 && (
+            {pendingCount > 0 && (
               <button
                 onClick={() => setActiveTab('approvals')}
                 className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all"
@@ -341,7 +342,7 @@ function LeaveDashboard() {
           </div>
 
           {/* Tab Content */}
-          {activeTab === 'approvals' && canManageLeave && (
+          {activeTab === 'approvals' && (
             <div>
               {!pendingRequests || pendingRequests.length === 0 ? (
                 <div

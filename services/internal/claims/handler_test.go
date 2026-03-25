@@ -260,6 +260,31 @@ func TestHandler_MarkAsPaid(t *testing.T) {
 			}),
 			wantStatus: http.StatusNotFound,
 		},
+		// Role-gating: only admin-level and finance roles can mark as paid
+		{
+			name:       "200 — hr_admin can mark as paid",
+			claimID:    testClaimID.String(),
+			role:       middleware.RoleHRAdmin,
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "200 — finance can mark as paid",
+			claimID:    testClaimID.String(),
+			role:       middleware.RoleFinance,
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "403 — manager cannot mark as paid",
+			claimID:    testClaimID.String(),
+			role:       middleware.RoleManager,
+			wantStatus: http.StatusForbidden,
+		},
+		{
+			name:       "403 — member cannot mark as paid",
+			claimID:    testClaimID.String(),
+			role:       middleware.RoleMember,
+			wantStatus: http.StatusForbidden,
+		},
 	}
 
 	for _, tt := range tests {
@@ -564,20 +589,57 @@ func TestHandler_DeactivateCategory(t *testing.T) {
 // ── TestHandler_ListClaims ────────────────────────────────────────────────────
 
 func TestHandler_ListClaims(t *testing.T) {
-	t.Run("200 — returns claims", func(t *testing.T) {
-		svc := &fakeHandlerService{}
+	t.Run("200 — admin role, no managerEmployeeID filter", func(t *testing.T) {
+		var capturedManagerID *uuid.UUID
+		svc := &fakeHandlerService{
+			listClaimsFn: func(_ context.Context, _ uuid.UUID, _ claims.ClaimFilters, _ string, mid *uuid.UUID) (*claims.ListResult, error) {
+				capturedManagerID = mid
+				return &claims.ListResult{Claims: []claims.ClaimWithDetails{}}, nil
+			},
+		}
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest(http.MethodGet, "/api/v1/claims", nil)
-		newClaimsRouter(svc).ServeHTTP(w, req)
+		newClaimsRouter(svc).ServeHTTP(w, req) // default role = admin
 		assertClaimsStatus(t, w, http.StatusOK)
+		if capturedManagerID != nil {
+			t.Errorf("admin should pass nil managerEmployeeID, got %s", capturedManagerID)
+		}
 	})
 
-	t.Run("200 — manager sees only direct reports claims", func(t *testing.T) {
-		svc := &fakeHandlerService{}
+	// Manager role uses the hierarchical filter (recursive CTE in repo walks their
+	// full subordinate tree), so they pass their own employee_id as the root.
+	t.Run("200 — manager role uses hierarchical subordinate filter", func(t *testing.T) {
+		var capturedManagerID *uuid.UUID
+		svc := &fakeHandlerService{
+			listClaimsFn: func(_ context.Context, _ uuid.UUID, _ claims.ClaimFilters, _ string, mid *uuid.UUID) (*claims.ListResult, error) {
+				capturedManagerID = mid
+				return &claims.ListResult{Claims: []claims.ClaimWithDetails{}}, nil
+			},
+		}
 		w := httptest.NewRecorder()
 		req, _ := http.NewRequest(http.MethodGet, "/api/v1/claims", nil)
 		newClaimsRouterWithRole(svc, "manager").ServeHTTP(w, req)
 		assertClaimsStatus(t, w, http.StatusOK)
+		if capturedManagerID == nil {
+			t.Error("manager role should pass managerEmployeeID for hierarchical subordinate filtering")
+		}
+	})
+
+	t.Run("200 — member role uses managerEmployeeID filter", func(t *testing.T) {
+		var capturedManagerID *uuid.UUID
+		svc := &fakeHandlerService{
+			listClaimsFn: func(_ context.Context, _ uuid.UUID, _ claims.ClaimFilters, _ string, mid *uuid.UUID) (*claims.ListResult, error) {
+				capturedManagerID = mid
+				return &claims.ListResult{Claims: []claims.ClaimWithDetails{}}, nil
+			},
+		}
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/claims", nil)
+		newClaimsRouterWithRole(svc, "member").ServeHTTP(w, req)
+		assertClaimsStatus(t, w, http.StatusOK)
+		if capturedManagerID == nil {
+			t.Error("member role should pass managerEmployeeID (restrict to direct reports)")
+		}
 	})
 
 	t.Run("500 — service error", func(t *testing.T) {

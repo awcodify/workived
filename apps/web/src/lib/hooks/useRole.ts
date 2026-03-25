@@ -27,42 +27,64 @@ export function useCanInvite(): boolean {
   return role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin'
 }
 
-// leave.write permission: owner, admin, hr_admin, member, manager, finance
-// Members/managers/finance can view team approvals if they have direct reports
+// leave.write permission: owner, admin, hr_admin, manager always; member/finance if has subordinates
 export function useCanManageLeave(): boolean {
   const role = useRole()
   const hasSubordinate = useHasSubordinate()
-  
+
   // Admin roles: always true (org-wide access)
   if (role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin') {
     return true
   }
-  
-  // Approval roles: true only if has subordinates (team-level access)
-  if (role === 'member' || role === 'manager' || role === 'finance') {
+
+  // Manager role always has PermTeamLeaveApprove regardless of has_subordinate JWT claim
+  if (role === 'manager') {
+    return true
+  }
+
+  // Member/finance: only if they have direct reports (has_subordinate in JWT)
+  if (role === 'member' || role === 'finance') {
     return hasSubordinate
   }
-  
+
   return false
 }
 
-// claims.write permission: owner, admin, hr_admin, member, manager, finance
-// Members/managers/finance can view team approvals if they have direct reports
+// claims.write permission: owner, admin, hr_admin, manager always; member/finance if has subordinates
 export function useCanManageClaims(): boolean {
   const role = useRole()
   const hasSubordinate = useHasSubordinate()
-  
+
   // Admin roles: always true (org-wide access)
   if (role === 'owner' || role === 'admin' || role === 'hr_admin' || role === 'super_admin') {
     return true
   }
-  
-  // Approval roles: true only if has subordinates (team-level access)
-  if (role === 'member' || role === 'manager' || role === 'finance') {
+
+  // Manager role always has PermTeamClaimsApprove regardless of has_subordinate JWT claim
+  if (role === 'manager') {
+    return true
+  }
+
+  // Member/finance: only if they have direct reports (has_subordinate in JWT)
+  if (role === 'member' || role === 'finance') {
     return hasSubordinate
   }
-  
+
   return false
+}
+
+// claims.pay permission: owner, admin, hr_admin, finance, super_admin.
+// Matches the server-side role check in claims/handler.go MarkAsPaid.
+// manager and member can approve claims but cannot disburse payments.
+export function useCanPayClaims(): boolean {
+  const role = useRole()
+  return (
+    role === 'owner' ||
+    role === 'admin' ||
+    role === 'hr_admin' ||
+    role === 'finance' ||
+    role === 'super_admin'
+  )
 }
 
 // employee.write permission: owner, admin, hr_admin

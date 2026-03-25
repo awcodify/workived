@@ -14,7 +14,7 @@ export interface RequestListItemTheme {
 
 export interface RequestData {
   id: string
-  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'paid'
   start_date: string
   end_date: string
   total_days: number

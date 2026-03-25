@@ -470,7 +470,17 @@ func (r *Repository) UpdateRequestStatus(ctx context.Context, tx pgx.Tx, orgID, 
 
 // ListRequests returns leave requests with employee and policy names.
 func (r *Repository) ListRequests(ctx context.Context, orgID uuid.UUID, filter ListRequestsFilter) ([]RequestWithDetails, error) {
+	// Recursive CTE builds the full subordinate tree so indirect managers
+	// (e.g. 1 sees 1.1.1 even though 1.1 is the direct manager).
 	rows, err := r.db.Query(ctx, `
+		WITH RECURSIVE subordinates AS (
+			SELECT id FROM employees
+			WHERE organisation_id = $1 AND reporting_to = $5 AND is_active = TRUE
+			UNION ALL
+			SELECT e.id FROM employees e
+			INNER JOIN subordinates s ON e.reporting_to = s.id
+			WHERE e.organisation_id = $1 AND e.is_active = TRUE
+		)
 		SELECT lr.id, lr.organisation_id, lr.employee_id, lr.leave_policy_id,
 		       lr.start_date::text, lr.end_date::text, lr.total_days, lr.reason,
 		       lr.status, lr.reviewed_by, lr.reviewed_at, lr.review_note,
@@ -485,7 +495,7 @@ func (r *Repository) ListRequests(ctx context.Context, orgID uuid.UUID, filter L
 		  AND ($2::varchar IS NULL OR lr.status = $2)
 		  AND ($3::uuid IS NULL OR lr.employee_id = $3)
 		  AND ($4::int IS NULL OR EXTRACT(YEAR FROM lr.start_date) = $4)
-		  AND ($5::uuid IS NULL OR e.reporting_to = $5)
+		  AND ($5::uuid IS NULL OR lr.employee_id IN (SELECT id FROM subordinates))
 		  AND ($6::date IS NULL OR (lr.start_date <= $6::date AND lr.end_date >= $6::date))
 		ORDER BY lr.created_at DESC
 	`, orgID, filter.Status, filter.EmployeeID, filter.Year, filter.ManagerEmployeeID, filter.Date)
@@ -530,36 +540,29 @@ func (r *Repository) HasOverlap(ctx context.Context, orgID, employeeID uuid.UUID
 	return exists, nil
 }
 
-// CountPendingRequests returns the number of pending leave requests for the organization.
+// CountPendingRequests returns the number of pending leave requests.
+// When managerEmployeeID is set, counts only requests from that manager's
+// full subordinate tree (recursive, not just direct reports).
 func (r *Repository) CountPendingRequests(ctx context.Context, orgID uuid.UUID, managerEmployeeID *uuid.UUID) (int, error) {
 	var count int
-	query := `
+	err := r.db.QueryRow(ctx, `
+		WITH RECURSIVE subordinates AS (
+			SELECT id FROM employees
+			WHERE organisation_id = $1 AND reporting_to = $2 AND is_active = TRUE
+			UNION ALL
+			SELECT e.id FROM employees e
+			INNER JOIN subordinates s ON e.reporting_to = s.id
+			WHERE e.organisation_id = $1 AND e.is_active = TRUE
+		)
 		SELECT COUNT(*)
-		FROM leave_requests lr`
-
-	if managerEmployeeID != nil {
-		query += `
-		JOIN employees e ON e.id = lr.employee_id`
-	}
-
-	query += `
+		FROM leave_requests lr
 		WHERE lr.organisation_id = $1
-		  AND lr.status = 'pending'`
-
-	if managerEmployeeID != nil {
-		query += `
-		  AND e.reporting_to = $2`
-		err := r.db.QueryRow(ctx, query, orgID, managerEmployeeID).Scan(&count)
-		if err != nil {
-			return 0, fmt.Errorf("count pending leave requests: %w", err)
-		}
-	} else {
-		err := r.db.QueryRow(ctx, query, orgID).Scan(&count)
-		if err != nil {
-			return 0, fmt.Errorf("count pending leave requests: %w", err)
-		}
+		  AND lr.status = 'pending'
+		  AND ($2::uuid IS NULL OR lr.employee_id IN (SELECT id FROM subordinates))
+	`, orgID, managerEmployeeID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count pending leave requests: %w", err)
 	}
-
 	return count, nil
 }
 

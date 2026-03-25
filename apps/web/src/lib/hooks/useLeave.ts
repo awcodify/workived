@@ -291,15 +291,16 @@ export function useHolidays(startDate: string, endDate: string) {
 
 // ── Notification Hooks ───────────────────────────────────────
 
+// Returns the count of pending leave requests for the dock badge.
+// Reuses the same query key as useAllRequests({ status: 'pending' }) so the
+// dock and the leave tab share cache — no extra API call when both are mounted.
 export function useLeaveNotificationCount() {
-  const canManage = useCanManageLeave()
-  
   return useQuery({
-    queryKey: leaveKeys.notificationCount(),
-    queryFn: () => leaveApi.getNotificationCount().then((r) => r.data.data.count),
-    staleTime: 60 * 1000, // 1 min — refetch frequently to stay current
-    refetchInterval: 60 * 1000, // Auto-refetch every minute
-    enabled: canManage, // Only fetch for users with permission
+    queryKey: leaveKeys.allRequests({ status: 'pending' }),
+    queryFn: () => leaveApi.listRequests({ status: 'pending' }).then((r) => r.data.data),
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+    select: (data) => data?.length ?? 0,
   })
 }
 

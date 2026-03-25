@@ -207,7 +207,19 @@ func (r *Repository) ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFil
 	limit := paginate.ClampLimit(f.Limit)
 	cursor := paginate.Decode(f.Cursor)
 
+	// Recursive CTE walks the full subordinate tree so that indirect managers
+	// (e.g. 1 can see claims from 1.1.1 even though 1.1 is the direct manager).
+	// When $8 is NULL the CTE base-case returns no rows and the IN check is
+	// skipped by the short-circuit OR, giving org-wide visibility.
 	query := `
+		WITH RECURSIVE subordinates AS (
+			SELECT id FROM employees
+			WHERE organisation_id = $1 AND reporting_to = $8 AND is_active = TRUE
+			UNION ALL
+			SELECT e.id FROM employees e
+			INNER JOIN subordinates s ON e.reporting_to = s.id
+			WHERE e.organisation_id = $1 AND e.is_active = TRUE
+		)
 		SELECT
 			c.id, c.organisation_id, c.employee_id, c.category_id, c.amount, c.currency_code,
 			c.description, c.receipt_url, c.status, c.reviewed_by, c.reviewed_at, c.review_note,
@@ -224,7 +236,7 @@ func (r *Repository) ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFil
 		  AND ($5::date IS NULL OR c.claim_date >= $5::date)
 		  AND ($6::date IS NULL OR c.claim_date <= $6::date)
 		  AND ($7::timestamptz IS NULL OR c.created_at < $7::timestamptz)
-		  AND ($8::uuid IS NULL OR e.reporting_to = $8)
+		  AND ($8::uuid IS NULL OR c.employee_id IN (SELECT id FROM subordinates))
 		ORDER BY c.created_at DESC
 		LIMIT $9
 	`

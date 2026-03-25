@@ -309,7 +309,8 @@ function ClaimApprovalView({ task, approvalId, onClose }: ClaimApprovalViewProps
     approved: '#10B981',
     rejected: '#EF4444',
     cancelled: '#6B7280',
-  }[claim.status] || '#6B7280'
+    paid: '#6357E8',
+  }[claim.status] ?? '#6B7280'
 
   const isPending = claim.status === 'pending'
 

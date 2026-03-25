@@ -196,19 +196,27 @@ func (r *Repository) GetEmployeeGender(ctx context.Context, orgID, employeeID uu
 }
 
 func (r *Repository) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
-	var reportingTo *uuid.UUID
+	// Walk the full ancestor chain (not just direct manager) so that
+	// grandparent/higher-level managers can also approve subordinate requests.
+	// e.g. if 1.1.1 reports to 1.1 reports to 1, then both 1.1 and 1 can approve.
+	var isAncestor bool
 	err := r.db.QueryRow(ctx, `
-		SELECT reporting_to
-		FROM employees
-		WHERE organisation_id = $1 AND id = $2 AND is_active = true
-	`, orgID, employeeID).Scan(&reportingTo)
+		WITH RECURSIVE ancestors AS (
+			SELECT e.reporting_to AS ancestor_id
+			FROM employees e
+			WHERE e.organisation_id = $1 AND e.id = $2 AND e.is_active = TRUE
+			UNION ALL
+			SELECT e.reporting_to
+			FROM employees e
+			INNER JOIN ancestors a ON e.id = a.ancestor_id
+			WHERE e.organisation_id = $1 AND a.ancestor_id IS NOT NULL
+		)
+		SELECT EXISTS(SELECT 1 FROM ancestors WHERE ancestor_id = $3)
+	`, orgID, employeeID, managerEmployeeID).Scan(&isAncestor)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return apperr.NotFound("employee")
-		}
 		return err
 	}
-	if reportingTo == nil || *reportingTo != managerEmployeeID {
+	if !isAncestor {
 		return apperr.New(apperr.CodeForbidden, "employee does not report to you")
 	}
 	return nil

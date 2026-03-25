@@ -2,19 +2,21 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { AlertCircle, Settings, X, Upload } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
-import { 
-  useMyClaimBalances, 
-  useAllClaims, 
+import {
+  useMyClaimBalances,
+  useAllClaims,
   useMyClaims,
   useApproveClaim,
   useRejectClaim,
   useCancelClaim,
   useSubmitClaim,
   useCategories,
+  useMarkAsPaid,
 } from '@/lib/hooks/useClaims'
-import { useCanManageClaims, useRole } from '@/lib/hooks/useRole'
+import { useCanManageClaims, useCanPayClaims, useRole } from '@/lib/hooks/useRole'
+import { MarkAsPaidSheet } from '@/components/workived/claims/MarkAsPaidSheet'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
+import { moduleBackgrounds, moduleThemes, typography, colors, getAvatarColor } from '@/design/tokens'
 import type { ClaimBalanceWithCategory, ClaimWithDetails } from '@/types/api'
 import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
@@ -30,6 +32,7 @@ export const Route = createFileRoute('/_app/claims/')({
 function ClaimsDashboard() {
   const navigate = useNavigate()
   const canManageClaims = useCanManageClaims()
+  const canPayClaims = useCanPayClaims()
 
   // Get current year and month for balances
   const now = new Date()
@@ -43,25 +46,32 @@ function ClaimsDashboard() {
   const approveMutation = useApproveClaim()
   const rejectMutation = useRejectClaim()
   const cancelMutation = useCancelClaim()
-  
+  const markAsPaidMutation = useMarkAsPaid()
+
   const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>('my-requests')
+  const [payingClaim, setPayingClaim] = useState<ClaimWithDetails | null>(null)
   
   const [showNewClaimModal, setShowNewClaimModal] = useState(false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('')
 
   const pendingClaims = allClaims?.data?.filter((c: ClaimWithDetails) => c.status === 'pending') ?? []
+  const approvedClaims = allClaims?.data?.filter((c: ClaimWithDetails) => c.status === 'approved') ?? []
   const myClaims = myClaimsResponse?.data ?? []
   const pendingCount = pendingClaims.length
+  const approvedCount = approvedClaims.length
 
   const totalSpent = balances?.reduce((sum: number, b: ClaimBalanceWithCategory) => sum + b.total_spent, 0) ?? 0
   const totalLimit = balances?.reduce((sum: number, b: ClaimBalanceWithCategory) => sum + (b.monthly_limit ?? 0), 0) ?? 0
 
-  // Smart default: show approvals only if manager AND has pending items
+  // Smart default: switch to approvals tab when items arrive from the API.
+  // Do NOT gate on canManageClaims — the JWT has_subordinate claim can be stale
+  // if reporting relationships were set up after the user last logged in.
+  // The API already enforces access; an empty response means no items to review.
   useEffect(() => {
-    if (canManageClaims && pendingCount > 0) {
+    if (pendingCount > 0 || approvedCount > 0) {
       setActiveTab('approvals')
     }
-  }, [canManageClaims, pendingCount])
+  }, [pendingCount, approvedCount])
 
   return (
     <div
@@ -162,15 +172,20 @@ function ClaimsDashboard() {
                 const isLowBalance = limit > 0 && remainingPercentage <= 20 && remainingPercentage > 0
                 const isExhausted = remaining <= 0 && limit > 0
 
-                // Format currency - compact version (K for thousands, M for millions)
+                const currencyCode = balance.currency_code ?? 'IDR'
                 const formatMoney = (amount: number) => {
-                  const absAmount = Math.abs(amount)
-                  if (absAmount >= 1000000) {
-                    return `Rp ${(amount / 1000000).toFixed(1)}M`
-                  } else if (absAmount >= 1000) {
-                    return `Rp ${Math.round(amount / 1000)}K`
+                  if (currencyCode === 'IDR') {
+                    const absAmount = Math.abs(amount)
+                    if (absAmount >= 1_000_000) return `Rp ${(amount / 1_000_000).toFixed(1)}M`
+                    if (absAmount >= 1_000) return `Rp ${Math.round(amount / 1_000)}K`
+                    return `Rp ${amount.toLocaleString('id-ID')}`
                   }
-                  return `Rp ${amount.toLocaleString('id-ID')}`
+                  return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: currencyCode,
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  }).format(amount)
                 }
 
                 return (
@@ -304,7 +319,7 @@ function ClaimsDashboard() {
         <div>
           {/* Tab Headers */}
           <div className="flex items-center gap-2 mb-4">
-            {canManageClaims && pendingCount > 0 && (
+            {(pendingCount > 0 || approvedCount > 0) && (
               <button
                 onClick={() => setActiveTab('approvals')}
                 className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all"
@@ -317,7 +332,7 @@ function ClaimsDashboard() {
               >
                 <AlertCircle size={16} style={{ color: colors.warn }} />
                 Need Your Attention
-                {pendingCount > 0 && (
+                {(pendingCount > 0 || approvedCount > 0) && (
                   <span
                     className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-[10px] font-bold"
                     style={{
@@ -326,7 +341,7 @@ function ClaimsDashboard() {
                       borderRadius: 10,
                     }}
                   >
-                    {pendingCount}
+                    {pendingCount + approvedCount}
                   </span>
                 )}
               </button>
@@ -351,9 +366,110 @@ function ClaimsDashboard() {
           </div>
 
           {/* Tab Content */}
-          {activeTab === 'approvals' && canManageClaims && (
-            <div>
-              {pendingClaims.length === 0 ? (
+          {activeTab === 'approvals' && (
+            <div className="space-y-4">
+              {/* ── Needs Approval section ── */}
+              {pendingClaims.length > 0 && (
+                <div>
+                  <p
+                    className="font-semibold mb-2"
+                    style={{ fontSize: typography.label.size, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                  >
+                    Needs Approval
+                  </p>
+                  <div className="space-y-3">
+                    {(() => {
+                      const groupedByEmployee = pendingClaims.reduce((acc, claim) => {
+                        const key = claim.employee_id
+                        if (!acc[key]) {
+                          acc[key] = {
+                            employee_id: claim.employee_id,
+                            employee_name: claim.employee_name,
+                            requests: [],
+                          }
+                        }
+                        acc[key]!.requests.push(claim)
+                        return acc
+                      }, {} as Record<string, { employee_id: string; employee_name: string; requests: ClaimWithDetails[] }>)
+
+                      return Object.values(groupedByEmployee).map((group) => (
+                        <EmployeeRequestGroup
+                          key={group.employee_id}
+                          employeeName={group.employee_name}
+                          requests={group.requests as unknown as RequestData[]}
+                          actions={{
+                            onApproveAll: async (requests) => {
+                              for (const request of requests) {
+                                try {
+                                  await approveMutation.mutateAsync({ id: request.id })
+                                } catch (error) {
+                                  console.error('Failed to approve claim:', request.id, error)
+                                }
+                              }
+                            },
+                            onRejectAll: async (requests, note) => {
+                              for (const request of requests) {
+                                try {
+                                  await rejectMutation.mutateAsync({ id: request.id, data: { review_note: note } })
+                                } catch (error) {
+                                  console.error('Failed to reject claim:', request.id, error)
+                                }
+                              }
+                            },
+                            onApprove: async (id) => {
+                              await approveMutation.mutateAsync({ id })
+                            },
+                            onReject: async (id, note) => {
+                              await rejectMutation.mutateAsync({ id, data: { review_note: note } })
+                            },
+                            isPendingApprove: approveMutation.isPending,
+                            isPendingReject: rejectMutation.isPending,
+                          }}
+                          config={createClaimRequestConfig()}
+                          theme={claimRequestTheme}
+                          findContextData={(request) => {
+                            const claim = request as unknown as ClaimWithDetails
+                            const balance = balances?.find((b) => b.category_id === claim.category_id)
+                            return balance ? { balance } : undefined
+                          }}
+                        />
+                      ))
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Pending Payment section — only for payment-capable roles ── */}
+              {canPayClaims && approvedClaims.length > 0 && (
+                <div>
+                  <p
+                    className="font-semibold mb-2"
+                    style={{ fontSize: typography.label.size, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                  >
+                    Pending Payment
+                  </p>
+                  <div
+                    style={{
+                      background: t.surface,
+                      borderRadius: 14,
+                      border: `1px solid ${t.border}`,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {approvedClaims.map((claim, idx) => (
+                      <PendingPaymentRow
+                        key={claim.id}
+                        claim={claim}
+                        isLast={idx === approvedClaims.length - 1}
+                        onPay={() => setPayingClaim(claim)}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── All caught up empty state ── */}
+              {pendingClaims.length === 0 && approvedClaims.length === 0 && (
                 <div
                   className="flex flex-col items-center justify-center text-center"
                   style={{
@@ -377,78 +493,12 @@ function ClaimsDashboard() {
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <p
-                    className="font-bold"
-                    style={{ fontSize: typography.h3.size, color: t.text }}
-                  >
+                  <p className="font-bold" style={{ fontSize: typography.h3.size, color: t.text }}>
                     All caught up!
                   </p>
                   <p className="text-sm mt-1" style={{ color: t.textMuted }}>
                     No pending claims to review
                   </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {(() => {
-                    // Group claims by employee
-                    const groupedByEmployee = pendingClaims.reduce((acc, claim) => {
-                      const key = claim.employee_id
-                      if (!acc[key]) {
-                        acc[key] = {
-                          employee_id: claim.employee_id,
-                          employee_name: claim.employee_name,
-                          requests: [],
-                        }
-                      }
-                      acc[key].requests.push(claim)
-                      return acc
-                    }, {} as Record<string, { employee_id: string; employee_name: string; requests: ClaimWithDetails[] }>)
-
-                    return Object.values(groupedByEmployee).map((group) => (
-                      <EmployeeRequestGroup
-                        key={group.employee_id}
-                        employeeName={group.employee_name}
-                        requests={group.requests as unknown as RequestData[]}
-                        actions={{
-                          onApproveAll: async (requests) => {
-                            for (const request of requests) {
-                              try {
-                                await approveMutation.mutateAsync({ id: request.id })
-                              } catch (error) {
-                                console.error('Failed to approve claim:', request.id, error)
-                              }
-                            }
-                          },
-                          onRejectAll: async (requests, note) => {
-                            for (const request of requests) {
-                              try {
-                                await rejectMutation.mutateAsync({ id: request.id, data: { review_note: note } })
-                              } catch (error) {
-                                console.error('Failed to reject claim:', request.id, error)
-                              }
-                            }
-                          },
-                          onApprove: async (id) => {
-                            await approveMutation.mutateAsync({ id })
-                          },
-                          onReject: async (id, note) => {
-                            await rejectMutation.mutateAsync({ id, data: { review_note: note } })
-                          },
-                          isPendingApprove: approveMutation.isPending,
-                          isPendingReject: rejectMutation.isPending,
-                        }}
-                        config={createClaimRequestConfig()}
-                        theme={claimRequestTheme}
-                        findContextData={(request) => {
-                          const claim = request as unknown as ClaimWithDetails
-                          const balance = balances?.find(
-                            (b) => b.category_id === claim.category_id
-                          )
-                          return balance ? { balance } : undefined
-                        }}
-                      />
-                    ))
-                  })()}
                 </div>
               )}
             </div>
@@ -539,6 +589,15 @@ function ClaimsDashboard() {
           }}
         />
       )}
+
+      {/* Mark as Paid Sheet */}
+      {payingClaim && (
+        <MarkAsPaidSheet
+          claim={payingClaim}
+          onClose={() => setPayingClaim(null)}
+          onConfirm={async () => { await markAsPaidMutation.mutateAsync(payingClaim.id) }}
+        />
+      )}
     </div>
   )
 }
@@ -612,6 +671,101 @@ function EmptyBalances() {
           Set Up Categories
         </button>
       )}
+    </div>
+  )
+}
+
+// ── Pending Payment Row ───────────────────────────────────────
+
+interface PendingPaymentRowProps {
+  claim: ClaimWithDetails
+  isLast: boolean
+  onPay: () => void
+}
+
+function PendingPaymentRow({ claim, isLast, onPay }: PendingPaymentRowProps) {
+  const avatarColor = getAvatarColor(claim.employee_id)
+  const initials = claim.employee_name
+    .split(' ')
+    .map((n: string) => n[0] ?? '')
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  const approvedDate = claim.reviewed_at
+    ? new Date(claim.reviewed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : null
+
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        padding: '12px 16px',
+        borderBottom: isLast ? 'none' : `1px solid ${t.border}`,
+      }}
+    >
+      {/* Avatar */}
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 9,
+          background: avatarColor.bg,
+          color: avatarColor.text,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 11,
+          fontWeight: 700,
+          flexShrink: 0,
+        }}
+      >
+        {initials}
+      </div>
+
+      {/* Info */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: t.text, margin: 0 }}>
+          {claim.employee_name}
+        </p>
+        <p style={{ fontSize: 11, color: t.textMuted, margin: '1px 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {claim.category_name}{approvedDate ? ` · ${approvedDate}` : ''}
+        </p>
+      </div>
+
+      {/* Amount */}
+      <p style={{ fontSize: 13, fontWeight: 700, color: t.text, flexShrink: 0 }}>
+        {new Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: claim.currency_code,
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0,
+        }).format(claim.amount)}
+      </p>
+
+      {/* Status square + Pay button */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <div style={{ width: 7, height: 7, borderRadius: 2, background: '#12A05C' }} />
+        <button
+          data-testid={`pay-btn-${claim.id}`}
+          onClick={onPay}
+          style={{
+            background: 'rgba(16,185,129,0.12)',
+            color: '#059669',
+            border: 'none',
+            borderRadius: 6,
+            padding: '3px 8px',
+            fontSize: 11,
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          Pay →
+        </button>
+      </div>
     </div>
   )
 }

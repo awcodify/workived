@@ -111,6 +111,9 @@ export const claimsApi = {
   cancelClaim: (id: string) =>
     apiClient.post<ApiResponse<Claim>>(`/api/v1/claims/${id}/cancel`),
 
+  markAsPaid: (id: string) =>
+    apiClient.post<ApiResponse<ClaimWithDetails>>(`/api/v1/claims/${id}/pay`),
+
   // ── Summaries ──────────────────────────────────────────────
   getMonthlySummary: (year: number, month: number) =>
     apiClient.get<SummaryResponse>('/api/v1/claims/summary', {
