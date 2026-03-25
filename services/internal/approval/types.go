@@ -13,6 +13,7 @@ const (
 	StatusApproved  = "approved"
 	StatusRejected  = "rejected"
 	StatusCancelled = "cancelled"
+	StatusPaid      = "paid"
 )
 
 // ReviewInfo contains the common reviewer metadata embedded in approval workflows.
@@ -26,7 +27,7 @@ type ReviewInfo struct {
 // ValidStatus returns true if the status is one of the valid approval statuses.
 func ValidStatus(status string) bool {
 	switch status {
-	case StatusPending, StatusApproved, StatusRejected, StatusCancelled:
+	case StatusPending, StatusApproved, StatusRejected, StatusCancelled, StatusPaid:
 		return true
 	default:
 		return false
@@ -35,5 +36,5 @@ func ValidStatus(status string) bool {
 
 // IsFinalStatus returns true if the status cannot be changed (terminal state).
 func IsFinalStatus(status string) bool {
-	return status == StatusApproved || status == StatusRejected || status == StatusCancelled
+	return status == StatusApproved || status == StatusRejected || status == StatusCancelled || status == StatusPaid
 }

@@ -17,9 +17,10 @@ type Policy struct {
 	DaysPerYear      float64   `json:"days_per_year"`
 	CarryOverDays    float64   `json:"carry_over_days"`
 	MinTenureDays    int       `json:"min_tenure_days"`
-	RequiresApproval bool      `json:"requires_approval"`
-	IsUnlimited      bool      `json:"is_unlimited"`
-	IsActive         bool      `json:"is_active"`
+	RequiresApproval  bool      `json:"requires_approval"`
+	GenderEligibility string    `json:"gender_eligibility"` // "all", "male", "female"
+	IsUnlimited       bool      `json:"is_unlimited"`
+	IsActive           bool      `json:"is_active"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }
@@ -110,6 +111,7 @@ type PolicyTemplate struct {
 	MaxCarryOverDays    *float64  `json:"max_carry_over_days,omitempty"`
 	IsAccrued           bool      `json:"is_accrued"`
 	RequiresApproval    bool      `json:"requires_approval"`
+	GenderEligibility   string    `json:"gender_eligibility"` // "all", "male", "female"
 	SortOrder           int       `json:"sort_order"`
 	CreatedAt           time.Time `json:"created_at"`
 }
@@ -122,8 +124,9 @@ type CreatePolicyRequest struct {
 	DaysPerYear      float64 `json:"days_per_year"     validate:"required,gte=0,lte=365"`
 	CarryOverDays    float64 `json:"carry_over_days"   validate:"gte=0,lte=365"`
 	MinTenureDays    int     `json:"min_tenure_days"   validate:"gte=0"`
-	RequiresApproval *bool   `json:"requires_approval"`
-	IsUnlimited      *bool   `json:"is_unlimited"`
+	RequiresApproval  *bool   `json:"requires_approval"`
+	GenderEligibility *string `json:"gender_eligibility" validate:"omitempty,oneof=all male female"`
+	IsUnlimited       *bool   `json:"is_unlimited"`
 }
 
 type UpdatePolicyRequest struct {
@@ -132,8 +135,9 @@ type UpdatePolicyRequest struct {
 	DaysPerYear      *float64 `json:"days_per_year"     validate:"omitempty,gte=0,lte=365"`
 	CarryOverDays    *float64 `json:"carry_over_days"   validate:"omitempty,gte=0,lte=365"`
 	MinTenureDays    *int     `json:"min_tenure_days"   validate:"omitempty,gte=0"`
-	RequiresApproval *bool    `json:"requires_approval"`
-	IsUnlimited      *bool    `json:"is_unlimited"`
+	RequiresApproval  *bool    `json:"requires_approval"`
+	GenderEligibility *string  `json:"gender_eligibility" validate:"omitempty,oneof=all male female"`
+	IsUnlimited       *bool    `json:"is_unlimited"`
 }
 
 type SubmitRequestInput struct {

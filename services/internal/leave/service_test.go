@@ -195,6 +195,7 @@ func (f *fakeOrgRepo) GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]in
 
 type fakeEmployeeRepo struct {
 	getEmployeeProfileFn        func(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	getEmployeeGenderFn         func(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error)
 	verifyManagerRelationshipFn func(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
@@ -204,6 +205,13 @@ func (f *fakeEmployeeRepo) GetEmployeeProfile(ctx context.Context, orgID, employ
 	}
 	name = "Test Employee"
 	return name, nil, nil, nil
+}
+
+func (f *fakeEmployeeRepo) GetEmployeeGender(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error) {
+	if f.getEmployeeGenderFn != nil {
+		return f.getEmployeeGenderFn(ctx, orgID, employeeID)
+	}
+	return nil, nil
 }
 
 func (f *fakeEmployeeRepo) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
@@ -219,11 +227,11 @@ func defaultFakeRepo() *fakeRepo {
 	return &fakeRepo{
 		listPoliciesFn: func(_ context.Context, _ uuid.UUID) ([]leave.Policy, error) {
 			return []leave.Policy{
-				{ID: testPolicyID, Name: "Annual Leave", DaysPerYear: 12, IsActive: true},
+				{ID: testPolicyID, Name: "Annual Leave", DaysPerYear: 12, GenderEligibility: "all", IsActive: true},
 			}, nil
 		},
 		getPolicyFn: func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
-			return &leave.Policy{ID: testPolicyID, Name: "Annual Leave", DaysPerYear: 12, IsActive: true}, nil
+			return &leave.Policy{ID: testPolicyID, Name: "Annual Leave", DaysPerYear: 12, GenderEligibility: "all", IsActive: true}, nil
 		},
 		createPolicyFn: func(_ context.Context, orgID uuid.UUID, req leave.CreatePolicyRequest) (*leave.Policy, error) {
 			return &leave.Policy{ID: testPolicyID, OrganisationID: orgID, Name: req.Name, DaysPerYear: req.DaysPerYear, IsActive: true}, nil

@@ -27,7 +27,7 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Policy, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
-		       min_tenure_days, requires_approval, is_unlimited, is_active, created_at, updated_at
+		       min_tenure_days, requires_approval, gender_eligibility, is_unlimited, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1
 		  AND is_active = TRUE
@@ -43,7 +43,7 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 		var p Policy
 		if err := rows.Scan(
 			&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
-			&p.MinTenureDays, &p.RequiresApproval, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+			&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan leave policy: %w", err)
 		}
@@ -57,12 +57,12 @@ func (r *Repository) GetPolicy(ctx context.Context, orgID, policyID uuid.UUID) (
 	var p Policy
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
-		       min_tenure_days, requires_approval, is_unlimited, is_active, created_at, updated_at
+		       min_tenure_days, requires_approval, gender_eligibility, is_unlimited, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, policyID).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
-		&p.MinTenureDays, &p.RequiresApproval, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -85,15 +85,20 @@ func (r *Repository) CreatePolicy(ctx context.Context, orgID uuid.UUID, req Crea
 		isUnlimited = *req.IsUnlimited
 	}
 
+	genderEligibility := "all"
+	if req.GenderEligibility != nil && *req.GenderEligibility != "" {
+		genderEligibility = *req.GenderEligibility
+	}
+
 	var p Policy
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO leave_policies (organisation_id, name, description, days_per_year, carry_over_days, min_tenure_days, requires_approval, is_unlimited)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		INSERT INTO leave_policies (organisation_id, name, description, days_per_year, carry_over_days, min_tenure_days, requires_approval, gender_eligibility, is_unlimited)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
-		          min_tenure_days, requires_approval, is_unlimited, is_active, created_at, updated_at
-	`, orgID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, reqApproval, isUnlimited).Scan(
+		          min_tenure_days, requires_approval, gender_eligibility, is_unlimited, is_active, created_at, updated_at
+	`, orgID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, reqApproval, genderEligibility, isUnlimited).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
-		&p.MinTenureDays, &p.RequiresApproval, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create leave policy: %w", err)
@@ -106,19 +111,20 @@ func (r *Repository) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID
 	var p Policy
 	err := r.db.QueryRow(ctx, `
 		UPDATE leave_policies SET
-			name              = COALESCE($3, name),
-			description       = COALESCE($4, description),
-			days_per_year     = COALESCE($5, days_per_year),
-			carry_over_days   = COALESCE($6, carry_over_days),
-			min_tenure_days   = COALESCE($7, min_tenure_days),
-			requires_approval = COALESCE($8, requires_approval),
-			is_unlimited      = COALESCE($9, is_unlimited)
+			name               = COALESCE($3, name),
+			description        = COALESCE($4, description),
+			days_per_year      = COALESCE($5, days_per_year),
+			carry_over_days    = COALESCE($6, carry_over_days),
+			min_tenure_days    = COALESCE($7, min_tenure_days),
+			requires_approval  = COALESCE($8, requires_approval),
+			gender_eligibility = COALESCE($9, gender_eligibility),
+			is_unlimited       = COALESCE($10, is_unlimited)
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
-		          min_tenure_days, requires_approval, is_unlimited, is_active, created_at, updated_at
-	`, orgID, policyID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, req.RequiresApproval, req.IsUnlimited).Scan(
+		          min_tenure_days, requires_approval, gender_eligibility, is_unlimited, is_active, created_at, updated_at
+	`, orgID, policyID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays, req.RequiresApproval, req.GenderEligibility, req.IsUnlimited).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
-		&p.MinTenureDays, &p.RequiresApproval, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -657,7 +663,7 @@ func (r *Repository) ListTemplates(ctx context.Context, countryCode string) ([]P
 	rows, err := r.db.Query(ctx, `
 		SELECT id, country_code, name, description,
 		       entitled_days_per_year, is_carry_over_allowed, max_carry_over_days,
-		       is_accrued, requires_approval, sort_order, created_at
+		       is_accrued, requires_approval, gender_eligibility, sort_order, created_at
 		FROM leave_policy_templates
 		WHERE country_code = $1
 		ORDER BY sort_order ASC
@@ -673,7 +679,7 @@ func (r *Repository) ListTemplates(ctx context.Context, countryCode string) ([]P
 		if err := rows.Scan(
 			&t.ID, &t.CountryCode, &t.Name, &t.Description,
 			&t.EntitledDaysPerYear, &t.IsCarryOverAllowed, &t.MaxCarryOverDays,
-			&t.IsAccrued, &t.RequiresApproval, &t.SortOrder, &t.CreatedAt,
+			&t.IsAccrued, &t.RequiresApproval, &t.GenderEligibility, &t.SortOrder, &t.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan template: %w", err)
 		}
@@ -687,7 +693,7 @@ func (r *Repository) GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]
 	rows, err := r.db.Query(ctx, `
 		SELECT id, country_code, name, description,
 		       entitled_days_per_year, is_carry_over_allowed, max_carry_over_days,
-		       is_accrued, requires_approval, sort_order, created_at
+		       is_accrued, requires_approval, gender_eligibility, sort_order, created_at
 		FROM leave_policy_templates
 		WHERE id = ANY($1)
 		ORDER BY sort_order ASC
@@ -703,7 +709,7 @@ func (r *Repository) GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]
 		if err := rows.Scan(
 			&t.ID, &t.CountryCode, &t.Name, &t.Description,
 			&t.EntitledDaysPerYear, &t.IsCarryOverAllowed, &t.MaxCarryOverDays,
-			&t.IsAccrued, &t.RequiresApproval, &t.SortOrder, &t.CreatedAt,
+			&t.IsAccrued, &t.RequiresApproval, &t.GenderEligibility, &t.SortOrder, &t.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan template: %w", err)
 		}
@@ -743,14 +749,14 @@ func (r *Repository) ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx,
 		err := tx.QueryRow(ctx, `
 			INSERT INTO leave_policies (
 				organisation_id, name, description, days_per_year, carry_over_days,
-				min_tenure_days, requires_approval, is_active
+				min_tenure_days, requires_approval, gender_eligibility, is_active
 			)
-			VALUES ($1, $2, $3, $4, $5, 0, $6, TRUE)
+			VALUES ($1, $2, $3, $4, $5, 0, $6, $7, TRUE)
 			RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
-			          min_tenure_days, requires_approval, is_active, created_at, updated_at
-		`, orgID, tmpl.Name, tmpl.Description, tmpl.EntitledDaysPerYear, carryOverDays, tmpl.RequiresApproval).Scan(
+			          min_tenure_days, requires_approval, gender_eligibility, is_active, created_at, updated_at
+		`, orgID, tmpl.Name, tmpl.Description, tmpl.EntitledDaysPerYear, carryOverDays, tmpl.RequiresApproval, tmpl.GenderEligibility).Scan(
 			&policy.ID, &policy.OrganisationID, &policy.Name, &policy.Description, &policy.DaysPerYear,
-			&policy.CarryOverDays, &policy.MinTenureDays, &policy.RequiresApproval,
+			&policy.CarryOverDays, &policy.MinTenureDays, &policy.RequiresApproval, &policy.GenderEligibility,
 			&policy.IsActive, &policy.CreatedAt, &policy.UpdatedAt,
 		)
 		if err != nil {

@@ -70,9 +70,10 @@ type OrgInfoProvider interface {
 	GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]int, error)
 }
 
-// EmployeeInfoProvider provides employee profile data for email notifications.
+// EmployeeInfoProvider provides employee profile data for email notifications and validation.
 type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	GetEmployeeGender(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error)
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
@@ -293,7 +294,19 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 		return nil, apperr.New(apperr.CodeValidation, "leave policy is no longer active")
 	}
 
-	// 4. Calculate business days (exclude weekends + public holidays).
+	// 4. Validate gender eligibility (e.g. maternity = female only).
+	if policy.GenderEligibility != "all" {
+		gender, err := s.employeeRepo.GetEmployeeGender(ctx, orgID, employeeID)
+		if err != nil {
+			return nil, fmt.Errorf("get employee gender: %w", err)
+		}
+		if gender == nil || *gender != policy.GenderEligibility {
+			return nil, apperr.New(apperr.CodeValidation,
+				fmt.Sprintf("%s leave is only available for %s employees", policy.Name, policy.GenderEligibility))
+		}
+	}
+
+	// 5. Calculate business days (exclude weekends + public holidays).
 	totalDays, err := s.calculateBusinessDays(ctx, orgID, input.StartDate, input.EndDate)
 	if err != nil {
 		return nil, fmt.Errorf("calculate business days: %w", err)

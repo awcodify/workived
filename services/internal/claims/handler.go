@@ -41,6 +41,7 @@ type ServiceInterface interface {
 	ApproveClaim(ctx context.Context, orgID, reviewerEmployeeID, claimID uuid.UUID, req *ApproveClaimRequest, actorUserID ...uuid.UUID) (*Claim, error)
 	RejectClaim(ctx context.Context, orgID, reviewerEmployeeID, claimID uuid.UUID, req RejectClaimRequest, actorUserID ...uuid.UUID) (*Claim, error)
 	CancelClaim(ctx context.Context, orgID, employeeID, claimID uuid.UUID, actorUserID ...uuid.UUID) (*Claim, error)
+	MarkAsPaid(ctx context.Context, orgID, paidByEmployeeID, claimID uuid.UUID, req *MarkAsPaidRequest, actorUserID ...uuid.UUID) (*Claim, error)
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 	GetMonthlySummary(ctx context.Context, orgID uuid.UUID, year, month int) ([]MonthlySummary, error)
 }
@@ -100,6 +101,9 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Approval — admin, manager, or direct report manager
 	claims.POST("/:id/approve", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermTeamClaimsApprove, middleware.PermClaimsWrite), h.ApproveClaim)
 	claims.POST("/:id/reject", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermTeamClaimsApprove, middleware.PermClaimsWrite), h.RejectClaim)
+
+	// Payment — admin only (mark approved claims as paid)
+	claims.POST("/:id/pay", middleware.Require(middleware.PermClaimsWrite), h.MarkAsPaid)
 
 	// Reporting — approvers + admins
 	claims.GET("/summary", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermClaimsWrite, middleware.PermTeamClaimsApprove), h.GetMonthlySummary)
@@ -643,6 +647,44 @@ func (h *Handler) CancelClaim(c *gin.Context) {
 	claim, err := h.service.CancelClaim(c.Request.Context(), orgID, employeeID, claimID, userID)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": claim})
+}
+
+func (h *Handler) MarkAsPaid(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	claimID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	paidByEmployeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to lookup employee for payment", map[string]string{
+			"org_id":   orgID.String(),
+			"user_id":  userID.String(),
+			"claim_id": claimID.String(),
+		})
+		return
+	}
+
+	var req MarkAsPaidRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		// Optional body
+		req = MarkAsPaidRequest{}
+	}
+
+	claim, err := h.service.MarkAsPaid(c.Request.Context(), orgID, paidByEmployeeID, claimID, &req, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to mark claim as paid", map[string]string{
+			"org_id":   orgID.String(),
+			"claim_id": claimID.String(),
+		})
 		return
 	}
 

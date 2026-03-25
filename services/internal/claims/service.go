@@ -41,6 +41,7 @@ type RepositoryInterface interface {
 	GetClaim(ctx context.Context, orgID, id uuid.UUID) (*Claim, error)
 	ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFilters) ([]ClaimWithDetails, error)
 	UpdateStatus(ctx context.Context, orgID, claimID uuid.UUID, fromStatus, toStatus string, reviewerEmployeeID *uuid.UUID, reviewNote *string) (*Claim, error)
+	MarkAsPaid(ctx context.Context, orgID, claimID, paidByEmployeeID uuid.UUID, reviewNote *string) (*Claim, error)
 	GetMonthlySpent(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, claimDate string) (int64, error)
 	GetMonthlySummary(ctx context.Context, orgID uuid.UUID, year, month int) ([]MonthlySummary, error)
 }
@@ -680,6 +681,39 @@ func (s *Service) CancelClaim(ctx context.Context, orgID, employeeID, claimID uu
 			}
 		}()
 	}
+
+	return claim, nil
+}
+
+func (s *Service) MarkAsPaid(ctx context.Context, orgID, paidByEmployeeID, claimID uuid.UUID, req *MarkAsPaidRequest, actorUserID ...uuid.UUID) (*Claim, error) {
+	var reviewNote *string
+	if req != nil {
+		reviewNote = req.ReviewNote
+	}
+
+	claim, err := s.repo.MarkAsPaid(ctx, orgID, claimID, paidByEmployeeID, reviewNote)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "claim.paid",
+			ResourceType: "claim",
+			ResourceID:   claimID,
+			AfterState:   claim,
+		})
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("claim_id", claimID.String()).
+		Str("paid_by_employee_id", paidByEmployeeID.String()).
+		Int64("amount", claim.Amount).
+		Str("currency", claim.CurrencyCode).
+		Msg("claim.paid")
 
 	return claim, nil
 }

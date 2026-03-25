@@ -168,12 +168,12 @@ func (r *Repository) CreateClaim(ctx context.Context, orgID uuid.UUID, req Submi
 		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, 'pending')
 		RETURNING id, organisation_id, employee_id, category_id, amount, currency_code,
 		          description, receipt_url, status, reviewed_by, reviewed_at, review_note,
-		          claim_date, created_at, updated_at
+		          paid_at, paid_by, claim_date, created_at, updated_at
 	`, orgID, employeeID, req.CategoryID, req.Amount, req.CurrencyCode,
 		req.Description, receiptURL, req.ClaimDate).Scan(
 		&c.ID, &c.OrganisationID, &c.EmployeeID, &c.CategoryID, &c.Amount, &c.CurrencyCode,
 		&c.Description, &c.ReceiptURL, &c.Status, &c.ReviewedBy, &c.ReviewedAt, &c.ReviewNote,
-		&c.ClaimDate, &c.CreatedAt, &c.UpdatedAt,
+		&c.PaidAt, &c.PaidBy, &c.ClaimDate, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -186,13 +186,13 @@ func (r *Repository) GetClaim(ctx context.Context, orgID, id uuid.UUID) (*Claim,
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, employee_id, category_id, amount, currency_code,
 		       description, receipt_url, status, reviewed_by, reviewed_at, review_note,
-		       claim_date, created_at, updated_at
+		       paid_at, paid_by, claim_date, created_at, updated_at
 		FROM claims
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, id).Scan(
 		&c.ID, &c.OrganisationID, &c.EmployeeID, &c.CategoryID, &c.Amount, &c.CurrencyCode,
 		&c.Description, &c.ReceiptURL, &c.Status, &c.ReviewedBy, &c.ReviewedAt, &c.ReviewNote,
-		&c.ClaimDate, &c.CreatedAt, &c.UpdatedAt,
+		&c.PaidAt, &c.PaidBy, &c.ClaimDate, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -208,10 +208,10 @@ func (r *Repository) ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFil
 	cursor := paginate.Decode(f.Cursor)
 
 	query := `
-		SELECT 
+		SELECT
 			c.id, c.organisation_id, c.employee_id, c.category_id, c.amount, c.currency_code,
 			c.description, c.receipt_url, c.status, c.reviewed_by, c.reviewed_at, c.review_note,
-			c.claim_date, c.created_at, c.updated_at,
+			c.paid_at, c.paid_by, c.claim_date, c.created_at, c.updated_at,
 			e.full_name AS employee_name,
 			cat.name AS category_name
 		FROM claims c
@@ -251,7 +251,7 @@ func (r *Repository) ListClaims(ctx context.Context, orgID uuid.UUID, f ClaimFil
 		if err := rows.Scan(
 			&c.ID, &c.OrganisationID, &c.EmployeeID, &c.CategoryID, &c.Amount, &c.CurrencyCode,
 			&c.Description, &c.ReceiptURL, &c.Status, &c.ReviewedBy, &c.ReviewedAt, &c.ReviewNote,
-			&c.ClaimDate, &c.CreatedAt, &c.UpdatedAt,
+			&c.PaidAt, &c.PaidBy, &c.ClaimDate, &c.CreatedAt, &c.UpdatedAt,
 			&c.EmployeeName,
 			&c.CategoryName,
 		); err != nil {
@@ -275,11 +275,11 @@ func (r *Repository) UpdateStatus(ctx context.Context, orgID, claimID uuid.UUID,
 		WHERE organisation_id = $1 AND id = $2 AND status = $6
 		RETURNING id, organisation_id, employee_id, category_id, amount, currency_code,
 		          description, receipt_url, status, reviewed_by, reviewed_at, review_note,
-		          claim_date, created_at, updated_at
+		          paid_at, paid_by, claim_date, created_at, updated_at
 	`, orgID, claimID, toStatus, reviewerEmployeeID, reviewNote, fromStatus).Scan(
 		&c.ID, &c.OrganisationID, &c.EmployeeID, &c.CategoryID, &c.Amount, &c.CurrencyCode,
 		&c.Description, &c.ReceiptURL, &c.Status, &c.ReviewedBy, &c.ReviewedAt, &c.ReviewNote,
-		&c.ClaimDate, &c.CreatedAt, &c.UpdatedAt,
+		&c.PaidAt, &c.PaidBy, &c.ClaimDate, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -289,6 +289,33 @@ func (r *Repository) UpdateStatus(ctx context.Context, orgID, claimID uuid.UUID,
 		if strings.Contains(err.Error(), "foreign key") || strings.Contains(err.Error(), "violates") {
 			r.log.Warn().Interface("reviewer_employee_id", reviewerEmployeeID).Msg("foreign key violation for reviewer")
 			return nil, apperr.New(apperr.CodeValidation, "reviewer employee not found or inactive")
+		}
+		return nil, err
+	}
+	return &c, nil
+}
+
+// MarkAsPaid transitions claim from approved → paid, recording who paid and when.
+func (r *Repository) MarkAsPaid(ctx context.Context, orgID, claimID, paidByEmployeeID uuid.UUID, reviewNote *string) (*Claim, error) {
+	var c Claim
+	err := r.db.QueryRow(ctx, `
+		UPDATE claims SET
+			status      = 'paid',
+			paid_at     = NOW(),
+			paid_by     = $3,
+			review_note = COALESCE($4, review_note)
+		WHERE organisation_id = $1 AND id = $2 AND status = 'approved'
+		RETURNING id, organisation_id, employee_id, category_id, amount, currency_code,
+		          description, receipt_url, status, reviewed_by, reviewed_at, review_note,
+		          paid_at, paid_by, claim_date, created_at, updated_at
+	`, orgID, claimID, paidByEmployeeID, reviewNote).Scan(
+		&c.ID, &c.OrganisationID, &c.EmployeeID, &c.CategoryID, &c.Amount, &c.CurrencyCode,
+		&c.Description, &c.ReceiptURL, &c.Status, &c.ReviewedBy, &c.ReviewedAt, &c.ReviewNote,
+		&c.PaidAt, &c.PaidBy, &c.ClaimDate, &c.CreatedAt, &c.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperr.New(apperr.CodeConflict, "claim is not in approved status")
 		}
 		return nil, err
 	}

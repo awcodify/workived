@@ -22,6 +22,7 @@ type Employee struct {
 	EmploymentType string          `json:"employment_type"`
 	Status         string          `json:"status"`
 	ReportingTo    *uuid.UUID      `json:"reporting_to,omitempty"` // Manager (self-ref FK)
+	Gender         *string         `json:"gender,omitempty"`       // "male", "female", or nil
 	StartDate      time.Time       `json:"start_date"`
 	EndDate        *time.Time      `json:"end_date,omitempty"`
 	BaseSalary     *int64          `json:"base_salary,omitempty"`
