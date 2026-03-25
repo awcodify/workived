@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { to: '/claims', label: 'Claims', icon: Receipt, module: 'claims' as ModuleKey, featureKey: null, notificationKey: 'claims', hideOnMobile: false },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'calendar' as ModuleKey, featureKey: null, notificationKey: null, hideOnMobile: false },
   { to: '/reports', label: 'Reports', icon: BarChart3, module: 'reports' as ModuleKey, featureKey: 'reports', notificationKey: null, hideOnMobile: false },
-  { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey, featureKey: null, notificationKey: 'people', hideOnMobile: false }
+  { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey, featureKey: null, notificationKey: 'people', hideOnMobile: true }
 ] as const
 
 function getCurrentModule(pathname: string): ModuleKey {
@@ -133,7 +133,7 @@ export function Dock() {
                 <div className="relative md:group-hover:scale-110 md:group-hover:-translate-y-0.5 transition-all duration-300">
                   {isLoading ? (
                     <Loader2
-                      className="animate-spin w-[18px] h-[18px] md:w-5 md:h-5"
+                      className="animate-spin w-[22px] h-[22px] md:w-5 md:h-5"
                       style={{ 
                         color: theme.active.icon,
                         strokeWidth: 2.5,
@@ -141,7 +141,7 @@ export function Dock() {
                     />
                   ) : (
                     <Icon
-                      className="md:group-hover:rotate-6 transition-transform duration-300 w-[18px] h-[18px] md:w-5 md:h-5"
+                      className="md:group-hover:rotate-6 transition-transform duration-300 w-[22px] h-[22px] md:w-5 md:h-5"
                       style={{ 
                         color: isActive ? theme.active.icon : theme.icon,
                         strokeWidth: isActive ? 2.5 : 2,

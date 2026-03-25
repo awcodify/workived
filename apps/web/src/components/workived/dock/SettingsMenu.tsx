@@ -93,7 +93,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           )}
 
           <Settings
-            className="md:group-hover:rotate-90 md:group-hover:scale-110 transition-all duration-300 relative w-[18px] h-[18px] md:w-5 md:h-5"
+            className="md:group-hover:rotate-90 md:group-hover:scale-110 transition-all duration-300 relative w-[22px] h-[22px] md:w-5 md:h-5"
             style={{ 
               color: isOpen ? theme.active.icon : theme.icon,
               strokeWidth: isOpen ? 2.5 : 2,
