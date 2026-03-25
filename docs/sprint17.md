@@ -218,11 +218,11 @@ Frontend: no changes needed (tasks simply stop appearing).
 
 | # | Task | Effort | Status |
 |---|------|--------|--------|
-| 1 | Claim status color semantics | XS | ⬜ |
-| 2 | OpenAPI `/docs` basic auth | XS | ⬜ |
-| 3 | Gender-based leave frontend | S | ⬜ |
-| 4 | Claim budget period policies | M | ⬜ |
-| 5 | Auto-archive done tasks | S | ⬜ |
+| 1 | Claim status color semantics | XS | ✅ |
+| 2 | OpenAPI `/docs` basic auth | XS | ✅ |
+| 3 | Gender-based leave frontend + employee gender field | S | ✅ |
+| 4 | Claim budget period policies | M | ✅ |
+| 5 | Auto-archive done tasks | S | ✅ |
 
 ---
 

@@ -28,7 +28,7 @@ func NewRepository(db *pgxpool.Pool, log zerolog.Logger) *Repository {
 func (r *Repository) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Category, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, name, monthly_limit, currency_code,
-		       requires_receipt, is_unlimited, is_active, created_at, updated_at
+		       requires_receipt, is_unlimited, budget_period, is_active, created_at, updated_at
 		FROM claim_categories
 		WHERE organisation_id = $1 AND is_active = TRUE
 		ORDER BY name ASC
@@ -43,7 +43,7 @@ func (r *Repository) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Cat
 		var c Category
 		if err := rows.Scan(
 			&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
-			&c.RequiresReceipt, &c.IsUnlimited, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
+			&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -56,12 +56,12 @@ func (r *Repository) GetCategory(ctx context.Context, orgID, id uuid.UUID) (*Cat
 	var c Category
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, name, monthly_limit, currency_code,
-		       requires_receipt, is_unlimited, is_active, created_at, updated_at
+		       requires_receipt, is_unlimited, budget_period, is_active, created_at, updated_at
 		FROM claim_categories
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, id).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
-		&c.RequiresReceipt, &c.IsUnlimited, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
+		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -89,17 +89,22 @@ func (r *Repository) CreateCategory(ctx context.Context, orgID uuid.UUID, req Cr
 		isUnlimited = *req.IsUnlimited
 	}
 
+	budgetPeriod := "monthly"
+	if req.BudgetPeriod != nil && *req.BudgetPeriod != "" {
+		budgetPeriod = *req.BudgetPeriod
+	}
+
 	var c Category
 
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO claim_categories (
-			organisation_id, name, monthly_limit, currency_code, requires_receipt, is_unlimited
-		) VALUES ($1, $2, $3, $4, $5, $6)
+			organisation_id, name, monthly_limit, currency_code, requires_receipt, is_unlimited, budget_period
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, organisation_id, name, monthly_limit, currency_code,
-		          requires_receipt, is_unlimited, is_active, created_at, updated_at
-	`, orgID, req.Name, req.MonthlyLimit, *currencyCode, req.RequiresReceipt, isUnlimited).Scan(
+		          requires_receipt, is_unlimited, budget_period, is_active, created_at, updated_at
+	`, orgID, req.Name, req.MonthlyLimit, *currencyCode, req.RequiresReceipt, isUnlimited, budgetPeriod).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
-		&c.RequiresReceipt, &c.IsUnlimited, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
+		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -115,13 +120,14 @@ func (r *Repository) UpdateCategory(ctx context.Context, orgID, id uuid.UUID, re
 			monthly_limit    = COALESCE($4, monthly_limit),
 			currency_code    = COALESCE($5, currency_code),
 			requires_receipt = COALESCE($6, requires_receipt),
-			is_unlimited     = COALESCE($7, is_unlimited)
+			is_unlimited     = COALESCE($7, is_unlimited),
+			budget_period    = COALESCE($8, budget_period)
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, name, monthly_limit, currency_code,
-		          requires_receipt, is_unlimited, is_active, created_at, updated_at
-	`, orgID, id, req.Name, req.MonthlyLimit, req.CurrencyCode, req.RequiresReceipt, req.IsUnlimited).Scan(
+		          requires_receipt, is_unlimited, budget_period, is_active, created_at, updated_at
+	`, orgID, id, req.Name, req.MonthlyLimit, req.CurrencyCode, req.RequiresReceipt, req.IsUnlimited, req.BudgetPeriod).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
-		&c.RequiresReceipt, &c.IsUnlimited, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
+		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -550,18 +556,43 @@ func (r *Repository) UpdateBalanceMonthlyLimit(ctx context.Context, orgID, categ
 }
 
 // ListBalancesByEmployee returns all balances for an employee in a specific month.
+// For yearly categories, aggregates spending across all months in the year.
 // Only returns balances for active categories.
 func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT b.id, b.organisation_id, b.employee_id, b.category_id, b.year, b.month,
-		       b.total_spent, b.claim_count, b.currency_code, b.monthly_limit,
-		       b.created_at, b.updated_at, c.name
-		FROM claim_balances b
-		JOIN claim_categories c ON b.category_id = c.id
-		WHERE b.organisation_id = $1 AND b.employee_id = $2 
-		  AND b.year = $3 AND b.month = $4
-		  AND c.is_active = true
-		ORDER BY c.name
+		WITH monthly AS (
+			-- Monthly categories: return the specific month's balance
+			SELECT b.id, b.organisation_id, b.employee_id, b.category_id, b.year, b.month,
+			       b.total_spent, b.claim_count, b.currency_code, b.monthly_limit,
+			       b.created_at, b.updated_at, c.name, c.budget_period
+			FROM claim_balances b
+			JOIN claim_categories c ON b.category_id = c.id
+			WHERE b.organisation_id = $1 AND b.employee_id = $2
+			  AND b.year = $3 AND b.month = $4
+			  AND c.is_active = true AND c.budget_period = 'monthly'
+		),
+		yearly AS (
+			-- Yearly categories: aggregate all months in the year, use current month's row as base
+			SELECT DISTINCT ON (b.category_id)
+			       b.id, b.organisation_id, b.employee_id, b.category_id, b.year, b.month,
+			       agg.total_spent, agg.claim_count, b.currency_code, b.monthly_limit,
+			       b.created_at, b.updated_at, c.name, c.budget_period
+			FROM claim_balances b
+			JOIN claim_categories c ON b.category_id = c.id
+			JOIN (
+				SELECT category_id, SUM(total_spent) AS total_spent, SUM(claim_count) AS claim_count
+				FROM claim_balances
+				WHERE organisation_id = $1 AND employee_id = $2 AND year = $3
+				GROUP BY category_id
+			) agg ON agg.category_id = b.category_id
+			WHERE b.organisation_id = $1 AND b.employee_id = $2
+			  AND b.year = $3 AND b.month = $4
+			  AND c.is_active = true AND c.budget_period = 'yearly'
+		)
+		SELECT * FROM monthly
+		UNION ALL
+		SELECT * FROM yearly
+		ORDER BY name
 	`, orgID, employeeID, year, month)
 	if err != nil {
 		return nil, err
@@ -574,7 +605,7 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 		if err := rows.Scan(
 			&b.ID, &b.OrganisationID, &b.EmployeeID, &b.CategoryID, &b.Year, &b.Month,
 			&b.TotalSpent, &b.ClaimCount, &b.CurrencyCode, &b.MonthlyLimit,
-			&b.CreatedAt, &b.UpdatedAt, &b.CategoryName,
+			&b.CreatedAt, &b.UpdatedAt, &b.CategoryName, &b.BudgetPeriod,
 		); err != nil {
 			return nil, err
 		}
@@ -588,6 +619,17 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 		balances = append(balances, b)
 	}
 	return balances, rows.Err()
+}
+
+// GetYearlySpent returns the total amount spent across all months in a year for a specific category.
+func (r *Repository) GetYearlySpent(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year int) (int64, error) {
+	var total int64
+	err := r.db.QueryRow(ctx, `
+		SELECT COALESCE(SUM(total_spent), 0)
+		FROM claim_balances
+		WHERE organisation_id = $1 AND employee_id = $2 AND category_id = $3 AND year = $4
+	`, orgID, employeeID, categoryID, year).Scan(&total)
+	return total, err
 }
 
 // CreateBalancesForAllEmployees creates claim balances for all active employees in the organization

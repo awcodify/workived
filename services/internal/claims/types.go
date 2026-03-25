@@ -15,7 +15,8 @@ type Category struct {
 	MonthlyLimit    *int64    `json:"monthly_limit,omitempty"` // Pro only, smallest currency unit
 	CurrencyCode    string    `json:"currency_code"`           // Always set to org's currency
 	RequiresReceipt bool      `json:"requires_receipt"`
-	IsUnlimited     bool      `json:"is_unlimited"` // When true, monthly_limit is ignored
+	IsUnlimited     bool      `json:"is_unlimited"`  // When true, monthly_limit is ignored
+	BudgetPeriod    string    `json:"budget_period"` // "monthly" or "yearly"
 	IsActive        bool      `json:"is_active"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
@@ -80,7 +81,8 @@ type ClaimBalance struct {
 type ClaimBalanceWithCategory struct {
 	ClaimBalance
 	CategoryName string `json:"category_name"`
-	Remaining    *int64 `json:"remaining,omitempty"` // monthly_limit - total_spent
+	BudgetPeriod string `json:"budget_period"`           // "monthly" or "yearly"
+	Remaining    *int64 `json:"remaining,omitempty"`      // limit - total_spent
 }
 
 // ── Request types ─────────────────────────────────────────────────────────────
@@ -91,6 +93,7 @@ type CreateCategoryRequest struct {
 	CurrencyCode    *string `json:"currency_code,omitempty"`
 	RequiresReceipt bool    `json:"requires_receipt"`
 	IsUnlimited     *bool   `json:"is_unlimited,omitempty"`
+	BudgetPeriod    *string `json:"budget_period,omitempty"` // "monthly" (default) or "yearly"
 }
 
 type UpdateCategoryRequest struct {
@@ -99,6 +102,7 @@ type UpdateCategoryRequest struct {
 	CurrencyCode    *string `json:"currency_code,omitempty"`
 	RequiresReceipt *bool   `json:"requires_receipt,omitempty"`
 	IsUnlimited     *bool   `json:"is_unlimited,omitempty"`
+	BudgetPeriod    *string `json:"budget_period,omitempty"` // "monthly" or "yearly"
 }
 
 type SubmitClaimRequest struct {

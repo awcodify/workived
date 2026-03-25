@@ -19,6 +19,7 @@ interface CategoryFormData {
   monthly_limit: string
   currency_code: string
   requires_receipt: boolean
+  budget_period: 'monthly' | 'yearly'
 }
 
 export function CategoryModal({ category, onClose, onSuccess }: CategoryModalProps) {
@@ -46,16 +47,19 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
           monthly_limit: category.monthly_limit ? category.monthly_limit.toString() : '',
           currency_code: category.currency_code || org?.currency_code || 'IDR',
           requires_receipt: category.requires_receipt,
+          budget_period: category.budget_period || 'monthly',
         }
       : {
           name: '',
           monthly_limit: '',
           currency_code: org?.currency_code || 'IDR',
           requires_receipt: false,
+          budget_period: 'monthly',
         },
   })
 
   const hasMonthlyLimit = watch('monthly_limit') !== ''
+  const budgetPeriod = watch('budget_period')
 
   // Format number with thousand separators
   function formatNumber(value: number | string): string {
@@ -84,6 +88,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
       monthly_limit: hasMonthlyLimit ? Math.round(parseFloat(data.monthly_limit)) : undefined,
       currency_code: hasMonthlyLimit ? data.currency_code : undefined,
       requires_receipt: data.requires_receipt,
+      budget_period: data.budget_period,
     }
 
     try {
@@ -179,7 +184,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
             )}
           </div>
 
-          {/* Monthly Limit */}
+          {/* Budget Period */}
           <div>
             <label
               className="block mb-1.5"
@@ -189,7 +194,42 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
                 color: t.text,
               }}
             >
-              Monthly Limit (Optional)
+              Budget Period
+            </label>
+            <div className="flex gap-1 p-1" style={{ background: t.input, borderRadius: 10 }}>
+              {(['monthly', 'yearly'] as const).map((period) => {
+                const isActive = budgetPeriod === period
+                return (
+                  <button
+                    key={period}
+                    type="button"
+                    onClick={() => setValue('budget_period', period)}
+                    className="flex-1 text-sm font-medium py-2 transition-colors capitalize"
+                    style={{
+                      borderRadius: 8,
+                      background: isActive ? t.surface : 'transparent',
+                      color: isActive ? t.text : t.textMuted,
+                      boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                    }}
+                  >
+                    {period}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Budget Limit */}
+          <div>
+            <label
+              className="block mb-1.5"
+              style={{
+                fontSize: typography.label.size,
+                fontWeight: 600,
+                color: t.text,
+              }}
+            >
+              {budgetPeriod === 'yearly' ? 'Yearly' : 'Monthly'} Limit (Optional)
             </label>
             <div className="flex gap-2">
               <select
@@ -224,7 +264,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
               />
             </div>
             <p className="text-xs mt-1" style={{ color: t.textMuted }}>
-              Leave empty for no limit. Amount is per employee per month.
+              Leave empty for no limit. Amount is per employee per {budgetPeriod === 'yearly' ? 'year' : 'month'}.
             </p>
           </div>
 

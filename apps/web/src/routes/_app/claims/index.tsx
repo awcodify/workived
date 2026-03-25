@@ -95,7 +95,7 @@ function ClaimsDashboard() {
             </h1>
             <p className="text-sm mt-2" style={{ color: t.textMuted }}>
               {totalLimit > 0
-                ? `${new Intl.NumberFormat('id-ID').format(totalLimit - totalSpent)} remaining this month`
+                ? `${new Intl.NumberFormat('id-ID').format(totalLimit - totalSpent)} remaining`
                 : 'Track your expenses'}
             </p>
           </div>
@@ -240,7 +240,7 @@ function ClaimsDashboard() {
                               {formatMoney(remaining)} left
                             </p>
                             <p className="text-xs" style={{ color: t.textMuted, marginTop: 2 }}>
-                              of {formatMoney(limit)}
+                              of {formatMoney(limit)}/{balance.budget_period === 'yearly' ? 'year' : 'month'}
                             </p>
                           </div>
                         ) : (

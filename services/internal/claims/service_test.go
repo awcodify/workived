@@ -45,6 +45,7 @@ type fakeClaimsRepo struct {
 	updateBalanceOnApprovalFn    func(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int, amount int64) error
 	updateBalanceOnRejectionFn   func(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int, amount int64) error
 	listBalancesByEmployeeFn     func(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]claims.ClaimBalanceWithCategory, error)
+	getYearlySpentFn             func(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year int) (int64, error)
 	createBalancesForAllFn       func(ctx context.Context, orgID, categoryID uuid.UUID, year, month int) error
 	updateBalanceMonthlyLimitFn  func(ctx context.Context, orgID, categoryID uuid.UUID, year, month int, newLimit int64) error
 
@@ -140,6 +141,13 @@ func (f *fakeClaimsRepo) ListBalancesByEmployee(ctx context.Context, orgID, empl
 		return f.listBalancesByEmployeeFn(ctx, orgID, employeeID, year, month)
 	}
 	return []claims.ClaimBalanceWithCategory{}, nil
+}
+
+func (f *fakeClaimsRepo) GetYearlySpent(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year int) (int64, error) {
+	if f.getYearlySpentFn != nil {
+		return f.getYearlySpentFn(ctx, orgID, employeeID, categoryID, year)
+	}
+	return 0, nil
 }
 
 func (f *fakeClaimsRepo) CreateBalancesForAllEmployees(ctx context.Context, orgID, categoryID uuid.UUID, year, month int) error {

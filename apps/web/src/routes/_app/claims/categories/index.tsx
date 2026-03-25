@@ -159,7 +159,7 @@ function CategoriesPage() {
                         Limit:
                       </span>
                       <span>
-                        {formatCurrency(category.monthly_limit, category.currency_code)}/month
+                        {formatCurrency(category.monthly_limit, category.currency_code)}/{category.budget_period === 'yearly' ? 'year' : 'month'}
                       </span>
                     </div>
                   )}

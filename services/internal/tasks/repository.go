@@ -194,6 +194,12 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 			       WHEN $5 = 'pending' THEN t.completed_at IS NULL
 			       ELSE TRUE END
 		  ))
+		  AND (
+			  -- Auto-archive: hide completed tasks older than 30 days (unless explicitly filtering for completed)
+			  $5 = 'completed'
+			  OR t.completed_at IS NULL
+			  OR t.completed_at > NOW() - INTERVAL '30 days'
+		  )
 		  AND ($6::timestamptz IS NULL OR t.created_at < $6::timestamptz)
 		ORDER BY t.created_at DESC
 		LIMIT $7

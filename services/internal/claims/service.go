@@ -33,6 +33,7 @@ type RepositoryInterface interface {
 	UpdateBalanceOnApproval(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int, amount int64) error
 	UpdateBalanceOnRejection(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year, month int, amount int64) error
 	ListBalancesByEmployee(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error)
+	GetYearlySpent(ctx context.Context, orgID, employeeID, categoryID uuid.UUID, year int) (int64, error)
 	CreateBalancesForAllEmployees(ctx context.Context, orgID, categoryID uuid.UUID, year, month int) error
 	UpdateBalanceMonthlyLimit(ctx context.Context, orgID, categoryID uuid.UUID, year, month int, newMonthlyLimit int64) error
 
@@ -405,25 +406,41 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 		return nil, ErrReceiptRequired(category.Name)
 	}
 
-	// 6. Check monthly budget limit (if category has one and is not unlimited)
+	// 6. Check budget limit (if category has one and is not unlimited)
 	if category.MonthlyLimit != nil && !category.IsUnlimited {
 		year := req.ClaimDate.Year()
 		month := int(req.ClaimDate.Month())
 
-		balance, err := s.repo.GetOrCreateBalance(ctx, orgID, employeeID, req.CategoryID, year, month)
-		if err != nil {
-			return nil, fmt.Errorf("failed to retrieve balance: %w", err)
+		var totalSpent int64
+		if category.BudgetPeriod == "yearly" {
+			// Yearly budget: sum spending across all months in the year
+			spent, err := s.repo.GetYearlySpent(ctx, orgID, employeeID, req.CategoryID, year)
+			if err != nil {
+				return nil, fmt.Errorf("failed to retrieve yearly spending: %w", err)
+			}
+			totalSpent = spent
+			// Still ensure the monthly balance row exists for tracking
+			if _, err := s.repo.GetOrCreateBalance(ctx, orgID, employeeID, req.CategoryID, year, month); err != nil {
+				return nil, fmt.Errorf("failed to ensure balance: %w", err)
+			}
+		} else {
+			// Monthly budget: check current month only
+			balance, err := s.repo.GetOrCreateBalance(ctx, orgID, employeeID, req.CategoryID, year, month)
+			if err != nil {
+				return nil, fmt.Errorf("failed to retrieve balance: %w", err)
+			}
+			totalSpent = balance.TotalSpent
 		}
 
 		// Calculate remaining budget
-		remaining := *category.MonthlyLimit - balance.TotalSpent
+		remaining := *category.MonthlyLimit - totalSpent
 
 		// Check if this claim would exceed the limit
 		if req.Amount > remaining {
 			return nil, ErrInsufficientBudget(
 				category.Name,
 				*category.MonthlyLimit,
-				balance.TotalSpent,
+				totalSpent,
 				remaining,
 				req.Amount,
 				req.CurrencyCode,

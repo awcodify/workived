@@ -124,6 +124,7 @@ describe('createClaimRequestConfig getExtraInfo', () => {
       employee_id: 'emp1',
       category_id: 'cat1',
       category_name: 'Meals',
+      budget_period: 'monthly',
       year: 2026,
       month: 3,
       total_spent: 0,
