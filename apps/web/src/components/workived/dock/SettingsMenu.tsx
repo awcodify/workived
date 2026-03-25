@@ -75,7 +75,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
       >
         <div
           className={cn(
-            'relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300',
+            'relative flex flex-col items-center gap-0.5 md:gap-1 px-3 py-3 md:px-3 md:py-2 rounded-lg md:rounded-xl transition-all duration-300',
             isOpen ? 'scale-100 bg-opacity-100' : 'scale-95 opacity-60'
           )}
           style={{
@@ -85,7 +85,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           {/* Hover glow effect */}
           {!isOpen && (
             <div
-              className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"
+              className="absolute inset-0 rounded-lg md:rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-md"
               style={{
                 background: theme.active.bg,
               }}
@@ -93,8 +93,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           )}
 
           <Settings
-            size={20}
-            className="group-hover:rotate-90 group-hover:scale-110 transition-all duration-300 relative"
+            className="md:group-hover:rotate-90 md:group-hover:scale-110 transition-all duration-300 relative w-[18px] h-[18px] md:w-5 md:h-5"
             style={{ 
               color: isOpen ? theme.active.icon : theme.icon,
               strokeWidth: isOpen ? 2.5 : 2,
@@ -103,7 +102,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           />
           <span
             className={cn(
-              "text-[9px] font-bold tracking-wider uppercase transition-all duration-300",
+              "hidden md:block text-[9px] font-bold tracking-wider uppercase transition-all duration-300",
               !isOpen && "group-hover:scale-105 group-hover:tracking-widest"
             )}
             style={{ 

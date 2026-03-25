@@ -80,13 +80,13 @@ export function Dock() {
 
   return (
     <nav
-      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
+      className="fixed bottom-3 md:bottom-6 left-1/2 -translate-x-1/2 z-50"
       style={{
         transition: 'all 0.3s ease',
       }}
     >
       <div
-        className="flex items-center gap-0.5 px-1.5 py-1.5 rounded-2xl border backdrop-blur-3xl"
+        className="flex items-center gap-1 md:gap-0.5 px-1.5 py-1.5 md:px-1.5 md:py-1.5 rounded-xl md:rounded-2xl border backdrop-blur-3xl"
         style={{
           background: theme.bg,
           borderColor: theme.border,
@@ -109,7 +109,7 @@ export function Dock() {
             >
               <div
                 className={cn(
-                  'relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-300',
+                  'relative flex flex-col items-center gap-0.5 md:gap-1 px-3 py-3 md:px-3 md:py-2 rounded-lg md:rounded-xl transition-all duration-300',
                   isActive ? 'scale-100' : 'scale-95 opacity-60 group-hover:scale-100 group-hover:opacity-100'
                 )}
                 style={{
@@ -130,11 +130,10 @@ export function Dock() {
                 }}
               >
                 {/* Icon with notification badge and loading spinner */}
-                <div className="relative group-hover:scale-110 group-hover:-translate-y-0.5 transition-all duration-300">
+                <div className="relative md:group-hover:scale-110 md:group-hover:-translate-y-0.5 transition-all duration-300">
                   {isLoading ? (
                     <Loader2
-                      size={20}
-                      className="animate-spin"
+                      className="animate-spin w-[18px] h-[18px] md:w-5 md:h-5"
                       style={{ 
                         color: theme.active.icon,
                         strokeWidth: 2.5,
@@ -142,8 +141,7 @@ export function Dock() {
                     />
                   ) : (
                     <Icon
-                      size={20}
-                      className="group-hover:rotate-6 transition-transform duration-300"
+                      className="md:group-hover:rotate-6 transition-transform duration-300 w-[18px] h-[18px] md:w-5 md:h-5"
                       style={{ 
                         color: isActive ? theme.active.icon : theme.icon,
                         strokeWidth: isActive ? 2.5 : 2,
@@ -182,7 +180,7 @@ export function Dock() {
                 
                 <span
                   className={cn(
-                    "text-[9px] font-bold tracking-wider uppercase transition-all duration-300",
+                    "hidden md:block text-[9px] font-bold tracking-wider uppercase transition-all duration-300",
                     !isActive && "group-hover:scale-105 group-hover:tracking-widest"
                   )}
                   style={{ 
@@ -209,7 +207,7 @@ export function Dock() {
 
         {/* Divider */}
         <div
-          className="h-12 w-px mx-1"
+          className="h-8 md:h-12 w-px mx-0.5 md:mx-1"
           style={{ background: theme.border, opacity: 0.5 }}
         />
 
