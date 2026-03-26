@@ -711,6 +711,7 @@ export interface ClaimCategoryTemplate {
   monthly_limit?: number
   currency_code?: string
   requires_receipt: boolean
+  budget_period: 'monthly' | 'yearly'
   sort_order: number
 }
 

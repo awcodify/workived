@@ -83,8 +83,9 @@ func (r *Repository) GetWorkScheduleTemplates(ctx context.Context, countryCode s
 // GetLeavePolicyTemplates retrieves templates for a country
 func (r *Repository) GetLeavePolicyTemplates(ctx context.Context, countryCode string) ([]LeavePolicyTemplate, error) {
 	query := `
-		SELECT id, country_code, name, description, entitled_days_per_year, 
-		       is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, sort_order
+		SELECT id, country_code, name, description, entitled_days_per_year,
+		       is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval,
+		       COALESCE(gender_eligibility, 'all'), sort_order
 		FROM leave_policy_templates
 		WHERE country_code = $1
 		ORDER BY sort_order
@@ -100,7 +101,8 @@ func (r *Repository) GetLeavePolicyTemplates(ctx context.Context, countryCode st
 	for rows.Next() {
 		var t LeavePolicyTemplate
 		if err := rows.Scan(&t.ID, &t.CountryCode, &t.Name, &t.Description, &t.EntitledDaysPerYear,
-			&t.IsCarryOverAllowed, &t.MaxCarryOverDays, &t.IsAccrued, &t.RequiresApproval, &t.SortOrder); err != nil {
+			&t.IsCarryOverAllowed, &t.MaxCarryOverDays, &t.IsAccrued, &t.RequiresApproval,
+			&t.GenderEligibility, &t.SortOrder); err != nil {
 			return nil, err
 		}
 		templates = append(templates, t)
@@ -112,7 +114,8 @@ func (r *Repository) GetLeavePolicyTemplates(ctx context.Context, countryCode st
 // GetClaimCategoryTemplates retrieves templates for a country
 func (r *Repository) GetClaimCategoryTemplates(ctx context.Context, countryCode string) ([]ClaimCategoryTemplate, error) {
 	query := `
-		SELECT id, country_code, name, description, monthly_limit, currency_code, requires_receipt, sort_order
+		SELECT id, country_code, name, description, monthly_limit, currency_code, requires_receipt,
+		       COALESCE(budget_period, 'monthly'), sort_order
 		FROM claim_category_templates
 		WHERE country_code = $1
 		ORDER BY sort_order
@@ -127,7 +130,8 @@ func (r *Repository) GetClaimCategoryTemplates(ctx context.Context, countryCode 
 	var templates []ClaimCategoryTemplate
 	for rows.Next() {
 		var t ClaimCategoryTemplate
-		if err := rows.Scan(&t.ID, &t.CountryCode, &t.Name, &t.Description, &t.MonthlyLimit, &t.CurrencyCode, &t.RequiresReceipt, &t.SortOrder); err != nil {
+		if err := rows.Scan(&t.ID, &t.CountryCode, &t.Name, &t.Description, &t.MonthlyLimit, &t.CurrencyCode,
+			&t.RequiresReceipt, &t.BudgetPeriod, &t.SortOrder); err != nil {
 			return nil, err
 		}
 		templates = append(templates, t)
@@ -194,16 +198,17 @@ func (r *Repository) CreateLeavePolicyFromTemplate(ctx context.Context, tx pgx.T
 	query := `
 		WITH new_policy AS (
 			INSERT INTO leave_policies (
-				organisation_id, name, description, days_per_year, 
-				carry_over_days, requires_approval, is_active
+				organisation_id, name, description, days_per_year,
+				carry_over_days, requires_approval, gender_eligibility, is_active
 			)
-			SELECT 
-				$1, 
-				name, 
-				description, 
+			SELECT
+				$1,
+				name,
+				description,
 				COALESCE($3, entitled_days_per_year),
 				COALESCE(max_carry_over_days, 0),
-				requires_approval, 
+				requires_approval,
+				COALESCE(gender_eligibility, 'all'),
 				TRUE
 			FROM leave_policy_templates
 			WHERE id = $2
@@ -246,14 +251,15 @@ func (r *Repository) CreateLeavePolicyFromTemplate(ctx context.Context, tx pgx.T
 func (r *Repository) CreateClaimCategoryFromTemplate(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID, customization *ClaimCategoryCustomization) (uuid.UUID, error) {
 	query := `
 		INSERT INTO claim_categories (
-			organisation_id, name, monthly_limit, currency_code, requires_receipt, is_active
+			organisation_id, name, monthly_limit, currency_code, requires_receipt, budget_period, is_active
 		)
-		SELECT 
-			$1, 
-			t.name, 
+		SELECT
+			$1,
+			t.name,
 			COALESCE($3, t.monthly_limit),
 			COALESCE(t.currency_code, o.currency_code),
-			t.requires_receipt, 
+			t.requires_receipt,
+			COALESCE(t.budget_period, 'monthly'),
 			TRUE
 		FROM claim_category_templates t
 		CROSS JOIN organisations o

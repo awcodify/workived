@@ -40,6 +40,7 @@ type LeavePolicyTemplate struct {
 	MaxCarryOverDays    *float64  `json:"max_carry_over_days"`
 	IsAccrued           bool      `json:"is_accrued"`
 	RequiresApproval    bool      `json:"requires_approval"`
+	GenderEligibility   string    `json:"gender_eligibility"` // "all", "male", "female"
 	SortOrder           int       `json:"sort_order"`
 }
 
@@ -52,6 +53,7 @@ type ClaimCategoryTemplate struct {
 	MonthlyLimit    *int64    `json:"monthly_limit"` // Smallest currency unit, NULL = unlimited
 	CurrencyCode    *string   `json:"currency_code"`
 	RequiresReceipt bool      `json:"requires_receipt"`
+	BudgetPeriod    string    `json:"budget_period"` // "monthly" or "yearly"
 	SortOrder       int       `json:"sort_order"`
 }
 

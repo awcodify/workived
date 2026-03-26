@@ -177,7 +177,7 @@ export function PreviewStep({ wizardState, templates, onConfirm, onBack, isSubmi
                       </p>
                       <p className="text-sm" style={{ color: colors.ink500 }}>
                         {customization?.monthly_limit
-                          ? `${(customization.monthly_limit / 100).toLocaleString()} ${category.currency_code} / month`
+                          ? `${(customization.monthly_limit / 100).toLocaleString()} ${category.currency_code} / ${category.budget_period === 'yearly' ? 'year' : 'month'}`
                           : 'No limit'}
                       </p>
                     </div>

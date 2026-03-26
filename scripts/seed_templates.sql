@@ -1,86 +1,160 @@
 -- Seed policy templates for Workived
 -- Work schedule templates, leave policy templates and claim category templates for Indonesia and UAE
+-- Based on: UU 13/2003 + UU Cipta Kerja (Indonesia), Federal Decree-Law No. 33/2021 (UAE)
 -- Run after migrations
 
--- Work Schedule Templates - Indonesia
+-- ════════════════════════════════════════════════════════════════════════════════
+-- WORK SCHEDULE TEMPLATES
+-- ════════════════════════════════════════════════════════════════════════════════
+
+-- Indonesia (40hr/week per UU 13/2003 Pasal 77)
 INSERT INTO work_schedule_templates (country_code, name, description, work_days, start_time, end_time, sort_order)
 VALUES
-  ('ID', 'Standard Office Hours', 'Monday to Friday, 8:00 AM - 5:00 PM. Typical for office-based work.', ARRAY[1,2,3,4,5], '08:00:00', '17:00:00', 1),
-  ('ID', 'Retail/Service Hours', 'Monday to Saturday, 9:00 AM - 6:00 PM. Common for retail and service industries.', ARRAY[1,2,3,4,5,6], '09:00:00', '18:00:00', 2),
-  ('ID', 'Morning Shift', 'Monday to Sunday, 7:00 AM - 3:00 PM. Common for manufacturing and shift work.', ARRAY[1,2,3,4,5,6,7], '07:00:00', '15:00:00', 3),
-  ('ID', 'Afternoon Shift', 'Monday to Sunday, 3:00 PM - 11:00 PM. Second shift for 24-hour operations.', ARRAY[1,2,3,4,5,6,7], '15:00:00', '23:00:00', 4)
-ON CONFLICT (country_code, name) DO NOTHING;
+  ('ID', 'Standard Office Hours', 'Monday to Friday, 8:00 AM - 5:00 PM (40hr/week). Standard for office-based work per UU 13/2003.', ARRAY[1,2,3,4,5], '08:00:00', '17:00:00', 1),
+  ('ID', 'Retail/Service Hours', 'Monday to Saturday, 9:00 AM - 5:00 PM (40hr/week). Common for retail and service industries.', ARRAY[1,2,3,4,5,6], '09:00:00', '17:00:00', 2),
+  ('ID', 'Morning Shift', 'Monday to Friday, 7:00 AM - 4:00 PM. Early start for manufacturing and logistics.', ARRAY[1,2,3,4,5], '07:00:00', '16:00:00', 3),
+  ('ID', 'Startup Flexible', 'Monday to Friday, 9:00 AM - 6:00 PM. Common for tech startups.', ARRAY[1,2,3,4,5], '09:00:00', '18:00:00', 4)
+ON CONFLICT (country_code, name) DO UPDATE SET
+  description = EXCLUDED.description,
+  work_days = EXCLUDED.work_days,
+  start_time = EXCLUDED.start_time,
+  end_time = EXCLUDED.end_time,
+  sort_order = EXCLUDED.sort_order;
 
--- Work Schedule Templates - UAE
+-- UAE (48hr/week per Federal Decree-Law No. 33/2021)
 INSERT INTO work_schedule_templates (country_code, name, description, work_days, start_time, end_time, sort_order)
 VALUES
-  ('AE', 'UAE Standard Week', 'Sunday to Thursday, 9:00 AM - 6:00 PM. Standard UAE working week as per labor law.', ARRAY[7,1,2,3,4], '09:00:00', '18:00:00', 1),
-  ('AE', 'UAE Extended Hours', 'Sunday to Thursday, 8:00 AM - 5:00 PM. Alternative schedule with earlier start.', ARRAY[7,1,2,3,4], '08:00:00', '17:00:00', 2),
-  ('AE', 'UAE Retail Schedule', 'Sunday to Thursday, 10:00 AM - 7:00 PM. Common for retail and customer-facing businesses.', ARRAY[7,1,2,3,4,5,6], '10:00:00', '19:00:00', 3)
-ON CONFLICT (country_code, name) DO NOTHING;
+  ('AE', 'UAE Standard Week', 'Sunday to Thursday, 9:00 AM - 6:00 PM. Standard UAE working week per labor law.', ARRAY[7,1,2,3,4], '09:00:00', '18:00:00', 1),
+  ('AE', 'UAE Early Start', 'Sunday to Thursday, 8:00 AM - 5:00 PM. Common for construction and logistics.', ARRAY[7,1,2,3,4], '08:00:00', '17:00:00', 2),
+  ('AE', 'UAE Startup Flexible', 'Sunday to Thursday, 10:00 AM - 7:00 PM. Common for tech startups and creative agencies.', ARRAY[7,1,2,3,4], '10:00:00', '19:00:00', 3),
+  ('AE', 'UAE Retail Schedule', 'Sunday to Friday, 10:00 AM - 7:00 PM. For retail and customer-facing businesses.', ARRAY[7,1,2,3,4,5], '10:00:00', '19:00:00', 4)
+ON CONFLICT (country_code, name) DO UPDATE SET
+  description = EXCLUDED.description,
+  work_days = EXCLUDED.work_days,
+  start_time = EXCLUDED.start_time,
+  end_time = EXCLUDED.end_time,
+  sort_order = EXCLUDED.sort_order;
 
--- Leave Policy Templates - Indonesia
+-- Clean up old templates that were renamed
+DELETE FROM work_schedule_templates WHERE country_code = 'ID' AND name IN ('Afternoon Shift');
+DELETE FROM work_schedule_templates WHERE country_code = 'AE' AND name IN ('UAE Extended Hours');
+
+-- ════════════════════════════════════════════════════════════════════════════════
+-- LEAVE POLICY TEMPLATES
+-- ════════════════════════════════════════════════════════════════════════════════
+
+-- Indonesia — UU 13/2003, UU Cipta Kerja, PP 35/2021
 INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, gender_eligibility, sort_order)
 VALUES
-  ('ID', 'Annual Leave', 'Minimum 12 days per year as per Indonesian labor law (UU No. 13/2003)', 12, TRUE, 6, TRUE, TRUE, 'all', 1),
-  ('ID', 'Sick Leave', 'Unlimited sick leave with doctor''s note. Company pays first 3 months, then BPJS Kesehatan', 999, FALSE, NULL, FALSE, FALSE, 'all', 2),
-  ('ID', 'Maternity Leave', '90 days (18 weeks) as per UU Ketenagakerjaan. Can be split before/after delivery', 90, FALSE, NULL, FALSE, TRUE, 'female', 3),
-  ('ID', 'Paternity Leave', '2 days for childbirth or adoption', 2, FALSE, NULL, FALSE, TRUE, 'male', 4),
-  ('ID', 'Compassionate Leave', '2 days for immediate family bereavement', 2, FALSE, NULL, FALSE, TRUE, 'all', 5),
-  ('ID', 'Hajj Leave', 'Special leave for pilgrimage (10 days). Granted once per employment period with manager approval', 10, FALSE, NULL, FALSE, TRUE, 'all', 6)
-ON CONFLICT (country_code, name) DO NOTHING;
+  ('ID', 'Annual Leave', 'Cuti Tahunan — 12 days/year after 12 months service (Pasal 79). Carry over up to 6 days.', 12, TRUE, 6, TRUE, TRUE, 'all', 1),
+  ('ID', 'Sick Leave', 'Cuti Sakit — Unlimited with doctor''s note (Pasal 93). Full pay months 1-4, 75% months 5-8, 50% months 9-12.', 365, FALSE, NULL, FALSE, FALSE, 'all', 2),
+  ('ID', 'Maternity Leave', 'Cuti Melahirkan — 90 calendar days, 1.5 months before + 1.5 months after delivery. Full pay (Pasal 82).', 90, FALSE, NULL, FALSE, TRUE, 'female', 3),
+  ('ID', 'Paternity Leave', 'Cuti Ayah — 2 days for childbirth (Pasal 93(2)c). Many startups offer 5-10 days.', 2, FALSE, NULL, FALSE, TRUE, 'male', 4),
+  ('ID', 'Marriage Leave', 'Cuti Menikah — 3 days for own marriage (Pasal 93(2)b). Mandatory.', 3, FALSE, NULL, FALSE, TRUE, 'all', 5),
+  ('ID', 'Compassionate Leave', 'Cuti Duka — 2 days for death of spouse, parent, parent-in-law, or child (Pasal 93(2)d).', 2, FALSE, NULL, FALSE, TRUE, 'all', 6),
+  ('ID', 'Menstrual Leave', 'Cuti Haid — 2 days/month for female employees (Pasal 81). Still active law. Self-reported.', 24, FALSE, NULL, FALSE, FALSE, 'female', 7),
+  ('ID', 'Miscarriage Leave', 'Cuti Keguguran — 45 calendar days (Pasal 82(2)). Full pay.', 45, FALSE, NULL, FALSE, TRUE, 'female', 8),
+  ('ID', 'Child Circumcision/Baptism', 'Khitanan/Pembaptisan Anak — 2 days (Pasal 93(2)b). Mandatory.', 2, FALSE, NULL, FALSE, TRUE, 'all', 9),
+  ('ID', 'Hajj Leave', 'Cuti Haji — Up to 40 calendar days for pilgrimage. Once per employment period (Pasal 93(2)f). Full pay.', 40, FALSE, NULL, FALSE, TRUE, 'all', 10)
+ON CONFLICT (country_code, name) DO UPDATE SET
+  description = EXCLUDED.description,
+  entitled_days_per_year = EXCLUDED.entitled_days_per_year,
+  is_carry_over_allowed = EXCLUDED.is_carry_over_allowed,
+  max_carry_over_days = EXCLUDED.max_carry_over_days,
+  is_accrued = EXCLUDED.is_accrued,
+  requires_approval = EXCLUDED.requires_approval,
+  gender_eligibility = EXCLUDED.gender_eligibility,
+  sort_order = EXCLUDED.sort_order;
 
--- Leave Policy Templates - UAE
+-- UAE — Federal Decree-Law No. 33/2021
 INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, gender_eligibility, sort_order)
 VALUES
-  ('AE', 'Annual Leave', 'Minimum 30 days per year as per UAE Labor Law. Accrues monthly after completing 1 year of service', 30, TRUE, 30, TRUE, TRUE, 'all', 1),
-  ('AE', 'Sick Leave', '90 days sick leave per year. Full pay first 15 days, half pay next 30 days, unpaid thereafter. Medical certificate required after 2 days', 90, FALSE, NULL, FALSE, FALSE, 'all', 2),
-  ('AE', 'Maternity Leave', '60 days maternity leave. Full pay first 45 days, half pay remaining 15 days. Must have worked 1 year. Can be extended 45 days unpaid', 60, FALSE, NULL, FALSE, TRUE, 'female', 3),
-  ('AE', 'Paternity Leave', '5 days paternity leave within 6 months of childbirth', 5, FALSE, NULL, FALSE, TRUE, 'male', 4),
-  ('AE', 'Compassionate Leave', '5 days bereavement leave for immediate family members', 5, FALSE, NULL, FALSE, TRUE, 'all', 5),
-  ('AE', 'Hajj/Umrah Leave', '30 days special leave for Hajj (once during employment). Subject to manager approval and operational requirements', 30, FALSE, NULL, FALSE, TRUE, 'all', 6)
-ON CONFLICT (country_code, name) DO NOTHING;
+  ('AE', 'Annual Leave', '30 calendar days/year after 1 year service; 2 days/month before that (Art. 29-30). Pay includes basic + housing allowance.', 30, TRUE, 30, TRUE, TRUE, 'all', 1),
+  ('AE', 'Sick Leave', '90 days/year: 15 days full pay, 30 days half pay, 45 days unpaid (Art. 31). Medical certificate required. Begins after probation.', 90, FALSE, NULL, FALSE, FALSE, 'all', 2),
+  ('AE', 'Maternity Leave', '60 days: 45 days full pay + 15 days half pay (Art. 30). Can extend 45 days unpaid with medical cert. No minimum service required.', 60, FALSE, NULL, FALSE, TRUE, 'female', 3),
+  ('AE', 'Paternity Leave', '5 working days within 6 months of birth (Art. 32(6)). New in 2022 law. Full pay.', 5, FALSE, NULL, FALSE, TRUE, 'male', 4),
+  ('AE', 'Parental Leave', '5 working days unpaid within 6 months of birth (Art. 32(7)). Either parent. Separate from paternity.', 5, FALSE, NULL, FALSE, TRUE, 'all', 5),
+  ('AE', 'Bereavement Leave (Spouse)', '5 working days full pay for death of spouse (Art. 32(4)).', 5, FALSE, NULL, FALSE, TRUE, 'all', 6),
+  ('AE', 'Bereavement Leave (Family)', '3 working days full pay for parent, child, sibling, grandparent (Art. 32(5)).', 3, FALSE, NULL, FALSE, TRUE, 'all', 7),
+  ('AE', 'Hajj Leave', '30 calendar days unpaid. Once per employment period (Art. 32(3)).', 30, FALSE, NULL, FALSE, TRUE, 'all', 8),
+  ('AE', 'Study Leave', '10 working days unpaid/year. Requires 2+ years tenure and enrollment at UAE-accredited institution (Art. 32(2)).', 10, FALSE, NULL, FALSE, TRUE, 'all', 9)
+ON CONFLICT (country_code, name) DO UPDATE SET
+  description = EXCLUDED.description,
+  entitled_days_per_year = EXCLUDED.entitled_days_per_year,
+  is_carry_over_allowed = EXCLUDED.is_carry_over_allowed,
+  max_carry_over_days = EXCLUDED.max_carry_over_days,
+  is_accrued = EXCLUDED.is_accrued,
+  requires_approval = EXCLUDED.requires_approval,
+  gender_eligibility = EXCLUDED.gender_eligibility,
+  sort_order = EXCLUDED.sort_order;
 
--- Claim Category Templates - Indonesia
-INSERT INTO claim_category_templates (country_code, name, description, monthly_limit, currency_code, requires_receipt, sort_order)
+-- Clean up old UAE templates that were renamed/split
+DELETE FROM leave_policy_templates WHERE country_code = 'AE' AND name IN ('Compassionate Leave', 'Hajj/Umrah Leave');
+
+-- ════════════════════════════════════════════════════════════════════════════════
+-- CLAIM CATEGORY TEMPLATES
+-- ════════════════════════════════════════════════════════════════════════════════
+
+-- Indonesia — amounts in IDR (no subunit)
+INSERT INTO claim_category_templates (country_code, name, description, monthly_limit, currency_code, requires_receipt, budget_period, sort_order)
 VALUES
-  ('ID', 'Travel', 'Transportation and travel expenses for business purposes', 1000000, 'IDR', TRUE, 1),
-  ('ID', 'Meals & Entertainment', 'Business meals and client entertainment', 500000, 'IDR', TRUE, 2),
-  ('ID', 'Mobile & Internet', 'Phone bills and data plans for work', 300000, 'IDR', TRUE, 3),
-  ('ID', 'Office Equipment', 'Computer accessories, stationery, and office supplies', 500000, 'IDR', TRUE, 4),
-  ('ID', 'Training & Development', 'Courses, certifications, and professional development', NULL, NULL, TRUE, 5),
-  ('ID', 'Medical Reimbursement', 'Medical expenses not covered by BPJS', 2000000, 'IDR', TRUE, 6),
-  ('ID', 'Parking & Toll', 'Parking fees and toll roads', 200000, 'IDR', TRUE, 7),
-  ('ID', 'Other', 'Miscellaneous business expenses', NULL, NULL, TRUE, 8)
-ON CONFLICT (country_code, name) DO NOTHING;
+  ('ID', 'Transport', 'Tunjangan Transportasi — commute, fuel, and travel expenses', 750000, 'IDR', TRUE, 'monthly', 1),
+  ('ID', 'Meals', 'Tunjangan Makan — daily meal allowance for working days', 800000, 'IDR', FALSE, 'monthly', 2),
+  ('ID', 'Mobile & Internet', 'Tunjangan Komunikasi — phone and internet for work', 150000, 'IDR', TRUE, 'monthly', 3),
+  ('ID', 'Medical', 'Klaim Kesehatan — expenses not covered by BPJS (outpatient, dental, optical)', 5000000, 'IDR', TRUE, 'yearly', 4),
+  ('ID', 'Training & Development', 'Tunjangan Pendidikan — courses, certifications, books', 2000000, 'IDR', TRUE, 'yearly', 5),
+  ('ID', 'Parking & Toll', 'Uang Parkir — parking fees and toll roads', 150000, 'IDR', TRUE, 'monthly', 6),
+  ('ID', 'Office Equipment', 'Perlengkapan Kerja — accessories, stationery, supplies', 500000, 'IDR', TRUE, 'monthly', 7),
+  ('ID', 'Other', 'Miscellaneous business expenses', NULL, NULL, TRUE, 'monthly', 8)
+ON CONFLICT (country_code, name) DO UPDATE SET
+  description = EXCLUDED.description,
+  monthly_limit = EXCLUDED.monthly_limit,
+  currency_code = EXCLUDED.currency_code,
+  requires_receipt = EXCLUDED.requires_receipt,
+  budget_period = EXCLUDED.budget_period,
+  sort_order = EXCLUDED.sort_order;
 
--- Claim Category Templates - UAE
-INSERT INTO claim_category_templates (country_code, name, description, monthly_limit, currency_code, requires_receipt, sort_order)
+-- Clean up renamed INA templates
+DELETE FROM claim_category_templates WHERE country_code = 'ID' AND name IN ('Travel', 'Meals & Entertainment', 'Medical Reimbursement');
+
+-- UAE — amounts in AED (100 subunits, stored as smallest unit)
+INSERT INTO claim_category_templates (country_code, name, description, monthly_limit, currency_code, requires_receipt, budget_period, sort_order)
 VALUES
-  ('AE', 'Travel', 'Transportation and travel expenses for business purposes', 2000, 'AED', TRUE, 1),
-  ('AE', 'Meals & Entertainment', 'Business meals and client entertainment', 1000, 'AED', TRUE, 2),
-  ('AE', 'Mobile & Internet', 'Phone bills and data plans for work', 500, 'AED', TRUE, 3),
-  ('AE', 'Office Equipment', 'Computer accessories, stationery, and office supplies', 1500, 'AED', TRUE, 4),
-  ('AE', 'Training & Development', 'Courses, certifications, and professional development', NULL, NULL, TRUE, 5),
-  ('AE', 'Medical Reimbursement', 'Medical expenses not covered by insurance', 3000, 'AED', TRUE, 6),
-  ('AE', 'Parking & Salik', 'Parking fees and Salik toll gates', 500, 'AED', TRUE, 7),
-  ('AE', 'Other', 'Miscellaneous business expenses', NULL, NULL, TRUE, 8)
-ON CONFLICT (country_code, name) DO NOTHING;
+  ('AE', 'Transport', 'Commute, fuel, and taxi expenses', 100000, 'AED', TRUE, 'monthly', 1),
+  ('AE', 'Meals', 'Daily meal allowance and business meals', 50000, 'AED', FALSE, 'monthly', 2),
+  ('AE', 'Mobile & Internet', 'Phone and data plan for work', 30000, 'AED', TRUE, 'monthly', 3),
+  ('AE', 'Medical', 'Co-pays, dental, optical not covered by insurance', 500000, 'AED', TRUE, 'yearly', 4),
+  ('AE', 'Training & Development', 'Courses, certifications, conferences', 500000, 'AED', TRUE, 'yearly', 5),
+  ('AE', 'Parking & Salik', 'Parking fees and Salik toll gates', 50000, 'AED', TRUE, 'monthly', 6),
+  ('AE', 'Office Equipment', 'Computer accessories, stationery, and office supplies', 150000, 'AED', TRUE, 'monthly', 7),
+  ('AE', 'Annual Flight Ticket', 'Annual round-trip flight to home country (expat benefit)', 350000, 'AED', TRUE, 'yearly', 8),
+  ('AE', 'Other', 'Miscellaneous business expenses', NULL, NULL, TRUE, 'monthly', 9)
+ON CONFLICT (country_code, name) DO UPDATE SET
+  description = EXCLUDED.description,
+  monthly_limit = EXCLUDED.monthly_limit,
+  currency_code = EXCLUDED.currency_code,
+  requires_receipt = EXCLUDED.requires_receipt,
+  budget_period = EXCLUDED.budget_period,
+  sort_order = EXCLUDED.sort_order;
 
-SELECT 
+-- Clean up renamed UAE templates
+DELETE FROM claim_category_templates WHERE country_code = 'AE' AND name IN ('Travel', 'Meals & Entertainment', 'Medical Reimbursement');
+
+-- ════════════════════════════════════════════════════════════════════════════════
+-- VERIFICATION
+-- ════════════════════════════════════════════════════════════════════════════════
+
+SELECT
     COUNT(*) FILTER (WHERE country_code = 'ID') || ' Indonesia work schedule templates' as id_schedules,
-    COUNT(*) FILTER (WHERE country_code = 'AE') || ' UAE work schedule templates' as ae_schedules,
-    COUNT(*) || ' total work schedule templates' as total_schedules
+    COUNT(*) FILTER (WHERE country_code = 'AE') || ' UAE work schedule templates' as ae_schedules
 FROM work_schedule_templates;
 
-SELECT 
+SELECT
     COUNT(*) FILTER (WHERE country_code = 'ID') || ' Indonesia leave templates' as id_leave,
-    COUNT(*) FILTER (WHERE country_code = 'AE') || ' UAE leave templates' as ae_leave,
-    COUNT(*) || ' total leave templates' as total_leave
+    COUNT(*) FILTER (WHERE country_code = 'AE') || ' UAE leave templates' as ae_leave
 FROM leave_policy_templates;
 
-SELECT 
+SELECT
     COUNT(*) FILTER (WHERE country_code = 'ID') || ' Indonesia claim templates' as id_claim,
-    COUNT(*) FILTER (WHERE country_code = 'AE') || ' UAE claim templates' as ae_claim,
-    COUNT(*) || ' total claim templates' as total_claim
+    COUNT(*) FILTER (WHERE country_code = 'AE') || ' UAE claim templates' as ae_claim
 FROM claim_category_templates;

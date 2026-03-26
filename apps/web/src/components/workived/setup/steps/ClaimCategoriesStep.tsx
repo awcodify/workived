@@ -165,11 +165,11 @@ export function ClaimCategoriesStep({
                     <div className="ml-4 flex items-center gap-3">
                       <div className="text-right">
                         <p className="text-sm font-semibold" style={{ color: colors.ink900 }}>
-                          {(customLimit !== undefined ? customLimit : template.monthly_limit) 
+                          {(customLimit !== undefined ? customLimit : template.monthly_limit)
                             ? formatCurrency(
                                 customLimit ?? template.monthly_limit!,
                                 template.currency_code!,
-                              ) + '/month'
+                              ) + (template.budget_period === 'yearly' ? '/year' : '/month')
                             : 'Unlimited'}
                           {customLimit !== undefined && <span style={{ color: colors.accent, marginLeft: 4 }}>*</span>}
                         </p>

@@ -2788,6 +2788,10 @@ components:
           type: boolean
         requires_approval:
           type: boolean
+        gender_eligibility:
+          type: string
+          enum: [all, male, female]
+          description: Gender eligibility filter for this leave type
         sort_order:
           type: integer
 
@@ -2815,6 +2819,10 @@ components:
           description: ISO 4217 currency code. NULL when monthly_limit is NULL.
         requires_receipt:
           type: boolean
+        budget_period:
+          type: string
+          enum: [monthly, yearly]
+          description: Whether the budget limit applies monthly or yearly
         sort_order:
           type: integer
 
