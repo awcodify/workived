@@ -23,7 +23,7 @@ type RepositoryInterface interface {
 	UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID, req UpdatePolicyRequest) (*Policy, error)
 	DeactivatePolicy(ctx context.Context, orgID, policyID uuid.UUID) error
 	CountPendingRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error)
-	CountFutureApprovedRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error)
+	CountFutureApprovedRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID, todayLocal string) (int, error)
 
 	// Balances
 	GetBalance(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int) (*Balance, error)
@@ -211,8 +211,13 @@ func (s *Service) DeactivatePolicy(ctx context.Context, orgID, policyID uuid.UUI
 		)
 	}
 
-	// 2. Check for approved future leave - cannot delete if any exist
-	futureCount, err := s.repo.CountFutureApprovedRequestsByPolicy(ctx, orgID, policyID)
+	// 2. Check for approved future leave - cannot delete if any exist.
+	//    Use org-local "today" so midnight boundary is correct for the org's timezone.
+	todayLocal, err := s.orgLocalToday(ctx, orgID)
+	if err != nil {
+		return fmt.Errorf("get org local today: %w", err)
+	}
+	futureCount, err := s.repo.CountFutureApprovedRequestsByPolicy(ctx, orgID, policyID, todayLocal)
 	if err != nil {
 		return fmt.Errorf("count future approved requests: %w", err)
 	}
@@ -805,6 +810,19 @@ func (s *Service) calculateBusinessDays(ctx context.Context, orgID uuid.UUID, st
 	}
 
 	return count, nil
+}
+
+// orgLocalToday returns today's date (YYYY-MM-DD) in the organisation's timezone.
+func (s *Service) orgLocalToday(ctx context.Context, orgID uuid.UUID) (string, error) {
+	tz, err := s.orgRepo.GetOrgTimezone(ctx, orgID)
+	if err != nil {
+		return "", fmt.Errorf("get org timezone: %w", err)
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return "", fmt.Errorf("invalid timezone %q: %w", tz, err)
+	}
+	return time.Now().In(loc).Format("2006-01-02"), nil
 }
 
 // calculateCalendarDays counts all calendar days between start and end (inclusive).

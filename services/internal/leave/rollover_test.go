@@ -279,6 +279,6 @@ func (m *mockRepo) CountPendingRequests(context.Context, uuid.UUID, *uuid.UUID) 
 func (m *mockRepo) CountPendingRequestsByPolicy(context.Context, uuid.UUID, uuid.UUID) (int, error) {
 	return 0, nil
 }
-func (m *mockRepo) CountFutureApprovedRequestsByPolicy(context.Context, uuid.UUID, uuid.UUID) (int, error) {
+func (m *mockRepo) CountFutureApprovedRequestsByPolicy(context.Context, uuid.UUID, uuid.UUID, string) (int, error) {
 	return 0, nil
 }

@@ -191,7 +191,8 @@ func (r *Repository) CountPendingRequestsByPolicy(ctx context.Context, orgID, po
 }
 
 // CountFutureApprovedRequestsByPolicy returns the number of approved requests with end_date in the future.
-func (r *Repository) CountFutureApprovedRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error) {
+// todayLocal should be the current date in the organisation's timezone (YYYY-MM-DD).
+func (r *Repository) CountFutureApprovedRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID, todayLocal string) (int, error) {
 	var count int
 	err := r.db.QueryRow(ctx, `
 		SELECT COUNT(*)
@@ -199,8 +200,8 @@ func (r *Repository) CountFutureApprovedRequestsByPolicy(ctx context.Context, or
 		WHERE organisation_id = $1
 		  AND leave_policy_id = $2
 		  AND status = 'approved'
-		  AND end_date > CURRENT_DATE
-	`, orgID, policyID).Scan(&count)
+		  AND end_date > $3::date
+	`, orgID, policyID, todayLocal).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("count future approved requests by policy: %w", err)
 	}

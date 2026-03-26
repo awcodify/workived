@@ -60,7 +60,7 @@ type fakeRepo struct {
 	updatePolicyFn                        func(ctx context.Context, orgID, policyID uuid.UUID, req leave.UpdatePolicyRequest) (*leave.Policy, error)
 	deactivatePolicyFn                    func(ctx context.Context, orgID, policyID uuid.UUID) error
 	countPendingRequestsByPolicyFn        func(ctx context.Context, orgID, policyID uuid.UUID) (int, error)
-	countFutureApprovedRequestsByPolicyFn func(ctx context.Context, orgID, policyID uuid.UUID) (int, error)
+	countFutureApprovedRequestsByPolicyFn func(ctx context.Context, orgID, policyID uuid.UUID, todayLocal string) (int, error)
 	getBalanceFn                          func(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int) (*leave.Balance, error)
 	getBalanceForUpdateFn                 func(ctx context.Context, tx pgx.Tx, orgID, employeeID, policyID uuid.UUID, year int) (*leave.Balance, error)
 	listBalancesFn                        func(ctx context.Context, orgID uuid.UUID, year int) ([]leave.BalanceWithPolicy, error)
@@ -104,9 +104,9 @@ func (f *fakeRepo) CountPendingRequestsByPolicy(ctx context.Context, orgID, poli
 	}
 	return 0, nil
 }
-func (f *fakeRepo) CountFutureApprovedRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID) (int, error) {
+func (f *fakeRepo) CountFutureApprovedRequestsByPolicy(ctx context.Context, orgID, policyID uuid.UUID, todayLocal string) (int, error) {
 	if f.countFutureApprovedRequestsByPolicyFn != nil {
-		return f.countFutureApprovedRequestsByPolicyFn(ctx, orgID, policyID)
+		return f.countFutureApprovedRequestsByPolicyFn(ctx, orgID, policyID, todayLocal)
 	}
 	return 0, nil
 }
@@ -532,7 +532,7 @@ func TestService_DeactivatePolicy(t *testing.T) {
 				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
 					return 0, nil
 				}
-				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID, _ string) (int, error) {
 					return 0, nil
 				}
 			},
@@ -553,7 +553,7 @@ func TestService_DeactivatePolicy(t *testing.T) {
 				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
 					return 0, nil
 				}
-				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID, _ string) (int, error) {
 					return 2, nil
 				}
 			},
@@ -575,7 +575,7 @@ func TestService_DeactivatePolicy(t *testing.T) {
 				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
 					return 0, nil
 				}
-				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID, _ string) (int, error) {
 					return 0, errors.New("db down")
 				}
 			},
@@ -587,7 +587,7 @@ func TestService_DeactivatePolicy(t *testing.T) {
 				r.countPendingRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
 					return 0, nil
 				}
-				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID) (int, error) {
+				r.countFutureApprovedRequestsByPolicyFn = func(_ context.Context, _, _ uuid.UUID, _ string) (int, error) {
 					return 0, nil
 				}
 				r.deactivatePolicyFn = func(_ context.Context, _, _ uuid.UUID) error {
