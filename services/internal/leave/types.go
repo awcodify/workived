@@ -20,6 +20,8 @@ type Policy struct {
 	RequiresApproval  bool      `json:"requires_approval"`
 	GenderEligibility string    `json:"gender_eligibility"` // "all", "male", "female"
 	IsUnlimited       bool      `json:"is_unlimited"`
+	ProrateFirstYear  bool      `json:"prorate_first_year"`
+	DayCountType      string    `json:"day_count_type"` // "working_days", "calendar_days"
 	IsActive           bool      `json:"is_active"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
@@ -112,6 +114,7 @@ type PolicyTemplate struct {
 	IsAccrued           bool      `json:"is_accrued"`
 	RequiresApproval    bool      `json:"requires_approval"`
 	GenderEligibility   string    `json:"gender_eligibility"` // "all", "male", "female"
+	DayCountType        string    `json:"day_count_type"`     // "working_days", "calendar_days"
 	SortOrder           int       `json:"sort_order"`
 	CreatedAt           time.Time `json:"created_at"`
 }
@@ -127,6 +130,8 @@ type CreatePolicyRequest struct {
 	RequiresApproval  *bool   `json:"requires_approval"`
 	GenderEligibility *string `json:"gender_eligibility" validate:"omitempty,oneof=all male female"`
 	IsUnlimited       *bool   `json:"is_unlimited"`
+	ProrateFirstYear  *bool   `json:"prorate_first_year"`
+	DayCountType      *string `json:"day_count_type" validate:"omitempty,oneof=working_days calendar_days"`
 }
 
 type UpdatePolicyRequest struct {
@@ -138,6 +143,8 @@ type UpdatePolicyRequest struct {
 	RequiresApproval  *bool    `json:"requires_approval"`
 	GenderEligibility *string  `json:"gender_eligibility" validate:"omitempty,oneof=all male female"`
 	IsUnlimited       *bool    `json:"is_unlimited"`
+	ProrateFirstYear  *bool    `json:"prorate_first_year"`
+	DayCountType      *string  `json:"day_count_type" validate:"omitempty,oneof=working_days calendar_days"`
 }
 
 type SubmitRequestInput struct {

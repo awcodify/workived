@@ -195,6 +195,22 @@ func (r *Repository) GetEmployeeGender(ctx context.Context, orgID, employeeID uu
 	return gender, nil
 }
 
+// GetEmployeeStartDate returns the start date of an employee.
+func (r *Repository) GetEmployeeStartDate(ctx context.Context, orgID, employeeID uuid.UUID) (time.Time, error) {
+	var startDate time.Time
+	err := r.db.QueryRow(ctx, `
+		SELECT start_date FROM employees
+		WHERE organisation_id = $1 AND id = $2 AND is_active = true
+	`, orgID, employeeID).Scan(&startDate)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return time.Time{}, apperr.NotFound("employee")
+		}
+		return time.Time{}, err
+	}
+	return startDate, nil
+}
+
 func (r *Repository) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
 	// Walk the full ancestor chain (not just direct manager) so that
 	// grandparent/higher-level managers can also approve subordinate requests.

@@ -216,6 +216,7 @@ func (f *fakeOrgRepo) GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]in
 type fakeEmployeeRepo struct {
 	getEmployeeProfileFn        func(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
 	getEmployeeGenderFn         func(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error)
+	getEmployeeStartDateFn      func(ctx context.Context, orgID, employeeID uuid.UUID) (time.Time, error)
 	verifyManagerRelationshipFn func(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
@@ -232,6 +233,14 @@ func (f *fakeEmployeeRepo) GetEmployeeGender(ctx context.Context, orgID, employe
 		return f.getEmployeeGenderFn(ctx, orgID, employeeID)
 	}
 	return nil, nil
+}
+
+func (f *fakeEmployeeRepo) GetEmployeeStartDate(ctx context.Context, orgID, employeeID uuid.UUID) (time.Time, error) {
+	if f.getEmployeeStartDateFn != nil {
+		return f.getEmployeeStartDateFn(ctx, orgID, employeeID)
+	}
+	// Default: employee started January 1 of current year (full entitlement)
+	return time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.UTC), nil
 }
 
 func (f *fakeEmployeeRepo) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
@@ -346,6 +355,10 @@ func defaultFakeOrgRepo() *fakeOrgRepo {
 
 func newTestService(repo *fakeRepo, orgRepo *fakeOrgRepo) *leave.Service {
 	empRepo := &fakeEmployeeRepo{}
+	return leave.NewService(repo, orgRepo, empRepo, "http://test-app.workived.com")
+}
+
+func newTestServiceWithEmpRepo(repo *fakeRepo, orgRepo *fakeOrgRepo, empRepo *fakeEmployeeRepo) *leave.Service {
 	return leave.NewService(repo, orgRepo, empRepo, "http://test-app.workived.com")
 }
 
@@ -736,6 +749,231 @@ func TestService_ListMyBalances(t *testing.T) {
 				t.Errorf("balances count = %d, want %d", len(balances), tt.wantCount)
 			}
 		})
+	}
+}
+
+// ── TestService_Proration ───────────────────────────────────────────────────
+
+func TestService_ListMyBalances_Proration(t *testing.T) {
+	tests := []struct {
+		name             string
+		prorateFirstYear bool
+		startMonth       time.Month
+		daysPerYear      float64
+		wantEntitled     float64 // expected entitled_days passed to EnsureBalance
+	}{
+		{
+			name:             "prorate — employee started July (6 months remaining)",
+			prorateFirstYear: true,
+			startMonth:       time.July,
+			daysPerYear:      12,
+			wantEntitled:     6.0, // 12 * 6/12
+		},
+		{
+			name:             "prorate — employee started October (3 months remaining)",
+			prorateFirstYear: true,
+			startMonth:       time.October,
+			daysPerYear:      12,
+			wantEntitled:     3.0, // 12 * 3/12
+		},
+		{
+			name:             "prorate — employee started January (full year)",
+			prorateFirstYear: true,
+			startMonth:       time.January,
+			daysPerYear:      12,
+			wantEntitled:     12.0,
+		},
+		{
+			name:             "prorate — employee started December (1 month)",
+			prorateFirstYear: true,
+			startMonth:       time.December,
+			daysPerYear:      12,
+			wantEntitled:     1.0,
+		},
+		{
+			name:             "no prorate — full entitlement regardless of start month",
+			prorateFirstYear: false,
+			startMonth:       time.October,
+			daysPerYear:      12,
+			wantEntitled:     12.0,
+		},
+		{
+			name:             "prorate — odd days per year (15 days, started April = 9 months)",
+			prorateFirstYear: true,
+			startMonth:       time.April,
+			daysPerYear:      15,
+			wantEntitled:     11.3, // 15 * 9/12 = 11.25 → rounded to 11.3
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedEntitled float64
+			repo := defaultFakeRepo()
+			repo.listPoliciesFn = func(_ context.Context, _ uuid.UUID) ([]leave.Policy, error) {
+				return []leave.Policy{
+					{
+						ID: testPolicyID, Name: "Annual Leave",
+						DaysPerYear: tt.daysPerYear, GenderEligibility: "all",
+						IsActive: true, ProrateFirstYear: tt.prorateFirstYear,
+						DayCountType: "working_days",
+					},
+				}, nil
+			}
+			repo.ensureBalanceFn = func(_ context.Context, _, _, _ uuid.UUID, _ int, entitled float64) error {
+				capturedEntitled = entitled
+				return nil
+			}
+
+			empRepo := &fakeEmployeeRepo{
+				getEmployeeStartDateFn: func(_ context.Context, _, _ uuid.UUID) (time.Time, error) {
+					return time.Date(2026, tt.startMonth, 1, 0, 0, 0, 0, time.UTC), nil
+				},
+			}
+
+			orgRepo := defaultFakeOrgRepo()
+			svc := newTestServiceWithEmpRepo(repo, orgRepo, empRepo)
+			_, err := svc.ListMyBalances(context.Background(), testOrgID, testEmpID, 2026)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if capturedEntitled != tt.wantEntitled {
+				t.Errorf("entitled days = %v, want %v", capturedEntitled, tt.wantEntitled)
+			}
+		})
+	}
+}
+
+func TestService_ListMyBalances_Proration_PriorYear(t *testing.T) {
+	// Employee started in 2025, querying 2026 — should get full entitlement even with prorate.
+	var capturedEntitled float64
+	repo := defaultFakeRepo()
+	repo.listPoliciesFn = func(_ context.Context, _ uuid.UUID) ([]leave.Policy, error) {
+		return []leave.Policy{
+			{
+				ID: testPolicyID, Name: "Annual Leave",
+				DaysPerYear: 12, GenderEligibility: "all",
+				IsActive: true, ProrateFirstYear: true,
+				DayCountType: "working_days",
+			},
+		}, nil
+	}
+	repo.ensureBalanceFn = func(_ context.Context, _, _, _ uuid.UUID, _ int, entitled float64) error {
+		capturedEntitled = entitled
+		return nil
+	}
+
+	empRepo := &fakeEmployeeRepo{
+		getEmployeeStartDateFn: func(_ context.Context, _, _ uuid.UUID) (time.Time, error) {
+			return time.Date(2025, time.March, 15, 0, 0, 0, 0, time.UTC), nil
+		},
+	}
+
+	orgRepo := defaultFakeOrgRepo()
+	svc := newTestServiceWithEmpRepo(repo, orgRepo, empRepo)
+	_, err := svc.ListMyBalances(context.Background(), testOrgID, testEmpID, 2026)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if capturedEntitled != 12.0 {
+		t.Errorf("entitled days = %v, want 12 (full year for prior-year employee)", capturedEntitled)
+	}
+}
+
+func TestService_ListMyBalances_Proration_GetStartDateError(t *testing.T) {
+	repo := defaultFakeRepo()
+	repo.listPoliciesFn = func(_ context.Context, _ uuid.UUID) ([]leave.Policy, error) {
+		return []leave.Policy{
+			{ID: testPolicyID, Name: "Annual Leave", DaysPerYear: 12, GenderEligibility: "all",
+				IsActive: true, ProrateFirstYear: true, DayCountType: "working_days"},
+		}, nil
+	}
+
+	empRepo := &fakeEmployeeRepo{
+		getEmployeeStartDateFn: func(_ context.Context, _, _ uuid.UUID) (time.Time, error) {
+			return time.Time{}, errors.New("employee not found")
+		},
+	}
+
+	orgRepo := defaultFakeOrgRepo()
+	svc := newTestServiceWithEmpRepo(repo, orgRepo, empRepo)
+	_, err := svc.ListMyBalances(context.Background(), testOrgID, testEmpID, 2026)
+	if err == nil {
+		t.Fatal("expected error when GetEmployeeStartDate fails, got nil")
+	}
+}
+
+// ── TestCalculateCalendarDays ───────────────────────────────────────────────
+
+func TestService_SubmitRequest_CalendarDays(t *testing.T) {
+	// When policy.DayCountType = "calendar_days", totalDays should count all days (including weekends).
+	repo := defaultFakeRepo()
+	repo.getPolicyFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
+		return &leave.Policy{
+			ID: testPolicyID, Name: "Sick Leave", DaysPerYear: 30,
+			GenderEligibility: "all", IsActive: true,
+			DayCountType: "calendar_days",
+		}, nil
+	}
+	// Mon Mar 16 → Fri Mar 20 = 5 calendar days (includes no weekends, but with calendar_days it counts all 5)
+	// Mon Mar 16 → Sun Mar 22 = 7 calendar days (includes weekend)
+	var capturedTotalDays float64
+	repo.createRequestFn = func(_ context.Context, _ pgx.Tx, orgID, empID, polID uuid.UUID, start, end string, totalDays float64, reason *string) (*leave.Request, error) {
+		capturedTotalDays = totalDays
+		return &leave.Request{
+			ID: testReqID, OrganisationID: orgID, EmployeeID: empID, LeavePolicyID: polID,
+			StartDate: start, EndDate: end, TotalDays: totalDays, Reason: reason, Status: "pending",
+		}, nil
+	}
+
+	orgRepo := defaultFakeOrgRepo()
+	svc := newTestService(repo, orgRepo)
+	// Mon Mar 16 → Sun Mar 22, 2026 = 7 calendar days
+	_, err := svc.SubmitRequest(context.Background(), testOrgID, testEmpID, "employee", leave.SubmitRequestInput{
+		LeavePolicyID: testPolicyID,
+		StartDate:     "2026-03-16",
+		EndDate:       "2026-03-22",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if capturedTotalDays != 7 {
+		t.Errorf("totalDays = %v, want 7 (calendar days)", capturedTotalDays)
+	}
+}
+
+func TestService_SubmitRequest_WorkingDays(t *testing.T) {
+	// When policy.DayCountType = "working_days" (default), should only count working days.
+	repo := defaultFakeRepo()
+	repo.getPolicyFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
+		return &leave.Policy{
+			ID: testPolicyID, Name: "Annual Leave", DaysPerYear: 12,
+			GenderEligibility: "all", IsActive: true,
+			DayCountType: "working_days",
+		}, nil
+	}
+	var capturedTotalDays float64
+	repo.createRequestFn = func(_ context.Context, _ pgx.Tx, orgID, empID, polID uuid.UUID, start, end string, totalDays float64, reason *string) (*leave.Request, error) {
+		capturedTotalDays = totalDays
+		return &leave.Request{
+			ID: testReqID, OrganisationID: orgID, EmployeeID: empID, LeavePolicyID: polID,
+			StartDate: start, EndDate: end, TotalDays: totalDays, Reason: reason, Status: "pending",
+		}, nil
+	}
+
+	orgRepo := defaultFakeOrgRepo()
+	svc := newTestService(repo, orgRepo)
+	// Mon Mar 16 → Sun Mar 22, 2026 = 5 working days (Mon-Fri)
+	_, err := svc.SubmitRequest(context.Background(), testOrgID, testEmpID, "employee", leave.SubmitRequestInput{
+		LeavePolicyID: testPolicyID,
+		StartDate:     "2026-03-16",
+		EndDate:       "2026-03-22",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if capturedTotalDays != 5 {
+		t.Errorf("totalDays = %v, want 5 (working days only)", capturedTotalDays)
 	}
 }
 

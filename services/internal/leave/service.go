@@ -74,6 +74,7 @@ type OrgInfoProvider interface {
 type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
 	GetEmployeeGender(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error)
+	GetEmployeeStartDate(ctx context.Context, orgID, employeeID uuid.UUID) (time.Time, error)
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
@@ -250,13 +251,40 @@ func (s *Service) ListMyBalances(ctx context.Context, orgID, employeeID uuid.UUI
 
 // ensureEmployeeBalances creates balance rows for an employee if they don't exist yet
 // for the given year. This is called lazily on first access.
+// If ProrateFirstYear is enabled on a policy and the employee started in the same year,
+// entitled days are prorated: DaysPerYear × (remaining months / 12).
 func (s *Service) ensureEmployeeBalances(ctx context.Context, orgID, employeeID uuid.UUID, year int) error {
 	policies, err := s.repo.ListPolicies(ctx, orgID)
 	if err != nil {
 		return fmt.Errorf("list policies for balance init: %w", err)
 	}
+
+	// Fetch employee start date once — only needed if any policy has proration.
+	var startDate time.Time
+	var startDateFetched bool
 	for _, p := range policies {
-		if err := s.repo.EnsureBalance(ctx, orgID, employeeID, p.ID, year, p.DaysPerYear); err != nil {
+		entitledDays := p.DaysPerYear
+
+		if p.ProrateFirstYear && !p.IsUnlimited {
+			if !startDateFetched {
+				startDate, err = s.employeeRepo.GetEmployeeStartDate(ctx, orgID, employeeID)
+				if err != nil {
+					return fmt.Errorf("get employee start date: %w", err)
+				}
+				startDateFetched = true
+			}
+			if startDate.Year() == year {
+				remainingMonths := 12 - int(startDate.Month()) + 1
+				if remainingMonths > 12 {
+					remainingMonths = 12
+				}
+				entitledDays = p.DaysPerYear * float64(remainingMonths) / 12.0
+				// Round to 1 decimal place.
+				entitledDays = float64(int(entitledDays*10+0.5)) / 10.0
+			}
+		}
+
+		if err := s.repo.EnsureBalance(ctx, orgID, employeeID, p.ID, year, entitledDays); err != nil {
 			return fmt.Errorf("ensure balance for policy %s: %w", p.Name, err)
 		}
 	}
@@ -306,10 +334,15 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 		}
 	}
 
-	// 5. Calculate business days (exclude weekends + public holidays).
-	totalDays, err := s.calculateBusinessDays(ctx, orgID, input.StartDate, input.EndDate)
-	if err != nil {
-		return nil, fmt.Errorf("calculate business days: %w", err)
+	// 5. Calculate days based on policy's day_count_type.
+	var totalDays float64
+	if policy.DayCountType == "calendar_days" {
+		totalDays = calculateCalendarDays(startDate, endDate)
+	} else {
+		totalDays, err = s.calculateBusinessDays(ctx, orgID, input.StartDate, input.EndDate)
+		if err != nil {
+			return nil, fmt.Errorf("calculate business days: %w", err)
+		}
 	}
 	if totalDays <= 0 {
 		return nil, apperr.New(apperr.CodeValidation, "no working days in the selected date range")
@@ -772,6 +805,11 @@ func (s *Service) calculateBusinessDays(ctx context.Context, orgID uuid.UUID, st
 	}
 
 	return count, nil
+}
+
+// calculateCalendarDays counts all calendar days between start and end (inclusive).
+func calculateCalendarDays(start, end time.Time) float64 {
+	return float64(end.Sub(start).Hours()/24) + 1
 }
 
 // ListHolidays returns public holidays for the organisation's country in the given date range.
