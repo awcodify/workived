@@ -28,6 +28,7 @@ import { Route as AppClaimsRouteRouteImport } from './routes/_app/claims/route'
 import { Route as AppCalendarRouteRouteImport } from './routes/_app/calendar/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
 import { Route as AppSetupIndexRouteImport } from './routes/_app/setup/index'
+import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppLeaveIndexRouteImport } from './routes/_app/leave/index'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims/index'
@@ -134,6 +135,11 @@ const AppSetupIndexRoute = AppSetupIndexRouteImport.update({
   path: '/setup/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppProfileIndexRoute = AppProfileIndexRouteImport.update({
+  id: '/profile/',
+  path: '/profile/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppPeopleIndexRoute = AppPeopleIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -222,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/claims/': typeof AppClaimsIndexRoute
   '/leave/': typeof AppLeaveIndexRoute
   '/people/': typeof AppPeopleIndexRoute
+  '/profile/': typeof AppProfileIndexRoute
   '/setup/': typeof AppSetupIndexRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
@@ -249,6 +256,7 @@ export interface FileRoutesByTo {
   '/claims': typeof AppClaimsIndexRoute
   '/leave': typeof AppLeaveIndexRoute
   '/people': typeof AppPeopleIndexRoute
+  '/profile': typeof AppProfileIndexRoute
   '/setup': typeof AppSetupIndexRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
@@ -283,6 +291,7 @@ export interface FileRoutesById {
   '/_app/claims/': typeof AppClaimsIndexRoute
   '/_app/leave/': typeof AppLeaveIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
+  '/_app/profile/': typeof AppProfileIndexRoute
   '/_app/setup/': typeof AppSetupIndexRoute
   '/_app/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/_app/leave/policies/new': typeof AppLeavePoliciesNewRoute
@@ -316,6 +325,7 @@ export interface FileRouteTypes {
     | '/claims/'
     | '/leave/'
     | '/people/'
+    | '/profile/'
     | '/setup/'
     | '/leave/policies/$id'
     | '/leave/policies/new'
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/claims'
     | '/leave'
     | '/people'
+    | '/profile'
     | '/setup'
     | '/leave/policies/$id'
     | '/leave/policies/new'
@@ -376,6 +387,7 @@ export interface FileRouteTypes {
     | '/_app/claims/'
     | '/_app/leave/'
     | '/_app/people/'
+    | '/_app/profile/'
     | '/_app/setup/'
     | '/_app/leave/policies/$id'
     | '/_app/leave/policies/new'
@@ -522,6 +534,13 @@ declare module '@tanstack/react-router' {
       path: '/setup'
       fullPath: '/setup/'
       preLoaderRoute: typeof AppSetupIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/profile/': {
+      id: '/_app/profile/'
+      path: '/profile'
+      fullPath: '/profile/'
+      preLoaderRoute: typeof AppProfileIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/people/': {
@@ -695,6 +714,7 @@ interface AppRouteRouteChildren {
   AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
   AppTasksRouteRoute: typeof AppTasksRouteRoute
   AppOrgChartRoute: typeof AppOrgChartRoute
+  AppProfileIndexRoute: typeof AppProfileIndexRoute
   AppSetupIndexRoute: typeof AppSetupIndexRoute
 }
 
@@ -710,6 +730,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
   AppTasksRouteRoute: AppTasksRouteRoute,
   AppOrgChartRoute: AppOrgChartRoute,
+  AppProfileIndexRoute: AppProfileIndexRoute,
   AppSetupIndexRoute: AppSetupIndexRoute,
 }
 

@@ -1,7 +1,7 @@
 # Sprint 18 — Bug Fixes, INA/UAE Policy Research, Onboarding Improvements
 
 **Duration:** March 25, 2026
-**Status:** 🚧 IN PROGRESS
+**Status:** ✅ COMPLETE
 **Team:** Full stack
 **Type:** Bug fixes + research + feature
 
@@ -60,7 +60,7 @@
 
 ---
 
-### Task 4: INA + UAE Leave & Claim Policy Research ⬜ | S (1 day)
+### Task 4: INA + UAE Leave & Claim Policy Research ✅ | S (1 day)
 
 **🧠 PO:** We need to understand what leave and claim policies are legally required or commonly used in Indonesia and UAE, so our defaults make sense for Ahmad's teams.
 
@@ -83,20 +83,38 @@
 
 ---
 
-### Task 5: Invitation-Aware Onboarding Improvements ⬜ | S (1 day)
+### Task 5: Invitation-Aware Onboarding Improvements ✅ | XS (already done)
 
-**🧠 PO:** After register, instead of only "create workspace", user should also see option to join an existing workspace. If invited by admin → auto-accept. If requesting to join → needs approval. Admin needs a join request list page.
+**🧠 PO:** After register, instead of only "create workspace", user should also see option to join an existing workspace.
 
-**Scope (minimal):**
-- Accept invite after register (already works)
-- Show pending invitations on setup-org page
-- Join request list for admins (if time)
+**Status:** Already implemented in previous sprints:
+- Setup-org page shows pending invitations with "Accept & join" buttons
+- Invitation cards appear above "or create a new workspace" divider
+- Bug 1 fix (this sprint) ensures orgless invited users reach setup-org page correctly
+- Users who register without invitation link still see their invitations automatically
+
+**No additional code changes needed** — the invitation-aware onboarding flow is complete.
 
 ---
 
-### Task 6: Read-Only My Profile Page ⬜ | S (1 day)
+### Task 6: Read-Only My Profile Page ✅ | S (1 day)
 
 **🧠 PO:** Employees should be able to see their own profile data. Edit capability requires admin approval (because changes like gender affect leave policy eligibility), so v1 is read-only.
+
+**Implementation:**
+- New route: `/profile` — read-only employee profile page
+- Uses existing `GET /employees/me` endpoint and `useMyEmployee()` hook
+- Shows: name, avatar, job title, department, status, email, phone, employment type, gender, start date, reporting manager
+- Loading skeleton, error state, and empty field handling
+- "My profile" link added to settings menu (dock)
+- Read-only notice: "To update your profile, please contact your HR administrator."
+
+**Files changed:**
+- `apps/web/src/routes/_app/profile/index.tsx` — new profile page
+- `apps/web/src/routes/_app/profile/index.test.tsx` — 7 tests
+- `apps/web/src/components/workived/dock/SettingsMenu.tsx` — added "My profile" menu item
+- `apps/web/src/components/workived/dock/SettingsMenu.test.tsx` — updated tests (now 11)
+- `apps/web/src/components/workived/dock/Dock.tsx` — profile path → people theme
 
 ---
 
@@ -107,9 +125,9 @@
 | 1 | Fix 403 on setup/status for orgless users | XS | ✅ |
 | 2 | Fix claim budget number format | XS | ✅ |
 | 3 | Add paid claim notification email | XS | ✅ |
-| 4 | INA + UAE leave & claim policy research | S | ⬜ |
-| 5 | Invitation-aware onboarding improvements | S | ⬜ |
-| 6 | Read-only My Profile page | S | ⬜ |
+| 4 | INA + UAE leave & claim policy research | S | ✅ |
+| 5 | Invitation-aware onboarding improvements | XS | ✅ |
+| 6 | Read-only My Profile page | S | ✅ |
 
 ---
 

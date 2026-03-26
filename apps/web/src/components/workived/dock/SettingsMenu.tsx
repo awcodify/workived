@@ -166,13 +166,26 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             </div>
           )}
 
-          {/* Settings Links */}
+          {/* Profile & Settings Links */}
+          <button
+            role="menuitem"
+            onClick={() => { setIsOpen(false); navigate({ to: '/profile' }) }}
+            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            style={{ color: menuColors.text }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = menuColors.hoverBg
+            }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <User size={16} className="transition-transform group-hover/item:scale-110" />
+            <span className="text-xs font-medium">My profile</span>
+          </button>
           <button
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/company' }) }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
             style={{ color: menuColors.text }}
-            onMouseEnter={(e) => { 
+            onMouseEnter={(e) => {
               e.currentTarget.style.background = menuColors.hoverBg
             }}
             onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}

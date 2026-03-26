@@ -23,6 +23,7 @@ const NAV_ITEMS = [
 ] as const
 
 function getCurrentModule(pathname: string): ModuleKey {
+  if (pathname.startsWith('/profile')) return 'people'
   if (pathname.startsWith('/people')) return 'people'
   if (pathname.startsWith('/attendance')) return 'attendance'
   if (pathname.startsWith('/leave')) return 'leave'

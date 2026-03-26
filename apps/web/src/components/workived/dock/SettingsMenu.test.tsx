@@ -60,9 +60,17 @@ describe('SettingsMenu', () => {
     
     expect(screen.getByText('Test User')).toBeInTheDocument()
     expect(screen.getByText('test@workived.com')).toBeInTheDocument()
+    expect(screen.getByText('My profile')).toBeInTheDocument()
     expect(screen.getByText('Company settings')).toBeInTheDocument()
     expect(screen.getByText('Team members')).toBeInTheDocument()
     expect(screen.getByText('Logout')).toBeInTheDocument()
+  })
+
+  it('navigates to profile when My profile is clicked', () => {
+    render(<SettingsMenu currentModule="overview" />)
+    fireEvent.click(screen.getByText('Settings'))
+    fireEvent.click(screen.getByText('My profile'))
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/profile' })
   })
 
   it('navigates to company settings when Company settings is clicked', () => {
