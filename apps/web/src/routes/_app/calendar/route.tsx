@@ -1,9 +1,11 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useCalendar, useHolidays } from '@/lib/hooks/useLeave'
+import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react'
+import { useCalendar } from '@/lib/hooks/useLeave'
+import { useCalendarHolidays } from '@/lib/hooks/useCalendarHolidays'
+import { useCanManageLeave } from '@/lib/hooks/useRole'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 import type { CalendarEntry } from '@/types/api'
@@ -57,6 +59,7 @@ function CalendarPage() {
   const today = new Date()
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1)
+  const canManage = useCanManageLeave()
 
   const { data: org } = useOrganisation()
   const { data: entries, isLoading } = useCalendar(year, month)
@@ -70,7 +73,7 @@ function CalendarPage() {
     }
   }, [year, month])
 
-  const { data: holidays } = useHolidays(startDate!, endDate!)
+  const { data: holidays } = useCalendarHolidays(startDate!, endDate!)
 
   const backendCountry = holidays?.[0]?.country_code ?? ''
   const backendCountryName = backendCountry ? COUNTRY_NAMES[backendCountry] || backendCountry : ''
@@ -204,17 +207,34 @@ function CalendarPage() {
             <ChevronRight size={20} />
           </button>
         </div>
-        <button
-          onClick={goToToday}
-          className="text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-70"
-          style={{
-            background: t.accent,
-            color: t.accentText,
-            borderRadius: 10,
-          }}
-        >
-          Today
-        </button>
+        <div className="flex items-center gap-2">
+          {canManage && (
+            <Link
+              to="/calendar/holidays"
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-70"
+              style={{
+                background: t.surface,
+                color: t.accent,
+                borderRadius: 10,
+                border: `1px solid ${t.border}`,
+              }}
+            >
+              <Settings2 size={16} />
+              Manage Holidays
+            </Link>
+          )}
+          <button
+            onClick={goToToday}
+            className="text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-70"
+            style={{
+              background: t.accent,
+              color: t.accentText,
+              borderRadius: 10,
+            }}
+          >
+            Today
+          </button>
+        </div>
       </div>
 
       {/* Calendar Grid */}

@@ -39,6 +39,7 @@ import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/r
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
 import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/policies/index'
 import { Route as AppClaimsCategoriesIndexRouteImport } from './routes/_app/claims/categories/index'
+import { Route as AppCalendarHolidaysIndexRouteImport } from './routes/_app/calendar/holidays/index'
 import { Route as AppLeavePoliciesNewRouteImport } from './routes/_app/leave/policies/new'
 import { Route as AppLeavePoliciesIdRouteImport } from './routes/_app/leave/policies/$id'
 
@@ -192,6 +193,12 @@ const AppClaimsCategoriesIndexRoute =
     path: '/categories/',
     getParentRoute: () => AppClaimsRouteRoute,
   } as any)
+const AppCalendarHolidaysIndexRoute =
+  AppCalendarHolidaysIndexRouteImport.update({
+    id: '/holidays/',
+    path: '/holidays/',
+    getParentRoute: () => AppCalendarRouteRoute,
+  } as any)
 const AppLeavePoliciesNewRoute = AppLeavePoliciesNewRouteImport.update({
   id: '/policies/new',
   path: '/policies/new',
@@ -206,7 +213,7 @@ const AppLeavePoliciesIdRoute = AppLeavePoliciesIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
-  '/calendar': typeof AppCalendarRouteRoute
+  '/calendar': typeof AppCalendarRouteRouteWithChildren
   '/claims': typeof AppClaimsRouteRouteWithChildren
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/leave': typeof AppLeaveRouteRouteWithChildren
@@ -232,12 +239,13 @@ export interface FileRoutesByFullPath {
   '/setup/': typeof AppSetupIndexRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
+  '/calendar/holidays/': typeof AppCalendarHolidaysIndexRoute
   '/claims/categories/': typeof AppClaimsCategoriesIndexRoute
   '/leave/policies/': typeof AppLeavePoliciesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/calendar': typeof AppCalendarRouteRoute
+  '/calendar': typeof AppCalendarRouteRouteWithChildren
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/overview': typeof AppOverviewRouteRoute
   '/reports': typeof AppReportsRouteRoute
@@ -260,6 +268,7 @@ export interface FileRoutesByTo {
   '/setup': typeof AppSetupIndexRoute
   '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/leave/policies/new': typeof AppLeavePoliciesNewRoute
+  '/calendar/holidays': typeof AppCalendarHolidaysIndexRoute
   '/claims/categories': typeof AppClaimsCategoriesIndexRoute
   '/leave/policies': typeof AppLeavePoliciesIndexRoute
 }
@@ -269,7 +278,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteRouteWithChildren
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
-  '/_app/calendar': typeof AppCalendarRouteRoute
+  '/_app/calendar': typeof AppCalendarRouteRouteWithChildren
   '/_app/claims': typeof AppClaimsRouteRouteWithChildren
   '/_app/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/_app/leave': typeof AppLeaveRouteRouteWithChildren
@@ -295,6 +304,7 @@ export interface FileRoutesById {
   '/_app/setup/': typeof AppSetupIndexRoute
   '/_app/leave/policies/$id': typeof AppLeavePoliciesIdRoute
   '/_app/leave/policies/new': typeof AppLeavePoliciesNewRoute
+  '/_app/calendar/holidays/': typeof AppCalendarHolidaysIndexRoute
   '/_app/claims/categories/': typeof AppClaimsCategoriesIndexRoute
   '/_app/leave/policies/': typeof AppLeavePoliciesIndexRoute
 }
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/setup/'
     | '/leave/policies/$id'
     | '/leave/policies/new'
+    | '/calendar/holidays/'
     | '/claims/categories/'
     | '/leave/policies/'
   fileRoutesByTo: FileRoutesByTo
@@ -357,6 +368,7 @@ export interface FileRouteTypes {
     | '/setup'
     | '/leave/policies/$id'
     | '/leave/policies/new'
+    | '/calendar/holidays'
     | '/claims/categories'
     | '/leave/policies'
   id:
@@ -391,6 +403,7 @@ export interface FileRouteTypes {
     | '/_app/setup/'
     | '/_app/leave/policies/$id'
     | '/_app/leave/policies/new'
+    | '/_app/calendar/holidays/'
     | '/_app/claims/categories/'
     | '/_app/leave/policies/'
   fileRoutesById: FileRoutesById
@@ -613,6 +626,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClaimsCategoriesIndexRouteImport
       parentRoute: typeof AppClaimsRouteRoute
     }
+    '/_app/calendar/holidays/': {
+      id: '/_app/calendar/holidays/'
+      path: '/holidays'
+      fullPath: '/calendar/holidays/'
+      preLoaderRoute: typeof AppCalendarHolidaysIndexRouteImport
+      parentRoute: typeof AppCalendarRouteRoute
+    }
     '/_app/leave/policies/new': {
       id: '/_app/leave/policies/new'
       path: '/policies/new'
@@ -642,6 +662,17 @@ const AppAttendanceRouteRouteChildren: AppAttendanceRouteRouteChildren = {
 
 const AppAttendanceRouteRouteWithChildren =
   AppAttendanceRouteRoute._addFileChildren(AppAttendanceRouteRouteChildren)
+
+interface AppCalendarRouteRouteChildren {
+  AppCalendarHolidaysIndexRoute: typeof AppCalendarHolidaysIndexRoute
+}
+
+const AppCalendarRouteRouteChildren: AppCalendarRouteRouteChildren = {
+  AppCalendarHolidaysIndexRoute: AppCalendarHolidaysIndexRoute,
+}
+
+const AppCalendarRouteRouteWithChildren =
+  AppCalendarRouteRoute._addFileChildren(AppCalendarRouteRouteChildren)
 
 interface AppClaimsRouteRouteChildren {
   AppClaimsIndexRoute: typeof AppClaimsIndexRoute
@@ -704,7 +735,7 @@ const AppSettingsRouteRouteWithChildren =
 
 interface AppRouteRouteChildren {
   AppAttendanceRouteRoute: typeof AppAttendanceRouteRouteWithChildren
-  AppCalendarRouteRoute: typeof AppCalendarRouteRoute
+  AppCalendarRouteRoute: typeof AppCalendarRouteRouteWithChildren
   AppClaimsRouteRoute: typeof AppClaimsRouteRouteWithChildren
   AppFeatureDisabledRouteRoute: typeof AppFeatureDisabledRouteRoute
   AppLeaveRouteRoute: typeof AppLeaveRouteRouteWithChildren
@@ -720,7 +751,7 @@ interface AppRouteRouteChildren {
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAttendanceRouteRoute: AppAttendanceRouteRouteWithChildren,
-  AppCalendarRouteRoute: AppCalendarRouteRoute,
+  AppCalendarRouteRoute: AppCalendarRouteRouteWithChildren,
   AppClaimsRouteRoute: AppClaimsRouteRouteWithChildren,
   AppFeatureDisabledRouteRoute: AppFeatureDisabledRouteRoute,
   AppLeaveRouteRoute: AppLeaveRouteRouteWithChildren,

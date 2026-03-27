@@ -392,7 +392,15 @@ export interface CalendarEntry {
 }
 
 export interface PublicHoliday {
+  id?: string
   country_code: string
+  date: string  // YYYY-MM-DD
+  name: string
+  organisation_id?: string
+  is_custom?: boolean
+}
+
+export interface CreateCustomHolidayInput {
   date: string  // YYYY-MM-DD
   name: string
 }

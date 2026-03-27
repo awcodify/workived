@@ -37,6 +37,15 @@ vi.mock('@/lib/hooks/useLeave', () => ({
   useHolidays: vi.fn(() => ({ data: mockHolidays, isLoading: false })),
 }))
 
+vi.mock('@/lib/hooks/useCalendarHolidays', () => ({
+  useCalendarHolidays: vi.fn(() => ({ data: mockHolidays, isLoading: false })),
+}))
+
+vi.mock('@/lib/hooks/useRole', () => ({
+  useCanManageLeave: vi.fn(() => true),
+  useCanManageClaims: vi.fn(() => false),
+}))
+
 vi.mock('@/lib/hooks/useOrganisation', () => ({
   useOrganisation: vi.fn(() => ({ data: { country_code: 'ID' } })),
 }))
