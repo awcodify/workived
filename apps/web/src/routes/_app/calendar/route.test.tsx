@@ -6,61 +6,13 @@ import React from 'react'
 // Mock TanStack Router
 vi.mock('@tanstack/react-router', () => ({
   createFileRoute: () => () => ({ component: undefined }),
-}))
-
-// Mock hooks
-const mockCalendarData = [
-  {
-    employee_id: 'emp1',
-    employee_name: 'Ahmad Rizki',
-    policy_name: 'Annual Leave',
-    start_date: '2026-03-20',
-    end_date: '2026-03-22',
-    total_days: 2,
-  },
-  {
-    employee_id: 'emp2',
-    employee_name: 'Sarah Chen',
-    policy_name: 'Sick Leave',
-    start_date: '2026-03-21',
-    end_date: '2026-03-21',
-    total_days: 1,
-  },
-]
-
-const mockHolidays = [
-  { country_code: 'ID', date: '2026-03-23', name: 'Nyepi' },
-]
-
-vi.mock('@/lib/hooks/useLeave', () => ({
-  useCalendar: vi.fn(() => ({ data: mockCalendarData, isLoading: false })),
-  useHolidays: vi.fn(() => ({ data: mockHolidays, isLoading: false })),
-}))
-
-vi.mock('@/lib/hooks/useCalendarHolidays', () => ({
-  useCalendarHolidays: vi.fn(() => ({ data: mockHolidays, isLoading: false })),
-}))
-
-vi.mock('@/lib/hooks/useRole', () => ({
-  useCanManageLeave: vi.fn(() => true),
-  useCanManageClaims: vi.fn(() => false),
-}))
-
-vi.mock('@/lib/hooks/useOrganisation', () => ({
-  useOrganisation: vi.fn(() => ({ data: { country_code: 'ID' } })),
+  Outlet: () => <div data-testid="outlet" />,
 }))
 
 vi.mock('@/design/tokens', async () => {
   const actual = await vi.importActual('@/design/tokens')
   return actual
 })
-
-// We need to test the CalendarPage component directly since createFileRoute is mocked.
-// Re-export the module internals by importing the file and extracting from the module system.
-// Since the component is not exported, we test by rendering the entire module.
-
-// For a route file, we test the sub-components / rendering logic by
-// creating a test wrapper that renders similar output.
 
 function renderWithProviders(ui: React.ReactElement) {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } })

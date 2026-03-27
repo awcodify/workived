@@ -32,6 +32,7 @@ import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppLeaveIndexRouteImport } from './routes/_app/leave/index'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims/index'
+import { Route as AppCalendarIndexRouteImport } from './routes/_app/calendar/index'
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
@@ -156,6 +157,11 @@ const AppClaimsIndexRoute = AppClaimsIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppClaimsRouteRoute,
 } as any)
+const AppCalendarIndexRoute = AppCalendarIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppCalendarRouteRoute,
+} as any)
 const AppAttendanceIndexRoute = AppAttendanceIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -232,6 +238,7 @@ export interface FileRoutesByFullPath {
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance/': typeof AppAttendanceIndexRoute
+  '/calendar/': typeof AppCalendarIndexRoute
   '/claims/': typeof AppClaimsIndexRoute
   '/leave/': typeof AppLeaveIndexRoute
   '/people/': typeof AppPeopleIndexRoute
@@ -245,7 +252,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/calendar': typeof AppCalendarRouteRouteWithChildren
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/overview': typeof AppOverviewRouteRoute
   '/reports': typeof AppReportsRouteRoute
@@ -261,6 +267,7 @@ export interface FileRoutesByTo {
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance': typeof AppAttendanceIndexRoute
+  '/calendar': typeof AppCalendarIndexRoute
   '/claims': typeof AppClaimsIndexRoute
   '/leave': typeof AppLeaveIndexRoute
   '/people': typeof AppPeopleIndexRoute
@@ -297,6 +304,7 @@ export interface FileRoutesById {
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
   '/_app/attendance/': typeof AppAttendanceIndexRoute
+  '/_app/calendar/': typeof AppCalendarIndexRoute
   '/_app/claims/': typeof AppClaimsIndexRoute
   '/_app/leave/': typeof AppLeaveIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
@@ -332,6 +340,7 @@ export interface FileRouteTypes {
     | '/settings/company'
     | '/settings/members'
     | '/attendance/'
+    | '/calendar/'
     | '/claims/'
     | '/leave/'
     | '/people/'
@@ -345,7 +354,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/calendar'
     | '/feature-disabled'
     | '/overview'
     | '/reports'
@@ -361,6 +369,7 @@ export interface FileRouteTypes {
     | '/settings/company'
     | '/settings/members'
     | '/attendance'
+    | '/calendar'
     | '/claims'
     | '/leave'
     | '/people'
@@ -396,6 +405,7 @@ export interface FileRouteTypes {
     | '/_app/settings/company'
     | '/_app/settings/members'
     | '/_app/attendance/'
+    | '/_app/calendar/'
     | '/_app/claims/'
     | '/_app/leave/'
     | '/_app/people/'
@@ -577,6 +587,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppClaimsIndexRouteImport
       parentRoute: typeof AppClaimsRouteRoute
     }
+    '/_app/calendar/': {
+      id: '/_app/calendar/'
+      path: '/'
+      fullPath: '/calendar/'
+      preLoaderRoute: typeof AppCalendarIndexRouteImport
+      parentRoute: typeof AppCalendarRouteRoute
+    }
     '/_app/attendance/': {
       id: '/_app/attendance/'
       path: '/'
@@ -664,10 +681,12 @@ const AppAttendanceRouteRouteWithChildren =
   AppAttendanceRouteRoute._addFileChildren(AppAttendanceRouteRouteChildren)
 
 interface AppCalendarRouteRouteChildren {
+  AppCalendarIndexRoute: typeof AppCalendarIndexRoute
   AppCalendarHolidaysIndexRoute: typeof AppCalendarHolidaysIndexRoute
 }
 
 const AppCalendarRouteRouteChildren: AppCalendarRouteRouteChildren = {
+  AppCalendarIndexRoute: AppCalendarIndexRoute,
   AppCalendarHolidaysIndexRoute: AppCalendarHolidaysIndexRoute,
 }
 
