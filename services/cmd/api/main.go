@@ -73,18 +73,28 @@ func main() {
 	// Email sender
 	var emailSender email.Sender
 	if cfg.EmailEnabled {
-		emailSender = email.NewSMTPSender(email.SMTPConfig{
-			Host:     cfg.SMTPHost,
-			Port:     cfg.SMTPPort,
-			Username: cfg.SMTPUser,
-			Password: cfg.SMTPPass,
-			From:     cfg.EmailFrom,
-		}, log)
-		log.Info().
-			Str("smtp_host", cfg.SMTPHost).
-			Int("smtp_port", cfg.SMTPPort).
-			Str("email_from", cfg.EmailFrom).
-			Msg("email notifications enabled")
+		if cfg.ResendAPIKey != "" {
+			emailSender = email.NewResendSender(email.ResendConfig{
+				APIKey: cfg.ResendAPIKey,
+				From:   cfg.EmailFrom,
+			}, log)
+			log.Info().
+				Str("email_from", cfg.EmailFrom).
+				Msg("email notifications enabled (Resend)")
+		} else {
+			emailSender = email.NewSMTPSender(email.SMTPConfig{
+				Host:     cfg.SMTPHost,
+				Port:     cfg.SMTPPort,
+				Username: cfg.SMTPUser,
+				Password: cfg.SMTPPass,
+				From:     cfg.EmailFrom,
+			}, log)
+			log.Info().
+				Str("smtp_host", cfg.SMTPHost).
+				Int("smtp_port", cfg.SMTPPort).
+				Str("email_from", cfg.EmailFrom).
+				Msg("email notifications enabled (SMTP)")
+		}
 	} else {
 		emailSender = &email.NoOpSender{}
 		log.Info().Msg("email notifications disabled (using NoOpSender)")

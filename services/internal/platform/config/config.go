@@ -36,6 +36,8 @@ type Config struct {
 	EmailFrom    string `mapstructure:"EMAIL_FROM"`
 	EmailEnabled bool   `mapstructure:"EMAIL_ENABLED"` // Set to true to actually send emails
 
+	ResendAPIKey string `mapstructure:"RESEND_API_KEY"` // If set, uses Resend instead of SMTP
+
 	AppURL string `mapstructure:"APP_URL"`
 	APIURL string `mapstructure:"API_URL"`
 
@@ -86,6 +88,7 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("SMTP_PASS")
 	_ = v.BindEnv("EMAIL_FROM")
 	_ = v.BindEnv("EMAIL_ENABLED")
+	_ = v.BindEnv("RESEND_API_KEY")
 	_ = v.BindEnv("APP_URL")
 	_ = v.BindEnv("API_URL")
 	_ = v.BindEnv("DOCS_USERNAME")
