@@ -30,9 +30,12 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 		       e.employment_type, e.status, e.reporting_to, e.gender, e.start_date, e.end_date,
 		       e.base_salary, e.salary_currency, e.custom_fields,
 		       e.is_active, e.created_at, e.updated_at,
-		       m.full_name AS manager_name
+		       m.full_name AS manager_name,
+		       (i.id IS NOT NULL) AS invitation_pending
 		FROM employees e
 		LEFT JOIN employees m ON e.reporting_to = m.id AND m.is_active = TRUE
+		LEFT JOIN invitations i ON i.organisation_id = e.organisation_id
+		          AND i.employee_id = e.id AND i.accepted_at IS NULL
 		WHERE e.organisation_id = $1
 		  AND ($2::varchar IS NULL OR e.status = $2)
 		  AND ($3::varchar IS NULL OR e.department_id::text = $3)
@@ -54,7 +57,7 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.StartDate, &e.EndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
-			&e.ManagerName,
+			&e.ManagerName, &e.InvitationPending,
 		); err != nil {
 			return nil, err
 		}

@@ -258,7 +258,7 @@ function PeoplePage() {
                 {emp.department_name ?? '—'}
               </p>
 
-              <StatusSquare status={emp.status} />
+              <StatusSquare status={emp.invitation_pending ? 'pending' : emp.status} />
             </Link>
             )
           })}

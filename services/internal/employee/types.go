@@ -36,7 +36,8 @@ type Employee struct {
 // EmployeeWithManager includes manager name for API responses.
 type EmployeeWithManager struct {
 	Employee
-	ManagerName *string `json:"manager_name,omitempty"` // Full name of reporting_to employee
+	ManagerName       *string `json:"manager_name,omitempty"`       // Full name of reporting_to employee
+	InvitationPending bool    `json:"invitation_pending,omitempty"` // True if employee has unaccepted invitation
 }
 
 // OrgChartNode represents an employee in the organizational hierarchy with their direct reports.

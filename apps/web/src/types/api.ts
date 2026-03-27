@@ -164,6 +164,7 @@ export interface Employee {
   department_name?: string
   reporting_to?: string
   manager_name?: string
+  invitation_pending?: boolean
   gender?: 'male' | 'female' | null
   employment_type: 'full_time' | 'part_time' | 'contract' | 'intern'
   status: 'active' | 'probation' | 'inactive'
