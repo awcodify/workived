@@ -25,6 +25,7 @@ import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/rou
 import { Route as AppLeaveRouteRouteImport } from './routes/_app/leave/route'
 import { Route as AppFeatureDisabledRouteRouteImport } from './routes/_app/feature-disabled/route'
 import { Route as AppClaimsRouteRouteImport } from './routes/_app/claims/route'
+import { Route as AppChangelogRouteRouteImport } from './routes/_app/changelog/route'
 import { Route as AppCalendarRouteRouteImport } from './routes/_app/calendar/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
 import { Route as AppSetupIndexRouteImport } from './routes/_app/setup/index'
@@ -120,6 +121,11 @@ const AppFeatureDisabledRouteRoute = AppFeatureDisabledRouteRouteImport.update({
 const AppClaimsRouteRoute = AppClaimsRouteRouteImport.update({
   id: '/claims',
   path: '/claims',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppChangelogRouteRoute = AppChangelogRouteRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppCalendarRouteRoute = AppCalendarRouteRouteImport.update({
@@ -220,6 +226,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
   '/calendar': typeof AppCalendarRouteRouteWithChildren
+  '/changelog': typeof AppChangelogRouteRoute
   '/claims': typeof AppClaimsRouteRouteWithChildren
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/leave': typeof AppLeaveRouteRouteWithChildren
@@ -252,6 +259,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/changelog': typeof AppChangelogRouteRoute
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/overview': typeof AppOverviewRouteRoute
   '/reports': typeof AppReportsRouteRoute
@@ -286,6 +294,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteRouteWithChildren
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
   '/_app/calendar': typeof AppCalendarRouteRouteWithChildren
+  '/_app/changelog': typeof AppChangelogRouteRoute
   '/_app/claims': typeof AppClaimsRouteRouteWithChildren
   '/_app/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/_app/leave': typeof AppLeaveRouteRouteWithChildren
@@ -322,6 +331,7 @@ export interface FileRouteTypes {
     | '/'
     | '/attendance'
     | '/calendar'
+    | '/changelog'
     | '/claims'
     | '/feature-disabled'
     | '/leave'
@@ -354,6 +364,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/changelog'
     | '/feature-disabled'
     | '/overview'
     | '/reports'
@@ -387,6 +398,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/_app/attendance'
     | '/_app/calendar'
+    | '/_app/changelog'
     | '/_app/claims'
     | '/_app/feature-disabled'
     | '/_app/leave'
@@ -536,6 +548,13 @@ declare module '@tanstack/react-router' {
       path: '/claims'
       fullPath: '/claims'
       preLoaderRoute: typeof AppClaimsRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/changelog': {
+      id: '/_app/changelog'
+      path: '/changelog'
+      fullPath: '/changelog'
+      preLoaderRoute: typeof AppChangelogRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/calendar': {
@@ -755,6 +774,7 @@ const AppSettingsRouteRouteWithChildren =
 interface AppRouteRouteChildren {
   AppAttendanceRouteRoute: typeof AppAttendanceRouteRouteWithChildren
   AppCalendarRouteRoute: typeof AppCalendarRouteRouteWithChildren
+  AppChangelogRouteRoute: typeof AppChangelogRouteRoute
   AppClaimsRouteRoute: typeof AppClaimsRouteRouteWithChildren
   AppFeatureDisabledRouteRoute: typeof AppFeatureDisabledRouteRoute
   AppLeaveRouteRoute: typeof AppLeaveRouteRouteWithChildren
@@ -771,6 +791,7 @@ interface AppRouteRouteChildren {
 const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppAttendanceRouteRoute: AppAttendanceRouteRouteWithChildren,
   AppCalendarRouteRoute: AppCalendarRouteRouteWithChildren,
+  AppChangelogRouteRoute: AppChangelogRouteRoute,
   AppClaimsRouteRoute: AppClaimsRouteRouteWithChildren,
   AppFeatureDisabledRouteRoute: AppFeatureDisabledRouteRoute,
   AppLeaveRouteRoute: AppLeaveRouteRouteWithChildren,

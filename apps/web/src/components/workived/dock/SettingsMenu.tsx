@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Settings, LogOut, User, Building2, Users, Moon, Sun } from 'lucide-react'
+import { Settings, LogOut, User, Building2, Users, Moon, Sun, Sparkles } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useThemeStore } from '@/lib/stores/theme'
 import { useHasOrg } from '@/lib/hooks/useRole'
+import { useChangelogUnread } from '@/lib/hooks/useChangelog'
 import { dockThemes, useDockTheme } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 
@@ -20,6 +21,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
   const { user, logout } = useAuthStore()
   const { theme: currentTheme, toggleTheme } = useThemeStore()
   const hasOrg = useHasOrg()
+  const { hasUnread } = useChangelogUnread()
   
   // Use themed dock for overview/people, static for others
   const overviewDockTheme = useDockTheme('overview')
@@ -236,10 +238,37 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             )}
           </button>
 
+          {/* What's New */}
+          <button
+            role="menuitem"
+            onClick={() => { setIsOpen(false); navigate({ to: '/changelog' }) }}
+            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            style={{ color: menuColors.text }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = menuColors.hoverBg
+            }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <div className="relative">
+              <Sparkles size={16} className="transition-transform group-hover/item:scale-110" />
+              {hasUnread && (
+                <div
+                  className="absolute -top-1 -right-1"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: '#6357E8',
+                  }}
+                />
+              )}
+            </div>
+            <span className="text-xs font-medium">What's New</span>
+          </button>
+
           {/* Divider */}
           <div className="my-1" style={{ height: 1, background: theme.border }} />
 
-          {/* 
           {/* Logout Button */}
           <button
             role="menuitem"
