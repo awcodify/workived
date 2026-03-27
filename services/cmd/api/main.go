@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/workived/services/internal/admin"
+	"github.com/workived/services/internal/calendar"
 	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/auth"
@@ -101,6 +102,7 @@ func main() {
 	adminRepo := admin.NewRepository(db)
 	auditRepo := audit.NewRepository(db)
 	setupRepo := setup.NewRepository(db)
+	calendarRepo := calendar.NewRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
@@ -114,6 +116,7 @@ func main() {
 	leaveSvc := leave.NewService(leaveRepo, orgRepo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender), leave.WithTasksService(tasksSvc))
 	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log))
 	setupSvc := setup.NewService(setupRepo, log)
+	calendarSvc := calendar.NewService(calendarRepo, orgRepo, log)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	authHandler := auth.NewHandler(authSvc)
@@ -157,6 +160,7 @@ func main() {
 	}, log)
 
 	setupHandler := setup.NewHandler(setupSvc, log)
+	calendarHandler := calendar.NewHandler(calendarSvc, log)
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -221,6 +225,7 @@ func main() {
 	claimsHandler.RegisterRoutes(authed)
 	tasksHandler.RegisterRoutes(authed)
 	setupHandler.RegisterRoutes(authed)
+	calendarHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)

@@ -1144,6 +1144,104 @@ paths:
                         type: integer
 
   # ── Claims ────────────────────────────────────────────────────────────────
+  # ── Calendar ───────────────────────────────────────────────────────────
+
+  /calendar/holidays:
+    get:
+      operationId: listCalendarHolidays
+      summary: List public + custom holidays for date range
+      tags: [Calendar]
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: List of holidays (public + org-custom)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PublicHoliday"
+
+  /calendar/holidays/custom:
+    get:
+      operationId: listCustomHolidays
+      summary: List org-specific custom holidays
+      tags: [Calendar]
+      responses:
+        "200":
+          description: List of custom holidays
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PublicHoliday"
+    post:
+      operationId: createCustomHoliday
+      summary: Create an org-specific custom holiday
+      tags: [Calendar]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [date, name]
+              properties:
+                date:
+                  type: string
+                  format: date
+                name:
+                  type: string
+                  minLength: 1
+                  maxLength: 200
+      responses:
+        "201":
+          description: Custom holiday created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/PublicHoliday"
+
+  /calendar/holidays/custom/{id}:
+    delete:
+      operationId: deleteCustomHoliday
+      summary: Delete an org-specific custom holiday
+      tags: [Calendar]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Custom holiday deleted
+
+  # ── Claims ────────────────────────────────────────────────────────────
+
   /claims/categories:
     get:
       operationId: listClaimCategories
@@ -3554,6 +3652,13 @@ components:
         date:
           type: string
           format: date
+        organisation_id:
+          type: string
+          format: uuid
+          description: Present for org-specific custom holidays
+        is_custom:
+          type: boolean
+          description: Whether this is an org-specific custom holiday
         is_recurring:
           type: boolean
 
