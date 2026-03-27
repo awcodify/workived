@@ -80,7 +80,7 @@ type fakeRepo struct {
 	listTemplatesFn                       func(ctx context.Context, countryCode string) ([]leave.PolicyTemplate, error)
 	getTemplatesByIDsFn                   func(ctx context.Context, ids []uuid.UUID) ([]leave.PolicyTemplate, error)
 	importPoliciesFromTemplatesFn         func(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, templates []leave.PolicyTemplate) ([]leave.Policy, error)
-	createBalancesForAllEmployeesFn       func(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error
+	createBalancesForAllEmployeesFn       func(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64, eligibleTypes []string) error
 }
 
 func (f *fakeRepo) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]leave.Policy, error) {
@@ -183,9 +183,9 @@ func (f *fakeRepo) ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx, o
 	}
 	return []leave.Policy{}, nil
 }
-func (f *fakeRepo) CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error {
+func (f *fakeRepo) CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64, eligibleTypes []string) error {
 	if f.createBalancesForAllEmployeesFn != nil {
-		return f.createBalancesForAllEmployeesFn(ctx, tx, orgID, policyID, year, entitledDays)
+		return f.createBalancesForAllEmployeesFn(ctx, tx, orgID, policyID, year, entitledDays, eligibleTypes)
 	}
 	return nil
 }
@@ -241,6 +241,10 @@ func (f *fakeEmployeeRepo) GetEmployeeStartDate(ctx context.Context, orgID, empl
 	}
 	// Default: employee started January 1 of current year (full entitlement)
 	return time.Date(time.Now().Year(), 1, 1, 0, 0, 0, 0, time.UTC), nil
+}
+
+func (f *fakeEmployeeRepo) GetEmployeeType(_ context.Context, _, _ uuid.UUID) (string, error) {
+	return "full_time", nil
 }
 
 func (f *fakeEmployeeRepo) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {

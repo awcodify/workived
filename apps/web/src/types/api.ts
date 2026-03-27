@@ -306,6 +306,8 @@ export interface ApiError {
 }
 
 // ── Leave ───────────────────────────────────────────────────
+export type EmploymentType = 'full_time' | 'part_time' | 'contract' | 'intern'
+
 export interface LeavePolicy {
   id: string
   organisation_id: string
@@ -316,6 +318,7 @@ export interface LeavePolicy {
   min_tenure_days: number
   requires_approval: boolean
   gender_eligibility?: 'male' | 'female' | null
+  eligible_employment_types?: EmploymentType[] | null
   is_active: boolean
   created_at: string
   updated_at: string
@@ -445,6 +448,7 @@ export interface ClaimCategory {
   currency_code: string   // Always set to org's currency
   requires_receipt: boolean
   budget_period: 'monthly' | 'yearly'
+  eligible_employment_types?: EmploymentType[] | null
   is_active: boolean
   created_at: string
   updated_at: string

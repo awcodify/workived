@@ -16,8 +16,9 @@ type Category struct {
 	CurrencyCode    string    `json:"currency_code"`           // Always set to org's currency
 	RequiresReceipt bool      `json:"requires_receipt"`
 	IsUnlimited     bool      `json:"is_unlimited"`  // When true, monthly_limit is ignored
-	BudgetPeriod    string    `json:"budget_period"` // "monthly" or "yearly"
-	IsActive        bool      `json:"is_active"`
+	BudgetPeriod            string   `json:"budget_period"` // "monthly" or "yearly"
+	EligibleEmploymentTypes []string `json:"eligible_employment_types"` // nil = all types eligible
+	IsActive                bool     `json:"is_active"`
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
@@ -88,21 +89,23 @@ type ClaimBalanceWithCategory struct {
 // ── Request types ─────────────────────────────────────────────────────────────
 
 type CreateCategoryRequest struct {
-	Name            string  `json:"name" binding:"required,max=100"`
-	MonthlyLimit    *int64  `json:"monthly_limit,omitempty"` // Pro only
-	CurrencyCode    *string `json:"currency_code,omitempty"`
-	RequiresReceipt bool    `json:"requires_receipt"`
-	IsUnlimited     *bool   `json:"is_unlimited,omitempty"`
-	BudgetPeriod    *string `json:"budget_period,omitempty"` // "monthly" (default) or "yearly"
+	Name                    string   `json:"name" binding:"required,max=100"`
+	MonthlyLimit            *int64   `json:"monthly_limit,omitempty"` // Pro only
+	CurrencyCode            *string  `json:"currency_code,omitempty"`
+	RequiresReceipt         bool     `json:"requires_receipt"`
+	IsUnlimited             *bool    `json:"is_unlimited,omitempty"`
+	BudgetPeriod            *string  `json:"budget_period,omitempty"` // "monthly" (default) or "yearly"
+	EligibleEmploymentTypes []string `json:"eligible_employment_types,omitempty"`
 }
 
 type UpdateCategoryRequest struct {
-	Name            *string `json:"name,omitempty"`
-	MonthlyLimit    *int64  `json:"monthly_limit,omitempty"`
-	CurrencyCode    *string `json:"currency_code,omitempty"`
-	RequiresReceipt *bool   `json:"requires_receipt,omitempty"`
-	IsUnlimited     *bool   `json:"is_unlimited,omitempty"`
-	BudgetPeriod    *string `json:"budget_period,omitempty"` // "monthly" or "yearly"
+	Name                    *string  `json:"name,omitempty"`
+	MonthlyLimit            *int64   `json:"monthly_limit,omitempty"`
+	CurrencyCode            *string  `json:"currency_code,omitempty"`
+	RequiresReceipt         *bool    `json:"requires_receipt,omitempty"`
+	IsUnlimited             *bool    `json:"is_unlimited,omitempty"`
+	BudgetPeriod            *string  `json:"budget_period,omitempty"` // "monthly" or "yearly"
+	EligibleEmploymentTypes []string `json:"eligible_employment_types,omitempty"`
 }
 
 type SubmitClaimRequest struct {

@@ -267,6 +267,10 @@ func (f *fakeEmpProvider) GetEmployeeProfile(_ context.Context, _, _ uuid.UUID) 
 	return f.name, f.email, f.managerID, f.err
 }
 
+func (f *fakeEmpProvider) GetEmployeeType(_ context.Context, _, _ uuid.UUID) (string, error) {
+	return "full_time", nil
+}
+
 func (f *fakeEmpProvider) VerifyManagerRelationship(_ context.Context, _, _, _ uuid.UUID) error {
 	return f.verifyErr
 }

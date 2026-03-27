@@ -21,8 +21,9 @@ type Policy struct {
 	GenderEligibility string    `json:"gender_eligibility"` // "all", "male", "female"
 	IsUnlimited       bool      `json:"is_unlimited"`
 	ProrateFirstYear  bool      `json:"prorate_first_year"`
-	DayCountType      string    `json:"day_count_type"` // "working_days", "calendar_days"
-	IsActive           bool      `json:"is_active"`
+	DayCountType             string   `json:"day_count_type"`             // "working_days", "calendar_days"
+	EligibleEmploymentTypes  []string `json:"eligible_employment_types"`  // nil = all types eligible
+	IsActive                 bool     `json:"is_active"`
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }
@@ -122,29 +123,31 @@ type PolicyTemplate struct {
 // ── Request / Response types ────────────────────────────────────────────────
 
 type CreatePolicyRequest struct {
-	Name             string  `json:"name"              validate:"required,min=1,max=100"`
-	Description      *string `json:"description"       validate:"omitempty,max=500"`
-	DaysPerYear      float64 `json:"days_per_year"     validate:"required,gte=0,lte=365"`
-	CarryOverDays    float64 `json:"carry_over_days"   validate:"gte=0,lte=365"`
-	MinTenureDays    int     `json:"min_tenure_days"   validate:"gte=0"`
-	RequiresApproval  *bool   `json:"requires_approval"`
-	GenderEligibility *string `json:"gender_eligibility" validate:"omitempty,oneof=all male female"`
-	IsUnlimited       *bool   `json:"is_unlimited"`
-	ProrateFirstYear  *bool   `json:"prorate_first_year"`
-	DayCountType      *string `json:"day_count_type" validate:"omitempty,oneof=working_days calendar_days"`
+	Name                    string   `json:"name"              validate:"required,min=1,max=100"`
+	Description             *string  `json:"description"       validate:"omitempty,max=500"`
+	DaysPerYear             float64  `json:"days_per_year"     validate:"required,gte=0,lte=365"`
+	CarryOverDays           float64  `json:"carry_over_days"   validate:"gte=0,lte=365"`
+	MinTenureDays           int      `json:"min_tenure_days"   validate:"gte=0"`
+	RequiresApproval        *bool    `json:"requires_approval"`
+	GenderEligibility       *string  `json:"gender_eligibility" validate:"omitempty,oneof=all male female"`
+	IsUnlimited             *bool    `json:"is_unlimited"`
+	ProrateFirstYear        *bool    `json:"prorate_first_year"`
+	DayCountType            *string  `json:"day_count_type" validate:"omitempty,oneof=working_days calendar_days"`
+	EligibleEmploymentTypes []string `json:"eligible_employment_types" validate:"omitempty,dive,oneof=full_time part_time contract intern"`
 }
 
 type UpdatePolicyRequest struct {
-	Name             *string  `json:"name"              validate:"omitempty,min=1,max=100"`
-	Description      *string  `json:"description"       validate:"omitempty,max=500"`
-	DaysPerYear      *float64 `json:"days_per_year"     validate:"omitempty,gte=0,lte=365"`
-	CarryOverDays    *float64 `json:"carry_over_days"   validate:"omitempty,gte=0,lte=365"`
-	MinTenureDays    *int     `json:"min_tenure_days"   validate:"omitempty,gte=0"`
-	RequiresApproval  *bool    `json:"requires_approval"`
-	GenderEligibility *string  `json:"gender_eligibility" validate:"omitempty,oneof=all male female"`
-	IsUnlimited       *bool    `json:"is_unlimited"`
-	ProrateFirstYear  *bool    `json:"prorate_first_year"`
-	DayCountType      *string  `json:"day_count_type" validate:"omitempty,oneof=working_days calendar_days"`
+	Name                    *string  `json:"name"              validate:"omitempty,min=1,max=100"`
+	Description             *string  `json:"description"       validate:"omitempty,max=500"`
+	DaysPerYear             *float64 `json:"days_per_year"     validate:"omitempty,gte=0,lte=365"`
+	CarryOverDays           *float64 `json:"carry_over_days"   validate:"omitempty,gte=0,lte=365"`
+	MinTenureDays           *int     `json:"min_tenure_days"   validate:"omitempty,gte=0"`
+	RequiresApproval        *bool    `json:"requires_approval"`
+	GenderEligibility       *string  `json:"gender_eligibility" validate:"omitempty,oneof=all male female"`
+	IsUnlimited             *bool    `json:"is_unlimited"`
+	ProrateFirstYear        *bool    `json:"prorate_first_year"`
+	DayCountType            *string  `json:"day_count_type" validate:"omitempty,oneof=working_days calendar_days"`
+	EligibleEmploymentTypes []string `json:"eligible_employment_types" validate:"omitempty,dive,oneof=full_time part_time contract intern"`
 }
 
 type SubmitRequestInput struct {

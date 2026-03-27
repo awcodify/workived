@@ -14,12 +14,15 @@ interface CategoryModalProps {
   onSuccess: () => void
 }
 
+type EmpType = 'full_time' | 'part_time' | 'contract' | 'intern'
+
 interface CategoryFormData {
   name: string
   monthly_limit: string
   currency_code: string
   requires_receipt: boolean
   budget_period: 'monthly' | 'yearly'
+  eligible_employment_types: EmpType[]
 }
 
 export function CategoryModal({ category, onClose, onSuccess }: CategoryModalProps) {
@@ -48,6 +51,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
           currency_code: category.currency_code || org?.currency_code || 'IDR',
           requires_receipt: category.requires_receipt,
           budget_period: category.budget_period || 'monthly',
+          eligible_employment_types: (category.eligible_employment_types ?? []) as EmpType[],
         }
       : {
           name: '',
@@ -55,11 +59,21 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
           currency_code: org?.currency_code || 'IDR',
           requires_receipt: false,
           budget_period: 'monthly',
+          eligible_employment_types: [],
         },
   })
 
   const hasMonthlyLimit = watch('monthly_limit') !== ''
   const budgetPeriod = watch('budget_period')
+  const eligibleTypes = watch('eligible_employment_types') ?? []
+
+  const toggleEmploymentType = (type: EmpType) => {
+    if (eligibleTypes.includes(type)) {
+      setValue('eligible_employment_types', eligibleTypes.filter((t) => t !== type))
+    } else {
+      setValue('eligible_employment_types', [...eligibleTypes, type])
+    }
+  }
 
   // Format number with thousand separators
   function formatNumber(value: number | string): string {
@@ -89,6 +103,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
       currency_code: hasMonthlyLimit ? data.currency_code : undefined,
       requires_receipt: data.requires_receipt,
       budget_period: data.budget_period,
+      eligible_employment_types: data.eligible_employment_types.length > 0 ? data.eligible_employment_types : undefined,
     }
 
     try {
@@ -289,6 +304,49 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
             >
               Require receipt attachment
             </label>
+          </div>
+
+          {/* Eligible Employment Types */}
+          <div className="pt-2">
+            <label
+              className="block mb-1.5"
+              style={{
+                fontSize: typography.label.size,
+                fontWeight: 600,
+                color: t.text,
+              }}
+            >
+              Eligible Employment Types
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { value: 'full_time' as const, label: 'Full-time' },
+                { value: 'part_time' as const, label: 'Part-time' },
+                { value: 'contract' as const, label: 'Contract' },
+                { value: 'intern' as const, label: 'Intern' },
+              ]).map((option) => {
+                const isSelected = eligibleTypes.includes(option.value)
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => toggleEmploymentType(option.value)}
+                    className="px-4 py-2 text-sm font-semibold transition-all"
+                    style={{
+                      background: isSelected ? t.accent : t.input,
+                      color: isSelected ? t.accentText : t.text,
+                      border: `1px solid ${isSelected ? t.accent : t.inputBorder}`,
+                      borderRadius: 10,
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+              Leave empty for all types. Select specific types to restrict eligibility.
+            </p>
           </div>
 
           {/* Error Message */}

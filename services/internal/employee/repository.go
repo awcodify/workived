@@ -211,6 +211,22 @@ func (r *Repository) GetEmployeeStartDate(ctx context.Context, orgID, employeeID
 	return startDate, nil
 }
 
+// GetEmployeeType returns the employment_type of an employee (e.g. "full_time", "contract", "intern").
+func (r *Repository) GetEmployeeType(ctx context.Context, orgID, employeeID uuid.UUID) (string, error) {
+	var empType string
+	err := r.db.QueryRow(ctx, `
+		SELECT employment_type FROM employees
+		WHERE organisation_id = $1 AND id = $2 AND is_active = true
+	`, orgID, employeeID).Scan(&empType)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperr.NotFound("employee")
+		}
+		return "", err
+	}
+	return empType, nil
+}
+
 func (r *Repository) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
 	// Walk the full ancestor chain (not just direct manager) so that
 	// grandparent/higher-level managers can also approve subordinate requests.

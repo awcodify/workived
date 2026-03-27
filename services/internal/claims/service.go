@@ -55,6 +55,7 @@ type OrgInfoProvider interface {
 // EmployeeInfoProvider provides employee profile data for email notifications.
 type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	GetEmployeeType(ctx context.Context, orgID, employeeID uuid.UUID) (string, error)
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
@@ -394,6 +395,18 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 	}
 	if !category.IsActive {
 		return nil, ErrCategoryInactive(category.Name)
+	}
+
+	// 3b. Validate employment type eligibility
+	if len(category.EligibleEmploymentTypes) > 0 {
+		empType, err := s.employeeRepo.GetEmployeeType(ctx, orgID, employeeID)
+		if err != nil {
+			return nil, fmt.Errorf("get employee type: %w", err)
+		}
+		if !isEmploymentTypeEligible(empType, category.EligibleEmploymentTypes) {
+			return nil, apperr.New(apperr.CodeValidation,
+				fmt.Sprintf("%s claims are not available for %s employees", category.Name, empType))
+		}
 	}
 
 	// 4. Validate currency matches category
@@ -1013,12 +1026,43 @@ func (s *Service) ensureEmployeeBalances(ctx context.Context, orgID, employeeID 
 	if err != nil {
 		return fmt.Errorf("list categories for balance init: %w", err)
 	}
+
+	// Lazy-fetch employee type only if needed.
+	var empType string
+	var empTypeFetched bool
+
 	for _, cat := range categories {
+		if len(cat.EligibleEmploymentTypes) > 0 {
+			if !empTypeFetched {
+				empType, err = s.employeeRepo.GetEmployeeType(ctx, orgID, employeeID)
+				if err != nil {
+					return fmt.Errorf("get employee type: %w", err)
+				}
+				empTypeFetched = true
+			}
+			if !isEmploymentTypeEligible(empType, cat.EligibleEmploymentTypes) {
+				continue
+			}
+		}
 		if _, err := s.repo.GetOrCreateBalance(ctx, orgID, employeeID, cat.ID, year, month); err != nil {
 			return fmt.Errorf("ensure balance for category %s: %w", cat.Name, err)
 		}
 	}
 	return nil
+}
+
+// isEmploymentTypeEligible checks if an employee's type is in the eligible list.
+// Returns true if the list is empty/nil (all types eligible).
+func isEmploymentTypeEligible(empType string, eligibleTypes []string) bool {
+	if len(eligibleTypes) == 0 {
+		return true
+	}
+	for _, t := range eligibleTypes {
+		if t == empType {
+			return true
+		}
+	}
+	return false
 }
 
 // ListBalances returns claim balances for an employee in a specific month.

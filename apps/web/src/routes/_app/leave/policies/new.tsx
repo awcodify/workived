@@ -31,11 +31,22 @@ function NewPolicyPage() {
       min_tenure_days: 0,
       requires_approval: true,
       gender_eligibility: null,
+      eligible_employment_types: [],
     },
   })
 
   const requiresApproval = watch('requires_approval')
   const genderEligibility = watch('gender_eligibility')
+  const eligibleTypes = watch('eligible_employment_types') ?? []
+
+  const toggleEmploymentType = (type: 'full_time' | 'part_time' | 'contract' | 'intern') => {
+    const current = eligibleTypes
+    if (current.includes(type)) {
+      setValue('eligible_employment_types', current.filter((t) => t !== type))
+    } else {
+      setValue('eligible_employment_types', [...current, type])
+    }
+  }
 
   const onSubmit = async (data: CreatePolicyFormData) => {
     try {
@@ -281,6 +292,48 @@ function NewPolicyPage() {
             </div>
             <p className="text-xs mt-1" style={{ color: t.textMuted }}>
               Restrict this leave type to a specific gender (e.g., maternity, paternity)
+            </p>
+          </div>
+
+          {/* Employment Type Eligibility */}
+          <div className="mb-6">
+            <label
+              className="block font-semibold mb-2"
+              style={{
+                fontSize: typography.label.size,
+                color: t.text,
+              }}
+            >
+              Eligible Employment Types
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {([
+                { value: 'full_time' as const, label: 'Full-time' },
+                { value: 'part_time' as const, label: 'Part-time' },
+                { value: 'contract' as const, label: 'Contract' },
+                { value: 'intern' as const, label: 'Intern' },
+              ]).map((option) => {
+                const isSelected = eligibleTypes.includes(option.value)
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => toggleEmploymentType(option.value)}
+                    className="px-4 py-2 text-sm font-semibold transition-all"
+                    style={{
+                      background: isSelected ? t.accent : t.input,
+                      color: isSelected ? t.accentText : t.text,
+                      border: `1px solid ${isSelected ? t.accent : t.inputBorder}`,
+                      borderRadius: 10,
+                    }}
+                  >
+                    {option.label}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+              Leave empty for all types. Select specific types to restrict eligibility.
             </p>
           </div>
 

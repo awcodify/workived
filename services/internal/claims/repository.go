@@ -28,7 +28,8 @@ func NewRepository(db *pgxpool.Pool, log zerolog.Logger) *Repository {
 func (r *Repository) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Category, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, name, monthly_limit, currency_code,
-		       requires_receipt, is_unlimited, budget_period, is_active, created_at, updated_at
+		       requires_receipt, is_unlimited, budget_period, eligible_employment_types,
+		       is_active, created_at, updated_at
 		FROM claim_categories
 		WHERE organisation_id = $1 AND is_active = TRUE
 		ORDER BY name ASC
@@ -43,7 +44,8 @@ func (r *Repository) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Cat
 		var c Category
 		if err := rows.Scan(
 			&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
-			&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
+			&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
+			&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -56,12 +58,14 @@ func (r *Repository) GetCategory(ctx context.Context, orgID, id uuid.UUID) (*Cat
 	var c Category
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, name, monthly_limit, currency_code,
-		       requires_receipt, is_unlimited, budget_period, is_active, created_at, updated_at
+		       requires_receipt, is_unlimited, budget_period, eligible_employment_types,
+		       is_active, created_at, updated_at
 		FROM claim_categories
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, id).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
-		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
+		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
+		&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -94,17 +98,25 @@ func (r *Repository) CreateCategory(ctx context.Context, orgID uuid.UUID, req Cr
 		budgetPeriod = *req.BudgetPeriod
 	}
 
+	var eligibleTypes []string
+	if len(req.EligibleEmploymentTypes) > 0 {
+		eligibleTypes = req.EligibleEmploymentTypes
+	}
+
 	var c Category
 
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO claim_categories (
-			organisation_id, name, monthly_limit, currency_code, requires_receipt, is_unlimited, budget_period
-		) VALUES ($1, $2, $3, $4, $5, $6, $7)
+			organisation_id, name, monthly_limit, currency_code, requires_receipt, is_unlimited,
+			budget_period, eligible_employment_types
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		RETURNING id, organisation_id, name, monthly_limit, currency_code,
-		          requires_receipt, is_unlimited, budget_period, is_active, created_at, updated_at
-	`, orgID, req.Name, req.MonthlyLimit, *currencyCode, req.RequiresReceipt, isUnlimited, budgetPeriod).Scan(
+		          requires_receipt, is_unlimited, budget_period, eligible_employment_types,
+		          is_active, created_at, updated_at
+	`, orgID, req.Name, req.MonthlyLimit, *currencyCode, req.RequiresReceipt, isUnlimited, budgetPeriod, eligibleTypes).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
-		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
+		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
+		&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -113,21 +125,29 @@ func (r *Repository) CreateCategory(ctx context.Context, orgID uuid.UUID, req Cr
 }
 
 func (r *Repository) UpdateCategory(ctx context.Context, orgID, id uuid.UUID, req UpdateCategoryRequest) (*Category, error) {
+	var eligibleTypes []string
+	if req.EligibleEmploymentTypes != nil {
+		eligibleTypes = req.EligibleEmploymentTypes
+	}
+
 	var c Category
 	err := r.db.QueryRow(ctx, `
 		UPDATE claim_categories SET
-			name             = COALESCE($3, name),
-			monthly_limit    = COALESCE($4, monthly_limit),
-			currency_code    = COALESCE($5, currency_code),
-			requires_receipt = COALESCE($6, requires_receipt),
-			is_unlimited     = COALESCE($7, is_unlimited),
-			budget_period    = COALESCE($8, budget_period)
+			name                       = COALESCE($3, name),
+			monthly_limit              = COALESCE($4, monthly_limit),
+			currency_code              = COALESCE($5, currency_code),
+			requires_receipt           = COALESCE($6, requires_receipt),
+			is_unlimited               = COALESCE($7, is_unlimited),
+			budget_period              = COALESCE($8, budget_period),
+			eligible_employment_types  = COALESCE($9, eligible_employment_types)
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, name, monthly_limit, currency_code,
-		          requires_receipt, is_unlimited, budget_period, is_active, created_at, updated_at
-	`, orgID, id, req.Name, req.MonthlyLimit, req.CurrencyCode, req.RequiresReceipt, req.IsUnlimited, req.BudgetPeriod).Scan(
+		          requires_receipt, is_unlimited, budget_period, eligible_employment_types,
+		          is_active, created_at, updated_at
+	`, orgID, id, req.Name, req.MonthlyLimit, req.CurrencyCode, req.RequiresReceipt, req.IsUnlimited, req.BudgetPeriod, eligibleTypes).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
-		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.IsActive, &c.CreatedAt, &c.UpdatedAt,
+		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
+		&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

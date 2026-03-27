@@ -26,8 +26,9 @@ type EmployeeProvider interface {
 
 // Emp represents minimal employee data needed for rollover.
 type Emp struct {
-	ID       uuid.UUID
-	FullName string
+	ID             uuid.UUID
+	FullName       string
+	EmploymentType string
 }
 
 // RolloverResult tracks the outcome of a year-end rollover operation.
@@ -106,6 +107,11 @@ func RolloverBalances(
 		for _, emp := range employees {
 			for _, policy := range policies {
 				if !policy.IsActive {
+					continue
+				}
+
+				// Skip employees not eligible for this policy's employment types
+				if !isEmploymentTypeEligible(emp.EmploymentType, policy.EligibleEmploymentTypes) {
 					continue
 				}
 

@@ -270,7 +270,7 @@ func (m *mockRepo) GetTemplatesByIDs(context.Context, []uuid.UUID) ([]leave.Poli
 func (m *mockRepo) ImportPoliciesFromTemplates(context.Context, pgx.Tx, uuid.UUID, []leave.PolicyTemplate) ([]leave.Policy, error) {
 	return nil, nil
 }
-func (m *mockRepo) CreateBalancesForAllEmployees(context.Context, pgx.Tx, uuid.UUID, uuid.UUID, int, float64) error {
+func (m *mockRepo) CreateBalancesForAllEmployees(context.Context, pgx.Tx, uuid.UUID, uuid.UUID, int, float64, []string) error {
 	return nil
 }
 func (m *mockRepo) CountPendingRequests(context.Context, uuid.UUID, *uuid.UUID) (int, error) {

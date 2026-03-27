@@ -20,6 +20,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 9,
+    date: '2026-03-28',
+    type: 'feature',
+    title: 'Leave and claims now match your team\'s employment types',
+    description: 'You can now choose which employment types (full-time, part-time, contract, intern) are eligible for each leave policy and claim category. Only matching employees will see and use them.',
+    module: 'Leave & Claims',
+  },
+  {
     id: 8,
     date: '2026-03-28',
     type: 'feature',

@@ -54,7 +54,7 @@ type RepositoryInterface interface {
 	ListTemplates(ctx context.Context, countryCode string) ([]PolicyTemplate, error)
 	GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]PolicyTemplate, error)
 	ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, templates []PolicyTemplate) ([]Policy, error)
-	CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error
+	CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64, eligibleTypes []string) error
 
 	// Rollover
 	CreateBalanceWithCarryOver(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int, entitledDays, carriedOverDays float64) error
@@ -75,6 +75,7 @@ type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
 	GetEmployeeGender(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error)
 	GetEmployeeStartDate(ctx context.Context, orgID, employeeID uuid.UUID) (time.Time, error)
+	GetEmployeeType(ctx context.Context, orgID, employeeID uuid.UUID) (string, error)
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
@@ -264,10 +265,27 @@ func (s *Service) ensureEmployeeBalances(ctx context.Context, orgID, employeeID 
 		return fmt.Errorf("list policies for balance init: %w", err)
 	}
 
-	// Fetch employee start date once — only needed if any policy has proration.
+	// Fetch employee info once for eligibility checks.
+	var empType string
+	var empTypeFetched bool
 	var startDate time.Time
 	var startDateFetched bool
+
 	for _, p := range policies {
+		// Check employment type eligibility.
+		if len(p.EligibleEmploymentTypes) > 0 {
+			if !empTypeFetched {
+				empType, err = s.employeeRepo.GetEmployeeType(ctx, orgID, employeeID)
+				if err != nil {
+					return fmt.Errorf("get employee type: %w", err)
+				}
+				empTypeFetched = true
+			}
+			if !isEmploymentTypeEligible(empType, p.EligibleEmploymentTypes) {
+				continue
+			}
+		}
+
 		entitledDays := p.DaysPerYear
 
 		if p.ProrateFirstYear && !p.IsUnlimited {
@@ -336,6 +354,18 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 		if gender == nil || *gender != policy.GenderEligibility {
 			return nil, apperr.New(apperr.CodeValidation,
 				fmt.Sprintf("%s leave is only available for %s employees", policy.Name, policy.GenderEligibility))
+		}
+	}
+
+	// 4b. Validate employment type eligibility.
+	if len(policy.EligibleEmploymentTypes) > 0 {
+		empType, err := s.employeeRepo.GetEmployeeType(ctx, orgID, employeeID)
+		if err != nil {
+			return nil, fmt.Errorf("get employee type: %w", err)
+		}
+		if !isEmploymentTypeEligible(empType, policy.EligibleEmploymentTypes) {
+			return nil, apperr.New(apperr.CodeValidation,
+				fmt.Sprintf("%s leave is not available for %s employees", policy.Name, empType))
 		}
 	}
 
@@ -911,7 +941,7 @@ func (s *Service) ImportPolicies(ctx context.Context, orgID uuid.UUID, input Imp
 	// For each newly created policy, create balances for all active employees
 	currentYear := time.Now().Year()
 	for _, policy := range policies {
-		if err := s.repo.CreateBalancesForAllEmployees(ctx, tx, orgID, policy.ID, currentYear, policy.DaysPerYear); err != nil {
+		if err := s.repo.CreateBalancesForAllEmployees(ctx, tx, orgID, policy.ID, currentYear, policy.DaysPerYear, policy.EligibleEmploymentTypes); err != nil {
 			return nil, fmt.Errorf("create balances for policy %s: %w", policy.Name, err)
 		}
 	}
@@ -1127,4 +1157,18 @@ func (s *Service) sendLeaveRejectedEmail(ctx context.Context, orgID, employeeID,
 	}
 
 	s.log.Info().Str("request_id", requestID.String()).Str("employee_email", *empEmail).Msg("leave rejected email sent")
+}
+
+// isEmploymentTypeEligible checks if an employee's type is in the eligible list.
+// Returns true if the list is empty/nil (all types eligible).
+func isEmploymentTypeEligible(empType string, eligibleTypes []string) bool {
+	if len(eligibleTypes) == 0 {
+		return true
+	}
+	for _, t := range eligibleTypes {
+		if t == empType {
+			return true
+		}
+	}
+	return false
 }

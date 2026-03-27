@@ -22,6 +22,7 @@ export const createPolicySchema = z.object({
     .optional(),
   requires_approval: z.boolean().optional(),
   gender_eligibility: z.enum(['male', 'female']).nullable().optional(),
+  eligible_employment_types: z.array(z.enum(['full_time', 'part_time', 'contract', 'intern'])).optional(),
 })
 
 export const updatePolicySchema = createPolicySchema.partial()

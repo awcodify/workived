@@ -28,7 +28,8 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
 		       min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
-		       prorate_first_year, day_count_type, is_active, created_at, updated_at
+		       prorate_first_year, day_count_type, eligible_employment_types,
+		       is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1
 		  AND is_active = TRUE
@@ -45,7 +46,8 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 		if err := rows.Scan(
 			&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 			&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
-			&p.ProrateFirstYear, &p.DayCountType, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+			&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
+			&p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan leave policy: %w", err)
 		}
@@ -60,13 +62,15 @@ func (r *Repository) GetPolicy(ctx context.Context, orgID, policyID uuid.UUID) (
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
 		       min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
-		       prorate_first_year, day_count_type, is_active, created_at, updated_at
+		       prorate_first_year, day_count_type, eligible_employment_types,
+		       is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, policyID).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
-		&p.ProrateFirstYear, &p.DayCountType, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
+		&p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -104,19 +108,28 @@ func (r *Repository) CreatePolicy(ctx context.Context, orgID uuid.UUID, req Crea
 		dayCountType = *req.DayCountType
 	}
 
+	// eligible_employment_types: nil = all, empty slice = none (use nil for backward compat)
+	var eligibleTypes []string
+	if len(req.EligibleEmploymentTypes) > 0 {
+		eligibleTypes = req.EligibleEmploymentTypes
+	}
+
 	var p Policy
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO leave_policies (organisation_id, name, description, days_per_year, carry_over_days,
-		    min_tenure_days, requires_approval, gender_eligibility, is_unlimited, prorate_first_year, day_count_type)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		    min_tenure_days, requires_approval, gender_eligibility, is_unlimited, prorate_first_year,
+		    day_count_type, eligible_employment_types)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 		          min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
-		          prorate_first_year, day_count_type, is_active, created_at, updated_at
+		          prorate_first_year, day_count_type, eligible_employment_types,
+		          is_active, created_at, updated_at
 	`, orgID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays,
-		reqApproval, genderEligibility, isUnlimited, prorateFirstYear, dayCountType).Scan(
+		reqApproval, genderEligibility, isUnlimited, prorateFirstYear, dayCountType, eligibleTypes).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
-		&p.ProrateFirstYear, &p.DayCountType, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
+		&p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create leave policy: %w", err)
@@ -126,29 +139,38 @@ func (r *Repository) CreatePolicy(ctx context.Context, orgID uuid.UUID, req Crea
 
 // UpdatePolicy applies a partial update to a leave policy.
 func (r *Repository) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID, req UpdatePolicyRequest) (*Policy, error) {
+	// For eligible_employment_types: nil slice means "don't change", non-nil means "set to this value"
+	var eligibleTypes []string
+	if req.EligibleEmploymentTypes != nil {
+		eligibleTypes = req.EligibleEmploymentTypes
+	}
+
 	var p Policy
 	err := r.db.QueryRow(ctx, `
 		UPDATE leave_policies SET
-			name               = COALESCE($3, name),
-			description        = COALESCE($4, description),
-			days_per_year      = COALESCE($5, days_per_year),
-			carry_over_days    = COALESCE($6, carry_over_days),
-			min_tenure_days    = COALESCE($7, min_tenure_days),
-			requires_approval  = COALESCE($8, requires_approval),
-			gender_eligibility = COALESCE($9, gender_eligibility),
-			is_unlimited       = COALESCE($10, is_unlimited),
-			prorate_first_year = COALESCE($11, prorate_first_year),
-			day_count_type     = COALESCE($12, day_count_type)
+			name                       = COALESCE($3, name),
+			description                = COALESCE($4, description),
+			days_per_year              = COALESCE($5, days_per_year),
+			carry_over_days            = COALESCE($6, carry_over_days),
+			min_tenure_days            = COALESCE($7, min_tenure_days),
+			requires_approval          = COALESCE($8, requires_approval),
+			gender_eligibility         = COALESCE($9, gender_eligibility),
+			is_unlimited               = COALESCE($10, is_unlimited),
+			prorate_first_year         = COALESCE($11, prorate_first_year),
+			day_count_type             = COALESCE($12, day_count_type),
+			eligible_employment_types  = COALESCE($13, eligible_employment_types)
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 		          min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
-		          prorate_first_year, day_count_type, is_active, created_at, updated_at
+		          prorate_first_year, day_count_type, eligible_employment_types,
+		          is_active, created_at, updated_at
 	`, orgID, policyID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays,
 		req.MinTenureDays, req.RequiresApproval, req.GenderEligibility, req.IsUnlimited,
-		req.ProrateFirstYear, req.DayCountType).Scan(
+		req.ProrateFirstYear, req.DayCountType, eligibleTypes).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
-		&p.ProrateFirstYear, &p.DayCountType, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
+		&p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -348,15 +370,17 @@ func (r *Repository) EnsureBalance(ctx context.Context, orgID, employeeID, polic
 }
 
 // CreateBalancesForAllEmployees creates balances for all active employees in the organization.
+// If eligibleTypes is non-nil, only employees with matching employment_type get balances.
 // Must be called within a transaction.
-func (r *Repository) CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64) error {
+func (r *Repository) CreateBalancesForAllEmployees(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64, eligibleTypes []string) error {
 	_, err := tx.Exec(ctx, `
 		INSERT INTO leave_balances (organisation_id, employee_id, leave_policy_id, year, entitled_days)
 		SELECT $1, id, $2, $3, $4
 		FROM employees
 		WHERE organisation_id = $1 AND is_active = true
+		  AND ($5::text[] IS NULL OR employment_type = ANY($5))
 		ON CONFLICT (employee_id, leave_policy_id, year) DO NOTHING
-	`, orgID, policyID, year, entitledDays)
+	`, orgID, policyID, year, entitledDays, eligibleTypes)
 	if err != nil {
 		return fmt.Errorf("create balances for all employees: %w", err)
 	}

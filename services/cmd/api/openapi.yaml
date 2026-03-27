@@ -3449,6 +3449,13 @@ components:
           type: string
           enum: [working_days, calendar_days]
           description: How leave days are counted — working days (excl weekends/holidays) or calendar days
+        eligible_employment_types:
+          type: array
+          items:
+            type: string
+            enum: [full_time, part_time, contract, intern]
+          description: Employment types eligible for this policy (null means all types)
+          nullable: true
         created_at:
           type: string
           format: date-time
@@ -3486,6 +3493,12 @@ components:
           type: string
           enum: [working_days, calendar_days]
           description: How leave days are counted (default working_days)
+        eligible_employment_types:
+          type: array
+          items:
+            type: string
+            enum: [full_time, part_time, contract, intern]
+          description: Employment types eligible for this policy (omit or null for all types)
 
     UpdateLeavePolicyRequest:
       type: object
@@ -3513,6 +3526,12 @@ components:
         day_count_type:
           type: string
           enum: [working_days, calendar_days]
+        eligible_employment_types:
+          type: array
+          items:
+            type: string
+            enum: [full_time, part_time, contract, intern]
+          description: Employment types eligible for this policy (omit or null for all types)
 
     ImportPoliciesRequest:
       type: object
@@ -3701,6 +3720,13 @@ components:
           type: string
           enum: [monthly, yearly]
           description: Budget period for limit tracking
+        eligible_employment_types:
+          type: array
+          items:
+            type: string
+            enum: [full_time, part_time, contract, intern]
+          description: Employment types eligible for this category (null means all types)
+          nullable: true
         is_active:
           type: boolean
         created_at:
@@ -3731,6 +3757,12 @@ components:
           type: string
           enum: [monthly, yearly]
           description: Budget period (default monthly)
+        eligible_employment_types:
+          type: array
+          items:
+            type: string
+            enum: [full_time, part_time, contract, intern]
+          description: Employment types eligible for this category (omit or null for all types)
 
     UpdateClaimCategoryRequest:
       type: object
@@ -3750,6 +3782,12 @@ components:
         budget_period:
           type: string
           enum: [monthly, yearly]
+        eligible_employment_types:
+          type: array
+          items:
+            type: string
+            enum: [full_time, part_time, contract, intern]
+          description: Employment types eligible for this category (omit or null for all types)
 
     ClaimBalanceWithCategory:
       type: object
