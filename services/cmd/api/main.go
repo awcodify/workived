@@ -14,10 +14,10 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/workived/services/internal/admin"
-	"github.com/workived/services/internal/calendar"
 	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/auth"
+	"github.com/workived/services/internal/calendar"
 	"github.com/workived/services/internal/claims"
 	"github.com/workived/services/internal/department"
 	"github.com/workived/services/internal/employee"
@@ -197,6 +197,11 @@ func main() {
 	// API docs — Scalar UI at /docs, spec at /docs/openapi.yaml
 	// Protected with HTTP Basic Auth; disabled if credentials not set.
 	registerDocsRoutes(r, cfg.DocsUsername, cfg.DocsPassword)
+
+	// Public health check — reachable through /api proxy (no versioning needed)
+	r.GET("/api/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
 
 	v1 := r.Group("/api/v1")
 
