@@ -293,7 +293,7 @@ func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int
 		SELECT b.id, b.organisation_id, b.employee_id, b.leave_policy_id, b.year,
 		       b.entitled_days, b.carried_over_days, b.used_days, b.pending_days,
 		       b.created_at, b.updated_at,
-		       lp.name, lp.description
+		       lp.name, lp.description, lp.is_unlimited
 		FROM leave_balances b
 		JOIN leave_policies lp ON lp.id = b.leave_policy_id
 		WHERE b.organisation_id = $1 AND b.year = $2
@@ -312,7 +312,7 @@ func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int
 			&bwp.ID, &bwp.OrganisationID, &bwp.EmployeeID, &bwp.LeavePolicyID, &bwp.Year,
 			&bwp.EntitledDays, &bwp.CarriedOverDays, &bwp.UsedDays, &bwp.PendingDays,
 			&bwp.CreatedAt, &bwp.UpdatedAt,
-			&bwp.PolicyName, &bwp.PolicyDescription,
+			&bwp.PolicyName, &bwp.PolicyDescription, &bwp.IsUnlimited,
 		); err != nil {
 			return nil, fmt.Errorf("scan leave balance: %w", err)
 		}
@@ -328,7 +328,7 @@ func (r *Repository) ListEmployeeBalances(ctx context.Context, orgID, employeeID
 		SELECT b.id, b.organisation_id, b.employee_id, b.leave_policy_id, b.year,
 		       b.entitled_days, b.carried_over_days, b.used_days, b.pending_days,
 		       b.created_at, b.updated_at,
-		       lp.name, lp.description
+		       lp.name, lp.description, lp.is_unlimited
 		FROM leave_balances b
 		JOIN leave_policies lp ON lp.id = b.leave_policy_id
 		WHERE b.organisation_id = $1 AND b.employee_id = $2 AND b.year = $3
@@ -347,7 +347,7 @@ func (r *Repository) ListEmployeeBalances(ctx context.Context, orgID, employeeID
 			&bwp.ID, &bwp.OrganisationID, &bwp.EmployeeID, &bwp.LeavePolicyID, &bwp.Year,
 			&bwp.EntitledDays, &bwp.CarriedOverDays, &bwp.UsedDays, &bwp.PendingDays,
 			&bwp.CreatedAt, &bwp.UpdatedAt,
-			&bwp.PolicyName, &bwp.PolicyDescription,
+			&bwp.PolicyName, &bwp.PolicyDescription, &bwp.IsUnlimited,
 		); err != nil {
 			return nil, fmt.Errorf("scan employee leave balance: %w", err)
 		}

@@ -341,6 +341,7 @@ export interface LeaveBalance {
 export interface LeaveBalanceWithPolicy extends LeaveBalance {
   policy_name: string
   policy_description?: string
+  is_unlimited: boolean
 }
 
 export interface LeaveRequest {

@@ -76,6 +76,7 @@ type BalanceWithPolicy struct {
 	Balance
 	PolicyName        string  `json:"policy_name"`
 	PolicyDescription *string `json:"policy_description,omitempty"`
+	IsUnlimited       bool    `json:"is_unlimited"`
 }
 
 // RequestWithDetails combines a request with employee and policy names for display.

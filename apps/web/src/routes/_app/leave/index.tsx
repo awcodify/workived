@@ -216,7 +216,7 @@ function LeaveDashboard() {
 
                         {/* Right: Available days (big number) */}
                         <div className="text-right">
-                          {balance.entitled_days === 999 ? (
+                          {balance.is_unlimited ? (
                             <span
                               className="font-extrabold"
                               style={{
@@ -258,7 +258,7 @@ function LeaveDashboard() {
                       </div>
 
                       {/* Visual Progress Bar - Green for available */}
-                      {balance.entitled_days !== 999 && (
+                      {!balance.is_unlimited && (
                         <div className="mt-3">
                           <div
                             style={{
