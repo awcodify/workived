@@ -20,6 +20,13 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 8,
+    date: '2026-03-28',
+    type: 'feature',
+    title: 'Install Workived as an app',
+    description: 'Workived is now a Progressive Web App! Add it to your home screen for instant access — no app store needed.',
+  },
+  {
     id: 7,
     date: '2026-03-28',
     type: 'feature',
