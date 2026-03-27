@@ -2,6 +2,10 @@ import { createFileRoute, Outlet, redirect, useMatches, isRedirect } from '@tans
 import { useAuthStore } from '@/lib/stores/auth'
 import { Dock } from '@/components/workived/dock/Dock'
 import { LoadingBar } from '@/components/workived/shared/LoadingBar'
+import { PWAInstallPrompt } from '@/components/workived/pwa/PWAInstallPrompt'
+import { IOSInstallBanner } from '@/components/workived/pwa/IOSInstallBanner'
+import { PWAUpdatePrompt } from '@/components/workived/pwa/PWAUpdatePrompt'
+import { usePWAInstall } from '@/lib/hooks/usePWA'
 import { getSetupStatus } from '@/lib/api/setup'
 import { isAxiosError } from 'axios'
 
@@ -37,15 +41,25 @@ export const Route = createFileRoute('/_app')({
 
 function AppLayout() {
   const matches = useMatches()
-  const isSetupPage = matches.some(match => 
+  const isSetupPage = matches.some(match =>
     match.pathname.startsWith('/setup')
   )
+
+  // Initialise PWA install prompt listeners
+  usePWAInstall()
 
   return (
     <div className="min-h-screen">
       <LoadingBar />
+      <PWAUpdatePrompt />
       <Outlet />
-      {!isSetupPage && <Dock />}
+      {!isSetupPage && (
+        <>
+          <Dock />
+          <PWAInstallPrompt />
+          <IOSInstallBanner />
+        </>
+      )}
     </div>
   )
 }

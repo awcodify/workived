@@ -50,6 +50,11 @@ export const useAuthStore = create<AuthState>()(
             accessToken: null,
             user: null,
           })
+          // Clear PWA caches to prevent data leaks between users
+          if ('caches' in window) {
+            caches.delete('api-cache').catch(() => {})
+            caches.delete('image-cache').catch(() => {})
+          }
         }
       },
 
