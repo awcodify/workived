@@ -23,7 +23,7 @@ type fakeRepo struct {
 	listByEmpMonthFn  func(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error)
 	getDefaultSchedFn func(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error)
 	listHolidaysFn    func(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error)
-	listActiveEmpsFn  func(ctx context.Context, orgID uuid.UUID) ([]attendance.ActiveEmployee, error)
+	listActiveEmpsFn  func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.ActiveEmployee, error)
 	getEmployeeNameFn func(ctx context.Context, orgID, empID uuid.UUID) (string, error)
 }
 
@@ -51,8 +51,8 @@ func (f *fakeRepo) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*at
 func (f *fakeRepo) ListHolidays(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error) {
 	return f.listHolidaysFn(ctx, cc, start, end)
 }
-func (f *fakeRepo) ListActiveEmployees(ctx context.Context, orgID uuid.UUID) ([]attendance.ActiveEmployee, error) {
-	return f.listActiveEmpsFn(ctx, orgID)
+func (f *fakeRepo) ListActiveEmployees(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.ActiveEmployee, error) {
+	return f.listActiveEmpsFn(ctx, orgID, date)
 }
 func (f *fakeRepo) GetEmployeeName(ctx context.Context, orgID, empID uuid.UUID) (string, error) {
 	return f.getEmployeeNameFn(ctx, orgID, empID)
@@ -158,7 +158,7 @@ func defaultFakeRepo() *fakeRepo {
 		listHolidaysFn: func(_ context.Context, _ string, _, _ string) ([]attendance.PublicHoliday, error) {
 			return nil, nil
 		},
-		listActiveEmpsFn: func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+		listActiveEmpsFn: func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 			return nil, nil
 		},
 		getEmployeeNameFn: func(_ context.Context, _, _ uuid.UUID) (string, error) {
@@ -490,7 +490,7 @@ func TestService_DailyReport(t *testing.T) {
 		{
 			name: "present, late, and absent employees",
 			setup: func(r *fakeRepo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{
 						{ID: emp1, FullName: "Alice"},
 						{ID: emp2, FullName: "Bob"},
@@ -524,7 +524,7 @@ func TestService_DailyReport(t *testing.T) {
 		{
 			name: "employee list error",
 			setup: func(r *fakeRepo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return nil, errors.New("db down")
 				}
 			},
@@ -533,7 +533,7 @@ func TestService_DailyReport(t *testing.T) {
 		{
 			name: "records list error",
 			setup: func(r *fakeRepo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1}}, nil
 				}
 				r.listByDateFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.Record, error) {
@@ -589,7 +589,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "success — employee with 18 present, 2 late, in 22 working days",
 			setup: func(r *fakeRepo, o *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1, FullName: "Alice"}}, nil
 				}
 				// 18 records, 2 of which are late
@@ -629,7 +629,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "employee list error",
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return nil, errors.New("db down")
 				}
 			},
@@ -638,7 +638,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "records list error",
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1}}, nil
 				}
 				r.listByMonthFn = func(_ context.Context, _ uuid.UUID, _, _ int) ([]attendance.Record, error) {
@@ -650,7 +650,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "countWorkingDays error — schedule error",
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1}}, nil
 				}
 				r.listByMonthFn = func(_ context.Context, _ uuid.UUID, _, _ int) ([]attendance.Record, error) {
@@ -665,7 +665,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "countWorkingDays error — country code error",
 			setup: func(r *fakeRepo, o *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1}}, nil
 				}
 				r.listByMonthFn = func(_ context.Context, _ uuid.UUID, _, _ int) ([]attendance.Record, error) {
@@ -678,7 +678,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "countWorkingDays error — holidays error",
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1}}, nil
 				}
 				r.listByMonthFn = func(_ context.Context, _ uuid.UUID, _, _ int) ([]attendance.Record, error) {
@@ -693,7 +693,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "holidays on working days reduce count",
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1, FullName: "Alice"}}, nil
 				}
 				r.listByMonthFn = func(_ context.Context, _ uuid.UUID, _, _ int) ([]attendance.Record, error) {
@@ -718,7 +718,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "holiday with invalid date is skipped",
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1, FullName: "Alice"}}, nil
 				}
 				r.listByMonthFn = func(_ context.Context, _ uuid.UUID, _, _ int) ([]attendance.Record, error) {
@@ -737,7 +737,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "no schedule defaults to Mon-Fri",
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1, FullName: "Alice"}}, nil
 				}
 				r.listByMonthFn = func(_ context.Context, _ uuid.UUID, _, _ int) ([]attendance.Record, error) {
@@ -759,7 +759,7 @@ func TestService_MonthlySummaryReport(t *testing.T) {
 		{
 			name: "absent clamped to zero when present > working days",
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+				r.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 					return []attendance.ActiveEmployee{{ID: emp1, FullName: "Alice"}}, nil
 				}
 				// 50 records in a month with ~22 working days
@@ -927,7 +927,7 @@ func TestService_HolidayOnWeekendNotSubtracted(t *testing.T) {
 	orgInfo := &fakeOrgInfo{tz: "Asia/Jakarta", cc: "ID"}
 
 	emp1 := uuid.MustParse("00000000-0000-0000-0000-000000000010")
-	repo.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID) ([]attendance.ActiveEmployee, error) {
+	repo.listActiveEmpsFn = func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
 		return []attendance.ActiveEmployee{{ID: emp1, FullName: "Alice"}}, nil
 	}
 	repo.listByMonthFn = func(_ context.Context, _ uuid.UUID, _, _ int) ([]attendance.Record, error) {

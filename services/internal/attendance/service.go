@@ -20,7 +20,7 @@ type RepositoryInterface interface {
 	ListByEmployeeMonth(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]Record, error)
 	GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*WorkSchedule, error)
 	ListHolidays(ctx context.Context, countryCode string, startDate, endDate string) ([]PublicHoliday, error)
-	ListActiveEmployees(ctx context.Context, orgID uuid.UUID) ([]ActiveEmployee, error)
+	ListActiveEmployees(ctx context.Context, orgID uuid.UUID, date string) ([]ActiveEmployee, error)
 	GetEmployeeName(ctx context.Context, orgID, employeeID uuid.UUID) (string, error)
 }
 
@@ -180,7 +180,7 @@ func (s *Service) GetToday(ctx context.Context, orgID, employeeID uuid.UUID) (*R
 // DailyReport builds a list of all employees' attendance for a given date.
 // Absent = an active employee with no attendance record on a working day.
 func (s *Service) DailyReport(ctx context.Context, orgID uuid.UUID, filters DailyReportFilters) ([]DailyEntry, error) {
-	employees, err := s.repo.ListActiveEmployees(ctx, orgID)
+	employees, err := s.repo.ListActiveEmployees(ctx, orgID, filters.Date)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +233,9 @@ func (s *Service) DailyReport(ctx context.Context, orgID uuid.UUID, filters Dail
 
 // MonthlySummaryReport generates per-employee attendance summaries for a month.
 func (s *Service) MonthlySummaryReport(ctx context.Context, orgID uuid.UUID, filters MonthlyReportFilters) ([]MonthlySummary, error) {
-	employees, err := s.repo.ListActiveEmployees(ctx, orgID)
+	// Use last day of month to include all employees who started within the month
+	lastDay := time.Date(filters.Year, time.Month(filters.Month)+1, 0, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+	employees, err := s.repo.ListActiveEmployees(ctx, orgID, lastDay)
 	if err != nil {
 		return nil, err
 	}
@@ -517,8 +519,10 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 // GetAllWeek returns week calendars for all active employees in the organization.
 // startDate must be a Monday in "YYYY-MM-DD" format.
 func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate string) ([]TeamWeekEntry, error) {
-	// Get all active employees
-	employees, err := s.repo.ListActiveEmployees(ctx, orgID)
+	// Get all active employees who started on or before end of week
+	start, _ := time.Parse("2006-01-02", startDate)
+	endOfWeek := start.AddDate(0, 0, 6).Format("2006-01-02")
+	employees, err := s.repo.ListActiveEmployees(ctx, orgID, endOfWeek)
 	if err != nil {
 		return nil, err
 	}

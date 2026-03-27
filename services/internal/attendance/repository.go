@@ -205,15 +205,17 @@ func (r *Repository) ListHolidays(ctx context.Context, countryCode string, start
 	return holidays, rows.Err()
 }
 
-// ListActiveEmployees returns active employees for an org (for report generation).
-func (r *Repository) ListActiveEmployees(ctx context.Context, orgID uuid.UUID) ([]ActiveEmployee, error) {
+// ListActiveEmployees returns active employees for an org on a given date.
+// Only includes employees whose start_date is on or before the given date.
+func (r *Repository) ListActiveEmployees(ctx context.Context, orgID uuid.UUID, date string) ([]ActiveEmployee, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, full_name
 		FROM employees
 		WHERE organisation_id = $1
 		  AND is_active = TRUE
+		  AND start_date <= $2::date
 		ORDER BY full_name ASC
-	`, orgID)
+	`, orgID, date)
 	if err != nil {
 		return nil, err
 	}
