@@ -1,7 +1,7 @@
 /**
  * WorkivedLogo — Official Workived logo component
  * 
- * A layered geometric icon with stacked bars representing organization hierarchy.
+ * A rounded square with bold W letter and accent bar below.
  * Can be used with or without the wordmark.
  */
 
@@ -15,12 +15,12 @@ export function WorkivedLogo({ size = 40, showWordmark = true, variant = 'gradie
   const getColors = () => {
     switch (variant) {
       case 'light':
-        return { primary: '#FFFFFF', secondary: 'rgba(255,255,255,0.7)' }
+        return { bg: '#6357E8', text: '#FFFFFF', accent: '#FFFFFF' }
       case 'dark':
-        return { primary: '#9B8FF7', secondary: '#6357E8' }
+        return { bg: '#6357E8', text: '#FFFFFF', accent: '#FFFFFF' }
       case 'gradient':
       default:
-        return { primary: '#9B8FF7', secondary: '#6357E8' }
+        return { bg: '#6357E8', text: '#FFFFFF', accent: '#FFFFFF' }
     }
   }
 
@@ -43,59 +43,52 @@ export function WorkivedLogo({ size = 40, showWordmark = true, variant = 'gradie
         <svg
           width={size}
           height={size}
-          viewBox="0 0 48 48"
+          viewBox="0 0 180 180"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
           {isGradient && (
             <defs>
               <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor={colors.primary} />
-                <stop offset="100%" stopColor={colors.secondary} />
+                <stop offset="0%" stopColor="#9B8FF7" />
+                <stop offset="100%" stopColor="#6357E8" />
               </linearGradient>
             </defs>
           )}
           
           {/* Background rounded rectangle */}
           <rect 
-            x="1" 
-            y="1" 
-            width="46" 
-            height="46" 
-            rx="12" 
-            fill={isGradient ? 'url(#logoGradient)' : colors.primary}
+            width="180" 
+            height="180" 
+            rx="30" 
+            fill={isGradient ? 'url(#logoGradient)' : colors.bg}
           />
           
-          {/* Top bar - shortest */}
+          {/* W letter */}
+          <text
+            x="90"
+            y="112"
+            textAnchor="middle"
+            dominantBaseline="middle"
+            style={{
+              fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+              fontSize: '108px',
+              fontWeight: 800,
+              fill: colors.text,
+            }}
+          >
+            W
+          </text>
+
+          {/* Accent bar */}
           <rect 
-            x="16" 
-            y="11" 
-            width="22" 
-            height="7" 
-            rx="3" 
-            fill={variant === 'light' ? 'rgba(0,0,0,0.35)' : 'white'} 
-            opacity="0.35"
-          />
-          
-          {/* Middle bar - medium */}
-          <rect 
-            x="13" 
-            y="19" 
-            width="24" 
-            height="7" 
-            rx="3" 
-            fill={variant === 'light' ? 'rgba(0,0,0,0.6)' : 'white'} 
-            opacity="0.6"
-          />
-          
-          {/* Bottom bar - longest */}
-          <rect 
-            x="10" 
-            y="27" 
-            width="26" 
-            height="7" 
-            rx="3" 
-            fill={variant === 'light' ? 'rgba(0,0,0,1)' : 'white'}
+            x="55" 
+            y="150" 
+            width="70" 
+            height="10" 
+            rx="5" 
+            fill={colors.accent}
+            opacity={variant === 'light' ? 0.5 : 0.7}
           />
         </svg>
       </div>

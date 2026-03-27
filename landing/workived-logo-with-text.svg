@@ -6,10 +6,9 @@
     </linearGradient>
   </defs>
   <!-- Logo Icon (centered) -->
-  <rect x="37" y="1" width="46" height="46" rx="12" fill="url(#g)"/>
-  <rect x="52" y="11" width="22" height="7" rx="3" fill="white" opacity="0.35"/>
-  <rect x="49" y="19" width="24" height="7" rx="3" fill="white" opacity="0.6"/>
-  <rect x="46" y="27" width="26" height="7" rx="3" fill="white"/>
+  <rect x="37" y="1" width="46" height="46" rx="8" fill="url(#g)"/>
+  <text x="60" y="28" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:28px;font-weight:800;fill:white">W</text>
+  <rect x="46" y="39" width="28" height="3" rx="1.5" fill="white" opacity="0.7"/>
   <!-- Wordmark (below logo) -->
   <text x="60" y="75" font-family="Plus Jakarta Sans, -apple-system, sans-serif" font-size="24" font-weight="800" letter-spacing="-0.96" fill="#0F0E13" text-anchor="middle">Workived</text>
 </svg>

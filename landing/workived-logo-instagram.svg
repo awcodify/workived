@@ -8,10 +8,9 @@
   <!-- Light purple background (ink-50) -->
   <rect width="320" height="320" rx="60" fill="#F3F2FB"/>
   <!-- Logo icon with gradient (centered and moved up) -->
-  <rect x="105" y="75" width="110" height="110" rx="28" fill="url(#g)"/>
-  <rect x="130" y="95" width="70" height="22" rx="11" fill="#FDFCFF" opacity="0.35"/>
-  <rect x="120" y="123" width="80" height="22" rx="11" fill="#FDFCFF" opacity="0.60"/>
-  <rect x="110" y="151" width="90" height="22" rx="11" fill="#FDFCFF"/>
+  <rect x="105" y="75" width="110" height="110" rx="18" fill="url(#g)"/>
+  <text x="160" y="140" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:66px;font-weight:800;fill:white">W</text>
+  <rect x="127" y="163" width="66" height="8" rx="4" fill="white" opacity="0.7"/>
   <!-- Wordmark (below logo in dark ink) -->
   <text x="160" y="235" font-family="Plus Jakarta Sans, -apple-system, sans-serif" font-size="36" font-weight="800" letter-spacing="-1.44" fill="#0F0E13" text-anchor="middle">Workived</text>
 </svg>
