@@ -6,13 +6,14 @@ import (
 )
 
 const (
-	CodeNotFound        = "NOT_FOUND"
-	CodeUnauthorized    = "UNAUTHORIZED"
-	CodeForbidden       = "FORBIDDEN"
-	CodeValidation      = "VALIDATION_ERROR"
-	CodeUpgradeRequired = "UPGRADE_REQUIRED"
-	CodeConflict        = "CONFLICT"
-	CodeInternal        = "INTERNAL_ERROR"
+	CodeNotFound            = "NOT_FOUND"
+	CodeUnauthorized        = "UNAUTHORIZED"
+	CodeForbidden           = "FORBIDDEN"
+	CodeValidation          = "VALIDATION_ERROR"
+	CodeUpgradeRequired     = "UPGRADE_REQUIRED"
+	CodeInsufficientBalance = "INSUFFICIENT_BALANCE"
+	CodeConflict            = "CONFLICT"
+	CodeInternal            = "INTERNAL_ERROR"
 )
 
 type AppError struct {
@@ -102,6 +103,8 @@ func HTTPStatus(err error) int {
 			return http.StatusBadRequest
 		case CodeUpgradeRequired:
 			return http.StatusPaymentRequired
+		case CodeInsufficientBalance:
+			return http.StatusUnprocessableEntity
 		case CodeConflict:
 			return http.StatusConflict
 		}

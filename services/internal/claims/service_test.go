@@ -650,7 +650,7 @@ func TestService_SubmitClaim(t *testing.T) {
 				}
 			},
 			wantErr:  true,
-			wantCode: apperr.CodeUpgradeRequired,
+			wantCode: apperr.CodeInsufficientBalance,
 		},
 		{
 			name: "create claim db error",

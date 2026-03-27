@@ -50,9 +50,9 @@ func ErrReceiptRequired(categoryName string) *apperr.AppError {
 }
 
 // ErrInsufficientBudget returns an error when monthly budget is exceeded
-// Uses CodeUpgradeRequired (402) to signal payment/budget limitation
+// Uses CodeInsufficientBalance (422) to signal budget limitation
 func ErrInsufficientBudget(categoryName string, limit, spent, remaining, requested int64, currency string) *apperr.AppError {
-	return apperr.NewWithDetails(apperr.CodeUpgradeRequired, fmt.Sprintf(
+	return apperr.NewWithDetails(apperr.CodeInsufficientBalance, fmt.Sprintf(
 		"Insufficient budget for '%s'. Monthly limit: %s %s, Already spent: %s %s, Remaining: %s %s, Requested: %s %s",
 		categoryName,
 		formatAmount(limit), currency,

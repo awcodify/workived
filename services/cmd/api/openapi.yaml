@@ -2575,6 +2575,18 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/ErrorEnvelope"
+    UpgradeRequiredError:
+      description: Feature requires Pro plan (402)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
+    InsufficientBalanceError:
+      description: Insufficient balance or budget (422)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorEnvelope"
 
   # ── Schemas ─────────────────────────────────────────────────────────────
   schemas:
@@ -2598,7 +2610,7 @@ components:
             - FORBIDDEN
             - VALIDATION_ERROR
             - UPGRADE_REQUIRED
-            - EMPLOYEE_LIMIT_REACHED
+            - INSUFFICIENT_BALANCE
             - CONFLICT
             - INTERNAL_ERROR
           examples:

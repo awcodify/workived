@@ -251,3 +251,72 @@ func TestRequirePro(t *testing.T) {
 		})
 	}
 }
+
+// ── RequireProPlan middleware ────────────────────────────────────────────────
+
+func TestRequireProPlanMiddleware(t *testing.T) {
+	tests := []struct {
+		name       string
+		plan       string
+		wantStatus int
+	}{
+		{"free plan blocked", "free", http.StatusPaymentRequired},
+		{"pro plan passes", "pro", http.StatusOK},
+		{"enterprise plan passes", "enterprise", http.StatusOK},
+		{"no member context blocked", "", http.StatusPaymentRequired},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			_, r := gin.CreateTestContext(w)
+
+			r.Use(func(c *gin.Context) {
+				if tt.plan != "" {
+					c.Set("org_member", &middleware.OrgMember{OrgPlan: tt.plan})
+				}
+				c.Next()
+			})
+			r.Use(middleware.RequireProPlan())
+			r.GET("/test", func(c *gin.Context) {
+				c.Status(http.StatusOK)
+			})
+
+			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			r.ServeHTTP(w, req)
+
+			if w.Code != tt.wantStatus {
+				t.Errorf("got status %d, want %d", w.Code, tt.wantStatus)
+			}
+		})
+	}
+}
+
+// ── OrgPlanFromCtx ──────────────────────────────────────────────────────────
+
+func TestOrgPlanFromCtx(t *testing.T) {
+	tests := []struct {
+		name string
+		plan string
+		want string
+	}{
+		{"returns plan from member", "pro", "pro"},
+		{"defaults to free when nil", "", "free"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			w := httptest.NewRecorder()
+			c, _ := gin.CreateTestContext(w)
+
+			if tt.plan != "" {
+				c.Set("org_member", &middleware.OrgMember{OrgPlan: tt.plan})
+			}
+
+			got := middleware.OrgPlanFromCtx(c)
+			if got != tt.want {
+				t.Errorf("OrgPlanFromCtx() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

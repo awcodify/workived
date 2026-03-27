@@ -255,6 +255,32 @@ func RequireManager() gin.HandlerFunc {
 	}
 }
 
+// RequireProPlan returns a Gin middleware that checks if the authenticated
+// user's organisation is on a Pro (or higher) plan. Must be applied after
+// Tenant middleware so OrgMember is available in context.
+func RequireProPlan() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		m := OrgMemberFromCtx(c)
+		if m == nil || m.OrgPlan == "free" {
+			c.AbortWithStatusJSON(http.StatusPaymentRequired,
+				apperr.Response(apperr.New(apperr.CodeUpgradeRequired,
+					"this feature requires a Workived Pro plan")))
+			return
+		}
+		c.Next()
+	}
+}
+
+// OrgPlanFromCtx returns the organisation plan ("free", "pro", etc.)
+// from the tenant middleware context. Returns "free" if not available.
+func OrgPlanFromCtx(c *gin.Context) string {
+	m := OrgMemberFromCtx(c)
+	if m == nil || m.OrgPlan == "" {
+		return "free"
+	}
+	return m.OrgPlan
+}
+
 // ── Legacy helpers (kept for backwards compatibility during migration) ────────
 
 // RequireRole returns an error if the member's role is not in the allowed list.

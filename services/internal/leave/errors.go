@@ -8,13 +8,13 @@ import (
 )
 
 // ── Balance Errors ────────────────────────────────────────────────────────────
-// All errors use base apperr codes (CodeValidation, CodeConflict, CodeUpgradeRequired, etc.)
+// All errors use base apperr codes (CodeValidation, CodeConflict, CodeInsufficientBalance, etc.)
 // Domain context is in the message, not the error code.
 
 // ErrInsufficientBalance returns an error when leave balance is insufficient
-// Uses CodeUpgradeRequired (402) to signal balance/quota limitation
+// Uses CodeInsufficientBalance (422) to signal balance/quota limitation
 func ErrInsufficientBalance(policyName string, available, requested float64) *apperr.AppError {
-	return apperr.NewWithDetails(apperr.CodeUpgradeRequired, fmt.Sprintf(
+	return apperr.NewWithDetails(apperr.CodeInsufficientBalance, fmt.Sprintf(
 		"Insufficient leave balance for '%s'. Available: %.1f days, Requested: %.1f days",
 		policyName, available, requested,
 	), map[string]any{
