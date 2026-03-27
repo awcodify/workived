@@ -1,7 +1,7 @@
 # Sprint 22 — PWA + Employment Policy Eligibility + System Changelog
 
 **Duration:** March 28–April 2, 2026
-**Status:** 🏃 IN PROGRESS
+**Status:** ✅ COMPLETE
 **Theme:** Launch readiness — mobile experience, real HR logic, user trust
 **Type:** Feature sprint
 
@@ -138,9 +138,9 @@
 
 | # | Task | Linear | Effort | Status |
 |---|------|--------|--------|--------|
-| 1 | Progressive Web App (PWA) | WOR-21 | S | ⬜ |
-| 2 | Employment Type → Policy Eligibility | WOR-11 | M | ⬜ |
-| 3 | System Changelog | WOR-17 | S | ⬜ |
+| 1 | Progressive Web App (PWA) | WOR-21 | S | ✅ |
+| 2 | Employment Type → Policy Eligibility | WOR-11 | M | ✅ |
+| 3 | System Changelog | WOR-17 | S | ✅ |
 
 **Total effort:** 2S + 1M ≈ 5-8 days
 
