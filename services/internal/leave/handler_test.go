@@ -285,7 +285,7 @@ func TestHandler_CreatePolicy(t *testing.T) {
 			name: "400 — validation error (days_per_year too high)",
 			body: map[string]any{
 				"name":          "Test",
-				"days_per_year": 999,
+				"days_per_year": 366,
 			},
 			wantStatus: http.StatusBadRequest,
 		},

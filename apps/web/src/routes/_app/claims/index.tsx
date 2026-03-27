@@ -35,6 +35,7 @@ function ClaimsDashboard() {
   const navigate = useNavigate()
   const canManageClaims = useCanManageClaims()
   const canPayClaims = useCanPayClaims()
+  const { data: org } = useOrganisation()
 
   // Get current year and month for balances
   const now = new Date()
@@ -174,7 +175,7 @@ function ClaimsDashboard() {
                 const isLowBalance = limit > 0 && remainingPercentage <= 20 && remainingPercentage > 0
                 const isExhausted = remaining <= 0 && limit > 0
 
-                const currencyCode = balance.currency_code ?? 'IDR'
+                const currencyCode = balance.currency_code || org?.currency_code || 'AED'
                 const formatMoney = (amount: number) => {
                   if (currencyCode === 'IDR') {
                     const absAmount = Math.abs(amount)

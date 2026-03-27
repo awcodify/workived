@@ -167,8 +167,8 @@ export function TaskFilters({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Assignee Filter with workload indicators */}
             <EmployeeSelector
-              value={selectedAssignee === 'unassigned' ? '' : selectedAssignee}
-              onChange={(value) => onAssigneeChange(value || 'unassigned')}
+              value={selectedAssignee}
+              onChange={(value) => onAssigneeChange(value)}
               employees={employees}
               getEmployeeWorkload={getEmployeeWorkload}
               label="👤 Person"

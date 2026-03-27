@@ -73,6 +73,7 @@ export function EmployeeSelector({
         }}
       >
         {showUnassigned && <option value="">{placeholder}</option>}
+        {showUnassigned && <option value="unassigned">— Unassigned —</option>}
         {sortedEmployees.map((emp) => {
           const workload = getEmployeeWorkload(emp.id)
           const badge = workload 

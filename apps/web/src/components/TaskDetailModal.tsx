@@ -271,7 +271,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
     createCommentMutation.mutate(
       {
         taskId: task.id,
-        data: { 
+        data: {
           body: commentText.trim(),
           content_type: 'markdown',
           parent_id: replyingToId || undefined,
@@ -281,6 +281,9 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
         onSuccess: () => {
           setCommentText('')
           setReplyingToId(null)
+        },
+        onError: (error) => {
+          console.error('Failed to add comment:', error)
         },
       }
     )

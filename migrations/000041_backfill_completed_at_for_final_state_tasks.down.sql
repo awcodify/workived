@@ -1,0 +1,2 @@
+-- No-op: we cannot reliably determine which tasks had NULL completed_at before
+-- This is a data fix migration, not a schema change

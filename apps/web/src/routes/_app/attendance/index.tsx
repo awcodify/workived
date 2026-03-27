@@ -132,9 +132,10 @@ function AttendancePage() {
     employees.forEach((emp: any) => {
       const dayData = emp.week?.days.find((d: any) => d.date === date)
       if (dayData) {
-        if (dayData.status === 'present' || dayData.status === 'late') {
-          if (dayData.status === 'late') late++
-          else present++
+        if (dayData.status === 'on-time' || dayData.status === 'present') {
+          present++
+        } else if (dayData.status === 'late') {
+          late++
         } else if (dayData.status === 'on_leave') {
           onLeave++
         } else if (dayData.status === 'absent') {

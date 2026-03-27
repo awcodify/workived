@@ -3468,7 +3468,7 @@ components:
           type: number
           format: float
           minimum: 0
-          maximum: 999
+          maximum: 365
         is_carry_over_allowed:
           type: boolean
         max_carry_over_days:
@@ -3498,7 +3498,7 @@ components:
           type: number
           format: float
           minimum: 0
-          maximum: 999
+          maximum: 365
         is_carry_over_allowed:
           type: boolean
         max_carry_over_days:
