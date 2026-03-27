@@ -20,6 +20,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 10,
+    date: '2026-03-28',
+    type: 'feature',
+    title: 'Create unlimited leave policies',
+    description: 'You can now mark a leave policy as "Unlimited" — perfect for sick leave or flexible PTO. Employees see ∞ instead of a confusing day count.',
+    module: 'Leave',
+  },
+  {
     id: 9,
     date: '2026-03-28',
     type: 'feature',

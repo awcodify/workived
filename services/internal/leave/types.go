@@ -116,6 +116,7 @@ type PolicyTemplate struct {
 	IsAccrued           bool      `json:"is_accrued"`
 	RequiresApproval    bool      `json:"requires_approval"`
 	GenderEligibility   string    `json:"gender_eligibility"` // "all", "male", "female"
+	IsUnlimited         bool      `json:"is_unlimited"`
 	DayCountType        string    `json:"day_count_type"`     // "working_days", "calendar_days"
 	SortOrder           int       `json:"sort_order"`
 	CreatedAt           time.Time `json:"created_at"`

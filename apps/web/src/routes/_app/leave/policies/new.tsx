@@ -30,12 +30,14 @@ function NewPolicyPage() {
       carry_over_days: 0,
       min_tenure_days: 0,
       requires_approval: true,
+      is_unlimited: false,
       gender_eligibility: null,
       eligible_employment_types: [],
     },
   })
 
   const requiresApproval = watch('requires_approval')
+  const isUnlimited = watch('is_unlimited')
   const genderEligibility = watch('gender_eligibility')
   const eligibleTypes = watch('eligible_employment_types') ?? []
 
@@ -127,7 +129,37 @@ function NewPolicyPage() {
             )}
           </div>
 
+          {/* Unlimited Leave */}
+          <div className="mb-6">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                {...register('is_unlimited')}
+                type="checkbox"
+                className="w-5 h-5 cursor-pointer"
+                style={{ accentColor: t.accent }}
+                onChange={(e) => {
+                  setValue('is_unlimited', e.target.checked)
+                  if (e.target.checked) {
+                    setValue('days_per_year', 365)
+                  }
+                }}
+              />
+              <span
+                className="font-semibold"
+                style={{ fontSize: typography.label.size, color: t.text }}
+              >
+                Unlimited leave
+              </span>
+            </label>
+            <p className="text-xs mt-1 ml-8" style={{ color: t.textMuted }}>
+              {isUnlimited
+                ? 'No day limit — employees can take as much as needed (e.g. sick leave)'
+                : 'Set a specific number of days per year'}
+            </p>
+          </div>
+
           {/* Days Per Year */}
+          {!isUnlimited && (
           <div className="mb-6">
             <label
               className="block font-semibold mb-2"
@@ -159,6 +191,7 @@ function NewPolicyPage() {
               </p>
             )}
           </div>
+          )}
 
           {/* Carry Over Days */}
           <div className="mb-6">

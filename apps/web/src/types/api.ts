@@ -318,6 +318,7 @@ export interface LeavePolicy {
   carry_over_days: number
   min_tenure_days: number
   requires_approval: boolean
+  is_unlimited: boolean
   gender_eligibility?: 'male' | 'female' | null
   eligible_employment_types?: EmploymentType[] | null
   is_active: boolean

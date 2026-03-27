@@ -715,7 +715,8 @@ func (r *Repository) ListTemplates(ctx context.Context, countryCode string) ([]P
 	rows, err := r.db.Query(ctx, `
 		SELECT id, country_code, name, description,
 		       entitled_days_per_year, is_carry_over_allowed, max_carry_over_days,
-		       is_accrued, requires_approval, gender_eligibility, day_count_type, sort_order, created_at
+		       is_accrued, requires_approval, gender_eligibility, is_unlimited,
+		       day_count_type, sort_order, created_at
 		FROM leave_policy_templates
 		WHERE country_code = $1
 		ORDER BY sort_order ASC
@@ -731,7 +732,8 @@ func (r *Repository) ListTemplates(ctx context.Context, countryCode string) ([]P
 		if err := rows.Scan(
 			&t.ID, &t.CountryCode, &t.Name, &t.Description,
 			&t.EntitledDaysPerYear, &t.IsCarryOverAllowed, &t.MaxCarryOverDays,
-			&t.IsAccrued, &t.RequiresApproval, &t.GenderEligibility, &t.DayCountType, &t.SortOrder, &t.CreatedAt,
+			&t.IsAccrued, &t.RequiresApproval, &t.GenderEligibility, &t.IsUnlimited,
+			&t.DayCountType, &t.SortOrder, &t.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan template: %w", err)
 		}
@@ -745,7 +747,8 @@ func (r *Repository) GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]
 	rows, err := r.db.Query(ctx, `
 		SELECT id, country_code, name, description,
 		       entitled_days_per_year, is_carry_over_allowed, max_carry_over_days,
-		       is_accrued, requires_approval, gender_eligibility, day_count_type, sort_order, created_at
+		       is_accrued, requires_approval, gender_eligibility, is_unlimited,
+		       day_count_type, sort_order, created_at
 		FROM leave_policy_templates
 		WHERE id = ANY($1)
 		ORDER BY sort_order ASC
@@ -761,7 +764,8 @@ func (r *Repository) GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]
 		if err := rows.Scan(
 			&t.ID, &t.CountryCode, &t.Name, &t.Description,
 			&t.EntitledDaysPerYear, &t.IsCarryOverAllowed, &t.MaxCarryOverDays,
-			&t.IsAccrued, &t.RequiresApproval, &t.GenderEligibility, &t.DayCountType, &t.SortOrder, &t.CreatedAt,
+			&t.IsAccrued, &t.RequiresApproval, &t.GenderEligibility, &t.IsUnlimited,
+			&t.DayCountType, &t.SortOrder, &t.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan template: %w", err)
 		}
@@ -801,14 +805,14 @@ func (r *Repository) ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx,
 		err := tx.QueryRow(ctx, `
 			INSERT INTO leave_policies (
 				organisation_id, name, description, days_per_year, carry_over_days,
-				min_tenure_days, requires_approval, gender_eligibility, day_count_type, is_active
+				min_tenure_days, requires_approval, gender_eligibility, is_unlimited, day_count_type, is_active
 			)
-			VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, TRUE)
+			VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, $9, TRUE)
 			RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 			          min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
 			          prorate_first_year, day_count_type, is_active, created_at, updated_at
 		`, orgID, tmpl.Name, tmpl.Description, tmpl.EntitledDaysPerYear, carryOverDays,
-			tmpl.RequiresApproval, tmpl.GenderEligibility, tmpl.DayCountType).Scan(
+			tmpl.RequiresApproval, tmpl.GenderEligibility, tmpl.IsUnlimited, tmpl.DayCountType).Scan(
 			&policy.ID, &policy.OrganisationID, &policy.Name, &policy.Description, &policy.DaysPerYear,
 			&policy.CarryOverDays, &policy.MinTenureDays, &policy.RequiresApproval, &policy.GenderEligibility,
 			&policy.IsUnlimited, &policy.ProrateFirstYear, &policy.DayCountType,

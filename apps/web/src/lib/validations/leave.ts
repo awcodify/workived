@@ -21,6 +21,7 @@ export const createPolicySchema = z.object({
     .min(0, 'Min tenure cannot be negative')
     .optional(),
   requires_approval: z.boolean().optional(),
+  is_unlimited: z.boolean().optional(),
   gender_eligibility: z.enum(['male', 'female']).nullable().optional(),
   eligible_employment_types: z.array(z.enum(['full_time', 'part_time', 'contract', 'intern'])).optional(),
 })
