@@ -159,6 +159,11 @@ func (s *Service) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Policy, 
 }
 
 func (s *Service) CreatePolicy(ctx context.Context, orgID uuid.UUID, req CreatePolicyRequest) (*Policy, error) {
+	// When unlimited, force days_per_year to 365 (backend convention)
+	if req.IsUnlimited != nil && *req.IsUnlimited {
+		req.DaysPerYear = 365
+	}
+
 	p, err := s.repo.CreatePolicy(ctx, orgID, req)
 	if err != nil {
 		return nil, fmt.Errorf("create policy: %w", err)

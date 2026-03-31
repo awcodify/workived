@@ -127,7 +127,7 @@ type PolicyTemplate struct {
 type CreatePolicyRequest struct {
 	Name                    string   `json:"name"              validate:"required,min=1,max=100"`
 	Description             *string  `json:"description"       validate:"omitempty,max=500"`
-	DaysPerYear             float64  `json:"days_per_year"     validate:"required,gte=0,lte=365"`
+	DaysPerYear             float64  `json:"days_per_year"     validate:"gte=0,lte=365"`
 	CarryOverDays           float64  `json:"carry_over_days"   validate:"gte=0,lte=365"`
 	MinTenureDays           int      `json:"min_tenure_days"   validate:"gte=0"`
 	RequiresApproval        *bool    `json:"requires_approval"`
