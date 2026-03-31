@@ -20,6 +20,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 15,
+    date: '2026-04-01',
+    type: 'fix',
+    title: 'New employees now see leave balances immediately after joining',
+    description: 'Leave balances are now created automatically when an employee accepts an invitation, so they no longer need to visit the leave page first.',
+    module: 'Leave',
+  },
+  {
     id: 14,
     date: '2026-04-01',
     type: 'fix',
