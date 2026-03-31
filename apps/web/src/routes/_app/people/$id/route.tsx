@@ -8,7 +8,7 @@ import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { moduleBackgrounds, moduleThemes, colors } from '@/design/tokens'
-import { ArrowLeft, UserCheck, UserPlus, Mail } from 'lucide-react'
+import { ArrowLeft, UserCheck, UserPlus, Mail, AlertTriangle } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 
 const t = moduleThemes.people
@@ -485,6 +485,9 @@ function EditEmployeePage({ id }: { id: string }) {
     }
   }, [employee, form])
 
+  const watchedEmploymentType = form.watch('employment_type')
+  const employmentTypeChanged = employee && watchedEmploymentType !== employee.employment_type
+
   const onSubmit = (data: EditForm) => {
     const clean = {
       ...data,
@@ -632,6 +635,12 @@ function EditEmployeePage({ id }: { id: string }) {
                   <option value="contract">Contract</option>
                   <option value="intern">Intern</option>
                 </select>
+                {employmentTypeChanged && (
+                  <div className="flex items-start gap-2 mt-2 px-3 py-2 rounded-lg text-xs" style={{ background: `${colors.warn}15`, color: colors.warn }}>
+                    <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+                    <span>Changing employment type may affect leave and claim eligibility. New policies will apply and ineligible balances will be deactivated.</span>
+                  </div>
+                )}
               </Field>
 
               <Field label="Employment status" error={form.formState.errors.status?.message}>

@@ -323,6 +323,21 @@ describe('EditEmployeePage', () => {
     expect(screen.getByText(/something went wrong/i)).toBeTruthy()
   })
 
+  it('shows warning when employment type is changed', () => {
+    renderEditPage(makeEmployee({ employment_type: 'full_time' }))
+
+    const select = screen.getByDisplayValue('Full time')
+    fireEvent.change(select, { target: { value: 'intern' } })
+
+    expect(screen.getByText(/changing employment type may affect leave and claim eligibility/i)).toBeTruthy()
+  })
+
+  it('does not show warning when employment type is unchanged', () => {
+    renderEditPage(makeEmployee({ employment_type: 'full_time' }))
+
+    expect(screen.queryByText(/changing employment type may affect leave and claim eligibility/i)).toBeNull()
+  })
+
   it('calls updateMutation on form submit', async () => {
     renderEditPage()
 
