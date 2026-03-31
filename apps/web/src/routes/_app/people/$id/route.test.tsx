@@ -308,6 +308,7 @@ describe('EditEmployeePage', () => {
       mutate: mockUpdateMutate,
       isPending: false,
       isError: true,
+      error: null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
 
@@ -321,6 +322,32 @@ describe('EditEmployeePage', () => {
 
     render(<EmployeeDetailPage />)
     expect(screen.getByText(/something went wrong/i)).toBeTruthy()
+  })
+
+  it('shows API error message when available', () => {
+    const axiosError = Object.assign(new Error('Request failed'), {
+      isAxiosError: true,
+      response: { data: { error: { message: 'an employee with this email already exists in your organisation' } } },
+    })
+
+    vi.mocked(useUpdateEmployee).mockReturnValue({
+      mutate: mockUpdateMutate,
+      isPending: false,
+      isError: true,
+      error: axiosError,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(Route as any).useParams = () => ({ id: 'emp-1' })
+    vi.mocked(useEmployee).mockReturnValue({
+      data: makeEmployee(),
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    render(<EmployeeDetailPage />)
+    expect(screen.getByText(/an employee with this email already exists/i)).toBeTruthy()
   })
 
   it('shows warning when employment type is changed', () => {

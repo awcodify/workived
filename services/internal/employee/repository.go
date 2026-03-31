@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/paginate"
@@ -131,8 +132,8 @@ func (r *Repository) Create(ctx context.Context, orgID uuid.UUID, req CreateEmpl
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 		)
 	if err != nil {
-		if isUniqueViolation(err) {
-			return nil, apperr.Conflict("an employee with this email already exists in your organisation")
+		if msg := uniqueViolationMessage(err); msg != "" {
+			return nil, apperr.Conflict(msg)
 		}
 		return nil, err
 	}
@@ -536,15 +537,15 @@ func nilIfEmpty(s string) *string {
 	return &s
 }
 
-func isUniqueViolation(err error) bool {
-	return err != nil && containsCode(err.Error(), "23505")
-}
-
-func containsCode(msg, code string) bool {
-	for i := 0; i+len(code) <= len(msg); i++ {
-		if msg[i:i+len(code)] == code {
-			return true
-		}
+func uniqueViolationMessage(err error) string {
+	var pgErr *pgconn.PgError
+	if !errors.As(err, &pgErr) || pgErr.Code != "23505" {
+		return ""
 	}
-	return false
+	switch pgErr.ConstraintName {
+	case "employees_organisation_id_email_key":
+		return "an employee with this email already exists in your organisation"
+	default:
+		return "an employee with these details already exists in your organisation"
+	}
 }

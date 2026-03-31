@@ -10,6 +10,7 @@ import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { moduleBackgrounds, moduleThemes, colors } from '@/design/tokens'
 import { ArrowLeft, UserCheck, UserPlus, Mail, AlertTriangle } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
+import axios from 'axios'
 
 const t = moduleThemes.people
 
@@ -49,6 +50,15 @@ const newSchema = baseSchema.extend({
 
 type EditForm = z.infer<typeof editSchema>
 type NewForm = z.infer<typeof newSchema>
+
+function apiErrorMessage(err: Error | null): string {
+  if (!err) return 'Something went wrong. Please try again.'
+  if (axios.isAxiosError(err)) {
+    const msg = err.response?.data?.error?.message
+    if (typeof msg === 'string' && msg.length > 0) return msg
+  }
+  return 'Something went wrong. Please try again.'
+}
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -434,7 +444,7 @@ function NewEmployeePage() {
         {createMutation.isError && (
           <div className="rounded-lg bg-err/10 border border-err/20 p-4">
             <p className="text-sm text-err font-medium">
-              Something went wrong. Please try again.
+              {apiErrorMessage(createMutation.error)}
             </p>
           </div>
         )}
@@ -710,7 +720,7 @@ function EditEmployeePage({ id }: { id: string }) {
         {updateMutation.isError && (
           <div className="rounded-lg bg-err/10 border border-err/20 p-4">
             <p className="text-sm text-err font-medium">
-              Something went wrong. Please try again.
+              {apiErrorMessage(updateMutation.error)}
             </p>
           </div>
         )}
