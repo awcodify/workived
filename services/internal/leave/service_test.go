@@ -75,7 +75,7 @@ type fakeRepo struct {
 	hasOverlapFn                          func(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (bool, error)
 	listCalendarFn                        func(ctx context.Context, orgID uuid.UUID, year, month int) ([]leave.CalendarEntry, error)
 	isOnApprovedLeaveFn                   func(ctx context.Context, orgID, employeeID uuid.UUID, date string) (bool, error)
-	listHolidaysFn                        func(ctx context.Context, countryCode, startDate, endDate string) ([]leave.PublicHoliday, error)
+	listHolidaysFn                        func(ctx context.Context, orgID uuid.UUID, countryCode, startDate, endDate string) ([]leave.PublicHoliday, error)
 	beginTxFn                             func(ctx context.Context) (pgx.Tx, error)
 	listTemplatesFn                       func(ctx context.Context, countryCode string) ([]leave.PolicyTemplate, error)
 	getTemplatesByIDsFn                   func(ctx context.Context, ids []uuid.UUID) ([]leave.PolicyTemplate, error)
@@ -155,8 +155,8 @@ func (f *fakeRepo) ListCalendar(ctx context.Context, orgID uuid.UUID, year, mont
 func (f *fakeRepo) IsOnApprovedLeave(ctx context.Context, orgID, employeeID uuid.UUID, date string) (bool, error) {
 	return f.isOnApprovedLeaveFn(ctx, orgID, employeeID, date)
 }
-func (f *fakeRepo) ListHolidays(ctx context.Context, countryCode, startDate, endDate string) ([]leave.PublicHoliday, error) {
-	return f.listHolidaysFn(ctx, countryCode, startDate, endDate)
+func (f *fakeRepo) ListHolidays(ctx context.Context, orgID uuid.UUID, countryCode, startDate, endDate string) ([]leave.PublicHoliday, error) {
+	return f.listHolidaysFn(ctx, orgID, countryCode, startDate, endDate)
 }
 func (f *fakeRepo) CreateBalanceWithCarryOver(ctx context.Context, orgID, employeeID, policyID uuid.UUID, year int, entitledDays, carriedOverDays float64) error {
 	// Not used in current service tests
@@ -334,7 +334,7 @@ func defaultFakeRepo() *fakeRepo {
 		isOnApprovedLeaveFn: func(_ context.Context, _, _ uuid.UUID, _ string) (bool, error) {
 			return false, nil
 		},
-		listHolidaysFn: func(_ context.Context, _, _, _ string) ([]leave.PublicHoliday, error) {
+		listHolidaysFn: func(_ context.Context, _ uuid.UUID, _, _, _ string) ([]leave.PublicHoliday, error) {
 			return nil, nil
 		},
 		beginTxFn: func(_ context.Context) (pgx.Tx, error) {
@@ -1214,7 +1214,7 @@ func TestService_SubmitRequest(t *testing.T) {
 				EndDate:       "2026-03-18",
 			},
 			setup: func(r *fakeRepo, _ *fakeOrgRepo) {
-				r.listHolidaysFn = func(_ context.Context, _, _, _ string) ([]leave.PublicHoliday, error) {
+				r.listHolidaysFn = func(_ context.Context, _ uuid.UUID, _, _, _ string) ([]leave.PublicHoliday, error) {
 					return nil, errors.New("db down")
 				}
 			},
@@ -2059,7 +2059,7 @@ func TestService_ListHolidays(t *testing.T) {
 
 	t.Run("holidays repo error propagates", func(t *testing.T) {
 		repo := defaultFakeRepo()
-		repo.listHolidaysFn = func(_ context.Context, _, _, _ string) ([]leave.PublicHoliday, error) {
+		repo.listHolidaysFn = func(_ context.Context, _ uuid.UUID, _, _, _ string) ([]leave.PublicHoliday, error) {
 			return nil, errors.New("db down")
 		}
 		orgRepo := defaultFakeOrgRepo()

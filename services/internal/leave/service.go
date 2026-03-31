@@ -48,7 +48,7 @@ type RepositoryInterface interface {
 	IsOnApprovedLeave(ctx context.Context, orgID, employeeID uuid.UUID, date string) (bool, error)
 
 	// Holidays
-	ListHolidays(ctx context.Context, countryCode, startDate, endDate string) ([]PublicHoliday, error)
+	ListHolidays(ctx context.Context, orgID uuid.UUID, countryCode, startDate, endDate string) ([]PublicHoliday, error)
 
 	// Templates
 	ListTemplates(ctx context.Context, countryCode string) ([]PolicyTemplate, error)
@@ -817,7 +817,7 @@ func (s *Service) calculateBusinessDays(ctx context.Context, orgID uuid.UUID, st
 		return 0, fmt.Errorf("get org country: %w", err)
 	}
 
-	holidays, err := s.repo.ListHolidays(ctx, countryCode, startDate, endDate)
+	holidays, err := s.repo.ListHolidays(ctx, orgID, countryCode, startDate, endDate)
 	if err != nil {
 		return 0, fmt.Errorf("list holidays: %w", err)
 	}
@@ -867,7 +867,7 @@ func (s *Service) ListHolidays(ctx context.Context, orgID uuid.UUID, startDate, 
 		return nil, fmt.Errorf("get org country: %w", err)
 	}
 
-	holidays, err := s.repo.ListHolidays(ctx, countryCode, startDate, endDate)
+	holidays, err := s.repo.ListHolidays(ctx, orgID, countryCode, startDate, endDate)
 	if err != nil {
 		return nil, fmt.Errorf("list holidays: %w", err)
 	}

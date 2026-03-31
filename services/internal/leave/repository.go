@@ -682,16 +682,18 @@ func (r *Repository) IsOnApprovedLeave(ctx context.Context, orgID, employeeID uu
 
 // ── Holidays (delegated — reuses public_holidays table) ─────────────────────
 
-// ListHolidays returns public holidays in a date range for a country.
-func (r *Repository) ListHolidays(ctx context.Context, countryCode, startDate, endDate string) ([]PublicHoliday, error) {
+// ListHolidays returns public holidays in a date range, scoped to org + country.
+// Includes country-wide holidays (organisation_id IS NULL) and org-specific custom holidays.
+func (r *Repository) ListHolidays(ctx context.Context, orgID uuid.UUID, countryCode, startDate, endDate string) ([]PublicHoliday, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT country_code, date::text, name
 		FROM public_holidays
-		WHERE country_code = $1
-		  AND date >= $2::date
-		  AND date <= $3::date
+		WHERE ((country_code = $1 AND organisation_id IS NULL)
+		    OR organisation_id = $2)
+		  AND date >= $3::date
+		  AND date <= $4::date
 		ORDER BY date ASC
-	`, countryCode, startDate, endDate)
+	`, countryCode, orgID, startDate, endDate)
 	if err != nil {
 		return nil, fmt.Errorf("list holidays: %w", err)
 	}

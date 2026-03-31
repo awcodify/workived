@@ -257,7 +257,7 @@ func (m *mockRepo) ListCalendar(context.Context, uuid.UUID, int, int) ([]leave.C
 func (m *mockRepo) IsOnApprovedLeave(context.Context, uuid.UUID, uuid.UUID, string) (bool, error) {
 	return false, nil
 }
-func (m *mockRepo) ListHolidays(context.Context, string, string, string) ([]leave.PublicHoliday, error) {
+func (m *mockRepo) ListHolidays(_ context.Context, _ uuid.UUID, _, _, _ string) ([]leave.PublicHoliday, error) {
 	return nil, nil
 }
 func (m *mockRepo) BeginTx(context.Context) (pgx.Tx, error) { return nil, nil }
