@@ -20,6 +20,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 12,
+    date: '2026-03-31',
+    type: 'fix',
+    title: 'UAE leave policies now match the law',
+    description: 'Maternity Leave (60 days) and Paternity Leave (5 days) are now correctly set up for UAE organisations. The confusing "Parental Leave" entry has been removed.',
+    module: 'Leave',
+  },
+  {
+    id: 11,
+    date: '2026-03-31',
+    type: 'feature',
+    title: 'Email notifications are here',
+    description: 'Workived now sends email notifications for invitations and welcome messages. More notification types coming soon.',
+    module: 'System',
+  },
+  {
     id: 10,
     date: '2026-03-28',
     type: 'feature',
