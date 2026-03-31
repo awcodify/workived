@@ -89,8 +89,8 @@ ON CONFLICT (country_code, name) DO UPDATE SET
   is_unlimited = EXCLUDED.is_unlimited,
   sort_order = EXCLUDED.sort_order;
 
--- Clean up old UAE templates that were renamed/split or caused confusion
-DELETE FROM leave_policy_templates WHERE country_code = 'AE' AND name IN ('Compassionate Leave', 'Hajj/Umrah Leave', 'Parental Leave');
+-- Clean up old UAE templates that were renamed/split
+DELETE FROM leave_policy_templates WHERE country_code = 'AE' AND name IN ('Compassionate Leave', 'Hajj/Umrah Leave');
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- CLAIM CATEGORY TEMPLATES
