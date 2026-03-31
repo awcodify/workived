@@ -119,6 +119,8 @@ export function useTeamWeek(startDate: string, enabled: boolean = true) {
     queryKey: attendanceKeys.teamWeek(startDate),
     queryFn: () => attendanceApi.getTeamWeek(startDate).then((r) => r.data.data),
     enabled: enabled && !!startDate,
+    staleTime: 1000 * 30,
+    refetchOnMount: 'always',
   })
 }
 
@@ -127,6 +129,8 @@ export function useAllWeek(startDate: string, enabled: boolean = true) {
     queryKey: [...attendanceKeys.all, 'week', startDate],
     queryFn: () => attendanceApi.getAllWeek(startDate).then((r) => r.data.data),
     enabled: enabled && !!startDate,
+    staleTime: 1000 * 30,
+    refetchOnMount: 'always',
   })
 }
 
