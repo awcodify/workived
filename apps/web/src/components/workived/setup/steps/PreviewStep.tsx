@@ -47,8 +47,15 @@ export function PreviewStep({ wizardState, templates, onConfirm, onBack, isSubmi
   const workScheduleName = wizardState.selectedWorkScheduleTemplate
     ? wizardState.selectedWorkScheduleTemplate.name
     : wizardState.customSchedule
-      ? 'Custom Schedule'
+      ? wizardState.customSchedule.name || 'Custom Schedule'
       : 'Not selected'
+
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+  const formatWorkDays = (workDays: number[]) =>
+    workDays
+      .sort((a, b) => a - b)
+      .map((d) => dayNames[d - 1])
+      .join(', ')
 
   return (
     <div className="space-y-8">
@@ -84,16 +91,18 @@ export function PreviewStep({ wizardState, templates, onConfirm, onBack, isSubmi
             </p>
             {wizardState.customSchedule && (
               <div className="mt-3 space-y-2">
-                {Object.entries(wizardState.customSchedule).map(([day, hours]) => (
-                  <div key={day} className="flex justify-between text-sm">
-                    <span className="capitalize" style={{ color: colors.ink700 }}>
-                      {day}
-                    </span>
-                    <span style={{ color: colors.ink500 }}>
-                      {hours.is_working ? `${hours.start_time} - ${hours.end_time}` : 'Off Day'}
-                    </span>
-                  </div>
-                ))}
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: colors.ink700 }}>Working Days</span>
+                  <span style={{ color: colors.ink500 }}>
+                    {formatWorkDays(wizardState.customSchedule.work_days)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span style={{ color: colors.ink700 }}>Hours</span>
+                  <span style={{ color: colors.ink500 }}>
+                    {wizardState.customSchedule.start_time} - {wizardState.customSchedule.end_time}
+                  </span>
+                </div>
               </div>
             )}
             {wizardState.selectedWorkScheduleTemplate && (
@@ -101,7 +110,7 @@ export function PreviewStep({ wizardState, templates, onConfirm, onBack, isSubmi
                 <div className="flex justify-between text-sm">
                   <span style={{ color: colors.ink700 }}>Working Days</span>
                   <span style={{ color: colors.ink500 }}>
-                    {wizardState.selectedWorkScheduleTemplate.work_days.length} days/week
+                    {formatWorkDays(wizardState.selectedWorkScheduleTemplate.work_days)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
