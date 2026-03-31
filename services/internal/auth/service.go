@@ -11,8 +11,10 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/email"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -39,16 +41,37 @@ type Service struct {
 	jwtSecret  string
 	accessTTL  time.Duration
 	refreshTTL time.Duration
+	email      email.Sender
+	appURL     string
+	log        zerolog.Logger
 }
 
-func NewService(repo Repo, orgRepo OrgRepo, jwtSecret string, accessTTL, refreshTTL time.Duration) *Service {
-	return &Service{
+type ServiceOption func(*Service)
+
+func WithEmailSender(e email.Sender) ServiceOption {
+	return func(s *Service) { s.email = e }
+}
+
+func WithAppURL(url string) ServiceOption {
+	return func(s *Service) { s.appURL = url }
+}
+
+func WithLogger(log zerolog.Logger) ServiceOption {
+	return func(s *Service) { s.log = log }
+}
+
+func NewService(repo Repo, orgRepo OrgRepo, jwtSecret string, accessTTL, refreshTTL time.Duration, opts ...ServiceOption) *Service {
+	s := &Service{
 		repo:       repo,
 		orgRepo:    orgRepo,
 		jwtSecret:  jwtSecret,
 		accessTTL:  accessTTL,
 		refreshTTL: refreshTTL,
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, error) {
@@ -65,13 +88,17 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, err
 		return nil, err
 	}
 
-	// Issue email verification token (stored; sending is out of scope for this sprint)
+	// Issue email verification token
 	rawToken, tokenHash := generateToken()
 	expiresAt := time.Now().UTC().Add(24 * time.Hour)
 	if err := s.repo.CreateToken(ctx, user.ID, tokenHash, "email_verify", expiresAt); err != nil {
 		return nil, fmt.Errorf("create verify token: %w", err)
 	}
-	_ = rawToken // TODO Sprint 5+: send via SMTP
+
+	// Send welcome email asynchronously
+	if s.email != nil {
+		go s.sendWelcomeEmail(context.Background(), user.FullName, user.Email, rawToken)
+	}
 
 	return user, nil
 }
@@ -194,4 +221,35 @@ func generateToken() (raw, hash string) {
 func hashToken(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+// sendWelcomeEmail renders and sends the welcome email with verification link.
+func (s *Service) sendWelcomeEmail(_ context.Context, fullName, userEmail, verifyToken string) {
+	verifyURL := fmt.Sprintf("%s/verify-email?token=%s", s.appURL, verifyToken)
+
+	subject, body, _, err := email.WelcomeTemplate.Render(struct {
+		UserName  string
+		AppURL    string
+		VerifyURL string
+	}{
+		UserName:  fullName,
+		AppURL:    s.appURL,
+		VerifyURL: verifyURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to render welcome email")
+		return
+	}
+
+	if err := s.email.Send(email.Message{
+		To:      []string{userEmail},
+		Subject: subject,
+		Body:    body,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to send welcome email")
+		return
+	}
+
+	s.log.Info().Str("email", userEmail).Msg("auth.welcome_email_sent")
 }

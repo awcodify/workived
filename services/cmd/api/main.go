@@ -115,7 +115,7 @@ func main() {
 	calendarRepo := calendar.NewRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
-	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL)
+	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL, auth.WithEmailSender(emailSender), auth.WithAppURL(cfg.AppURL), auth.WithLogger(log))
 	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender))
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithLogger(log))
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log))

@@ -3,12 +3,14 @@ package auth_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/workived/services/internal/auth"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/email"
 )
 
 // ── Fakes ─────────────────────────────────────────────────────────────────────
@@ -368,6 +370,74 @@ func TestAuthService_Logout(t *testing.T) {
 			t.Error("expected error on second logout, got nil")
 		}
 	})
+}
+
+// ── Email sending tests ──────────────────────────────────────────────────────
+
+type spyEmailSender struct {
+	mu       sync.Mutex
+	messages []email.Message
+}
+
+func (s *spyEmailSender) Send(msg email.Message) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.messages = append(s.messages, msg)
+	return nil
+}
+
+func (s *spyEmailSender) sent() []email.Message {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return append([]email.Message(nil), s.messages...)
+}
+
+func TestAuthService_Register_SendsWelcomeEmail(t *testing.T) {
+	repo := newFakeAuthRepo()
+	spy := &spyEmailSender{}
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour,
+		auth.WithEmailSender(spy),
+		auth.WithAppURL("https://app.workived.com"),
+	)
+
+	_, err := svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "welcome@example.com", Password: "password123", FullName: "Welcome User",
+	})
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	// Wait briefly for async goroutine
+	time.Sleep(100 * time.Millisecond)
+
+	msgs := spy.sent()
+	if len(msgs) != 1 {
+		t.Fatalf("expected 1 email, got %d", len(msgs))
+	}
+	if msgs[0].To[0] != "welcome@example.com" {
+		t.Errorf("expected to=welcome@example.com, got %s", msgs[0].To[0])
+	}
+	if msgs[0].Subject != "Welcome to Workived" {
+		t.Errorf("expected welcome subject, got %q", msgs[0].Subject)
+	}
+	if !msgs[0].IsHTML {
+		t.Error("expected HTML email")
+	}
+}
+
+func TestAuthService_Register_NoEmailSender_NoError(t *testing.T) {
+	repo := newFakeAuthRepo()
+	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour)
+
+	user, err := svc.Register(context.Background(), auth.RegisterRequest{
+		Email: "no-email@example.com", Password: "password123", FullName: "No Email",
+	})
+	if err != nil {
+		t.Fatalf("register: %v", err)
+	}
+	if user.Email != "no-email@example.com" {
+		t.Errorf("email = %q, want no-email@example.com", user.Email)
+	}
 }
 
 // ── Error path coverage ───────────────────────────────────────────────────────
