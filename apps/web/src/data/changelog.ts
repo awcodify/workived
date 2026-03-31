@@ -20,6 +20,22 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 14,
+    date: '2026-04-01',
+    type: 'fix',
+    title: 'Attendance present count now updates after clock-in',
+    description: 'The attendance page now refreshes team data automatically so the present/late/absent counts reflect reality without needing a page reload.',
+    module: 'Attendance',
+  },
+  {
+    id: 13,
+    date: '2026-04-01',
+    type: 'fix',
+    title: 'Task board Done count now shows correctly',
+    description: 'The Done stat in the task board header was always showing 0. Fixed to count completed tasks even when the "Show completed" toggle is off.',
+    module: 'Tasks',
+  },
+  {
     id: 12,
     date: '2026-03-31',
     type: 'fix',
