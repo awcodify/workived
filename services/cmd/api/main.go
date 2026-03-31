@@ -116,7 +116,6 @@ func main() {
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL, auth.WithEmailSender(emailSender), auth.WithAppURL(cfg.AppURL), auth.WithLogger(log))
-	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender))
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithLogger(log))
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log))
 	attSvc := attendance.NewService(attRepo, orgRepo, empRepo, log)
@@ -124,6 +123,9 @@ func main() {
 	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log))
 	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender), claims.WithTasksService(tasksSvc))
 	leaveSvc := leave.NewService(leaveRepo, orgRepo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender), leave.WithTasksService(tasksSvc))
+	// Org service created after leave — needs leave callback for post-invite balance init
+	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender),
+		organisation.WithOnEmployeeJoined(leaveSvc.InitBalancesForEmployee))
 	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log))
 	setupSvc := setup.NewService(setupRepo, log)
 	calendarSvc := calendar.NewService(calendarRepo, orgRepo, log)

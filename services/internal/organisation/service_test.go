@@ -540,6 +540,49 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 		}
 	})
 
+	t.Run("calls onEmployeeJoined callback when employee_id present", func(t *testing.T) {
+		repo := newFakeRepo()
+		var callbackOrgID, callbackEmpID uuid.UUID
+		svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, "https://app.workived.com",
+			organisation.WithOnEmployeeJoined(func(_ context.Context, orgID, empID uuid.UUID) {
+				callbackOrgID = orgID
+				callbackEmpID = empID
+			}),
+		)
+
+		ctx := context.Background()
+		ownerID := uuid.New()
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Callback Org", Slug: "callbackorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+
+		empID := uuid.New()
+		inv, err := svc.InviteMember(ctx, resp.Organisation.ID, ownerID, organisation.InviteMemberRequest{
+			Email:      "new@example.com",
+			Role:       "member",
+			EmployeeID: &empID,
+		})
+		if err != nil {
+			t.Fatalf("invite member: %v", err)
+		}
+
+		rawToken := extractTokenFromURL(inv.InviteURL)
+		_, err = svc.AcceptInvitation(ctx, uuid.New(), organisation.AcceptInvitationRequest{Token: rawToken})
+		if err != nil {
+			t.Fatalf("accept invitation: %v", err)
+		}
+
+		if callbackOrgID != resp.Organisation.ID {
+			t.Errorf("callback orgID = %s, want %s", callbackOrgID, resp.Organisation.ID)
+		}
+		if callbackEmpID != empID {
+			t.Errorf("callback empID = %s, want %s", callbackEmpID, empID)
+		}
+	})
+
 	t.Run("expired invitation rejected", func(t *testing.T) {
 		svc, repo := newTestService(t)
 		_, _, inv := setupOrgAndInvitation(t, svc, repo)

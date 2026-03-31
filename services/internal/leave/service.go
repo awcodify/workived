@@ -260,6 +260,19 @@ func (s *Service) ListMyBalances(ctx context.Context, orgID, employeeID uuid.UUI
 	return s.repo.ListEmployeeBalances(ctx, orgID, employeeID, year)
 }
 
+// InitBalancesForEmployee creates leave balances for a new employee for the current year.
+// Called proactively after invitation acceptance so the employee sees balances immediately.
+func (s *Service) InitBalancesForEmployee(ctx context.Context, orgID, employeeID uuid.UUID) {
+	year := time.Now().Year()
+	if err := s.ensureEmployeeBalances(ctx, orgID, employeeID, year); err != nil {
+		s.log.Warn().Err(err).
+			Str("org_id", orgID.String()).
+			Str("employee_id", employeeID.String()).
+			Int("year", year).
+			Msg("leave.init_balances_failed")
+	}
+}
+
 // ensureEmployeeBalances creates balance rows for an employee if they don't exist yet
 // for the given year. This is called lazily on first access.
 // If ProrateFirstYear is enabled on a policy and the employee started in the same year,

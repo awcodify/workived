@@ -756,6 +756,39 @@ func TestService_ListMyBalances(t *testing.T) {
 	}
 }
 
+// ── TestService_InitBalancesForEmployee ─────────────────────────────────────
+
+func TestService_InitBalancesForEmployee(t *testing.T) {
+	t.Run("creates balances for current year", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		var ensuredYear int
+		repo.ensureBalanceFn = func(_ context.Context, _, _, _ uuid.UUID, year int, _ float64) error {
+			ensuredYear = year
+			return nil
+		}
+
+		svc := newTestService(repo, orgRepo)
+		svc.InitBalancesForEmployee(context.Background(), testOrgID, testEmpID)
+
+		if ensuredYear != time.Now().Year() {
+			t.Errorf("ensured year = %d, want %d", ensuredYear, time.Now().Year())
+		}
+	})
+
+	t.Run("logs warning on error but does not panic", func(t *testing.T) {
+		repo := defaultFakeRepo()
+		orgRepo := defaultFakeOrgRepo()
+		repo.listPoliciesFn = func(_ context.Context, _ uuid.UUID) ([]leave.Policy, error) {
+			return nil, errors.New("db down")
+		}
+
+		svc := newTestService(repo, orgRepo)
+		// Should not panic even when underlying call fails
+		svc.InitBalancesForEmployee(context.Background(), testOrgID, testEmpID)
+	})
+}
+
 // ── TestService_Proration ───────────────────────────────────────────────────
 
 func TestService_ListMyBalances_Proration(t *testing.T) {

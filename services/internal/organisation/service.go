@@ -56,17 +56,22 @@ type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
 }
 
+// OnEmployeeJoinedFunc is called after an employee successfully joins an org via invitation.
+// It receives the org ID and employee ID so downstream services (e.g. leave) can initialise data.
+type OnEmployeeJoinedFunc func(ctx context.Context, orgID, employeeID uuid.UUID)
+
 // ── Service ──────────────────────────────────────────────────────────────────
 
 type Service struct {
-	repo         RepoInterface
-	authRepo     AuthTokenCreator
-	tokenIssuer  AccessTokenIssuer
-	employeeRepo EmployeeInfoProvider
-	auditLog     audit.Logger
-	log          zerolog.Logger
-	email        email.Sender
-	appURL       string // e.g. "https://app.workived.com" — for building invite URLs
+	repo              RepoInterface
+	authRepo          AuthTokenCreator
+	tokenIssuer       AccessTokenIssuer
+	employeeRepo      EmployeeInfoProvider
+	auditLog          audit.Logger
+	log               zerolog.Logger
+	email             email.Sender
+	appURL            string // e.g. "https://app.workived.com" — for building invite URLs
+	onEmployeeJoined  []OnEmployeeJoinedFunc
 }
 
 func NewService(repo RepoInterface, authRepo AuthTokenCreator, tokenIssuer AccessTokenIssuer, employeeRepo EmployeeInfoProvider, appURL string, opts ...ServiceOption) *Service {
@@ -104,6 +109,13 @@ func WithLogger(log zerolog.Logger) ServiceOption {
 func WithEmailSender(e email.Sender) ServiceOption {
 	return func(s *Service) {
 		s.email = e
+	}
+}
+
+// WithOnEmployeeJoined registers a callback invoked after invitation acceptance.
+func WithOnEmployeeJoined(fn OnEmployeeJoinedFunc) ServiceOption {
+	return func(s *Service) {
+		s.onEmployeeJoined = append(s.onEmployeeJoined, fn)
 	}
 }
 
@@ -397,8 +409,15 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 		Action:       "invitation.accepted",
 		ResourceType: "invitation",
 		ResourceID:   inv.ID,
-		AfterState:   map[string]interface{}{"role": inv.Role, "member_id": member.ID},
+		AfterState:   map[string]any{"role": inv.Role, "member_id": member.ID},
 	})
+
+	// 7. Run post-join hooks (e.g. create leave balances for new employee).
+	if member.EmployeeID != nil {
+		for _, fn := range s.onEmployeeJoined {
+			fn(ctx, inv.OrgID, *member.EmployeeID)
+		}
+	}
 
 	return &AcceptInvitationResponse{
 		AccessToken:  accessToken,
