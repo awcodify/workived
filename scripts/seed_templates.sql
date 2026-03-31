@@ -74,11 +74,10 @@ VALUES
   ('AE', 'Sick Leave', '90 days/year: 15 days full pay, 30 days half pay, 45 days unpaid (Art. 31). Medical certificate required. Begins after probation.', 90, FALSE, NULL, FALSE, FALSE, 'all', FALSE, 2),
   ('AE', 'Maternity Leave', '60 days: 45 days full pay + 15 days half pay (Art. 30). Can extend 45 days unpaid with medical cert. No minimum service required.', 60, FALSE, NULL, FALSE, TRUE, 'female', FALSE, 3),
   ('AE', 'Paternity Leave', '5 working days within 6 months of birth (Art. 32(6)). New in 2022 law. Full pay.', 5, FALSE, NULL, FALSE, TRUE, 'male', FALSE, 4),
-  ('AE', 'Parental Leave', '5 working days unpaid within 6 months of birth (Art. 32(7)). Either parent. Separate from paternity.', 5, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 5),
-  ('AE', 'Bereavement Leave (Spouse)', '5 working days full pay for death of spouse (Art. 32(4)).', 5, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 6),
-  ('AE', 'Bereavement Leave (Family)', '3 working days full pay for parent, child, sibling, grandparent (Art. 32(5)).', 3, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 7),
-  ('AE', 'Hajj Leave', '30 calendar days unpaid. Once per employment period (Art. 32(3)).', 30, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 8),
-  ('AE', 'Study Leave', '10 working days unpaid/year. Requires 2+ years tenure and enrollment at UAE-accredited institution (Art. 32(2)).', 10, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 9)
+  ('AE', 'Bereavement Leave (Spouse)', '5 working days full pay for death of spouse (Art. 32(4)).', 5, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 5),
+  ('AE', 'Bereavement Leave (Family)', '3 working days full pay for parent, child, sibling, grandparent (Art. 32(5)).', 3, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 6),
+  ('AE', 'Hajj Leave', '30 calendar days unpaid. Once per employment period (Art. 32(3)).', 30, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 7),
+  ('AE', 'Study Leave', '10 working days unpaid/year. Requires 2+ years tenure and enrollment at UAE-accredited institution (Art. 32(2)).', 10, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 8)
 ON CONFLICT (country_code, name) DO UPDATE SET
   description = EXCLUDED.description,
   entitled_days_per_year = EXCLUDED.entitled_days_per_year,
@@ -90,8 +89,8 @@ ON CONFLICT (country_code, name) DO UPDATE SET
   is_unlimited = EXCLUDED.is_unlimited,
   sort_order = EXCLUDED.sort_order;
 
--- Clean up old UAE templates that were renamed/split
-DELETE FROM leave_policy_templates WHERE country_code = 'AE' AND name IN ('Compassionate Leave', 'Hajj/Umrah Leave');
+-- Clean up old UAE templates that were renamed/split or caused confusion
+DELETE FROM leave_policy_templates WHERE country_code = 'AE' AND name IN ('Compassionate Leave', 'Hajj/Umrah Leave', 'Parental Leave');
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- CLAIM CATEGORY TEMPLATES
