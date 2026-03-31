@@ -433,7 +433,7 @@ function TasksPage() {
   const totalTasks = (optimisticTasks || []).length
   const allTasksCount = (tasks || []).length
   const finalStateListIds = new Set(visibleLists.filter((l) => l.is_final_state).map((l) => l.id))
-  const completedTasks = (optimisticTasks || []).filter(
+  const completedTasks = (tasks || []).filter(
     (t) => t.completed_at || finalStateListIds.has(t.task_list_id)
   ).length
   const inProgressList = visibleLists.find((l) => !l.is_final_state && l !== visibleLists[0])
