@@ -81,6 +81,7 @@ type fakeRepo struct {
 	getTemplatesByIDsFn                   func(ctx context.Context, ids []uuid.UUID) ([]leave.PolicyTemplate, error)
 	importPoliciesFromTemplatesFn         func(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, templates []leave.PolicyTemplate) ([]leave.Policy, error)
 	createBalancesForAllEmployeesFn       func(ctx context.Context, tx pgx.Tx, orgID, policyID uuid.UUID, year int, entitledDays float64, eligibleTypes []string) error
+	countLifetimeUsesFn                   func(ctx context.Context, orgID, employeeID, policyID uuid.UUID) (int, error)
 }
 
 func (f *fakeRepo) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]leave.Policy, error) {
@@ -148,6 +149,12 @@ func (f *fakeRepo) ListRequests(ctx context.Context, orgID uuid.UUID, filter lea
 }
 func (f *fakeRepo) HasOverlap(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (bool, error) {
 	return f.hasOverlapFn(ctx, orgID, employeeID, startDate, endDate)
+}
+func (f *fakeRepo) CountLifetimeUses(ctx context.Context, orgID, employeeID, policyID uuid.UUID) (int, error) {
+	if f.countLifetimeUsesFn != nil {
+		return f.countLifetimeUsesFn(ctx, orgID, employeeID, policyID)
+	}
+	return 0, nil
 }
 func (f *fakeRepo) ListCalendar(ctx context.Context, orgID uuid.UUID, year, month int) ([]leave.CalendarEntry, error) {
 	return f.listCalendarFn(ctx, orgID, year, month)
@@ -1283,6 +1290,78 @@ func TestService_SubmitRequest(t *testing.T) {
 			}
 			if req.Status != "pending" {
 				t.Errorf("status = %q, want %q", req.Status, "pending")
+			}
+		})
+	}
+}
+
+// ── TestService_SubmitRequest_LifetimeLimit ─────────────────────────────────
+
+func TestService_SubmitRequest_LifetimeLimit(t *testing.T) {
+	maxUses := 1
+
+	tests := []struct {
+		name          string
+		maxLifetime   *int
+		lifetimeCount int
+		wantErr       bool
+		wantCode      string
+	}{
+		{
+			name:          "lifetime-limited policy — first use allowed",
+			maxLifetime:   &maxUses,
+			lifetimeCount: 0,
+			wantErr:       false,
+		},
+		{
+			name:          "lifetime-limited policy — already used, blocked",
+			maxLifetime:   &maxUses,
+			lifetimeCount: 1,
+			wantErr:       true,
+			wantCode:      apperr.CodeValidation,
+		},
+		{
+			name:          "no lifetime limit — always allowed",
+			maxLifetime:   nil,
+			lifetimeCount: 5,
+			wantErr:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := defaultFakeRepo()
+			orgRepo := defaultFakeOrgRepo()
+
+			repo.getPolicyFn = func(_ context.Context, _, _ uuid.UUID) (*leave.Policy, error) {
+				return &leave.Policy{
+					ID: testPolicyID, IsActive: true,
+					GenderEligibility: "all", DayCountType: "working_days",
+					MaxLifetimeUses: tt.maxLifetime,
+				}, nil
+			}
+			repo.countLifetimeUsesFn = func(_ context.Context, _, _, _ uuid.UUID) (int, error) {
+				return tt.lifetimeCount, nil
+			}
+
+			svc := newTestService(repo, orgRepo)
+			_, err := svc.SubmitRequest(context.Background(), testOrgID, testEmpID, "member", leave.SubmitRequestInput{
+				LeavePolicyID: testPolicyID,
+				StartDate:     "2026-03-16",
+				EndDate:       "2026-03-18",
+			})
+
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("expected error, got nil")
+				}
+				if tt.wantCode != "" && !apperr.IsCode(err, tt.wantCode) {
+					t.Errorf("expected error code %q, got %v", tt.wantCode, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
 			}
 		})
 	}

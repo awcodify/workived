@@ -115,6 +115,11 @@ func RolloverBalances(
 					continue
 				}
 
+				// Skip lifetime-limited policies (e.g. Hajj) — no annual rollover
+				if policy.MaxLifetimeUses != nil {
+					continue
+				}
+
 				// Get balance for previous year
 				prevBalance, err := repo.GetBalance(ctx, org.ID, emp.ID, policy.ID, fromYear)
 				var carriedOver float64

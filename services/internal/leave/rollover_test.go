@@ -183,6 +183,42 @@ func TestRolloverBalances(t *testing.T) {
 			t.Errorf("BalancesCreated = %d, want 0", result.BalancesCreated)
 		}
 	})
+
+	t.Run("skips lifetime-limited policies", func(t *testing.T) {
+		maxUses := 1
+		balanceCreated := false
+		repo := &mockRepo{
+			listPolicies: func(_ context.Context, _ uuid.UUID) ([]leave.Policy, error) {
+				return []leave.Policy{
+					{ID: testPolicyID, Name: "Hajj Leave", DaysPerYear: 40, IsActive: true, MaxLifetimeUses: &maxUses},
+				}, nil
+			},
+			getBalance: func(_ context.Context, _, _, _ uuid.UUID, _ int) (*leave.Balance, error) {
+				return nil, errors.New("not found")
+			},
+			createBalanceWithCarryOver: func(_ context.Context, _, _, _ uuid.UUID, _ int, _, _ float64) error {
+				balanceCreated = true
+				return nil
+			},
+		}
+		orgList := func(_ context.Context) ([]leave.Org, error) {
+			return []leave.Org{{ID: testOrgID, Name: "Test Org"}}, nil
+		}
+		empList := func(_ context.Context, _ uuid.UUID) ([]leave.Emp, error) {
+			return []leave.Emp{{ID: testEmpID, FullName: "John Doe"}}, nil
+		}
+
+		result, err := leave.RolloverBalances(ctx, repo, orgList, empList, 2025, 2026, zerolog.Nop())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if balanceCreated {
+			t.Error("expected no balance to be created for lifetime-limited policy")
+		}
+		if result.BalancesCreated != 0 {
+			t.Errorf("BalancesCreated = %d, want 0", result.BalancesCreated)
+		}
+	})
 }
 
 // mockRepo implements minimal RepositoryInterface for rollover testing
@@ -280,5 +316,8 @@ func (m *mockRepo) CountPendingRequestsByPolicy(context.Context, uuid.UUID, uuid
 	return 0, nil
 }
 func (m *mockRepo) CountFutureApprovedRequestsByPolicy(context.Context, uuid.UUID, uuid.UUID, string) (int, error) {
+	return 0, nil
+}
+func (m *mockRepo) CountLifetimeUses(context.Context, uuid.UUID, uuid.UUID, uuid.UUID) (int, error) {
 	return 0, nil
 }

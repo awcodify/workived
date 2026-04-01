@@ -321,6 +321,7 @@ export interface LeavePolicy {
   is_unlimited: boolean
   gender_eligibility?: 'male' | 'female' | null
   eligible_employment_types?: EmploymentType[] | null
+  max_lifetime_uses?: number | null
   is_active: boolean
   created_at: string
   updated_at: string

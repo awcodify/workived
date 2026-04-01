@@ -183,6 +183,26 @@ describe('PolicyModal', () => {
       expect(fullTimeBtn).toBeInTheDocument()
     })
 
+    it('shows lifetime limit input when checkbox is toggled', async () => {
+      const user = userEvent.setup()
+      render(<PolicyModal onClose={onClose} onSuccess={onSuccess} />)
+
+      expect(screen.queryByText('Maximum uses per employment')).not.toBeInTheDocument()
+
+      await user.click(screen.getByLabelText('Lifetime limit'))
+
+      expect(screen.getByText('Maximum uses per employment')).toBeInTheDocument()
+    })
+
+    it('pre-fills lifetime limit in edit mode', () => {
+      const policyWithLifetime = {
+        ...mockPolicy,
+        max_lifetime_uses: 1,
+      }
+      render(<PolicyModal policy={policyWithLifetime} onClose={onClose} onSuccess={onSuccess} />)
+      expect(screen.getByText('Maximum uses per employment')).toBeInTheDocument()
+    })
+
     it('changes gender eligibility selection', async () => {
       const user = userEvent.setup()
       render(<PolicyModal onClose={onClose} onSuccess={onSuccess} />)

@@ -42,6 +42,7 @@ type RepositoryInterface interface {
 	ListRequests(ctx context.Context, orgID uuid.UUID, filter ListRequestsFilter) ([]RequestWithDetails, error)
 	CountPendingRequests(ctx context.Context, orgID uuid.UUID, managerEmployeeID *uuid.UUID) (int, error)
 	HasOverlap(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (bool, error)
+	CountLifetimeUses(ctx context.Context, orgID, employeeID, policyID uuid.UUID) (int, error)
 
 	// Calendar & attendance integration
 	ListCalendar(ctx context.Context, orgID uuid.UUID, year, month int) ([]CalendarEntry, error)
@@ -408,6 +409,18 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 	}
 	if overlap {
 		return nil, apperr.New(apperr.CodeConflict, "you already have a pending or approved leave in this date range")
+	}
+
+	// 5b. Check lifetime usage limit (e.g. Hajj = max 1 use ever).
+	if policy.MaxLifetimeUses != nil {
+		lifetimeUses, err := s.repo.CountLifetimeUses(ctx, orgID, employeeID, policy.ID)
+		if err != nil {
+			return nil, fmt.Errorf("count lifetime uses: %w", err)
+		}
+		if lifetimeUses >= *policy.MaxLifetimeUses {
+			return nil, apperr.New(apperr.CodeValidation,
+				fmt.Sprintf("%s can only be used %d time(s) during employment", policy.Name, *policy.MaxLifetimeUses))
+		}
 	}
 
 	// 6. Ensure balance exists, then check availability inside a transaction.

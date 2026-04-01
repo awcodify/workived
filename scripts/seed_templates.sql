@@ -44,18 +44,18 @@ DELETE FROM work_schedule_templates WHERE country_code = 'AE' AND name IN ('UAE 
 -- ════════════════════════════════════════════════════════════════════════════════
 
 -- Indonesia — UU 13/2003, UU Cipta Kerja, PP 35/2021
-INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, gender_eligibility, is_unlimited, sort_order)
+INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, gender_eligibility, is_unlimited, sort_order, max_lifetime_uses)
 VALUES
-  ('ID', 'Annual Leave', 'Cuti Tahunan — 12 days/year after 12 months service (Pasal 79). Carry over up to 6 days.', 12, TRUE, 6, TRUE, TRUE, 'all', FALSE, 1),
-  ('ID', 'Sick Leave', 'Cuti Sakit — Unlimited with doctor''s note (Pasal 93). Full pay months 1-4, 75% months 5-8, 50% months 9-12.', 365, FALSE, NULL, FALSE, FALSE, 'all', TRUE, 2),
-  ('ID', 'Maternity Leave', 'Cuti Melahirkan — 90 calendar days, 1.5 months before + 1.5 months after delivery. Full pay (Pasal 82).', 90, FALSE, NULL, FALSE, TRUE, 'female', FALSE, 3),
-  ('ID', 'Paternity Leave', 'Cuti Ayah — 2 days for childbirth (Pasal 93(2)c). Many startups offer 5-10 days.', 2, FALSE, NULL, FALSE, TRUE, 'male', FALSE, 4),
-  ('ID', 'Marriage Leave', 'Cuti Menikah — 3 days for own marriage (Pasal 93(2)b). Mandatory.', 3, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 5),
-  ('ID', 'Compassionate Leave', 'Cuti Duka — 2 days for death of spouse, parent, parent-in-law, or child (Pasal 93(2)d).', 2, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 6),
-  ('ID', 'Menstrual Leave', 'Cuti Haid — 2 days/month for female employees (Pasal 81). Still active law. Self-reported.', 24, FALSE, NULL, FALSE, FALSE, 'female', FALSE, 7),
-  ('ID', 'Miscarriage Leave', 'Cuti Keguguran — 45 calendar days (Pasal 82(2)). Full pay.', 45, FALSE, NULL, FALSE, TRUE, 'female', FALSE, 8),
-  ('ID', 'Child Circumcision/Baptism', 'Khitanan/Pembaptisan Anak — 2 days (Pasal 93(2)b). Mandatory.', 2, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 9),
-  ('ID', 'Hajj Leave', 'Cuti Haji — Up to 40 calendar days for pilgrimage. Once per employment period (Pasal 93(2)f). Full pay.', 40, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 10)
+  ('ID', 'Annual Leave', 'Cuti Tahunan — 12 days/year after 12 months service (Pasal 79). Carry over up to 6 days.', 12, TRUE, 6, TRUE, TRUE, 'all', FALSE, 1, NULL),
+  ('ID', 'Sick Leave', 'Cuti Sakit — Unlimited with doctor''s note (Pasal 93). Full pay months 1-4, 75% months 5-8, 50% months 9-12.', 365, FALSE, NULL, FALSE, FALSE, 'all', TRUE, 2, NULL),
+  ('ID', 'Maternity Leave', 'Cuti Melahirkan — 90 calendar days, 1.5 months before + 1.5 months after delivery. Full pay (Pasal 82).', 90, FALSE, NULL, FALSE, TRUE, 'female', FALSE, 3, NULL),
+  ('ID', 'Paternity Leave', 'Cuti Ayah — 2 days for childbirth (Pasal 93(2)c). Many startups offer 5-10 days.', 2, FALSE, NULL, FALSE, TRUE, 'male', FALSE, 4, NULL),
+  ('ID', 'Marriage Leave', 'Cuti Menikah — 3 days for own marriage (Pasal 93(2)b). Mandatory.', 3, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 5, NULL),
+  ('ID', 'Compassionate Leave', 'Cuti Duka — 2 days for death of spouse, parent, parent-in-law, or child (Pasal 93(2)d).', 2, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 6, NULL),
+  ('ID', 'Menstrual Leave', 'Cuti Haid — 2 days/month for female employees (Pasal 81). Still active law. Self-reported.', 24, FALSE, NULL, FALSE, FALSE, 'female', FALSE, 7, NULL),
+  ('ID', 'Miscarriage Leave', 'Cuti Keguguran — 45 calendar days (Pasal 82(2)). Full pay.', 45, FALSE, NULL, FALSE, TRUE, 'female', FALSE, 8, NULL),
+  ('ID', 'Child Circumcision/Baptism', 'Khitanan/Pembaptisan Anak — 2 days (Pasal 93(2)b). Mandatory.', 2, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 9, NULL),
+  ('ID', 'Hajj Leave', 'Cuti Haji — Up to 40 calendar days for pilgrimage. Once per employment period (Pasal 93(2)f). Full pay.', 40, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 10, 1)
 ON CONFLICT (country_code, name) DO UPDATE SET
   description = EXCLUDED.description,
   entitled_days_per_year = EXCLUDED.entitled_days_per_year,
@@ -65,19 +65,20 @@ ON CONFLICT (country_code, name) DO UPDATE SET
   requires_approval = EXCLUDED.requires_approval,
   gender_eligibility = EXCLUDED.gender_eligibility,
   is_unlimited = EXCLUDED.is_unlimited,
-  sort_order = EXCLUDED.sort_order;
+  sort_order = EXCLUDED.sort_order,
+  max_lifetime_uses = EXCLUDED.max_lifetime_uses;
 
 -- UAE — Federal Decree-Law No. 33/2021
-INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, gender_eligibility, is_unlimited, sort_order)
+INSERT INTO leave_policy_templates (country_code, name, description, entitled_days_per_year, is_carry_over_allowed, max_carry_over_days, is_accrued, requires_approval, gender_eligibility, is_unlimited, sort_order, max_lifetime_uses)
 VALUES
-  ('AE', 'Annual Leave', '30 calendar days/year after 1 year service; 2 days/month before that (Art. 29-30). Pay includes basic + housing allowance.', 30, TRUE, 30, TRUE, TRUE, 'all', FALSE, 1),
-  ('AE', 'Sick Leave', '90 days/year: 15 days full pay, 30 days half pay, 45 days unpaid (Art. 31). Medical certificate required. Begins after probation.', 90, FALSE, NULL, FALSE, FALSE, 'all', FALSE, 2),
-  ('AE', 'Maternity Leave', '60 days: 45 days full pay + 15 days half pay (Art. 30). Can extend 45 days unpaid with medical cert. No minimum service required.', 60, FALSE, NULL, FALSE, TRUE, 'female', FALSE, 3),
-  ('AE', 'Paternity Leave', '5 working days within 6 months of birth (Art. 32(6)). New in 2022 law. Full pay.', 5, FALSE, NULL, FALSE, TRUE, 'male', FALSE, 4),
-  ('AE', 'Bereavement Leave (Spouse)', '5 working days full pay for death of spouse (Art. 32(4)).', 5, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 5),
-  ('AE', 'Bereavement Leave (Family)', '3 working days full pay for parent, child, sibling, grandparent (Art. 32(5)).', 3, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 6),
-  ('AE', 'Hajj Leave', '30 calendar days unpaid. Once per employment period (Art. 32(3)).', 30, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 7),
-  ('AE', 'Study Leave', '10 working days unpaid/year. Requires 2+ years tenure and enrollment at UAE-accredited institution (Art. 32(2)).', 10, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 8)
+  ('AE', 'Annual Leave', '30 calendar days/year after 1 year service; 2 days/month before that (Art. 29-30). Pay includes basic + housing allowance.', 30, TRUE, 30, TRUE, TRUE, 'all', FALSE, 1, NULL),
+  ('AE', 'Sick Leave', '90 days/year: 15 days full pay, 30 days half pay, 45 days unpaid (Art. 31). Medical certificate required. Begins after probation.', 90, FALSE, NULL, FALSE, FALSE, 'all', FALSE, 2, NULL),
+  ('AE', 'Maternity Leave', '60 days: 45 days full pay + 15 days half pay (Art. 30). Can extend 45 days unpaid with medical cert. No minimum service required.', 60, FALSE, NULL, FALSE, TRUE, 'female', FALSE, 3, NULL),
+  ('AE', 'Paternity Leave', '5 working days within 6 months of birth (Art. 32(6)). New in 2022 law. Full pay.', 5, FALSE, NULL, FALSE, TRUE, 'male', FALSE, 4, NULL),
+  ('AE', 'Bereavement Leave (Spouse)', '5 working days full pay for death of spouse (Art. 32(4)).', 5, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 5, NULL),
+  ('AE', 'Bereavement Leave (Family)', '3 working days full pay for parent, child, sibling, grandparent (Art. 32(5)).', 3, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 6, NULL),
+  ('AE', 'Hajj Leave', '30 calendar days unpaid. Once per employment period (Art. 32(3)).', 30, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 7, 1),
+  ('AE', 'Study Leave', '10 working days unpaid/year. Requires 2+ years tenure and enrollment at UAE-accredited institution (Art. 32(2)).', 10, FALSE, NULL, FALSE, TRUE, 'all', FALSE, 8, NULL)
 ON CONFLICT (country_code, name) DO UPDATE SET
   description = EXCLUDED.description,
   entitled_days_per_year = EXCLUDED.entitled_days_per_year,

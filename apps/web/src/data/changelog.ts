@@ -20,6 +20,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 22,
+    date: '2026-04-01',
+    type: 'feature',
+    title: 'Lifetime-limited leave policies (Hajj)',
+    description: 'Leave policies can now have a lifetime usage limit. Hajj leave is automatically set to once per employment, complying with Indonesian and UAE labor law. The system blocks requests after the limit is reached.',
+    module: 'Leave',
+  },
+  {
     id: 21,
     date: '2026-04-01',
     type: 'improvement',

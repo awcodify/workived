@@ -29,7 +29,7 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
 		       min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
 		       prorate_first_year, day_count_type, eligible_employment_types,
-		       is_active, created_at, updated_at
+		       max_lifetime_uses, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1
 		  AND is_active = TRUE
@@ -47,7 +47,7 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 			&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 			&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
 			&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
-			&p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+			&p.MaxLifetimeUses, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan leave policy: %w", err)
 		}
@@ -63,7 +63,7 @@ func (r *Repository) GetPolicy(ctx context.Context, orgID, policyID uuid.UUID) (
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
 		       min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
 		       prorate_first_year, day_count_type, eligible_employment_types,
-		       is_active, created_at, updated_at
+		       max_lifetime_uses, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, policyID).Scan(
@@ -118,14 +118,15 @@ func (r *Repository) CreatePolicy(ctx context.Context, orgID uuid.UUID, req Crea
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO leave_policies (organisation_id, name, description, days_per_year, carry_over_days,
 		    min_tenure_days, requires_approval, gender_eligibility, is_unlimited, prorate_first_year,
-		    day_count_type, eligible_employment_types)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		    day_count_type, eligible_employment_types, max_lifetime_uses)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 		          min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
 		          prorate_first_year, day_count_type, eligible_employment_types,
-		          is_active, created_at, updated_at
+		          max_lifetime_uses, is_active, created_at, updated_at
 	`, orgID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays,
-		reqApproval, genderEligibility, isUnlimited, prorateFirstYear, dayCountType, eligibleTypes).Scan(
+		reqApproval, genderEligibility, isUnlimited, prorateFirstYear, dayCountType, eligibleTypes,
+		req.MaxLifetimeUses).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
 		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
@@ -158,15 +159,16 @@ func (r *Repository) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID
 			is_unlimited               = COALESCE($10, is_unlimited),
 			prorate_first_year         = COALESCE($11, prorate_first_year),
 			day_count_type             = COALESCE($12, day_count_type),
-			eligible_employment_types  = COALESCE($13, eligible_employment_types)
+			eligible_employment_types  = COALESCE($13, eligible_employment_types),
+			max_lifetime_uses          = $14
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 		          min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
 		          prorate_first_year, day_count_type, eligible_employment_types,
-		          is_active, created_at, updated_at
+		          max_lifetime_uses, is_active, created_at, updated_at
 	`, orgID, policyID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays,
 		req.MinTenureDays, req.RequiresApproval, req.GenderEligibility, req.IsUnlimited,
-		req.ProrateFirstYear, req.DayCountType, eligibleTypes).Scan(
+		req.ProrateFirstYear, req.DayCountType, eligibleTypes, req.MaxLifetimeUses).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
 		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
@@ -194,6 +196,24 @@ func (r *Repository) DeactivatePolicy(ctx context.Context, orgID, policyID uuid.
 		return apperr.NotFound("leave policy")
 	}
 	return nil
+}
+
+// CountLifetimeUses counts how many times an employee has used a specific leave policy
+// across all years (approved or pending requests). Used for lifetime-limited policies like Hajj.
+func (r *Repository) CountLifetimeUses(ctx context.Context, orgID, employeeID, policyID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*)
+		FROM leave_requests
+		WHERE organisation_id = $1
+		  AND employee_id = $2
+		  AND leave_policy_id = $3
+		  AND status IN ('pending', 'approved')
+	`, orgID, employeeID, policyID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("count lifetime uses: %w", err)
+	}
+	return count, nil
 }
 
 // CountPendingRequestsByPolicy returns the number of pending leave requests for a specific policy.
@@ -718,7 +738,7 @@ func (r *Repository) ListTemplates(ctx context.Context, countryCode string) ([]P
 		SELECT id, country_code, name, description,
 		       entitled_days_per_year, is_carry_over_allowed, max_carry_over_days,
 		       is_accrued, requires_approval, gender_eligibility, is_unlimited,
-		       day_count_type, sort_order, created_at
+		       day_count_type, max_lifetime_uses, sort_order, created_at
 		FROM leave_policy_templates
 		WHERE country_code = $1
 		ORDER BY sort_order ASC
@@ -735,7 +755,7 @@ func (r *Repository) ListTemplates(ctx context.Context, countryCode string) ([]P
 			&t.ID, &t.CountryCode, &t.Name, &t.Description,
 			&t.EntitledDaysPerYear, &t.IsCarryOverAllowed, &t.MaxCarryOverDays,
 			&t.IsAccrued, &t.RequiresApproval, &t.GenderEligibility, &t.IsUnlimited,
-			&t.DayCountType, &t.SortOrder, &t.CreatedAt,
+			&t.DayCountType, &t.MaxLifetimeUses, &t.SortOrder, &t.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan template: %w", err)
 		}
@@ -750,7 +770,7 @@ func (r *Repository) GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]
 		SELECT id, country_code, name, description,
 		       entitled_days_per_year, is_carry_over_allowed, max_carry_over_days,
 		       is_accrued, requires_approval, gender_eligibility, is_unlimited,
-		       day_count_type, sort_order, created_at
+		       day_count_type, max_lifetime_uses, sort_order, created_at
 		FROM leave_policy_templates
 		WHERE id = ANY($1)
 		ORDER BY sort_order ASC
@@ -767,7 +787,7 @@ func (r *Repository) GetTemplatesByIDs(ctx context.Context, ids []uuid.UUID) ([]
 			&t.ID, &t.CountryCode, &t.Name, &t.Description,
 			&t.EntitledDaysPerYear, &t.IsCarryOverAllowed, &t.MaxCarryOverDays,
 			&t.IsAccrued, &t.RequiresApproval, &t.GenderEligibility, &t.IsUnlimited,
-			&t.DayCountType, &t.SortOrder, &t.CreatedAt,
+			&t.DayCountType, &t.MaxLifetimeUses, &t.SortOrder, &t.CreatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan template: %w", err)
 		}
@@ -807,17 +827,20 @@ func (r *Repository) ImportPoliciesFromTemplates(ctx context.Context, tx pgx.Tx,
 		err := tx.QueryRow(ctx, `
 			INSERT INTO leave_policies (
 				organisation_id, name, description, days_per_year, carry_over_days,
-				min_tenure_days, requires_approval, gender_eligibility, is_unlimited, day_count_type, is_active
+				min_tenure_days, requires_approval, gender_eligibility, is_unlimited, day_count_type,
+				max_lifetime_uses, is_active
 			)
-			VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, $9, TRUE)
+			VALUES ($1, $2, $3, $4, $5, 0, $6, $7, $8, $9, $10, TRUE)
 			RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 			          min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
-			          prorate_first_year, day_count_type, is_active, created_at, updated_at
+			          prorate_first_year, day_count_type, max_lifetime_uses,
+			          is_active, created_at, updated_at
 		`, orgID, tmpl.Name, tmpl.Description, tmpl.EntitledDaysPerYear, carryOverDays,
-			tmpl.RequiresApproval, tmpl.GenderEligibility, tmpl.IsUnlimited, tmpl.DayCountType).Scan(
+			tmpl.RequiresApproval, tmpl.GenderEligibility, tmpl.IsUnlimited, tmpl.DayCountType,
+			tmpl.MaxLifetimeUses).Scan(
 			&policy.ID, &policy.OrganisationID, &policy.Name, &policy.Description, &policy.DaysPerYear,
 			&policy.CarryOverDays, &policy.MinTenureDays, &policy.RequiresApproval, &policy.GenderEligibility,
-			&policy.IsUnlimited, &policy.ProrateFirstYear, &policy.DayCountType,
+			&policy.IsUnlimited, &policy.ProrateFirstYear, &policy.DayCountType, &policy.MaxLifetimeUses,
 			&policy.IsActive, &policy.CreatedAt, &policy.UpdatedAt,
 		)
 		if err != nil {

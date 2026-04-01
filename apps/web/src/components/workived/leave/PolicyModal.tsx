@@ -40,6 +40,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
           is_unlimited: policy.is_unlimited,
           gender_eligibility: policy.gender_eligibility ?? null,
           eligible_employment_types: (policy.eligible_employment_types ?? []) as EmpType[],
+          max_lifetime_uses: policy.max_lifetime_uses ?? null,
         }
       : {
           name: '',
@@ -50,6 +51,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
           is_unlimited: false,
           gender_eligibility: null,
           eligible_employment_types: [],
+          max_lifetime_uses: null,
         },
   })
 
@@ -57,6 +59,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
   const isUnlimited = watch('is_unlimited')
   const genderEligibility = watch('gender_eligibility')
   const eligibleTypes = watch('eligible_employment_types') ?? []
+  const maxLifetimeUses = watch('max_lifetime_uses')
 
   const toggleEmploymentType = (type: EmpType) => {
     if (eligibleTypes.includes(type)) {
@@ -403,6 +406,69 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
             <p className="text-xs mt-1" style={{ color: t.textMuted }}>
               Leave empty for all types. Select specific types to restrict eligibility.
             </p>
+          </div>
+
+          {/* Lifetime Limit */}
+          <div className="pt-2">
+            <div className="flex items-center gap-3">
+              <input
+                id="has-lifetime-limit"
+                type="checkbox"
+                checked={maxLifetimeUses != null}
+                onChange={(e) => {
+                  setValue('max_lifetime_uses', e.target.checked ? 1 : null)
+                }}
+                className="w-5 h-5 rounded transition-colors cursor-pointer"
+                style={{ accentColor: t.accent }}
+              />
+              <label
+                htmlFor="has-lifetime-limit"
+                className="cursor-pointer select-none"
+                style={{
+                  fontSize: typography.body.size,
+                  color: t.text,
+                }}
+              >
+                Lifetime limit
+              </label>
+            </div>
+            <p className="text-xs mt-1 ml-8" style={{ color: t.textMuted }}>
+              {maxLifetimeUses != null
+                ? 'This leave can only be used a limited number of times per employment (e.g. Hajj)'
+                : 'No lifetime limit — employees can use this leave every year'}
+            </p>
+            {maxLifetimeUses != null && (
+              <div className="mt-2 ml-8">
+                <label
+                  className="block mb-1.5"
+                  style={{
+                    fontSize: typography.label.size,
+                    fontWeight: 600,
+                    color: t.text,
+                  }}
+                >
+                  Maximum uses per employment
+                </label>
+                <input
+                  type="number"
+                  {...register('max_lifetime_uses', { valueAsNumber: true })}
+                  min="1"
+                  className="w-32 px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
+                  style={{
+                    background: t.input,
+                    border: `1px solid ${errors.max_lifetime_uses ? '#EF4444' : t.inputBorder}`,
+                    borderRadius: 10,
+                    color: t.text,
+                    caretColor: t.accent,
+                  }}
+                />
+                {errors.max_lifetime_uses && (
+                  <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
+                    {errors.max_lifetime_uses.message}
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Error Message */}
