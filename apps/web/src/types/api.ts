@@ -265,7 +265,7 @@ export interface WeekDay {
   date: string // "2026-03-17"
   day_name: string // "Mon", "Tue", etc.
   day_number: number // 17
-  status: 'on-time' | 'late' | 'absent' | 'weekend' | 'future' | 'on_leave' | 'overtime'
+  status: 'on-time' | 'late' | 'absent' | 'weekend' | 'holiday' | 'future' | 'on_leave' | 'overtime'
   clock_in_at?: string
   clock_out_at?: string
   is_today: boolean

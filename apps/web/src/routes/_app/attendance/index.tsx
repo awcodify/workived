@@ -143,6 +143,7 @@ function AttendancePage() {
         } else if (dayData.status === 'overtime') {
           overtime++
         }
+        // Note: 'holiday', 'weekend', 'future' are not counted as they're non-working days
       }
     })
 
@@ -575,6 +576,15 @@ interface EmployeeRowProps {
 function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
   // Find attendance for selected date
   const dayData = employee.week?.days.find((d: any) => d.date === date)
+  
+  // Debug: Log when dayData is missing to help diagnose issues
+  if (!dayData && process.env.NODE_ENV === 'development') {
+    console.warn(`Missing day data for employee ${employee.employee_name} on ${date}`, {
+      availableDates: employee.week?.days.map((d: any) => d.date),
+      requestedDate: date,
+    })
+  }
+  
   const clockInTime = dayData?.clock_in_at ? formatDate(dayData.clock_in_at, tz, 'time') : null
   const clockOutTime = dayData?.clock_out_at ? formatDate(dayData.clock_out_at, tz, 'time') : null
   
@@ -619,6 +629,27 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
         dot: colors.err,
         text: colors.errText,
       }
+    } else if (status === 'holiday') {
+      return {
+        label: 'Holiday',
+        bg: colors.accentDim,
+        dot: colors.accentMid,
+        text: colors.accentText,
+      }
+    } else if (status === 'weekend') {
+      return {
+        label: 'Weekend',
+        bg: 'rgba(0,0,0,0.05)',
+        dot: t.textMuted,
+        text: t.textMuted,
+      }
+    } else if (status === 'future') {
+      return {
+        label: 'Future',
+        bg: 'rgba(0,0,0,0.03)',
+        dot: t.textMuted,
+        text: t.textMuted,
+      }
     }
     return null
   }
@@ -643,6 +674,11 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
           <span className="text-sm font-bold" style={{ color: t.text }}>
             {employee.employee_name}
           </span>
+          {!dayData && (
+            <span className="text-xs italic" style={{ color: t.textMuted }}>
+              No data for this date
+            </span>
+          )}
           {badge && (
             <div 
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"

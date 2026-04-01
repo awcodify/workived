@@ -440,7 +440,9 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 
 		// Determine status
 		isFuture := d.After(localNow.Truncate(24 * time.Hour))
-		isWorkDay := workDaySet[int(d.Weekday())] && !holidaySet[dateStr]
+		isHoliday := holidaySet[dateStr]
+		isWeekendDay := !workDaySet[int(d.Weekday())]
+		isWorkDay := !isHoliday && !isWeekendDay
 		rec := recordMap[dateStr]
 
 		if isFuture {
@@ -457,8 +459,11 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 			}
 			weekDay.ClockInAt = &rec.ClockInAt
 			weekDay.ClockOutAt = rec.ClockOutAt
-		} else if !isWorkDay {
-			// Weekend/holiday with no attendance
+		} else if isHoliday {
+			// Public holiday with no attendance
+			weekDay.Status = "holiday"
+		} else if isWeekendDay {
+			// Weekend with no attendance
 			weekDay.Status = "weekend"
 		} else {
 			// No record on past working day
@@ -596,7 +601,9 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 
 			// Determine status
 			isFuture := d.After(localNow.Truncate(24 * time.Hour))
-			isWorkDay := workDaySet[int(d.Weekday())] && !holidaySet[dateStr]
+			isHoliday := holidaySet[dateStr]
+			isWeekendDay := !workDaySet[int(d.Weekday())]
+			isWorkDay := !isHoliday && !isWeekendDay
 			rec := recordMap[dateStr]
 
 			if isFuture {
@@ -613,8 +620,11 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 				}
 				weekDay.ClockInAt = &rec.ClockInAt
 				weekDay.ClockOutAt = rec.ClockOutAt
-			} else if !isWorkDay {
-				// Weekend/holiday with no attendance
+			} else if isHoliday {
+				// Public holiday with no attendance
+				weekDay.Status = "holiday"
+			} else if isWeekendDay {
+				// Weekend with no attendance
 				weekDay.Status = "weekend"
 			} else {
 				// No record on past working day
@@ -756,7 +766,9 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 
 			// Determine status
 			isFuture := d.After(localNow.Truncate(24 * time.Hour))
-			isWorkDay := workDaySet[int(d.Weekday())] && !holidaySet[dateStr]
+			isHoliday := holidaySet[dateStr]
+			isWeekendDay := !workDaySet[int(d.Weekday())]
+			isWorkDay := !isHoliday && !isWeekendDay
 			rec := recordMap[dateStr]
 
 			if isFuture {
@@ -773,8 +785,11 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 				}
 				weekDay.ClockInAt = &rec.ClockInAt
 				weekDay.ClockOutAt = rec.ClockOutAt
-			} else if !isWorkDay {
-				// Weekend/holiday with no attendance
+			} else if isHoliday {
+				// Public holiday with no attendance
+				weekDay.Status = "holiday"
+			} else if isWeekendDay {
+				// Weekend with no attendance
 				weekDay.Status = "weekend"
 			} else {
 				// No record on past working day

@@ -1161,3 +1161,111 @@ func TestGetAllWeek_BatchQueriesAndCorrectness(t *testing.T) {
 		t.Errorf("Charlie Monday status = %q, want on-time", statusMap[emp3])
 	}
 }
+
+// Test the specific scenario: viewing March 31, 2026 (Tuesday) when today is April 1, 2026
+func TestGetTeamWeek_March31Scenario(t *testing.T) {
+	managerID := uuid.MustParse("00000000-0000-0000-0000-000000000300")
+	sub1 := uuid.MustParse("00000000-0000-0000-0000-000000000301")
+
+	empInfo := &fakeEmployeeInfo{
+		subordinateIDsFn: func(_ context.Context, _, _ uuid.UUID) ([]uuid.UUID, error) {
+			return []uuid.UUID{sub1}, nil
+		},
+		employeeNamesBatchFn: func(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (map[uuid.UUID]string, error) {
+			return map[uuid.UUID]string{
+				managerID: "Manager",
+				sub1:      "Employee 1",
+			}, nil
+		},
+	}
+
+	repo := &fakeRepo{
+		getDefaultSchedFn: func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+			return schedule9AM(), nil
+		},
+		listHolidaysFn: func(_ context.Context, _ string, _, _ string) ([]attendance.PublicHoliday, error) {
+			return []attendance.PublicHoliday{}, nil
+		},
+		listByEmpsDateRangeFn: func(_ context.Context, _ uuid.UUID, eids []uuid.UUID, start, end string) ([]attendance.Record, error) {
+			// Return attendance only for March 31 (Tuesday)
+			return []attendance.Record{
+				{EmployeeID: managerID, Date: "2026-03-31", ClockInAt: time.Date(2026, 3, 31, 9, 0, 0, 0, time.UTC), IsLate: false},
+			}, nil
+		},
+	}
+
+	orgInfo := &fakeOrgInfo{tz: "Asia/Jakarta", cc: "ID"}
+
+	// Mock "now" to be April 1, 2026 at 10:00 AM Jakarta time
+	nowFunc := fixedNow(time.Date(2026, 4, 1, 10, 0, 0, 0, time.UTC))
+	svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
+	svc.SetNowFunc(nowFunc)
+
+	// Request week of March 30 (Monday)
+	result, err := svc.GetTeamWeek(context.Background(), testOrgID, managerID, "2026-03-30")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Find manager's week data
+	var managerWeek *attendance.WeekCalendar
+	for _, entry := range result {
+		if entry.EmployeeID == managerID {
+			managerWeek = entry.Week
+			break
+		}
+	}
+	if managerWeek == nil {
+		t.Fatal("manager week not found")
+	}
+
+	// Verify we have 7 days
+	if len(managerWeek.Days) != 7 {
+		t.Fatalf("expected 7 days, got %d", len(managerWeek.Days))
+	}
+
+	// March 31 is day index 1 (Monday=0, Tuesday=1)
+	march31 := managerWeek.Days[1]
+	if march31.Date != "2026-03-31" {
+		t.Errorf("expected date 2026-03-31, got %s", march31.Date)
+	}
+
+	// March 31 should have status "on-time" (manager clocked in on time)
+	if march31.Status != "on-time" {
+		t.Errorf("March 31 status = %q, want on-time", march31.Status)
+	}
+
+	// April 1 is day index 2 (Wednesday)
+	april1 := managerWeek.Days[2]
+	if april1.Date != "2026-04-01" {
+		t.Errorf("expected date 2026-04-01, got %s", april1.Date)
+	}
+
+	// April 1 should be marked as "today"
+	if !april1.IsToday {
+		t.Error("April 1 should be marked as today")
+	}
+
+	// April 1 should have status "absent" (no attendance record, past working day)
+	if april1.Status != "absent" {
+		t.Errorf("April 1 status = %q, want absent", april1.Status)
+	}
+
+	// Find employee 1's week data
+	var emp1Week *attendance.WeekCalendar
+	for _, entry := range result {
+		if entry.EmployeeID == sub1 {
+			emp1Week = entry.Week
+			break
+		}
+	}
+	if emp1Week == nil {
+		t.Fatal("employee 1 week not found")
+	}
+
+	// Employee 1 should have "absent" on March 31 (no attendance record)
+	emp1March31 := emp1Week.Days[1]
+	if emp1March31.Status != "absent" {
+		t.Errorf("Employee 1 March 31 status = %q, want absent", emp1March31.Status)
+	}
+}
