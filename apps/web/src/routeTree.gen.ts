@@ -23,6 +23,7 @@ import { Route as AppReportsRouteRouteImport } from './routes/_app/reports/route
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
 import { Route as AppLeaveRouteRouteImport } from './routes/_app/leave/route'
+import { Route as AppKnownIssuesRouteRouteImport } from './routes/_app/known-issues/route'
 import { Route as AppFeatureDisabledRouteRouteImport } from './routes/_app/feature-disabled/route'
 import { Route as AppClaimsRouteRouteImport } from './routes/_app/claims/route'
 import { Route as AppChangelogRouteRouteImport } from './routes/_app/changelog/route'
@@ -111,6 +112,11 @@ const AppOverviewRouteRoute = AppOverviewRouteRouteImport.update({
 const AppLeaveRouteRoute = AppLeaveRouteRouteImport.update({
   id: '/leave',
   path: '/leave',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppKnownIssuesRouteRoute = AppKnownIssuesRouteRouteImport.update({
+  id: '/known-issues',
+  path: '/known-issues',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppFeatureDisabledRouteRoute = AppFeatureDisabledRouteRouteImport.update({
@@ -229,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/changelog': typeof AppChangelogRouteRoute
   '/claims': typeof AppClaimsRouteRouteWithChildren
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
+  '/known-issues': typeof AppKnownIssuesRouteRoute
   '/leave': typeof AppLeaveRouteRouteWithChildren
   '/overview': typeof AppOverviewRouteRoute
   '/people': typeof AppPeopleRouteRouteWithChildren
@@ -261,6 +268,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/changelog': typeof AppChangelogRouteRoute
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
+  '/known-issues': typeof AppKnownIssuesRouteRoute
   '/overview': typeof AppOverviewRouteRoute
   '/reports': typeof AppReportsRouteRoute
   '/settings': typeof AppSettingsRouteRouteWithChildren
@@ -297,6 +305,7 @@ export interface FileRoutesById {
   '/_app/changelog': typeof AppChangelogRouteRoute
   '/_app/claims': typeof AppClaimsRouteRouteWithChildren
   '/_app/feature-disabled': typeof AppFeatureDisabledRouteRoute
+  '/_app/known-issues': typeof AppKnownIssuesRouteRoute
   '/_app/leave': typeof AppLeaveRouteRouteWithChildren
   '/_app/overview': typeof AppOverviewRouteRoute
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
@@ -334,6 +343,7 @@ export interface FileRouteTypes {
     | '/changelog'
     | '/claims'
     | '/feature-disabled'
+    | '/known-issues'
     | '/leave'
     | '/overview'
     | '/people'
@@ -366,6 +376,7 @@ export interface FileRouteTypes {
     | '/'
     | '/changelog'
     | '/feature-disabled'
+    | '/known-issues'
     | '/overview'
     | '/reports'
     | '/settings'
@@ -401,6 +412,7 @@ export interface FileRouteTypes {
     | '/_app/changelog'
     | '/_app/claims'
     | '/_app/feature-disabled'
+    | '/_app/known-issues'
     | '/_app/leave'
     | '/_app/overview'
     | '/_app/people'
@@ -534,6 +546,13 @@ declare module '@tanstack/react-router' {
       path: '/leave'
       fullPath: '/leave'
       preLoaderRoute: typeof AppLeaveRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/known-issues': {
+      id: '/_app/known-issues'
+      path: '/known-issues'
+      fullPath: '/known-issues'
+      preLoaderRoute: typeof AppKnownIssuesRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/feature-disabled': {
@@ -777,6 +796,7 @@ interface AppRouteRouteChildren {
   AppChangelogRouteRoute: typeof AppChangelogRouteRoute
   AppClaimsRouteRoute: typeof AppClaimsRouteRouteWithChildren
   AppFeatureDisabledRouteRoute: typeof AppFeatureDisabledRouteRoute
+  AppKnownIssuesRouteRoute: typeof AppKnownIssuesRouteRoute
   AppLeaveRouteRoute: typeof AppLeaveRouteRouteWithChildren
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
   AppPeopleRouteRoute: typeof AppPeopleRouteRouteWithChildren
@@ -794,6 +814,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppChangelogRouteRoute: AppChangelogRouteRoute,
   AppClaimsRouteRoute: AppClaimsRouteRouteWithChildren,
   AppFeatureDisabledRouteRoute: AppFeatureDisabledRouteRoute,
+  AppKnownIssuesRouteRoute: AppKnownIssuesRouteRoute,
   AppLeaveRouteRoute: AppLeaveRouteRouteWithChildren,
   AppOverviewRouteRoute: AppOverviewRouteRoute,
   AppPeopleRouteRoute: AppPeopleRouteRouteWithChildren,

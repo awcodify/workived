@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Settings, LogOut, User, Building2, Users, Moon, Sun, Sparkles } from 'lucide-react'
+import { Settings, LogOut, User, Building2, Users, Moon, Sun, Sparkles, AlertCircle } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useThemeStore } from '@/lib/stores/theme'
 import { useHasOrg } from '@/lib/hooks/useRole'
@@ -264,6 +264,21 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
               )}
             </div>
             <span className="text-xs font-medium">What's New</span>
+          </button>
+
+          {/* Known Issues */}
+          <button
+            role="menuitem"
+            onClick={() => { setIsOpen(false); navigate({ to: '/known-issues' }) }}
+            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            style={{ color: menuColors.text }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = menuColors.hoverBg
+            }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <AlertCircle size={16} className="transition-transform group-hover/item:scale-110" />
+            <span className="text-xs font-medium">Known Issues</span>
           </button>
 
           {/* Divider */}
