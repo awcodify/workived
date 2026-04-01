@@ -8,6 +8,7 @@
   <meta name="keywords" content="attendance management, leave management, HR software, free HR tool, small team management, employee attendance, leave tracker, expense claims, task management, startup HR, Indonesia HR, UAE HR">
   <meta name="author" content="Workived">
   <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light only">
   <meta name="theme-color" content="#F3F2FB">
   <link rel="canonical" href="https://workived.com">
 
@@ -69,6 +70,7 @@
     }
 
     :root {
+      color-scheme: light only;
       --accent: #6357E8;
       --accent-dim: #EFEDFD;
       --accent-mid: #8F86F0;
@@ -87,11 +89,17 @@
 
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--ink-50);
-      color: var(--ink-900);
+      background: var(--ink-50) !important;
+      color: var(--ink-900) !important;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root { color-scheme: light only; }
+      html, body { background: var(--ink-50) !important; color: var(--ink-900) !important; }
+      img, svg { filter: none !important; }
     }
 
     /* ── Sticky Header ── */
@@ -2206,13 +2214,14 @@
 
   <!-- ═══════════ TRUST STRIP ═══════════ -->
   <section class="trust-section">
-    <div class="trust-inner reveal">
+    <div class="trust-inner reveal">Coming Soon — Free for small teams
+
       <div class="trust-avatars">
         <div class="trust-avatar" style="background: var(--accent);">D</div>
         <div class="trust-avatar" style="background: #818CF8;">A</div>
         <div class="trust-avatar" style="background: #10B981;">R</div>
       </div>
-      <p class="trust-quote">"We built Workived because we needed it. We've used it every single day for 6+ months before showing it to anyone."</p>
+      <p class="trust-quote">"We built Workived because we needed it. We've used it every single day for years before showing it to anyone."</p>
       <p class="trust-meta">— The founding team, who still clock in on it daily</p>
     </div>
   </section>

@@ -8,6 +8,7 @@
   <meta name="keywords" content="attendance management, leave management, HR software, free HR tool, small team management, employee attendance, leave tracker, expense claims, task management, startup HR, Indonesia HR, UAE HR">
   <meta name="author" content="Workived">
   <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light only">
   <meta name="theme-color" content="#F3F2FB">
   <link rel="canonical" href="https://workived.com">
 
@@ -69,6 +70,7 @@
     }
 
     :root {
+      color-scheme: light only;
       --accent: #6357E8;
       --accent-dim: #EFEDFD;
       --accent-mid: #8F86F0;
@@ -87,11 +89,17 @@
 
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--ink-50);
-      color: var(--ink-900);
+      background: var(--ink-50) !important;
+      color: var(--ink-900) !important;
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root { color-scheme: light only; }
+      html, body { background: var(--ink-50) !important; color: var(--ink-900) !important; }
+      img, svg { filter: none !important; }
     }
 
     /* ── Sticky Header ── */
@@ -176,9 +184,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 100px 24px 80px;
+      padding: 72px 24px 60px;
       text-align: center;
-      min-height: calc(100vh - 72px);
       background: var(--ink-50);
       overflow: hidden;
     }
@@ -244,7 +251,7 @@
       font-weight: 600;
       color: var(--accent-text);
       letter-spacing: 0.02em;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
     }
     .pill-dot {
       width: 8px;
@@ -263,7 +270,7 @@
       font-weight: 800;
       letter-spacing: -0.05em;
       line-height: 1.05;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       color: var(--ink-900);
     }
     .highlight {
@@ -276,7 +283,7 @@
       font-size: clamp(16px, 2.2vw, 19px);
       color: var(--ink-500);
       line-height: 1.7;
-      margin: 0 auto 40px;
+      margin: 0 auto 32px;
     }
 
     /* Hero CTA buttons */
@@ -285,7 +292,7 @@
       align-items: center;
       justify-content: center;
       gap: 16px;
-      margin-bottom: 64px;
+      margin-bottom: 48px;
       flex-wrap: wrap;
     }
     .btn-primary {
@@ -310,7 +317,7 @@
     }
     /* Scroll hint */
     .scroll-hint {
-      margin-top: 80px;
+      margin-top: 48px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -955,64 +962,67 @@
     /* ── How it works ── */
     .steps-section {
       padding: 120px 24px;
-      max-width: 1200px;
+      max-width: 800px;
       margin: 0 auto;
     }
     .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 32px;
-      max-width: 900px;
-      margin: 0 auto;
-      position: relative;
-    }
-    .steps-grid::before {
-      content: '';
-      position: absolute;
-      top: 36px;
-      left: 15%;
-      right: 15%;
-      height: 2px;
-      background: linear-gradient(90deg, var(--ink-100), var(--accent-dim), var(--ink-100));
-      z-index: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
     }
     .step-card {
-      text-align: center;
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 0;
+      position: relative;
+    }
+    .step-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .step-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-dim);
+      flex-shrink: 0;
       position: relative;
       z-index: 1;
     }
-    .step-number {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: 800;
-      margin: 0 auto 20px;
-      background: white;
-      color: var(--accent);
-      border: 2px solid var(--ink-100);
-      transition: all 0.3s ease;
+    .step-line {
+      width: 2px;
+      flex: 1;
+      background: linear-gradient(180deg, var(--accent-dim), var(--ink-100));
     }
-    .step-card:hover .step-number {
-      background: var(--accent-dim);
-      border-color: var(--accent);
-      transform: scale(1.08);
+    .step-card:last-child .step-line { display: none; }
+    .step-right {
+      padding: 0 0 56px 0;
+      margin-top: -4px;
+    }
+    .step-card:last-child .step-right { padding-bottom: 0; }
+    .step-num-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 6px;
     }
     .step-card h3 {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 22px;
+      font-weight: 800;
       color: var(--ink-900);
       margin-bottom: 8px;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
     }
     .step-card p {
-      font-size: 14px;
+      font-size: 15px;
       color: var(--ink-500);
-      line-height: 1.65;
-      max-width: 260px;
-      margin: 0 auto;
+      line-height: 1.7;
+      max-width: 480px;
     }
 
     /* ── Trust strip ── */
@@ -1058,6 +1068,101 @@
       font-size: 14px;
       color: var(--ink-300);
       font-weight: 500;
+    }
+
+    /* ── Security & Trust ── */
+    .security-section {
+      padding: 100px 24px;
+      background: var(--ink-900);
+      position: relative;
+      overflow: hidden;
+    }
+    .security-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(99,87,232,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .security-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .security-statement {
+      /* left side */
+    }
+    .security-statement .section-label {
+      color: var(--accent-mid);
+      background: rgba(99,87,232,0.15);
+    }
+    .security-statement h2 {
+      font-size: clamp(32px, 4.5vw, 48px);
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin: 16px 0 20px;
+    }
+    .security-statement h2 .muted {
+      color: rgba(255,255,255,0.35);
+    }
+    .security-statement > p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.7;
+      max-width: 400px;
+    }
+    .security-checks {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .security-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .security-check:first-child { padding-top: 0; }
+    .security-check:last-child { border-bottom: none; padding-bottom: 0; }
+    .check-marker {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(99,87,232,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .check-marker svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--accent-mid);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .check-text h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 3px;
+      letter-spacing: -0.01em;
+    }
+    .check-text p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      line-height: 1.6;
     }
 
     /* ── FAQ section ── */
@@ -1511,8 +1616,10 @@
       }
       .value-divider { display: none; }
       .stats-strip { gap: 32px; }
-      .steps-grid { grid-template-columns: 1fr; max-width: 320px; }
-      .steps-grid::before { display: none; }
+      .steps-grid { max-width: 100%; }
+      .step-card { grid-template-columns: 56px 1fr; }
+      .security-inner { grid-template-columns: 1fr; gap: 40px; }
+      .security-statement h2 { font-size: 28px; }
     }
 
     @media (max-width: 640px) {
@@ -1521,7 +1628,7 @@
         height: 64px;
       }
       .header-nav a:not(.header-cta) { display: none; }
-      .hero { padding: 60px 20px 40px; }
+      .hero { padding: 48px 20px 32px; }
       .hero-actions { flex-direction: column; }
       .btn-primary { width: 100%; justify-content: center; }
       .stats-strip { gap: 16px; }
@@ -1577,6 +1684,7 @@
     </a>
     <nav class="header-nav">
       <a href="#features">Features</a>
+      <a href="#security">Security</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
       <a href="mailto:my@workived.com" class="header-cta">Get Early Access</a>
@@ -1709,6 +1817,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com</div>
+            </div>
             <img src="images/overview.jpeg" alt="Workived overview dashboard" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1731,6 +1845,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/attendance</div>
+            </div>
             <img src="images/attendance.jpeg" alt="Workived attendance tracking" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1753,6 +1873,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/leave</div>
+            </div>
             <img src="images/leave.jpeg" alt="Workived leave management" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1775,6 +1901,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/claims</div>
+            </div>
             <img src="images/claims.jpeg" alt="Workived expense claims" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1797,6 +1929,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/tasks</div>
+            </div>
             <img src="images/tasks.jpeg" alt="Workived task boards" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1819,6 +1957,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/calendar</div>
+            </div>
             <img src="images/calendar.jpeg" alt="Workived team calendar" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1841,6 +1985,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/people</div>
+            </div>
             <img src="images/people-and-team.jpeg" alt="Workived people directory" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -2137,19 +2287,93 @@
 
     <div class="steps-grid">
       <div class="step-card reveal">
-        <div class="step-number">1</div>
-        <h3>Sign up free</h3>
-        <p>Create your workspace in under a minute. No credit card, no setup wizard, no demo call.</p>
+        <div class="step-left">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-num-label">Step 01</div>
+          <h3>Sign up free</h3>
+          <p>Create your workspace in under a minute. No credit card, no setup wizard, no demo call.</p>
+        </div>
       </div>
       <div class="step-card reveal reveal-delay-1">
-        <div class="step-number">2</div>
-        <h3>Invite your team</h3>
-        <p>Add employees by email. They get instant access to clock in, request leave, and submit claims.</p>
+        <div class="step-left">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-num-label">Step 02</div>
+          <h3>Invite your team</h3>
+          <p>Add employees by email. They get instant access to clock in, request leave, and submit claims.</p>
+        </div>
       </div>
       <div class="step-card reveal reveal-delay-2">
-        <div class="step-number">3</div>
-        <h3>You're live</h3>
-        <p>Attendance, leave, claims, tasks — everything works out of the box. Customize as you go.</p>
+        <div class="step-left">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-num-label">Step 03</div>
+          <h3>You're live</h3>
+          <p>Attendance, leave, claims, tasks — everything works out of the box. Customize as you go.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SECURITY & TRUST ═══════════ -->
+  <section class="security-section" id="security">
+    <div class="security-inner reveal">
+      <div class="security-statement">
+        <span class="section-label">Your data is safe</span>
+        <h2>We treat your<br>team's data like<br><span class="muted">it's our own.</span></h2>
+        <p>Because it was. We used Workived internally for years before anyone else touched it. Security isn't a feature — it's the foundation.</p>
+      </div>
+
+      <div class="security-checks">
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Encrypted everywhere</h4>
+            <p>AES-256 at rest, TLS 1.3 in transit. Nothing leaves unprotected.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Isolated per organisation</h4>
+            <p>Your data is walled off from every other team. By architecture, not just policy.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Role-based access control</h4>
+            <p>Employees, managers, admins — each sees only what they should.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Full audit trail</h4>
+            <p>Every action logged. Who changed what, when, and from where.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Indonesia & UAE compliance</h4>
+            <p>Leave rules, holidays, and labour regs built in — not bolted on after.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Automated backups</h4>
+            <p>Your data is backed up continuously. 99.9% uptime target.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -2212,7 +2436,7 @@
         <div class="trust-avatar" style="background: #818CF8;">A</div>
         <div class="trust-avatar" style="background: #10B981;">R</div>
       </div>
-      <p class="trust-quote">"We built Workived because we needed it. We've used it every single day for 6+ months before showing it to anyone."</p>
+      <p class="trust-quote">"We built Workived because we needed it. We've used it every single day for years before showing it to anyone."</p>
       <p class="trust-meta">— The founding team, who still clock in on it daily</p>
     </div>
   </section>
@@ -2297,6 +2521,7 @@
           <defs><linearGradient id="gf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs>
           <rect width="180" height="180" rx="30" fill="url(#gf)"/>
           <text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+          <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
         </svg>
         <span class="footer-wordmark">Workived</span>
         <span class="footer-copy">© 2026</span>
@@ -2334,6 +2559,15 @@
   </div>
 
   <script>
+    // 👀
+    console.log('%c🛠️ Hey, you opened DevTools!', 'font-size:18px;font-weight:bold;color:#6357E8;');
+    console.log('%cYou must be a builder too.', 'font-size:14px;color:#72708A;');
+    console.log('%cWe\'re hiring nobody — we built this whole thing with 3 people and an unreasonable amount of coffee.', 'font-size:12px;color:#B0AEBE;');
+    console.log('%c☕ Total coffees during development: 1,247 (and counting)', 'font-size:12px;color:#D97706;');
+    console.log('%c🐛 Bugs squashed: more than we\'d like to admit', 'font-size:12px;color:#10B981;');
+    console.log('%c💡 If you\'re reading this, you\'re exactly the kind of person who\'d love Workived. Just saying.', 'font-size:12px;color:#6357E8;');
+    console.log('%cPS: No, the leave feature really was built while on leave. That\'s not marketing.', 'font-size:11px;color:#B0AEBE;font-style:italic;');
+
     // Header shadow on scroll
     const header = document.getElementById('header');
     window.addEventListener('scroll', () => {
@@ -2418,93 +2652,37 @@
       }
     });
 
-    // Showcase tabs — auto-rotate every 5s, pause on hover/click
+    // Showcase tabs
     const showcaseTabs = Array.from(document.querySelectorAll('.showcase-tab'));
     const showcasePanels = Array.from(document.querySelectorAll('.showcase-panel'));
-    let showcaseIndex = 0;
-    let showcaseInterval = null;
-
-    function activateShowcase(idx) {
-      showcaseTabs.forEach(t => t.classList.remove('active'));
-      showcasePanels.forEach(p => p.classList.remove('active'));
-      showcaseTabs[idx]?.classList.add('active');
-      showcasePanels[idx]?.classList.add('active');
-      showcaseIndex = idx;
-    }
-
-    function startShowcaseAuto() {
-      stopShowcaseAuto();
-      showcaseInterval = setInterval(() => {
-        activateShowcase((showcaseIndex + 1) % showcaseTabs.length);
-      }, 5000);
-    }
-
-    function stopShowcaseAuto() {
-      if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
-    }
 
     showcaseTabs.forEach((tab, i) => {
       tab.addEventListener('click', () => {
-        activateShowcase(i);
-        startShowcaseAuto(); // restart timer after manual click
+        showcaseTabs.forEach(t => t.classList.remove('active'));
+        showcasePanels.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        showcasePanels[i]?.classList.add('active');
       });
     });
 
-    const showcaseContainer = document.querySelector('.feature-showcase');
-    if (showcaseContainer) {
-      showcaseContainer.addEventListener('mouseenter', stopShowcaseAuto);
-      showcaseContainer.addEventListener('mouseleave', startShowcaseAuto);
-    }
-
-    if (showcaseTabs.length) startShowcaseAuto();
-
-    // Carousel dots + auto-scroll
+    // Carousel dots
     const carouselTrack = document.getElementById('carouselTrack');
     const carouselDots = document.querySelectorAll('.carousel-dot');
-    let carouselIndex = 0;
-    let carouselInterval = null;
-    let carouselUserScrolling = false;
-
-    function scrollCarouselTo(idx) {
-      if (!carouselTrack || !carouselTrack.children[idx]) return;
-      carouselIndex = idx;
-      carouselTrack.children[idx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-
-    function startCarouselAuto() {
-      stopCarouselAuto();
-      carouselInterval = setInterval(() => {
-        carouselIndex = (carouselIndex + 1) % (carouselTrack ? carouselTrack.children.length : 1);
-        scrollCarouselTo(carouselIndex);
-      }, 5000);
-    }
-
-    function stopCarouselAuto() {
-      if (carouselInterval) { clearInterval(carouselInterval); carouselInterval = null; }
-    }
-
     if (carouselTrack) {
       carouselDots.forEach(dot => {
         dot.addEventListener('click', () => {
           const idx = parseInt(dot.dataset.index);
-          scrollCarouselTo(idx);
-          startCarouselAuto();
+          const card = carouselTrack.children[idx];
+          if (card) card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         });
       });
-
-      carouselTrack.addEventListener('touchstart', () => { carouselUserScrolling = true; stopCarouselAuto(); }, { passive: true });
-      carouselTrack.addEventListener('touchend', () => { carouselUserScrolling = false; startCarouselAuto(); }, { passive: true });
-
       carouselTrack.addEventListener('scroll', () => {
         const scrollLeft = carouselTrack.scrollLeft;
         const card = carouselTrack.children[0];
         const cardWidth = card ? card.offsetWidth + 24 : 544;
         const idx = Math.round(scrollLeft / cardWidth);
-        carouselIndex = idx;
         carouselDots.forEach((d, i) => d.classList.toggle('active', i === idx));
       }, { passive: true });
-
-      startCarouselAuto();
     }
 
     // FAQ accordion
