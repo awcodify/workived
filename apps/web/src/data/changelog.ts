@@ -20,6 +20,45 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 20,
+    date: '2026-04-01',
+    type: 'feature',
+    title: 'Known Issues page added',
+    description: 'You can now check the Known Issues page from the settings menu to see bugs we know about and are working to fix.',
+    module: 'System',
+  },
+  {
+    id: 19,
+    date: '2026-04-01',
+    type: 'feature',
+    title: 'Task board now has Tasks vs Approvals filter',
+    description: 'Toggle between All, Tasks only, or Approvals only on the task board. Your selection is saved in the URL so you can bookmark or share it.',
+    module: 'Tasks',
+  },
+  {
+    id: 18,
+    date: '2026-04-01',
+    type: 'feature',
+    title: 'Upgrade prompt for Pro features',
+    description: 'When you hit a Pro feature limit (like the 25 employee cap), you now see a friendly upgrade prompt instead of a generic error.',
+  },
+  {
+    id: 17,
+    date: '2026-04-01',
+    type: 'fix',
+    title: 'Employee form now shows specific error messages',
+    description: 'Adding an employee with a duplicate email now shows "email already exists" instead of a generic error.',
+    module: 'People',
+  },
+  {
+    id: 16,
+    date: '2026-04-01',
+    type: 'fix',
+    title: 'Setup review now shows work schedule details',
+    description: 'The setup wizard review step now correctly displays your selected work schedule days and hours.',
+    module: 'Setup',
+  },
+  {
     id: 15,
     date: '2026-04-01',
     type: 'fix',
