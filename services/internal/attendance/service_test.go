@@ -1023,8 +1023,8 @@ func TestGetTeamWeek_BatchQueriesAndCorrectness(t *testing.T) {
 			}
 			// Return some attendance data
 			return []attendance.Record{
-				{EmployeeID: managerID, Date: "2026-03-31", ClockInAt: time.Date(2026, 3, 31, 9, 0, 0, 0, time.UTC), IsLate: false},
-				{EmployeeID: sub1, Date: "2026-03-31", ClockInAt: time.Date(2026, 3, 31, 9, 30, 0, 0, time.UTC), IsLate: true},
+				{EmployeeID: managerID, Date: "2026-03-30", ClockInAt: time.Date(2026, 3, 30, 9, 0, 0, 0, time.UTC), IsLate: false},
+				{EmployeeID: sub1, Date: "2026-03-30", ClockInAt: time.Date(2026, 3, 30, 9, 30, 0, 0, time.UTC), IsLate: true},
 			}, nil
 		},
 	}
@@ -1032,7 +1032,7 @@ func TestGetTeamWeek_BatchQueriesAndCorrectness(t *testing.T) {
 	orgInfo := &fakeOrgInfo{tz: "UTC", cc: "ID"}
 	svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
 
-	result, err := svc.GetTeamWeek(context.Background(), testOrgID, managerID, "2026-03-31") // Monday
+	result, err := svc.GetTeamWeek(context.Background(), testOrgID, managerID, "2026-03-30") // Monday
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1110,9 +1110,9 @@ func TestGetAllWeek_BatchQueriesAndCorrectness(t *testing.T) {
 			}
 			// Return attendance for all 3
 			return []attendance.Record{
-				{EmployeeID: emp1, Date: "2026-04-01", ClockInAt: time.Date(2026, 4, 1, 8, 55, 0, 0, time.UTC), IsLate: false},
-				{EmployeeID: emp2, Date: "2026-04-01", ClockInAt: time.Date(2026, 4, 1, 9, 15, 0, 0, time.UTC), IsLate: true},
-				{EmployeeID: emp3, Date: "2026-04-01", ClockInAt: time.Date(2026, 4, 1, 9, 0, 0, 0, time.UTC), IsLate: false},
+				{EmployeeID: emp1, Date: "2026-03-30", ClockInAt: time.Date(2026, 3, 30, 8, 55, 0, 0, time.UTC), IsLate: false},
+				{EmployeeID: emp2, Date: "2026-03-30", ClockInAt: time.Date(2026, 3, 30, 9, 15, 0, 0, time.UTC), IsLate: true},
+				{EmployeeID: emp3, Date: "2026-03-30", ClockInAt: time.Date(2026, 3, 30, 9, 0, 0, 0, time.UTC), IsLate: false},
 			}, nil
 		},
 	}
@@ -1121,7 +1121,7 @@ func TestGetAllWeek_BatchQueriesAndCorrectness(t *testing.T) {
 	orgInfo := &fakeOrgInfo{tz: "UTC", cc: "ID"}
 	svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
 
-	result, err := svc.GetAllWeek(context.Background(), testOrgID, "2026-03-31") // Monday
+	result, err := svc.GetAllWeek(context.Background(), testOrgID, "2026-03-30") // Monday
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -1136,8 +1136,8 @@ func TestGetAllWeek_BatchQueriesAndCorrectness(t *testing.T) {
 	statusMap := make(map[uuid.UUID]string)
 	for _, entry := range result {
 		nameMap[entry.EmployeeID] = entry.EmployeeName
-		// Tuesday is index 1 (Monday=0, Tuesday=1, ...)
-		statusMap[entry.EmployeeID] = entry.Week.Days[1].Status
+		// Monday is index 0
+		statusMap[entry.EmployeeID] = entry.Week.Days[0].Status
 	}
 
 	if nameMap[emp1] != "Alice" {
@@ -1150,14 +1150,14 @@ func TestGetAllWeek_BatchQueriesAndCorrectness(t *testing.T) {
 		t.Errorf("emp3 name = %q, want Charlie", nameMap[emp3])
 	}
 
-	// Verify statuses (April 1 = Tuesday)
+	// Verify statuses (March 30 = Monday)
 	if statusMap[emp1] != "on-time" {
-		t.Errorf("Alice Tuesday status = %q, want on-time", statusMap[emp1])
+		t.Errorf("Alice Monday status = %q, want on-time", statusMap[emp1])
 	}
 	if statusMap[emp2] != "late" {
-		t.Errorf("Bob Tuesday status = %q, want late", statusMap[emp2])
+		t.Errorf("Bob Monday status = %q, want late", statusMap[emp2])
 	}
 	if statusMap[emp3] != "on-time" {
-		t.Errorf("Charlie Tuesday status = %q, want on-time", statusMap[emp3])
+		t.Errorf("Charlie Monday status = %q, want on-time", statusMap[emp3])
 	}
 }
