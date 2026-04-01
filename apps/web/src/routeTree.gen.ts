@@ -43,8 +43,6 @@ import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/att
 import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/policies/index'
 import { Route as AppClaimsCategoriesIndexRouteImport } from './routes/_app/claims/categories/index'
 import { Route as AppCalendarHolidaysIndexRouteImport } from './routes/_app/calendar/holidays/index'
-import { Route as AppLeavePoliciesNewRouteImport } from './routes/_app/leave/policies/new'
-import { Route as AppLeavePoliciesIdRouteImport } from './routes/_app/leave/policies/$id'
 
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
@@ -217,16 +215,6 @@ const AppCalendarHolidaysIndexRoute =
     path: '/holidays/',
     getParentRoute: () => AppCalendarRouteRoute,
   } as any)
-const AppLeavePoliciesNewRoute = AppLeavePoliciesNewRouteImport.update({
-  id: '/policies/new',
-  path: '/policies/new',
-  getParentRoute: () => AppLeaveRouteRoute,
-} as any)
-const AppLeavePoliciesIdRoute = AppLeavePoliciesIdRouteImport.update({
-  id: '/policies/$id',
-  path: '/policies/$id',
-  getParentRoute: () => AppLeaveRouteRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -258,8 +246,6 @@ export interface FileRoutesByFullPath {
   '/people/': typeof AppPeopleIndexRoute
   '/profile/': typeof AppProfileIndexRoute
   '/setup/': typeof AppSetupIndexRoute
-  '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
-  '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/calendar/holidays/': typeof AppCalendarHolidaysIndexRoute
   '/claims/categories/': typeof AppClaimsCategoriesIndexRoute
   '/leave/policies/': typeof AppLeavePoliciesIndexRoute
@@ -289,8 +275,6 @@ export interface FileRoutesByTo {
   '/people': typeof AppPeopleIndexRoute
   '/profile': typeof AppProfileIndexRoute
   '/setup': typeof AppSetupIndexRoute
-  '/leave/policies/$id': typeof AppLeavePoliciesIdRoute
-  '/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/calendar/holidays': typeof AppCalendarHolidaysIndexRoute
   '/claims/categories': typeof AppClaimsCategoriesIndexRoute
   '/leave/policies': typeof AppLeavePoliciesIndexRoute
@@ -328,8 +312,6 @@ export interface FileRoutesById {
   '/_app/people/': typeof AppPeopleIndexRoute
   '/_app/profile/': typeof AppProfileIndexRoute
   '/_app/setup/': typeof AppSetupIndexRoute
-  '/_app/leave/policies/$id': typeof AppLeavePoliciesIdRoute
-  '/_app/leave/policies/new': typeof AppLeavePoliciesNewRoute
   '/_app/calendar/holidays/': typeof AppCalendarHolidaysIndexRoute
   '/_app/claims/categories/': typeof AppClaimsCategoriesIndexRoute
   '/_app/leave/policies/': typeof AppLeavePoliciesIndexRoute
@@ -366,8 +348,6 @@ export interface FileRouteTypes {
     | '/people/'
     | '/profile/'
     | '/setup/'
-    | '/leave/policies/$id'
-    | '/leave/policies/new'
     | '/calendar/holidays/'
     | '/claims/categories/'
     | '/leave/policies/'
@@ -397,8 +377,6 @@ export interface FileRouteTypes {
     | '/people'
     | '/profile'
     | '/setup'
-    | '/leave/policies/$id'
-    | '/leave/policies/new'
     | '/calendar/holidays'
     | '/claims/categories'
     | '/leave/policies'
@@ -435,8 +413,6 @@ export interface FileRouteTypes {
     | '/_app/people/'
     | '/_app/profile/'
     | '/_app/setup/'
-    | '/_app/leave/policies/$id'
-    | '/_app/leave/policies/new'
     | '/_app/calendar/holidays/'
     | '/_app/claims/categories/'
     | '/_app/leave/policies/'
@@ -688,20 +664,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarHolidaysIndexRouteImport
       parentRoute: typeof AppCalendarRouteRoute
     }
-    '/_app/leave/policies/new': {
-      id: '/_app/leave/policies/new'
-      path: '/policies/new'
-      fullPath: '/leave/policies/new'
-      preLoaderRoute: typeof AppLeavePoliciesNewRouteImport
-      parentRoute: typeof AppLeaveRouteRoute
-    }
-    '/_app/leave/policies/$id': {
-      id: '/_app/leave/policies/$id'
-      path: '/policies/$id'
-      fullPath: '/leave/policies/$id'
-      preLoaderRoute: typeof AppLeavePoliciesIdRouteImport
-      parentRoute: typeof AppLeaveRouteRoute
-    }
   }
 }
 
@@ -747,15 +709,11 @@ const AppClaimsRouteRouteWithChildren = AppClaimsRouteRoute._addFileChildren(
 
 interface AppLeaveRouteRouteChildren {
   AppLeaveIndexRoute: typeof AppLeaveIndexRoute
-  AppLeavePoliciesIdRoute: typeof AppLeavePoliciesIdRoute
-  AppLeavePoliciesNewRoute: typeof AppLeavePoliciesNewRoute
   AppLeavePoliciesIndexRoute: typeof AppLeavePoliciesIndexRoute
 }
 
 const AppLeaveRouteRouteChildren: AppLeaveRouteRouteChildren = {
   AppLeaveIndexRoute: AppLeaveIndexRoute,
-  AppLeavePoliciesIdRoute: AppLeavePoliciesIdRoute,
-  AppLeavePoliciesNewRoute: AppLeavePoliciesNewRoute,
   AppLeavePoliciesIndexRoute: AppLeavePoliciesIndexRoute,
 }
 

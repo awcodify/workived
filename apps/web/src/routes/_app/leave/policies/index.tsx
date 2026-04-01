@@ -1,10 +1,12 @@
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Plus, Pencil, Trash2, Download } from 'lucide-react'
 import { usePolicies, useDeactivatePolicy } from '@/lib/hooks/useLeave'
 import { useCanManageLeave } from '@/lib/hooks/useRole'
 import { useState, useEffect } from 'react'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
 import { ImportTemplatesModal } from '@/components/workived/leave/ImportTemplatesModal'
+import { PolicyModal } from '@/components/workived/leave/PolicyModal'
+import type { LeavePolicy } from '@/types/api'
 
 const t = moduleThemes.leave
 
@@ -19,6 +21,8 @@ function PoliciesPage() {
   const deactivateMutation = useDeactivatePolicy()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showPolicyModal, setShowPolicyModal] = useState(false)
+  const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | undefined>()
 
   // Redirect if no permission
   useEffect(() => {
@@ -79,8 +83,11 @@ function PoliciesPage() {
             <Download size={16} />
             Import Templates
           </button>
-          <Link
-            to="/leave/policies/new"
+          <button
+            onClick={() => {
+              setEditingPolicy(undefined)
+              setShowPolicyModal(true)
+            }}
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
             style={{
               background: t.accent,
@@ -90,7 +97,7 @@ function PoliciesPage() {
           >
             <Plus size={16} />
             Add policy
-          </Link>
+          </button>
         </div>
       </div>
 
@@ -98,7 +105,13 @@ function PoliciesPage() {
       {isLoading ? (
         <PoliciesSkeleton />
       ) : !activePolicies || activePolicies.length === 0 ? (
-        <EmptyPolicies onImport={() => setShowImportModal(true)} />
+        <EmptyPolicies
+          onImport={() => setShowImportModal(true)}
+          onCreateManually={() => {
+            setEditingPolicy(undefined)
+            setShowPolicyModal(true)
+          }}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {activePolicies.map((policy) => (
@@ -148,9 +161,11 @@ function PoliciesPage() {
 
               {/* Actions */}
               <div className="flex items-center gap-2">
-                <Link
-                  to="/leave/policies/$id"
-                  params={{ id: policy.id }}
+                <button
+                  onClick={() => {
+                    setEditingPolicy(policy)
+                    setShowPolicyModal(true)
+                  }}
                   className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 transition-opacity hover:opacity-70"
                   style={{
                     color: t.accent,
@@ -158,7 +173,7 @@ function PoliciesPage() {
                 >
                   <Pencil size={14} />
                   Edit
-                </Link>
+                </button>
                 <button
                   onClick={() => handleDeactivate(policy.id)}
                   disabled={deactivateMutation.isPending}
@@ -178,6 +193,15 @@ function PoliciesPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Policy Modal */}
+      {showPolicyModal && (
+        <PolicyModal
+          policy={editingPolicy}
+          onClose={() => setShowPolicyModal(false)}
+          onSuccess={() => setShowPolicyModal(false)}
+        />
       )}
 
       {/* Import Modal */}
@@ -213,9 +237,10 @@ function PoliciesSkeleton() {
 
 interface EmptyPoliciesProps {
   onImport: () => void
+  onCreateManually: () => void
 }
 
-function EmptyPolicies({ onImport }: EmptyPoliciesProps) {
+function EmptyPolicies({ onImport, onCreateManually }: EmptyPoliciesProps) {
   return (
     <div
       className="flex flex-col items-center justify-center text-center"
@@ -265,8 +290,8 @@ function EmptyPolicies({ onImport }: EmptyPoliciesProps) {
           <Download size={16} />
           Import Templates
         </button>
-        <Link
-          to="/leave/policies/new"
+        <button
+          onClick={onCreateManually}
           className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-70"
           style={{
             background: t.surface,
@@ -277,7 +302,7 @@ function EmptyPolicies({ onImport }: EmptyPoliciesProps) {
         >
           <Plus size={16} />
           Create Manually
-        </Link>
+        </button>
       </div>
     </div>
   )

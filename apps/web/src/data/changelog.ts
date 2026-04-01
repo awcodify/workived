@@ -20,6 +20,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 21,
+    date: '2026-04-01',
+    type: 'improvement',
+    title: 'Leave policies now open in a modal',
+    description: 'Creating and editing leave policies now happens in a quick modal instead of navigating to a separate page. Faster workflow, no context switching.',
+    module: 'Leave',
+  },
+  {
     id: 20,
     date: '2026-04-01',
     type: 'feature',
