@@ -166,10 +166,11 @@ func (h *Handler) ListTasks(c *gin.Context) {
 		filters.Limit = paginate.DefaultLimit
 	}
 
-	// For approval tasks filtering: always pass employee_id
-	// Regular tasks (approval_type IS NULL) will be shown to all org members
-	// Approval tasks (approval_type IS NOT NULL) will be filtered to assignee/creator only
-	if filters.AssigneeID == nil {
+	// Role-based approval task visibility:
+	// - owner/admin: see ALL tasks including all approval tasks org-wide ($3 = NULL)
+	// - other roles: see only their own approval tasks ($3 = employee_id)
+	role := middleware.RoleFromCtx(c)
+	if filters.AssigneeID == nil && role != middleware.RoleOwner && role != middleware.RoleAdmin {
 		employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 		if err != nil {
 			h.logAndRespondError(c, err, "failed to lookup employee", map[string]string{

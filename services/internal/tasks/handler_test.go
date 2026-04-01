@@ -42,11 +42,15 @@ func newRouter(svc tasks.ServiceInterface) *gin.Engine {
 }
 
 func newRouterWithLookup(svc tasks.ServiceInterface, lookup tasks.EmployeeLookupFunc) *gin.Engine {
+	return newRouterWithRole(svc, lookup, middleware.RoleAdmin)
+}
+
+func newRouterWithRole(svc tasks.ServiceInterface, lookup tasks.EmployeeLookupFunc, role string) *gin.Engine {
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		c.Set("org_id", testOrgID)
 		c.Set("user_id", testUserID)
-		c.Set("role", middleware.RoleAdmin)
+		c.Set("role", role)
 		c.Next()
 	})
 	h := tasks.NewHandler(svc, lookup, zerolog.Nop())
@@ -322,6 +326,69 @@ func TestListTasks(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assertStatus(t, w, http.StatusOK)
 	assertHasDataKey(t, w)
+}
+
+func TestListTasks_OwnerSeesAllApprovals(t *testing.T) {
+	var capturedFilters tasks.TaskFilters
+	svc := &fakeService{
+		listTasksFn: func(_ context.Context, _ uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error) {
+			capturedFilters = filters
+			return []tasks.TaskWithDetails{}, nil
+		},
+	}
+
+	// Owner should NOT have AssigneeID set (sees all approval tasks)
+	r := newRouterWithRole(svc, defaultEmpLookup, middleware.RoleOwner)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/tasks", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
+	if capturedFilters.AssigneeID != nil {
+		t.Errorf("owner should have nil AssigneeID for full visibility, got %q", *capturedFilters.AssigneeID)
+	}
+}
+
+func TestListTasks_AdminSeesAllApprovals(t *testing.T) {
+	var capturedFilters tasks.TaskFilters
+	svc := &fakeService{
+		listTasksFn: func(_ context.Context, _ uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error) {
+			capturedFilters = filters
+			return []tasks.TaskWithDetails{}, nil
+		},
+	}
+
+	r := newRouterWithRole(svc, defaultEmpLookup, middleware.RoleAdmin)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/tasks", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
+	if capturedFilters.AssigneeID != nil {
+		t.Errorf("admin should have nil AssigneeID for full visibility, got %q", *capturedFilters.AssigneeID)
+	}
+}
+
+func TestListTasks_MemberSeesOnlyOwnApprovals(t *testing.T) {
+	var capturedFilters tasks.TaskFilters
+	svc := &fakeService{
+		listTasksFn: func(_ context.Context, _ uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error) {
+			capturedFilters = filters
+			return []tasks.TaskWithDetails{}, nil
+		},
+	}
+
+	r := newRouterWithRole(svc, defaultEmpLookup, middleware.RoleMember)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/tasks", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
+	if capturedFilters.AssigneeID == nil {
+		t.Error("member should have AssigneeID set to filter approval tasks")
+	} else if *capturedFilters.AssigneeID != testEmpID.String() {
+		t.Errorf("member AssigneeID = %q, want %q", *capturedFilters.AssigneeID, testEmpID.String())
+	}
 }
 
 func TestCreateTask(t *testing.T) {
