@@ -6,6 +6,7 @@ import { PWAInstallPrompt } from '@/components/workived/pwa/PWAInstallPrompt'
 import { IOSInstallBanner } from '@/components/workived/pwa/IOSInstallBanner'
 import { PWAUpdatePrompt } from '@/components/workived/pwa/PWAUpdatePrompt'
 import { usePWAInstall } from '@/lib/hooks/usePWA'
+import { UpgradeModal } from '@/components/workived/shared/UpgradeModal'
 import { getSetupStatus } from '@/lib/api/setup'
 import { isAxiosError } from 'axios'
 
@@ -52,6 +53,7 @@ function AppLayout() {
     <div className="min-h-screen">
       <LoadingBar />
       <PWAUpdatePrompt />
+      <UpgradeModal />
       <Outlet />
       {!isSetupPage && (
         <>

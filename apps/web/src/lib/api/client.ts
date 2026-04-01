@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/lib/stores/auth'
+import { useUpgradeStore } from '@/lib/stores/upgrade'
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '',
@@ -50,6 +51,12 @@ apiClient.interceptors.response.use(
       }
     }
     
+    // Show upgrade modal on 402 Payment Required
+    if (error.response?.status === 402) {
+      const msg = error.response.data?.error?.message ?? 'This feature requires a Pro plan.'
+      useUpgradeStore.getState().show(msg)
+    }
+
     return Promise.reject(error)
   },
 )

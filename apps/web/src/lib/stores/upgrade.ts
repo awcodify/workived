@@ -1,0 +1,15 @@
+import { create } from 'zustand'
+
+interface UpgradeState {
+  open: boolean
+  message: string
+  show: (message: string) => void
+  hide: () => void
+}
+
+export const useUpgradeStore = create<UpgradeState>((set) => ({
+  open: false,
+  message: '',
+  show: (message) => set({ open: true, message }),
+  hide: () => set({ open: false, message: '' }),
+}))
