@@ -40,7 +40,10 @@ import { useApproveClaim, useRejectClaim } from '@/lib/hooks/useClaims'
 import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload } from '@/types/api'
 
 // URL search params for filters
+type ViewMode = 'all' | 'tasks' | 'approvals'
+
 type TasksSearch = {
+  view?: ViewMode
   search?: string
   assignee?: string
   priority?: string
@@ -49,7 +52,9 @@ type TasksSearch = {
 
 export const Route = createFileRoute('/_app/tasks')({
   validateSearch: (search: Record<string, unknown>): TasksSearch => {
+    const view = search.view
     return {
+      view: view === 'tasks' || view === 'approvals' ? view : undefined,
       search: typeof search.search === 'string' ? search.search : undefined,
       assignee: typeof search.assignee === 'string' ? search.assignee : undefined,
       priority: typeof search.priority === 'string' ? search.priority : undefined,
@@ -83,6 +88,7 @@ function TasksPage() {
   const { data: workloadData = [] } = useEmployeeWorkload()
   
   // Filter state from URL
+  const viewMode: ViewMode = searchParams.view || 'all'
   const searchQuery = searchParams.search || ''
   const selectedAssignee = searchParams.assignee || ''
   const selectedPriority = searchParams.priority || ''
@@ -124,7 +130,14 @@ function TasksPage() {
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
     let filtered = tasks || []
-    
+
+    // View mode filter (tasks vs approvals)
+    if (viewMode === 'tasks') {
+      filtered = filtered.filter((task) => !task.approval_type)
+    } else if (viewMode === 'approvals') {
+      filtered = filtered.filter((task) => !!task.approval_type)
+    }
+
     // Search filter (title + description)
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
@@ -155,7 +168,7 @@ function TasksPage() {
     }
     
     return filtered
-  }, [tasks, searchQuery, selectedAssignee, selectedPriority, showCompleted])
+  }, [tasks, viewMode, searchQuery, selectedAssignee, selectedPriority, showCompleted])
   
   // Sync with server data and apply filters
   useEffect(() => {
@@ -685,6 +698,25 @@ function TasksPage() {
           )
         })()}
         
+        {/* View mode toggle */}
+        <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.04)' }}>
+          {([['all', 'All'], ['tasks', 'Tasks'], ['approvals', 'Approvals']] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              onClick={() => updateSearchParam('view', mode === 'all' ? '' : mode)}
+              className="px-3 py-1 rounded-md text-xs font-semibold transition-all"
+              style={{
+                background: viewMode === mode ? 'white' : 'transparent',
+                color: viewMode === mode ? colors.ink900 : colors.ink500,
+                boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                fontFamily: typography.fontFamily,
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         {/* Search + Filters - Inline controls */}
         <TaskFilters
         searchQuery={searchQuery}
