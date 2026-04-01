@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/paginate"
 )
 
@@ -34,6 +35,7 @@ type OrgInfoProvider interface {
 type Service struct {
 	repo     RepositoryInterface
 	orgRepo  OrgInfoProvider
+	cache    *cache.Store
 	auditLog audit.Logger
 	log      zerolog.Logger
 }
@@ -112,7 +114,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmploye
 	}
 
 	if limit != nil {
-		count, err := s.repo.CountActive(ctx, orgID)
+		count, err := s.countActiveCached(ctx, orgID)
 		if err != nil {
 			return nil, err
 		}
@@ -139,6 +141,8 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmploye
 		_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, *req.ReportingTo)
 	}
 
+	s.invalidateCache(ctx, orgID)
+
 	if len(actorUserID) > 0 {
 		s.logAudit(ctx, audit.LogEntry{
 			OrgID:        orgID,
@@ -154,11 +158,11 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmploye
 }
 
 func (s *Service) Get(ctx context.Context, orgID, id uuid.UUID) (*Employee, error) {
-	return s.repo.GetByID(ctx, orgID, id)
+	return s.getCached(ctx, orgID, id)
 }
 
 func (s *Service) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error) {
-	return s.repo.GetByUserID(ctx, orgID, userID)
+	return s.getByUserIDCached(ctx, orgID, userID)
 }
 
 func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error) {
@@ -193,6 +197,8 @@ func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmp
 		_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, newManagerID)
 	}
 
+	s.invalidateCache(ctx, orgID)
+
 	if len(actorUserID) > 0 {
 		s.logAudit(ctx, audit.LogEntry{
 			OrgID:        orgID,
@@ -217,6 +223,8 @@ func (s *Service) Deactivate(ctx context.Context, orgID, id uuid.UUID, actorUser
 	if err := s.repo.SoftDelete(ctx, orgID, id); err != nil {
 		return err
 	}
+
+	s.invalidateCache(ctx, orgID)
 
 	// Update manager's has_subordinate flag if employee had a manager
 	if emp.ReportingTo != nil {
@@ -249,7 +257,7 @@ func (s *Service) GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (
 // GetOrgChart returns the organizational hierarchy tree starting from top-level employees (no manager).
 func (s *Service) GetOrgChart(ctx context.Context, orgID uuid.UUID) ([]*OrgChartNode, error) {
 	// Fetch all active employees
-	employees, err := s.repo.ListAllActive(ctx, orgID)
+	employees, err := s.listAllActiveCached(ctx, orgID)
 	if err != nil {
 		return nil, err
 	}

@@ -5,11 +5,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/workived/services/pkg/cache"
 )
 
 type Service struct {
-	repo *Repository
-	log  zerolog.Logger
+	repo  *Repository
+	cache *cache.Store
+	log   zerolog.Logger
 }
 
 type ServiceOption func(*Service)
@@ -29,7 +31,7 @@ func NewService(repo *Repository, opts ...ServiceOption) *Service {
 }
 
 func (s *Service) List(ctx context.Context, orgID uuid.UUID) ([]Department, error) {
-	return s.repo.List(ctx, orgID)
+	return s.listCached(ctx, orgID)
 }
 
 func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateDepartmentRequest) (*Department, error) {
@@ -43,6 +45,8 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateDepartm
 		Str("department_id", dept.ID.String()).
 		Str("name", dept.Name).
 		Msg("department.created")
+
+	s.invalidateCache(ctx, orgID)
 
 	return dept, nil
 }
@@ -59,6 +63,8 @@ func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateDep
 		Str("name", dept.Name).
 		Msg("department.updated")
 
+	s.invalidateCache(ctx, orgID)
+
 	return dept, nil
 }
 
@@ -72,6 +78,8 @@ func (s *Service) Deactivate(ctx context.Context, orgID, id uuid.UUID) error {
 		Str("org_id", orgID.String()).
 		Str("department_id", id.String()).
 		Msg("department.deactivated")
+
+	s.invalidateCache(ctx, orgID)
 
 	return nil
 }

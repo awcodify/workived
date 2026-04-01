@@ -14,6 +14,7 @@ import (
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/email"
 )
 
@@ -63,15 +64,16 @@ type OnEmployeeJoinedFunc func(ctx context.Context, orgID, employeeID uuid.UUID)
 // ── Service ──────────────────────────────────────────────────────────────────
 
 type Service struct {
-	repo              RepoInterface
-	authRepo          AuthTokenCreator
-	tokenIssuer       AccessTokenIssuer
-	employeeRepo      EmployeeInfoProvider
-	auditLog          audit.Logger
-	log               zerolog.Logger
-	email             email.Sender
-	appURL            string // e.g. "https://app.workived.com" — for building invite URLs
-	onEmployeeJoined  []OnEmployeeJoinedFunc
+	repo             RepoInterface
+	authRepo         AuthTokenCreator
+	tokenIssuer      AccessTokenIssuer
+	employeeRepo     EmployeeInfoProvider
+	cache            *cache.Store
+	auditLog         audit.Logger
+	log              zerolog.Logger
+	email            email.Sender
+	appURL           string // e.g. "https://app.workived.com" — for building invite URLs
+	onEmployeeJoined []OnEmployeeJoinedFunc
 }
 
 func NewService(repo RepoInterface, authRepo AuthTokenCreator, tokenIssuer AccessTokenIssuer, employeeRepo EmployeeInfoProvider, appURL string, opts ...ServiceOption) *Service {
@@ -176,7 +178,7 @@ func (s *Service) Create(ctx context.Context, ownerID uuid.UUID, req CreateOrgRe
 }
 
 func (s *Service) Get(ctx context.Context, orgID uuid.UUID) (*Organisation, error) {
-	org, err := s.repo.GetByID(ctx, orgID)
+	org, err := s.getCached(ctx, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("get organisation %s: %w", orgID, err)
 	}
@@ -184,7 +186,7 @@ func (s *Service) Get(ctx context.Context, orgID uuid.UUID) (*Organisation, erro
 }
 
 func (s *Service) GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail, error) {
-	detail, err := s.repo.GetDetail(ctx, orgID)
+	detail, err := s.getDetailCached(ctx, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("get org detail %s: %w", orgID, err)
 	}
@@ -201,6 +203,9 @@ func (s *Service) Update(ctx context.Context, orgID uuid.UUID, req UpdateOrgRequ
 	if err != nil {
 		return nil, fmt.Errorf("update organisation %s: %w", orgID, err)
 	}
+
+	s.invalidateCache(ctx, orgID)
+
 	return org, nil
 }
 
@@ -219,6 +224,8 @@ func (s *Service) TransferOwnership(ctx context.Context, orgID, currentOwnerID u
 	if err := s.repo.TransferOwnership(ctx, orgID, currentOwnerID, req.NewOwnerUserID); err != nil {
 		return fmt.Errorf("transfer ownership: %w", err)
 	}
+
+	s.invalidateCache(ctx, orgID)
 
 	s.logAudit(ctx, audit.LogEntry{
 		OrgID:        orgID,

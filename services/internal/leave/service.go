@@ -10,6 +10,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/email"
 )
 
@@ -96,6 +97,7 @@ type Service struct {
 	orgRepo      OrgInfoProvider
 	employeeRepo EmployeeInfoProvider
 	tasksService TasksServiceInterface
+	cache        *cache.Store
 	auditLog     audit.Logger
 	log          zerolog.Logger
 	email        email.Sender
@@ -156,7 +158,7 @@ func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
 // ── Policies ────────────────────────────────────────────────────────────────
 
 func (s *Service) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Policy, error) {
-	return s.repo.ListPolicies(ctx, orgID)
+	return s.listPoliciesCached(ctx, orgID)
 }
 
 func (s *Service) CreatePolicy(ctx context.Context, orgID uuid.UUID, req CreatePolicyRequest) (*Policy, error) {
@@ -170,6 +172,8 @@ func (s *Service) CreatePolicy(ctx context.Context, orgID uuid.UUID, req CreateP
 		return nil, fmt.Errorf("create policy: %w", err)
 	}
 
+	s.invalidatePolicyCache(ctx, orgID)
+
 	s.logAudit(ctx, audit.LogEntry{
 		OrgID: orgID, Action: "leave_policy.created",
 		ResourceType: "leave_policy", ResourceID: p.ID, AfterState: p,
@@ -182,6 +186,8 @@ func (s *Service) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID, r
 	if err != nil {
 		return nil, fmt.Errorf("update policy: %w", err)
 	}
+
+	s.invalidatePolicyCache(ctx, orgID)
 
 	// If days_per_year was updated, cascade to all existing balances for current year
 	if req.DaysPerYear != nil {
@@ -240,6 +246,8 @@ func (s *Service) DeactivatePolicy(ctx context.Context, orgID, policyID uuid.UUI
 		return fmt.Errorf("deactivate policy: %w", err)
 	}
 
+	s.invalidatePolicyCache(ctx, orgID)
+
 	s.logAudit(ctx, audit.LogEntry{
 		OrgID: orgID, Action: "leave_policy.deactivated",
 		ResourceType: "leave_policy", ResourceID: policyID,
@@ -279,7 +287,7 @@ func (s *Service) InitBalancesForEmployee(ctx context.Context, orgID, employeeID
 // If ProrateFirstYear is enabled on a policy and the employee started in the same year,
 // entitled days are prorated: DaysPerYear × (remaining months / 12).
 func (s *Service) ensureEmployeeBalances(ctx context.Context, orgID, employeeID uuid.UUID, year int) error {
-	policies, err := s.repo.ListPolicies(ctx, orgID)
+	policies, err := s.listPoliciesCached(ctx, orgID)
 	if err != nil {
 		return fmt.Errorf("list policies for balance init: %w", err)
 	}
@@ -356,7 +364,7 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 	year := startDate.Year()
 
 	// 3. Verify policy exists and is active.
-	policy, err := s.repo.GetPolicy(ctx, orgID, input.LeavePolicyID)
+	policy, err := s.getPolicyCached(ctx, orgID, input.LeavePolicyID)
 	if err != nil {
 		return nil, fmt.Errorf("get policy: %w", err)
 	}
@@ -641,7 +649,7 @@ func (s *Service) RejectRequest(ctx context.Context, orgID, reviewerEmployeeID, 
 	}
 
 	// Get policy to check if it's unlimited
-	policy, err := s.repo.GetPolicy(ctx, orgID, existing.LeavePolicyID)
+	policy, err := s.getPolicyCached(ctx, orgID, existing.LeavePolicyID)
 	if err != nil {
 		return nil, fmt.Errorf("get policy: %w", err)
 	}
@@ -725,7 +733,7 @@ func (s *Service) CancelRequest(ctx context.Context, orgID, employeeID, requestI
 	}
 
 	// Get policy to check if it's unlimited
-	policy, err := s.repo.GetPolicy(ctx, orgID, existing.LeavePolicyID)
+	policy, err := s.getPolicyCached(ctx, orgID, existing.LeavePolicyID)
 	if err != nil {
 		return nil, fmt.Errorf("get policy: %w", err)
 	}
@@ -1069,7 +1077,7 @@ func (s *Service) sendLeaveApprovedEmail(ctx context.Context, orgID, employeeID,
 	}
 
 	// Get policy name
-	policy, err := s.repo.GetPolicy(ctx, orgID, req.LeavePolicyID)
+	policy, err := s.getPolicyCached(ctx, orgID, req.LeavePolicyID)
 	if err != nil {
 		s.log.Warn().Err(err).Str("policy_id", req.LeavePolicyID.String()).Msg("failed to get policy for approved email")
 		return
@@ -1134,7 +1142,7 @@ func (s *Service) sendLeaveRejectedEmail(ctx context.Context, orgID, employeeID,
 	}
 
 	// Get policy name
-	policy, err := s.repo.GetPolicy(ctx, orgID, req.LeavePolicyID)
+	policy, err := s.getPolicyCached(ctx, orgID, req.LeavePolicyID)
 	if err != nil {
 		s.log.Warn().Err(err).Str("policy_id", req.LeavePolicyID.String()).Msg("failed to get policy for rejected email")
 		return
