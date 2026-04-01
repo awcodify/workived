@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="color-scheme: light;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,7 @@
   <meta name="description" content="Free HR software for startups with 5–25 employees. Attendance tracking, leave management, expense claims, task boards, and team directory — all in one workspace. No hidden costs.">
   <meta name="keywords" content="attendance management, leave management, HR software, free HR tool, small team management, employee attendance, leave tracker, expense claims, task management, startup HR, Indonesia HR, UAE HR">
   <meta name="author" content="Workived">
+  <meta name="color-scheme" content="light only">
   <meta name="theme-color" content="#F3F2FB">
   <link rel="canonical" href="https://workived.com">
 
@@ -17,11 +18,16 @@
   <meta property="og:url" content="https://workived.com">
   <meta property="og:site_name" content="Workived">
   <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="https://workived.com/images/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/jpeg">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Workived — Free HR & Attendance for Small Teams">
   <meta name="twitter:description" content="Attendance, leave, claims, tasks — one free workspace for startups. No hidden costs.">
+  <meta name="twitter:image" content="https://workived.com/images/og-image.jpg">
 
   <!-- Structured Data (JSON-LD) -->
   <script type="application/ld+json">
@@ -81,77 +87,149 @@
 
     body {
       font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-      background: var(--ink-0);
+      background: var(--ink-50);
       color: var(--ink-900);
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
       overflow-x: hidden;
     }
 
-    /* ── Subtle background texture ── */
-    .bg-glow {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      overflow: hidden;
-      pointer-events: none;
-    }
-    .bg-glow::before {
-      content: '';
-      position: absolute;
-      top: -30%;
-      left: -20%;
-      width: 80%;
-      height: 80%;
-      background: radial-gradient(ellipse at center, rgba(99,87,232,0.04) 0%, transparent 70%);
-      animation: drift 20s ease-in-out infinite;
-    }
-    .bg-glow::after {
-      content: '';
-      position: absolute;
-      bottom: -30%;
-      right: -15%;
-      width: 70%;
-      height: 70%;
-      background: radial-gradient(ellipse at center, rgba(155,143,247,0.03) 0%, transparent 70%);
-      animation: drift 25s ease-in-out infinite reverse;
-    }
-    @keyframes drift {
-      0%, 100% { transform: translate(0, 0); }
-      50% { transform: translate(40px, -30px); }
-    }
-
-    .page { position: relative; z-index: 1; }
-
-    /* ── Header ── */
+    /* ── Sticky Header ── */
     .header {
-      padding: 28px 40px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border-bottom: 1px solid transparent;
+      padding: 0 40px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease;
+    }
+    .header.scrolled {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom-color: rgba(0,0,0,0.04);
+      box-shadow: 0 1px 12px rgba(0,0,0,0.06);
+    }
+    .header-left {
       display: flex;
       align-items: center;
       gap: 14px;
     }
-    .logo-icon { 
-      flex-shrink: 0;
-      display: block;
-    }
+    .logo-icon { flex-shrink: 0; display: block; }
     .logo-wordmark {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 800;
       letter-spacing: -0.04em;
       color: var(--ink-900);
       line-height: 1;
     }
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+    }
+    .header-nav a {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-500);
+      text-decoration: none;
+      transition: color 0.2s ease;
+      letter-spacing: -0.01em;
+    }
+    .header-nav a:hover { color: var(--accent); }
+    .header-nav a.header-cta,
+    .header-nav a.header-cta:hover {
+      color: #FFFFFF;
+    }
+    .header-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+    .header-cta:hover {
+      background: var(--accent-text);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99,87,232,0.3);
+    }
 
     /* ── Hero ── */
     .hero {
+      position: relative;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 60px 24px 80px;
+      padding: 100px 24px 80px;
       text-align: center;
-      min-height: 100vh;
-      background: linear-gradient(180deg, var(--ink-0) 0%, var(--ink-50) 100%);
+      min-height: calc(100vh - 72px);
+      background: var(--ink-50);
+      overflow: hidden;
+    }
+
+    /* Gradient orbs */
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-bg .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.5;
+    }
+    .hero-bg .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: rgba(99,87,232,0.12);
+      top: -20%;
+      right: -10%;
+      animation: float-orb 18s ease-in-out infinite;
+    }
+    .hero-bg .orb-2 {
+      width: 400px;
+      height: 400px;
+      background: rgba(155,143,247,0.10);
+      bottom: -10%;
+      left: -5%;
+      animation: float-orb 22s ease-in-out infinite reverse;
+    }
+    .hero-bg .orb-3 {
+      width: 300px;
+      height: 300px;
+      background: rgba(129,140,248,0.08);
+      top: 30%;
+      left: 50%;
+      animation: float-orb 15s ease-in-out infinite 3s;
+    }
+    @keyframes float-orb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -20px) scale(1.05); }
+      66% { transform: translate(-20px, 15px) scale(0.95); }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
     }
 
     .pill {
@@ -166,7 +244,7 @@
       font-weight: 600;
       color: var(--accent-text);
       letter-spacing: 0.02em;
-      margin-bottom: 40px;
+      margin-bottom: 32px;
     }
     .pill-dot {
       width: 8px;
@@ -181,7 +259,7 @@
     }
 
     .hero h1 {
-      font-size: clamp(40px, 8vw, 72px);
+      font-size: clamp(44px, 7.5vw, 76px);
       font-weight: 800;
       letter-spacing: -0.05em;
       line-height: 1.05;
@@ -189,68 +267,50 @@
       color: var(--ink-900);
     }
     .highlight {
-      background: linear-gradient(135deg, #9B8FF7 0%, #6357E8 100%);
+      background: linear-gradient(135deg, #9B8FF7 0%, #6357E8 50%, #818CF8 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
     }
-
     .hero .subtitle {
-      font-size: clamp(16px, 2.5vw, 20px);
+      font-size: clamp(16px, 2.2vw, 19px);
       color: var(--ink-500);
       line-height: 1.7;
-      margin-bottom: 48px;
+      margin: 0 auto 40px;
     }
 
-    .markets {
-      margin-top: 48px;
-    }
-    .markets-label {
-      font-size: 12px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--ink-300);
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .market-cards {
+    /* Hero CTA buttons */
+    .hero-actions {
       display: flex;
       align-items: center;
-      gap: 12px;
       justify-content: center;
+      gap: 16px;
+      margin-bottom: 64px;
+      flex-wrap: wrap;
     }
-    .market-card {
-      display: flex;
+    .btn-primary {
+      display: inline-flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px 20px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      gap: 8px;
+      padding: 16px 36px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent-mid) 0%, var(--accent) 100%);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 20px rgba(99,87,232,0.25);
     }
-    .market-card:hover {
+    .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.06);
+      box-shadow: 0 8px 32px rgba(99,87,232,0.35);
     }
-    .flag-svg {
-      width: 32px;
-      height: 24px;
-      border-radius: 4px;
-      overflow: hidden;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
-      flex-shrink: 0;
-    }
-    .country-name {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--ink-700);
-      letter-spacing: -0.01em;
-    }
-
+    /* Scroll hint */
     .scroll-hint {
-      margin-top: 56px;
+      margin-top: 80px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -261,34 +321,376 @@
       letter-spacing: 0.1em;
       text-transform: uppercase;
       cursor: pointer;
+      text-decoration: none;
       transition: color 0.2s ease;
     }
-    .scroll-hint:hover {
-      color: var(--accent);
-    }
+    .scroll-hint:hover { color: var(--accent); }
     .scroll-arrow {
       width: 20px;
       height: 20px;
       animation: bounce 2s ease-in-out infinite;
-      transition: color 0.2s ease;
     }
     @keyframes bounce {
       0%, 100% { transform: translateY(0); }
       50% { transform: translateY(6px); }
     }
 
-    /* ── Features section ── */
-    .features-section {
-      padding: 80px 24px 120px;
-      max-width: 1200px;
-      margin: 0 auto;
+    /* Stats strip */
+    .stats-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      padding: 32px 0;
+      position: relative;
+      z-index: 1;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--ink-900);
+      line-height: 1;
+    }
+    .stat-value .accent { color: var(--accent); }
+    .stat-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-300);
+      margin-top: 6px;
+      letter-spacing: 0.02em;
+    }
+    .stat-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--ink-150);
     }
 
+    /* Markets */
+    .markets {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 48px;
+      position: relative;
+      z-index: 1;
+    }
+    .markets-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-300);
+      margin-right: 8px;
+    }
+    .market-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      background: white;
+      border: 1px solid var(--ink-100);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-700);
+      transition: border-color 0.2s ease;
+    }
+    .market-tag:hover { border-color: var(--accent-mid); }
+    .flag-svg {
+      width: 20px;
+      height: 15px;
+      border-radius: 3px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+      flex-shrink: 0;
+    }
+
+    /* ── Hero Screenshot Preview ── */
+    .hero-screenshot {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 64px auto 0;
+      padding: 0 24px;
+    }
+    .browser-frame {
+      background: white;
+      border-radius: 16px;
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.06),
+        0 24px 80px rgba(99,87,232,0.12),
+        0 8px 32px rgba(0,0,0,0.06);
+      overflow: hidden;
+      transition: transform 0.5s ease, box-shadow 0.5s ease;
+    }
+    .browser-frame:hover {
+      transform: translateY(-4px);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.06),
+        0 32px 100px rgba(99,87,232,0.18),
+        0 12px 40px rgba(0,0,0,0.08);
+    }
+    .browser-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      background: var(--ink-50);
+      border-bottom: 1px solid var(--ink-100);
+    }
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--ink-150);
+    }
+    .browser-dot:nth-child(1) { background: #FF6058; }
+    .browser-dot:nth-child(2) { background: #FFBD2E; }
+    .browser-dot:nth-child(3) { background: #28CA42; }
+    .browser-url {
+      flex: 1;
+      margin-left: 12px;
+      padding: 6px 16px;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid var(--ink-100);
+      font-size: 12px;
+      color: var(--ink-300);
+      font-weight: 500;
+    }
+    .browser-frame img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* ── Features section ── */
+    .features-section {
+      padding: 80px 0 120px;
+      max-width: none;
+      margin: 0 auto;
+    }
+    .features-section .section-header {
+      padding: 0 24px;
+    }
+
+    /* ── Desktop showcase ── */
+    .feature-showcase {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+    .showcase-tabs {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 56px;
+      flex-wrap: wrap;
+    }
+    .showcase-tab {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 100px;
+      background: transparent;
+      border: 1.5px solid var(--ink-100);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-500);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .showcase-tab:hover {
+      border-color: var(--ink-300);
+      color: var(--ink-700);
+    }
+    .showcase-tab.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: white;
+    }
+    .showcase-tab .tab-emoji {
+      font-size: 16px;
+      line-height: 1;
+    }
+    .showcase-panel {
+      display: none;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 64px;
+      align-items: center;
+      animation: showcase-in 0.4s ease;
+    }
+    .showcase-panel.active { display: grid; }
+    @keyframes showcase-in {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .showcase-text {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .showcase-text .feature-icon-row { margin-bottom: 4px; }
+    .showcase-text h3 {
+      font-size: clamp(28px, 3.5vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.12;
+      color: var(--ink-900);
+    }
+    .showcase-text p {
+      font-size: 17px;
+      color: var(--ink-500);
+      line-height: 1.7;
+      max-width: 460px;
+    }
+    .showcase-text .feature-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .showcase-text .feature-bullets li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      color: var(--ink-500);
+      font-weight: 500;
+    }
+    .showcase-text .feature-bullets li::before {
+      content: '';
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .showcase-img {
+      position: relative;
+    }
+    .showcase-img .screenshot-wrapper {
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+    }
+    .showcase-img .screenshot-wrapper:hover {
+      transform: translateY(-6px);
+    }
+    .showcase-img img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    /* Showcase module accent colors */
+    .showcase-panel[data-module="overview"] .feature-bullets li::before { background: var(--accent); }
+    .showcase-panel[data-module="overview"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(99,87,232,0.10), 0 0 0 1px rgba(99,87,232,0.08); }
+    .showcase-panel[data-module="overview"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(99,87,232,0.15), 0 0 0 1px rgba(99,87,232,0.12); }
+    .showcase-panel[data-module="attendance"] .feature-bullets li::before { background: #8B5CF6; }
+    .showcase-panel[data-module="attendance"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(139,92,246,0.10), 0 0 0 1px rgba(139,92,246,0.08); }
+    .showcase-panel[data-module="attendance"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(139,92,246,0.15), 0 0 0 1px rgba(139,92,246,0.12); }
+    .showcase-panel[data-module="leave"] .feature-bullets li::before { background: var(--accent); }
+    .showcase-panel[data-module="leave"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(99,87,232,0.10), 0 0 0 1px rgba(99,87,232,0.08); }
+    .showcase-panel[data-module="leave"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(99,87,232,0.15), 0 0 0 1px rgba(99,87,232,0.12); }
+    .showcase-panel[data-module="claims"] .feature-bullets li::before { background: #10B981; }
+    .showcase-panel[data-module="claims"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(16,185,129,0.10), 0 0 0 1px rgba(16,185,129,0.08); }
+    .showcase-panel[data-module="claims"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.12); }
+    .showcase-panel[data-module="tasks"] .feature-bullets li::before { background: #818CF8; }
+    .showcase-panel[data-module="tasks"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(129,140,248,0.10), 0 0 0 1px rgba(129,140,248,0.08); }
+    .showcase-panel[data-module="tasks"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(129,140,248,0.15), 0 0 0 1px rgba(129,140,248,0.12); }
+    .showcase-panel[data-module="calendar"] .feature-bullets li::before { background: #D97706; }
+    .showcase-panel[data-module="calendar"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(217,119,6,0.10), 0 0 0 1px rgba(217,119,6,0.08); }
+    .showcase-panel[data-module="calendar"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(217,119,6,0.15), 0 0 0 1px rgba(217,119,6,0.12); }
+    .showcase-panel[data-module="people"] .feature-bullets li::before { background: #EC4899; }
+    .showcase-panel[data-module="people"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(236,72,153,0.10), 0 0 0 1px rgba(236,72,153,0.08); }
+    .showcase-panel[data-module="people"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(236,72,153,0.15), 0 0 0 1px rgba(236,72,153,0.12); }
+
+    /* ── Mobile carousel ── */
+    .feature-carousel {
+      display: none;
+    }
+    .feature-carousel-track {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 20px 20px;
+      scrollbar-width: none;
+    }
+    .feature-carousel-track::-webkit-scrollbar { display: none; }
+    .carousel-card {
+      flex: 0 0 300px;
+      scroll-snap-align: center;
+      border-radius: 20px;
+      overflow: hidden;
+      background: white;
+      border: 1px solid var(--ink-100);
+      transition: all 0.3s ease;
+    }
+    .carousel-card-img {
+      position: relative;
+      overflow: hidden;
+    }
+    .carousel-card-img img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    .carousel-card-body {
+      padding: 20px;
+    }
+    .carousel-card-body .feature-icon-row {
+      margin-bottom: 8px;
+    }
+    .carousel-card-body h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink-900);
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+    }
+    .carousel-card-body p {
+      font-size: 13px;
+      color: var(--ink-500);
+      line-height: 1.6;
+    }
+    .carousel-dots {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 24px;
+    }
+    .carousel-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ink-150);
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .carousel-dot.active {
+      background: var(--accent);
+      width: 24px;
+      border-radius: 4px;
+    }
     .section-header {
       text-align: center;
       margin-bottom: 80px;
     }
-    .section-header .label {
+    .section-label {
       display: inline-block;
       font-size: 12px;
       font-weight: 700;
@@ -298,26 +700,18 @@
       margin-bottom: 16px;
     }
     .section-header h2 {
-      font-size: clamp(28px, 5vw, 44px);
+      font-size: clamp(32px, 5vw, 48px);
       font-weight: 800;
       letter-spacing: -0.04em;
       line-height: 1.15;
       color: var(--ink-900);
     }
-    .section-header h2 .muted {
-      color: var(--ink-300);
-    }
+    .section-header h2 .muted { color: var(--ink-300); }
 
-    /* ── Feature blocks ── */
+    /* ── Feature blocks (hidden — replaced by carousel) ── */
     .feature-block {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 60px;
-      align-items: center;
-      margin-bottom: 120px;
+      display: none;
     }
-    .feature-block.reverse .feature-text { order: 2; }
-    .feature-block.reverse .feature-visual { order: 1; }
 
     .feature-text {
       display: flex;
@@ -468,35 +862,500 @@
       box-shadow: 0 32px 80px rgba(236,72,153,0.15), 0 0 0 1px rgba(236,72,153,0.12);
     }
 
+    /* ── Value Proposition bar ── */
+    .value-bar {
+      background: var(--ink-700);
+      padding: 64px 24px;
+    }
+    .value-bar-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 64px;
+      flex-wrap: wrap;
+    }
+    .value-item {
+      text-align: center;
+    }
+    .value-number {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: white;
+      line-height: 1;
+    }
+    .value-number .v-accent { color: var(--accent-mid); }
+    .value-desc {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      margin-top: 8px;
+    }
+    .value-divider {
+      width: 1px;
+      height: 48px;
+      background: rgba(255,255,255,0.12);
+    }
+
+    /* ── Confrontive comparison ── */
+    .confront-section {
+      padding: 100px 24px;
+      background: var(--ink-900);
+      position: relative;
+      overflow: hidden;
+    }
+    .confront-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 60% 50%, rgba(99,87,232,0.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .confront-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+    .confront-lines {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+    .confront-line {
+      font-size: clamp(18px, 3vw, 28px);
+      font-weight: 600;
+      line-height: 1.4;
+      letter-spacing: -0.02em;
+    }
+    .confront-line.other {
+      color: rgba(255,255,255,0.35);
+    }
+    .confront-line.ours {
+      color: white;
+      font-weight: 800;
+    }
+    .confront-line .confront-brand {
+      color: rgba(255,255,255,0.55);
+      font-weight: 700;
+    }
+    .confront-line.ours .confront-brand {
+      color: var(--accent-mid);
+    }
+    .confront-punchline {
+      font-size: clamp(14px, 2vw, 17px);
+      color: rgba(255,255,255,0.4);
+      line-height: 1.7;
+      max-width: 560px;
+    }
+
+    /* ── How it works ── */
+    .steps-section {
+      padding: 120px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+    }
+    .steps-grid::before {
+      content: '';
+      position: absolute;
+      top: 36px;
+      left: 15%;
+      right: 15%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--ink-100), var(--accent-dim), var(--ink-100));
+      z-index: 0;
+    }
+    .step-card {
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+    .step-number {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0 auto 20px;
+      background: white;
+      color: var(--accent);
+      border: 2px solid var(--ink-100);
+      transition: all 0.3s ease;
+    }
+    .step-card:hover .step-number {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      transform: scale(1.08);
+    }
+    .step-card h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink-900);
+      margin-bottom: 8px;
+    }
+    .step-card p {
+      font-size: 14px;
+      color: var(--ink-500);
+      line-height: 1.65;
+      max-width: 260px;
+      margin: 0 auto;
+    }
+
+    /* ── Trust strip ── */
+    .trust-section {
+      padding: 64px 24px;
+      background: var(--ink-50);
+    }
+    .trust-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      text-align: center;
+    }
+    .trust-avatars {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      margin-bottom: 20px;
+    }
+    .trust-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 3px solid var(--ink-50);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+      margin-left: -8px;
+    }
+    .trust-avatar:first-child { margin-left: 0; }
+    .trust-quote {
+      font-size: clamp(16px, 2.5vw, 20px);
+      font-weight: 600;
+      color: var(--ink-700);
+      line-height: 1.6;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+    .trust-meta {
+      font-size: 14px;
+      color: var(--ink-300);
+      font-weight: 500;
+    }
+
+    /* ── FAQ section ── */
+    .faq-section {
+      padding: 120px 24px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .faq-item {
+      border-bottom: 1px solid var(--ink-100);
+    }
+    .faq-question {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 24px 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink-900);
+      text-align: left;
+      line-height: 1.4;
+      transition: color 0.2s ease;
+    }
+    .faq-question:hover { color: var(--accent); }
+    .faq-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+      margin-left: 16px;
+      color: var(--ink-300);
+      transition: transform 0.3s ease, color 0.3s ease;
+    }
+    .faq-item.open .faq-icon {
+      transform: rotate(45deg);
+      color: var(--accent);
+    }
+    .faq-answer {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, padding 0.3s ease;
+    }
+    .faq-item.open .faq-answer {
+      max-height: 200px;
+    }
+    .faq-answer p {
+      padding: 0 0 24px;
+      font-size: 15px;
+      color: var(--ink-500);
+      line-height: 1.7;
+    }
+
+    /* ── Pricing section ── */
+    .pricing-section {
+      padding: 120px 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+    .pricing-card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      border: 1px solid var(--ink-100);
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .pricing-card:hover {
+      border-color: transparent;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.08), 0 0 0 1px rgba(99,87,232,0.1);
+      transform: translateY(-4px);
+    }
+    .pricing-card.featured {
+      border-color: var(--accent);
+      box-shadow: 0 16px 48px rgba(99,87,232,0.12), 0 0 0 2px var(--accent);
+    }
+    .pricing-card.featured:hover {
+      box-shadow: 0 24px 64px rgba(99,87,232,0.18), 0 0 0 2px var(--accent);
+    }
+    .pricing-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 16px;
+      border-radius: 100px;
+      background: linear-gradient(135deg, var(--accent-mid) 0%, var(--accent) 100%);
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .pricing-plan {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--ink-300);
+      margin-bottom: 8px;
+    }
+    .pricing-card.featured .pricing-plan { color: var(--accent); }
+    .pricing-price {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+    .pricing-amount {
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--ink-900);
+      line-height: 1;
+    }
+    .pricing-original {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--ink-300);
+      text-decoration: line-through;
+      margin-right: 4px;
+    }
+    .pricing-period {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--ink-300);
+    }
+    .pricing-savings {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 4px 12px;
+      border-radius: 100px;
+      background: #D1FAE5;
+      color: #059669;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .pricing-desc {
+      font-size: 15px;
+      color: var(--ink-500);
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .pricing-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 36px;
+    }
+    .pricing-features li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--ink-500);
+      font-weight: 500;
+      line-height: 1.5;
+    }
+    .pricing-features li::before {
+      content: '';
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 1px;
+      background: var(--ink-100) url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' fill='none' stroke='%2372708A' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 6.5L5 9l4.5-6'/%3E%3C/svg%3E") center / 10px no-repeat;
+    }
+    .pricing-card.featured .pricing-features li::before {
+      background-color: var(--accent-dim);
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' fill='none' stroke='%236357E8' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 6.5L5 9l4.5-6'/%3E%3C/svg%3E");
+    }
+    .pricing-cta {
+      display: block;
+      width: 100%;
+      text-align: center;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+    }
+    .pricing-cta.outline {
+      background: white;
+      color: var(--ink-900);
+      border: 1.5px solid var(--ink-150);
+    }
+    .pricing-cta.outline:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .pricing-cta.filled {
+      background: linear-gradient(135deg, var(--accent-mid) 0%, var(--accent) 100%);
+      color: white;
+      box-shadow: 0 4px 16px rgba(99,87,232,0.25);
+    }
+    .pricing-cta.filled:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 24px rgba(99,87,232,0.35);
+    }
+
     /* ── CTA section ── */
     .cta-section {
       text-align: center;
-      padding: 80px 24px 120px;
-      max-width: 600px;
+      padding: 120px 24px;
+      position: relative;
+      overflow: hidden;
+      background: var(--ink-900);
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 60% 50%, rgba(99,87,232,0.15) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .cta-content {
+      position: relative;
+      z-index: 1;
+      max-width: 560px;
       margin: 0 auto;
     }
     .cta-section h2 {
-      font-size: clamp(28px, 5vw, 40px);
+      font-size: clamp(32px, 5vw, 48px);
       font-weight: 800;
       letter-spacing: -0.04em;
       margin-bottom: 16px;
-      color: var(--ink-900);
+      color: #FFFFFF;
+      line-height: 1.1;
     }
     .cta-section p {
-      font-size: 16px;
-      color: var(--ink-500);
+      font-size: 17px;
+      color: rgba(255,255,255,0.55);
       line-height: 1.7;
       margin-bottom: 40px;
     }
 
     /* ── Footer ── */
     .footer {
-      padding: 32px 40px;
-      text-align: center;
-      font-size: 13px;
-      color: var(--ink-300);
-      border-top: 1px solid var(--ink-100);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 48px 40px 32px;
+      background: var(--ink-900);
     }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .footer-wordmark {
+      font-size: 18px;
+      font-weight: 800;
+      color: #FFFFFF;
+      letter-spacing: -0.03em;
+    }
+    .footer-copy {
+      font-size: 13px;
+      color: rgba(255,255,255,0.35);
+    }
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .footer-link {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.55);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .footer-link:hover { color: #FFFFFF; }
 
     /* ── Floating Support Button ── */
     .support-float {
@@ -515,7 +1374,7 @@
       border-radius: 16px;
       font-size: 14px;
       color: var(--ink-900);
-      box-shadow: 0 6px 24px rgba(99, 87, 232, 0.15), 0 2px 8px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 6px 24px rgba(99,87,232,0.15), 0 2px 8px rgba(0,0,0,0.08);
       opacity: 0;
       transform: translateY(8px) scale(0.95);
       transition: opacity 0.3s ease, transform 0.3s ease;
@@ -532,8 +1391,6 @@
       align-items: center;
       gap: 4px;
       padding: 0 12px;
-      margin-bottom: 0;
-      margin-top: 0;
       background: var(--ink-50);
       border-radius: 12px;
       width: fit-content;
@@ -548,7 +1405,6 @@
       transform: translateY(0);
       max-height: 40px;
       padding: 8px 12px;
-      margin-top: 0;
       margin-bottom: 12px;
     }
     .typing-dot {
@@ -597,9 +1453,7 @@
       background: var(--ink-50);
       transition: background 0.2s ease;
     }
-    .support-card-email:hover {
-      background: #E8E6FB;
-    }
+    .support-card-email:hover { background: #E8E6FB; }
     .support-btn {
       width: 56px;
       height: 56px;
@@ -609,14 +1463,13 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      box-shadow: 0 6px 20px rgba(99, 87, 232, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 6px 20px rgba(99,87,232,0.3), 0 2px 8px rgba(0,0,0,0.1);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       border: none;
-      position: relative;
     }
     .support-btn:hover {
       transform: scale(1.08);
-      box-shadow: 0 8px 24px rgba(99, 87, 232, 0.4), 0 4px 12px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 8px 24px rgba(99,87,232,0.4), 0 4px 12px rgba(0,0,0,0.15);
     }
     .support-btn svg {
       width: 24px;
@@ -624,74 +1477,92 @@
       color: white;
       transition: transform 0.3s ease;
     }
-    .support-btn.active svg {
-      transform: rotate(180deg);
-    }
-    .support-btn.buzz {
-      animation: buzz 0.5s ease-in-out;
-    }
+    .support-btn.active svg { transform: rotate(180deg); }
+    .support-btn.buzz { animation: buzz 0.5s ease-in-out; }
     @keyframes buzz {
       0%, 100% { transform: translateX(0) rotate(0); }
       10%, 30%, 50%, 70%, 90% { transform: translateX(-3px) rotate(-2deg); }
       20%, 40%, 60%, 80% { transform: translateX(3px) rotate(2deg); }
     }
-    @media (max-width: 640px) {
-      .support-float { bottom: 20px; right: 20px; }
-      .support-btn { width: 52px; height: 52px; }
-      .support-card { max-width: calc(100vw - 40px); }
-    }
 
     /* ── Scroll animations ── */
     .reveal {
       opacity: 0;
-      transform: translateY(40px);
-      transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+      transform: translateY(32px);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
     }
     .reveal.visible {
       opacity: 1;
       transform: translateY(0);
     }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
 
     /* ── Responsive ── */
     @media (max-width: 900px) {
-      .feature-block {
-        grid-template-columns: 1fr;
-        gap: 40px;
-        margin-bottom: 80px;
+      .features-section { padding: 60px 0 80px; }
+      .features-section .section-header { padding: 0 24px; }
+      .feature-showcase { display: none; }
+      .feature-carousel { display: block; }
+      .carousel-card { flex: 0 0 300px; }
+      .value-bar-inner {
+        gap: 32px;
       }
-      .feature-block.reverse .feature-text { order: 1; }
-      .feature-block.reverse .feature-visual { order: 2; }
+      .value-divider { display: none; }
+      .stats-strip { gap: 32px; }
+      .steps-grid { grid-template-columns: 1fr; max-width: 320px; }
+      .steps-grid::before { display: none; }
     }
 
     @media (max-width: 640px) {
-      .header { padding: 24px 20px; }
-      .hero { padding: 40px 20px 60px; }
-      .features-section { padding: 60px 16px 80px; }
-      .feature-block { margin-bottom: 64px; gap: 32px; }
-      .footer { padding: 24px 20px; }
-      .scroll-hint { margin-top: 40px; }
-      .market-card {
-        padding: 10px 16px;
-        gap: 10px;
+      .header {
+        padding: 0 20px;
+        height: 64px;
       }
-      .flag-svg {
-        width: 28px;
-        height: 21px;
-      }
-      .country-name {
-        font-size: 13px;
-      }
+      .header-nav a:not(.header-cta) { display: none; }
+      .hero { padding: 60px 20px 40px; }
+      .hero-actions { flex-direction: column; }
+      .btn-primary { width: 100%; justify-content: center; }
+      .stats-strip { gap: 16px; }
+      .stat-value { font-size: 22px; }
+      .stat-label { font-size: 11px; }
+      .stat-divider { height: 28px; }
+      .markets { flex-wrap: wrap; }
+      .hero-screenshot { margin-top: 40px; }
+      .hero-bg .orb-1 { width: 300px; height: 300px; top: -5%; right: -15%; opacity: 0.7; }
+      .hero-bg .orb-2 { width: 250px; height: 250px; bottom: 5%; left: -10%; opacity: 0.7; }
+      .hero-bg .orb-3 { width: 200px; height: 200px; top: 40%; left: 20%; opacity: 0.6; }
+      .features-section { padding: 60px 0 80px; }
+      .features-section .section-header { padding: 0 16px; }
+      .carousel-card { flex: 0 0 260px; }
+      .carousel-card-body { padding: 16px; }
+      .carousel-card-body h3 { font-size: 15px; }
+      .carousel-card-body p { font-size: 12px; }
+      .pricing-section { padding: 80px 16px; }
+      .pricing-grid { grid-template-columns: 1fr; max-width: 440px; }
+      .pricing-card { padding: 32px; }
+      .confront-section { padding: 64px 20px; }
+      .confront-line { font-size: 17px; }
+      .steps-section { padding: 80px 20px; }
+      .faq-section { padding: 80px 20px; }
+      .faq-question { font-size: 15px; }
+      .cta-section { padding: 80px 20px; }
+      .footer { padding: 32px 20px 24px; }
+      .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+      .footer-right { flex-wrap: wrap; justify-content: center; }
+      .support-float { bottom: 20px; right: 20px; }
+      .support-btn { width: 52px; height: 52px; }
+      .support-card { max-width: calc(100vw - 40px); }
     }
   </style>
 </head>
 <body>
 
-  <div class="bg-glow"></div>
-
-  <div class="page">
-    <!-- Header -->
-    <header class="header">
-      <svg class="logo-icon" width="40" height="40" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- ═══════════ HEADER ═══════════ -->
+  <header class="header" id="header">
+    <a href="#" class="header-left" style="text-decoration:none;">
+      <svg class="logo-icon" width="36" height="36" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#9B8FF7"/>
@@ -703,18 +1574,31 @@
         <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
       </svg>
       <span class="logo-wordmark">Workived</span>
-    </header>
+    </a>
+    <nav class="header-nav">
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="#faq">FAQ</a>
+      <a href="mailto:my@workived.com" class="header-cta">Get Early Access</a>
+    </nav>
+  </header>
 
-    <!-- ═══════════ HERO ═══════════ -->
-    <section class="hero">
+  <!-- ═══════════ HERO ═══════════ -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+
+    <div class="hero-content">
       <div class="pill">
         <span class="pill-dot"></span>
-        Coming Soon
+        Coming Soon — Free for small teams
       </div>
 
       <h1>
-        Your team,<br>
-        <span class="highlight">simplified.</span>
+        Your team,<br><span class="highlight">simplified.</span>
       </h1>
 
       <p class="subtitle">
@@ -722,50 +1606,97 @@
         Now we use it daily, and it's yours — free for almost everything. No hidden costs.
       </p>
 
-      <div class="markets">
-        <div class="markets-label">Launching in</div>
-        <div class="market-cards">
-          <div class="market-card">
-            <svg class="flag-svg" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
-              <rect width="3" height="1" fill="#FF0000"/>
-              <rect y="1" width="3" height="1" fill="#FFFFFF"/>
-            </svg>
-            <span class="country-name">Indonesia</span>
-          </div>
-          <div class="market-card">
-            <svg class="flag-svg" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
-              <rect width="3" height="2" fill="#00732F"/>
-              <rect y="0.666" width="3" height="0.667" fill="#FFFFFF"/>
-              <rect y="1.333" width="3" height="0.667" fill="#000000"/>
-              <rect width="0.5" height="2" fill="#FF0000"/>
-            </svg>
-            <span class="country-name">UAE</span>
-          </div>
+      <div class="hero-actions">
+        <a href="mailto:my@workived.com" class="btn-primary">
+          Get Early Access
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </a>
+      </div>
+
+      <div class="stats-strip">
+        <div class="stat">
+          <div class="stat-value"><span class="accent">$0</span></div>
+          <div class="stat-label">No hidden costs</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-value">5 min</div>
+          <div class="stat-label">Setup time</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-value">25</div>
+          <div class="stat-label">Employees free tier</div>
         </div>
       </div>
 
-      <div class="scroll-hint" id="scrollHint">
+      <div class="markets">
+        <span class="markets-label">Launching in</span>
+        <div class="market-tag">
+          <svg class="flag-svg" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
+            <rect width="3" height="1" fill="#FF0000"/>
+            <rect y="1" width="3" height="1" fill="#FFFFFF"/>
+          </svg>
+          Indonesia
+        </div>
+        <div class="market-tag">
+          <svg class="flag-svg" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
+            <rect width="3" height="2" fill="#00732F"/>
+            <rect y="0.666" width="3" height="0.667" fill="#FFFFFF"/>
+            <rect y="1.333" width="3" height="0.667" fill="#000000"/>
+            <rect width="0.5" height="2" fill="#FF0000"/>
+          </svg>
+          UAE
+        </div>
+      </div>
+
+      <a href="#features" class="scroll-hint">
         <span>See what's inside</span>
         <svg class="scroll-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M10 4L10 16M10 16L5 11M10 16L15 11"/>
         </svg>
+      </a>
+    </div>
+
+    <!-- Hero screenshot -->
+    <div class="hero-screenshot reveal">
+      <div class="browser-frame">
+        <div class="browser-bar">
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+          <div class="browser-url">app.workived.com</div>
+        </div>
+        <img src="images/overview.jpeg" alt="Workived overview dashboard showing attendance clock, pending approvals, leave balance and team pulse" loading="eager" width="960" height="600">
       </div>
-    </section>
+    </div>
+  </section>
 
-    <!-- ═══════════ FEATURES ═══════════ -->
-    <section class="features-section" id="features">
+  <!-- ═══════════ FEATURES ═══════════ -->
+  <section class="features-section" id="features">
 
-      <div class="section-header reveal">
-        <span class="label">Everything you need</span>
-        <h2>One workspace.<br><span class="muted">Seven modules.</span></h2>
+    <div class="section-header reveal">
+      <span class="section-label">Everything you need</span>
+      <h2>One workspace.<br><span class="muted">Seven modules.</span></h2>
+    </div>
+
+    <!-- Desktop showcase -->
+    <div class="feature-showcase reveal">
+      <div class="showcase-tabs" id="showcaseTabs">
+        <button class="showcase-tab active" data-module="overview"><span class="tab-emoji">🏠</span> Overview</button>
+        <button class="showcase-tab" data-module="attendance"><span class="tab-emoji">⏱</span> Attendance</button>
+        <button class="showcase-tab" data-module="leave"><span class="tab-emoji">🏖</span> Leave</button>
+        <button class="showcase-tab" data-module="claims"><span class="tab-emoji">💰</span> Claims</button>
+        <button class="showcase-tab" data-module="tasks"><span class="tab-emoji">✅</span> Tasks</button>
+        <button class="showcase-tab" data-module="calendar"><span class="tab-emoji">📅</span> Calendar</button>
+        <button class="showcase-tab" data-module="people"><span class="tab-emoji">👥</span> People</button>
       </div>
 
-      <!-- 1. Overview -->
-      <div class="feature-block reveal" data-module="overview">
-        <div class="feature-text">
+      <div class="showcase-panel active" data-module="overview">
+        <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji">🏠</div>
-            <span class="feature-module-name">Overview</span>
+            <div class="feature-emoji" style="background:#EFEDFD;">🏠</div>
+            <span class="feature-module-name" style="color:var(--accent);">Overview</span>
           </div>
           <h3>Everything at a glance</h3>
           <p>Your morning starts here. See who's in, pending approvals, leave balances, and team pulse — all in one dashboard.</p>
@@ -776,19 +1707,18 @@
             <li>Upcoming holidays & events</li>
           </ul>
         </div>
-        <div class="feature-visual">
+        <div class="showcase-img">
           <div class="screenshot-wrapper">
-            <img src="images/overview.jpeg" alt="Workived overview dashboard showing attendance clock, pending approvals, leave balance and team pulse" loading="lazy" width="960" height="600">
+            <img src="images/overview.jpeg" alt="Workived overview dashboard" loading="lazy" width="960" height="600">
           </div>
         </div>
       </div>
 
-      <!-- 2. Attendance -->
-      <div class="feature-block reverse reveal" data-module="attendance">
-        <div class="feature-text">
+      <div class="showcase-panel" data-module="attendance">
+        <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji">⏱</div>
-            <span class="feature-module-name">Attendance</span>
+            <div class="feature-emoji" style="background:#EDE9FE;">⏱</div>
+            <span class="feature-module-name" style="color:#8B5CF6;">Attendance</span>
           </div>
           <h3>Clock in, track time, stay compliant</h3>
           <p>One-tap clock in with real-time tracking. See who's on time, who's late, and the full daily attendance log.</p>
@@ -799,19 +1729,18 @@
             <li>Manager view of all employees</li>
           </ul>
         </div>
-        <div class="feature-visual">
+        <div class="showcase-img">
           <div class="screenshot-wrapper">
-            <img src="images/attendance.jpeg" alt="Workived attendance tracking with clock in, employee time log and late status badges" loading="lazy" width="960" height="600">
+            <img src="images/attendance.jpeg" alt="Workived attendance tracking" loading="lazy" width="960" height="600">
           </div>
         </div>
       </div>
 
-      <!-- 3. Leave -->
-      <div class="feature-block reveal" data-module="leave">
-        <div class="feature-text">
+      <div class="showcase-panel" data-module="leave">
+        <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji">🏖</div>
-            <span class="feature-module-name">Leave</span>
+            <div class="feature-emoji" style="background:#EFEDFD;">🏖</div>
+            <span class="feature-module-name" style="color:var(--accent);">Leave</span>
           </div>
           <h3>Leave requests, without the back-and-forth</h3>
           <p>Visual leave balances, one-click requests, and instant approvals. No more WhatsApp threads.</p>
@@ -822,19 +1751,18 @@
             <li>Indonesia & UAE compliant policies</li>
           </ul>
         </div>
-        <div class="feature-visual">
+        <div class="showcase-img">
           <div class="screenshot-wrapper">
-            <img src="images/leave.jpeg" alt="Workived leave management showing leave balances, request flow and manager approval queue" loading="lazy" width="960" height="600">
+            <img src="images/leave.jpeg" alt="Workived leave management" loading="lazy" width="960" height="600">
           </div>
         </div>
       </div>
 
-      <!-- 4. Claims -->
-      <div class="feature-block reverse reveal" data-module="claims">
-        <div class="feature-text">
+      <div class="showcase-panel" data-module="claims">
+        <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji">💰</div>
-            <span class="feature-module-name">Claims</span>
+            <div class="feature-emoji" style="background:#D1FAE5;">💰</div>
+            <span class="feature-module-name" style="color:#10B981;">Claims</span>
           </div>
           <h3>Expense claims, tracked to the rupiah</h3>
           <p>Submit claims against budget categories, attach receipts, and get instant approvals — all with real-time budget visibility.</p>
@@ -845,19 +1773,18 @@
             <li>Monthly budget tracking</li>
           </ul>
         </div>
-        <div class="feature-visual">
+        <div class="showcase-img">
           <div class="screenshot-wrapper">
-            <img src="images/claims.jpeg" alt="Workived expense claims with budget categories, remaining limits and approval workflow" loading="lazy" width="960" height="600">
+            <img src="images/claims.jpeg" alt="Workived expense claims" loading="lazy" width="960" height="600">
           </div>
         </div>
       </div>
 
-      <!-- 5. Tasks -->
-      <div class="feature-block reveal" data-module="tasks">
-        <div class="feature-text">
+      <div class="showcase-panel" data-module="tasks">
+        <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji">✅</div>
-            <span class="feature-module-name">Tasks</span>
+            <div class="feature-emoji" style="background:#E0E7FF;">✅</div>
+            <span class="feature-module-name" style="color:#818CF8;">Tasks</span>
           </div>
           <h3>Kanban boards for your whole team</h3>
           <p>Assign tasks, set priorities, track progress. A drag-and-drop board that keeps everyone aligned on what matters.</p>
@@ -868,19 +1795,18 @@
             <li>Auto-generated approval tasks</li>
           </ul>
         </div>
-        <div class="feature-visual">
+        <div class="showcase-img">
           <div class="screenshot-wrapper">
-            <img src="images/tasks.jpeg" alt="Workived kanban task board with drag-and-drop columns, priority labels and assignees" loading="lazy" width="960" height="600">
+            <img src="images/tasks.jpeg" alt="Workived task boards" loading="lazy" width="960" height="600">
           </div>
         </div>
       </div>
 
-      <!-- 6. Calendar -->
-      <div class="feature-block reverse reveal" data-module="calendar">
-        <div class="feature-text">
+      <div class="showcase-panel" data-module="calendar">
+        <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji">📅</div>
-            <span class="feature-module-name">Calendar</span>
+            <div class="feature-emoji" style="background:#FEF3C7;">📅</div>
+            <span class="feature-module-name" style="color:#D97706;">Calendar</span>
           </div>
           <h3>See who's off, at a glance</h3>
           <p>A shared team calendar showing leaves, holidays, and events. Plan around your team's availability effortlessly.</p>
@@ -891,19 +1817,18 @@
             <li>Quick visibility into team availability</li>
           </ul>
         </div>
-        <div class="feature-visual">
+        <div class="showcase-img">
           <div class="screenshot-wrapper">
-            <img src="images/calendar.jpeg" alt="Workived team calendar showing employee leave schedules and public holidays" loading="lazy" width="960" height="600">
+            <img src="images/calendar.jpeg" alt="Workived team calendar" loading="lazy" width="960" height="600">
           </div>
         </div>
       </div>
 
-      <!-- 7. People -->
-      <div class="feature-block reveal" data-module="people">
-        <div class="feature-text">
+      <div class="showcase-panel" data-module="people">
+        <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji">👥</div>
-            <span class="feature-module-name">People</span>
+            <div class="feature-emoji" style="background:#FCE7F3;">👥</div>
+            <span class="feature-module-name" style="color:#EC4899;">People</span>
           </div>
           <h3>Your team directory, organized</h3>
           <p>Employee profiles, reporting lines, departments, and status — all in a clean, searchable directory.</p>
@@ -914,30 +1839,477 @@
             <li>Quick search & org chart</li>
           </ul>
         </div>
-        <div class="feature-visual">
+        <div class="showcase-img">
           <div class="screenshot-wrapper">
-            <img src="images/people-and-team.jpeg" alt="Workived people directory with employee profiles, reporting lines and status filters" loading="lazy" width="960" height="600">
+            <img src="images/people-and-team.jpeg" alt="Workived people directory" loading="lazy" width="960" height="600">
           </div>
         </div>
       </div>
+    </div>
 
-    </section>
+    <!-- Mobile carousel -->
+    <div class="feature-carousel reveal">
+      <div class="feature-carousel-track" id="carouselTrack">
+        <div class="carousel-card" data-module="overview">
+          <div class="carousel-card-img">
+            <img src="images/overview.jpeg" alt="Overview dashboard" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;">🏠</div>
+              <span class="feature-module-name" style="color:var(--accent);">Overview</span>
+            </div>
+            <h3>Everything at a glance</h3>
+            <p>Attendance clock, pending approvals, leave balances, and team pulse — one dashboard.</p>
+          </div>
+        </div>
+        <div class="carousel-card" data-module="attendance">
+          <div class="carousel-card-img">
+            <img src="images/attendance.jpeg" alt="Attendance tracking" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#EDE9FE;">⏱</div>
+              <span class="feature-module-name" style="color:#8B5CF6;">Attendance</span>
+            </div>
+            <h3>Clock in, track time</h3>
+            <p>One-tap clock in, real-time tracking, late/on-time badges, and manager views.</p>
+          </div>
+        </div>
+        <div class="carousel-card" data-module="leave">
+          <div class="carousel-card-img">
+            <img src="images/leave.jpeg" alt="Leave management" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#EFEDFD;">🏖</div>
+              <span class="feature-module-name" style="color:var(--accent);">Leave</span>
+            </div>
+            <h3>No more back-and-forth</h3>
+            <p>Visual balances, one-click requests, instant approvals. Indonesia & UAE compliant.</p>
+          </div>
+        </div>
+        <div class="carousel-card" data-module="claims">
+          <div class="carousel-card-img">
+            <img src="images/claims.jpeg" alt="Expense claims" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#D1FAE5;">💰</div>
+              <span class="feature-module-name" style="color:#10B981;">Claims</span>
+            </div>
+            <h3>Tracked to the rupiah</h3>
+            <p>Budget categories, receipt uploads, one-click approvals, monthly tracking.</p>
+          </div>
+        </div>
+        <div class="carousel-card" data-module="tasks">
+          <div class="carousel-card-img">
+            <img src="images/tasks.jpeg" alt="Task boards" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#E0E7FF;">✅</div>
+              <span class="feature-module-name" style="color:#818CF8;">Tasks</span>
+            </div>
+            <h3>Kanban for your team</h3>
+            <p>Drag-and-drop boards with priorities, assignees, and due dates.</p>
+          </div>
+        </div>
+        <div class="carousel-card" data-module="calendar">
+          <div class="carousel-card-img">
+            <img src="images/calendar.jpeg" alt="Team calendar" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#FEF3C7;">📅</div>
+              <span class="feature-module-name" style="color:#D97706;">Calendar</span>
+            </div>
+            <h3>Who's off, at a glance</h3>
+            <p>Leaves, holidays, and events color-coded on a shared team calendar.</p>
+          </div>
+        </div>
+        <div class="carousel-card" data-module="people">
+          <div class="carousel-card-img">
+            <img src="images/people-and-team.jpeg" alt="People directory" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#FCE7F3;">👥</div>
+              <span class="feature-module-name" style="color:#EC4899;">People</span>
+            </div>
+            <h3>Team directory, organized</h3>
+            <p>Profiles, reporting lines, departments, and status — searchable.</p>
+          </div>
+        </div>
+      </div>
+      <div class="carousel-dots" id="carouselDots">
+        <button class="carousel-dot active" data-index="0"></button>
+        <button class="carousel-dot" data-index="1"></button>
+        <button class="carousel-dot" data-index="2"></button>
+        <button class="carousel-dot" data-index="3"></button>
+        <button class="carousel-dot" data-index="4"></button>
+        <button class="carousel-dot" data-index="5"></button>
+        <button class="carousel-dot" data-index="6"></button>
+      </div>
+    </div>
 
-    <!-- ═══════════ BOTTOM CTA ═══════════ -->
-    <section class="cta-section reveal">
+    <!-- 1. Overview -->
+    <div class="feature-block reveal" data-module="overview">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">🏠</div>
+          <span class="feature-module-name">Overview</span>
+        </div>
+        <h3>Everything at a glance</h3>
+        <p>Your morning starts here. See who's in, pending approvals, leave balances, and team pulse — all in one dashboard.</p>
+        <ul class="feature-bullets">
+          <li>Real-time attendance clock</li>
+          <li>Pending leave & claim approvals</li>
+          <li>Team pulse with status breakdown</li>
+          <li>Upcoming holidays & events</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/overview.jpeg" alt="Workived overview dashboard showing attendance clock, pending approvals, leave balance and team pulse" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Attendance -->
+    <div class="feature-block reverse reveal" data-module="attendance">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">⏱</div>
+          <span class="feature-module-name">Attendance</span>
+        </div>
+        <h3>Clock in, track time, stay compliant</h3>
+        <p>One-tap clock in with real-time tracking. See who's on time, who's late, and the full daily attendance log.</p>
+        <ul class="feature-bullets">
+          <li>One-click clock in & out</li>
+          <li>Late / on-time status badges</li>
+          <li>Weekly day picker navigation</li>
+          <li>Manager view of all employees</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/attendance.jpeg" alt="Workived attendance tracking with clock in, employee time log and late status badges" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Leave -->
+    <div class="feature-block reveal" data-module="leave">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">🏖</div>
+          <span class="feature-module-name">Leave</span>
+        </div>
+        <h3>Leave requests, without the back-and-forth</h3>
+        <p>Visual leave balances, one-click requests, and instant approvals. No more WhatsApp threads.</p>
+        <ul class="feature-bullets">
+          <li>All leave types with balance bars</li>
+          <li>Click a balance to request leave</li>
+          <li>Manager approval queue</li>
+          <li>Indonesia & UAE compliant policies</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/leave.jpeg" alt="Workived leave management showing leave balances, request flow and manager approval queue" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Claims -->
+    <div class="feature-block reverse reveal" data-module="claims">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">💰</div>
+          <span class="feature-module-name">Claims</span>
+        </div>
+        <h3>Expense claims, tracked to the rupiah</h3>
+        <p>Submit claims against budget categories, attach receipts, and get instant approvals — all with real-time budget visibility.</p>
+        <ul class="feature-bullets">
+          <li>Budget categories with remaining limits</li>
+          <li>Receipt upload & documentation</li>
+          <li>Approve or reject in one click</li>
+          <li>Monthly budget tracking</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/claims.jpeg" alt="Workived expense claims with budget categories, remaining limits and approval workflow" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Tasks -->
+    <div class="feature-block reveal" data-module="tasks">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">✅</div>
+          <span class="feature-module-name">Tasks</span>
+        </div>
+        <h3>Kanban boards for your whole team</h3>
+        <p>Assign tasks, set priorities, track progress. A drag-and-drop board that keeps everyone aligned on what matters.</p>
+        <ul class="feature-bullets">
+          <li>To Do → In Progress → Done columns</li>
+          <li>Priority labels (Urgent, High, Medium)</li>
+          <li>Assignees with due dates</li>
+          <li>Auto-generated approval tasks</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/tasks.jpeg" alt="Workived kanban task board with drag-and-drop columns, priority labels and assignees" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Calendar -->
+    <div class="feature-block reverse reveal" data-module="calendar">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">📅</div>
+          <span class="feature-module-name">Calendar</span>
+        </div>
+        <h3>See who's off, at a glance</h3>
+        <p>A shared team calendar showing leaves, holidays, and events. Plan around your team's availability effortlessly.</p>
+        <ul class="feature-bullets">
+          <li>Monthly calendar with leave overlays</li>
+          <li>Public holidays by country</li>
+          <li>Color-coded leave types</li>
+          <li>Quick visibility into team availability</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/calendar.jpeg" alt="Workived team calendar showing employee leave schedules and public holidays" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. People -->
+    <div class="feature-block reveal" data-module="people">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">👥</div>
+          <span class="feature-module-name">People</span>
+        </div>
+        <h3>Your team directory, organized</h3>
+        <p>Employee profiles, reporting lines, departments, and status — all in a clean, searchable directory.</p>
+        <ul class="feature-bullets">
+          <li>Employee profiles with job titles</li>
+          <li>Reporting hierarchy</li>
+          <li>Active / probation / inactive filters</li>
+          <li>Quick search & org chart</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/people-and-team.jpeg" alt="Workived people directory with employee profiles, reporting lines and status filters" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ═══════════ CONFRONTIVE ═══════════ -->
+  <section class="confront-section">
+    <div class="confront-inner reveal">
+      <div class="confront-lines">
+        <div class="confront-line other"><span class="confront-brand">Monday.com</span> tells you what tasks got done.</div>
+        <div class="confront-line other"><span class="confront-brand">BambooHR</span> tells you who was at work.</div>
+        <div class="confront-line ours"><span class="confront-brand">Workived</span> tells you who performed best — and why.</div>
+      </div>
+      <p class="confront-punchline">Tasks + attendance + leave + claims — in one workspace. When your HR tool knows what your team actually does, you stop guessing and start leading.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ HOW IT WORKS ═══════════ -->
+  <section class="steps-section">
+    <div class="section-header reveal">
+      <span class="section-label">Get started in minutes</span>
+      <h2>Three steps.<br><span class="muted">That's it.</span></h2>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card reveal">
+        <div class="step-number">1</div>
+        <h3>Sign up free</h3>
+        <p>Create your workspace in under a minute. No credit card, no setup wizard, no demo call.</p>
+      </div>
+      <div class="step-card reveal reveal-delay-1">
+        <div class="step-number">2</div>
+        <h3>Invite your team</h3>
+        <p>Add employees by email. They get instant access to clock in, request leave, and submit claims.</p>
+      </div>
+      <div class="step-card reveal reveal-delay-2">
+        <div class="step-number">3</div>
+        <h3>You're live</h3>
+        <p>Attendance, leave, claims, tasks — everything works out of the box. Customize as you go.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ PRICING ═══════════ -->
+  <section class="pricing-section" id="pricing">
+    <div class="section-header reveal">
+      <span class="section-label">Simple pricing</span>
+      <h2>Start free.<br><span class="muted">Upgrade when you're ready.</span></h2>
+    </div>
+
+    <div class="pricing-grid">
+      <!-- Explore -->
+      <div class="pricing-card reveal">
+        <div class="pricing-plan">Explore</div>
+        <div class="pricing-price">
+          <span class="pricing-amount">Free</span>
+        </div>
+        <p class="pricing-desc">Everything you need to run a small team. No credit card required.</p>
+        <ul class="pricing-features">
+          <li>Up to 25 employees</li>
+          <li>All 7 modules included</li>
+          <li>Attendance, leave & claims</li>
+          <li>Task boards & calendar</li>
+          <li>People directory</li>
+          <li>Indonesia & UAE compliance</li>
+          <li>Email support</li>
+        </ul>
+        <a href="mailto:my@workived.com" class="pricing-cta outline">Get Started Free</a>
+      </div>
+
+      <!-- Pro -->
+      <div class="pricing-card featured reveal reveal-delay-1">
+        <div class="pricing-badge">Coming Soon</div>
+        <div class="pricing-plan">Pro</div>
+        <div class="pricing-price">
+          <span class="pricing-amount" style="font-size:36px;">Price TBA</span>
+        </div>
+        <div class="pricing-savings">We're finalising pricing — early users lock in the best rate</div>
+        <p class="pricing-desc" style="margin-top: 12px;">For growing teams who need more power and flexibility.</p>
+        <ul class="pricing-features">
+          <li>Unlimited employees</li>
+          <li>Everything in Explore</li>
+          <li>Custom leave policies</li>
+          <li>Advanced claim budgets</li>
+          <li>Team analytics & reports</li>
+          <li>Priority support</li>
+          <li>Custom branding</li>
+        </ul>
+        <a href="mailto:my@workived.com" class="pricing-cta filled">Join the Waitlist</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ TRUST STRIP ═══════════ -->
+  <section class="trust-section">
+    <div class="trust-inner reveal">
+      <div class="trust-avatars">
+        <div class="trust-avatar" style="background: var(--accent);">D</div>
+        <div class="trust-avatar" style="background: #818CF8;">A</div>
+        <div class="trust-avatar" style="background: #10B981;">R</div>
+      </div>
+      <p class="trust-quote">"We built Workived because we needed it. We've used it every single day for 6+ months before showing it to anyone."</p>
+      <p class="trust-meta">— The founding team, who still clock in on it daily</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ FAQ ═══════════ -->
+  <section class="faq-section" id="faq">
+    <div class="section-header reveal">
+      <span class="section-label">Common questions</span>
+      <h2>Got questions?<br><span class="muted">We've got answers.</span></h2>
+    </div>
+
+    <div class="faq-list">
+      <div class="faq-item open">
+        <button class="faq-question">
+          Is it really free?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Yes. The Explore plan is free forever for teams up to 25 employees. All 7 modules included. No credit card, no trial that expires, no surprise invoices.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          What happens when my team grows past 25?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>You upgrade to the Pro plan — pricing is being finalised, and early users will lock in the best rate. Your data, settings, and history carry over seamlessly — zero migration hassle.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Which countries do you support?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>We're launching in Indonesia and UAE with country-specific leave policies, public holidays, and multi-currency support (IDR, AED, MYR, SGD). More countries coming soon.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Is my data safe?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Absolutely. Your data is encrypted, isolated per organization, and hosted on secure cloud infrastructure. We follow strict multi-tenancy practices — your data is never shared or mixed.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Can I use Workived for payroll?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Not yet — but it's coming soon. Payroll is on our roadmap and will integrate seamlessly with attendance, leave, and claims data already in Workived. Join early access to be the first to know when it launches.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ BOTTOM CTA ═══════════ -->
+  <section class="cta-section">
+    <div class="cta-content reveal">
       <h2>Ready to simplify<br><span class="highlight">your team ops?</span></h2>
-      <p>Workived is launching soon. Free for teams up to 25 people.</p>
-    </section>
+      <p>Workived is launching soon. Free for teams up to 25 people. No credit card, no trial period, no catch.</p>
+      <a href="mailto:my@workived.com" class="btn-primary">
+        Get Early Access
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
+    </div>
+  </section>
 
-    <!-- Footer -->
-    <footer class="footer">
-      <a href="mailto:my@workived.com" style="color: var(--accent); text-decoration: none; margin-right: 12px;">my@workived.com</a>
-      <span style="color: var(--ink-200); margin-right: 12px;">•</span>
-      © 2026 Workived. Built for modern founders.
-    </footer>
-  </div>
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <svg width="28" height="28" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="gf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs>
+          <rect width="180" height="180" rx="30" fill="url(#gf)"/>
+          <text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+        </svg>
+        <span class="footer-wordmark">Workived</span>
+        <span class="footer-copy">© 2026</span>
+      </div>
+      <div class="footer-right">
+        <a href="mailto:my@workived.com" class="footer-link">my@workived.com</a>
+        <span style="color: var(--ink-150);">·</span>
+        <span class="footer-copy">Built for modern founders.</span>
+      </div>
+    </div>
+  </footer>
 
-  <!-- Floating Support Button -->
+  <!-- ═══════════ SUPPORT WIDGET ═══════════ -->
   <div class="support-float">
     <div class="support-card" id="supportCard">
       <div class="support-card-header">We're all ears 👂</div>
@@ -949,30 +2321,25 @@
       <div class="support-card-text">No bots. No tickets. Just real founders who built this, use it daily, and genuinely want to hear from you.</div>
       <a href="mailto:my@workived.com" class="support-card-email">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
         </svg>
         my@workived.com
       </a>
     </div>
     <button class="support-btn" id="supportBtn" aria-label="Contact support">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
       </svg>
     </button>
   </div>
 
   <script>
-    console.log('🚀 Workived landing page powered up!');
-    console.log('💜 Made with love (and dangerously high caffeine levels) by founders who dogfood everything');
-    console.log('☕️ Fun fact: This code was written at 3am. Somehow it still works.');
-    console.log('🎨 We\'re hiring: Must love purple gradients. Also, must tolerate dad jokes.');
-    
-    // Scroll hint click handler
-    document.getElementById('scrollHint').addEventListener('click', () => {
-      document.getElementById('features').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      console.log('📜 Smooth scrolling engaged! Wheee~ 🎢');
-    });
-    
+    // Header shadow on scroll
+    const header = document.getElementById('header');
+    window.addEventListener('scroll', () => {
+      header.classList.toggle('scrolled', window.scrollY > 10);
+    }, { passive: true });
+
     // Scroll reveal animations
     const observer = new IntersectionObserver(
       (entries) => {
@@ -980,31 +2347,25 @@
           if (entry.isIntersecting) entry.target.classList.add('visible');
         });
       },
-      { threshold: 0.15, rootMargin: '0px 0px -60px 0px' }
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
     );
     document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
 
-    // Support button toggle
+    // Support button
     const supportBtn = document.getElementById('supportBtn');
     const supportCard = document.getElementById('supportCard');
     const typingIndicator = document.getElementById('typingIndicator');
     const cardHeader = document.querySelector('.support-card-header');
     const cardText = document.querySelector('.support-card-text');
-    
-    // Store original text
     const originalHeader = cardHeader.textContent;
     const originalText = cardText.textContent;
-    
-    console.log('💬 Support widget loaded! Click it. We dare you. (We\'ll actually reply, no AI chatbot nonsense)');
     let autoOpenDismissed = false;
-    
-    // Typewriter effect
+
     function typeText(element, text, speed = 30) {
       return new Promise((resolve) => {
         element.classList.add('typing');
         let i = 0;
         element.textContent = '';
-        
         const interval = setInterval(() => {
           if (i < text.length) {
             element.textContent += text.charAt(i);
@@ -1017,72 +2378,39 @@
         }, speed);
       });
     }
-    
-    // Professional notification sound using Web Audio API - clean, subtle "plop" like Slack/Linear
+
     function playNotificationSound() {
       try {
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // Create oscillator for the "plop" sound
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
-        
-        // Configure the sound: short, descending tone
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(800, audioContext.currentTime); // Start at 800Hz
-        oscillator.frequency.exponentialRampToValueAtTime(400, audioContext.currentTime + 0.1); // Drop to 400Hz quickly
-        
-        // Volume envelope: quick attack, quick decay
-        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-        
-        // Play the sound
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.15);
-        
-        console.log('🔔 *plop* Did you hear that? That\'s the sound of founders who actually reply.');
-      } catch (e) {
-        console.log('🤫 Couldn\'t play sound:', e.message);
-      }
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.15);
+      } catch (e) { /* silent fail */ }
     }
-    
-    // Vibrate on mobile devices (silent fail if not supported)
-    function vibrateDevice() {
-      try {
-        if ('vibrate' in navigator) {
-          navigator.vibrate([100, 50, 100]); // Two short vibrations
-        }
-      } catch (e) {
-        // Vibration blocked or not supported - that's okay!
-      }
-    }
-    
+
     supportBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const isOpening = !supportBtn.classList.contains('active');
       supportBtn.classList.toggle('active');
       supportCard.classList.toggle('active');
       autoOpenDismissed = true;
-      
       if (isOpening) {
-        // Show full text immediately on manual click (no typing animation)
         cardHeader.textContent = originalHeader;
         cardText.textContent = originalText;
         cardHeader.classList.remove('typing');
         cardText.classList.remove('typing');
-        
-        console.log('👋 You clicked it! Legend. Now we\'re legally required to be helpful.');
         playNotificationSound();
-        setTimeout(() => vibrateDevice(), 50);
-      } else {
-        console.log('👌 Closing... but we\'re still here if you need us. Like a needy puppy. 🐶');
       }
     });
 
-    // Close support card when clicking outside
     document.addEventListener('click', (e) => {
       if (!supportCard.contains(e.target) && !supportBtn.contains(e.target)) {
         supportBtn.classList.remove('active');
@@ -1090,40 +2418,122 @@
       }
     });
 
-    // Auto-open animation sequence with sound
+    // Showcase tabs — auto-rotate every 5s, pause on hover/click
+    const showcaseTabs = Array.from(document.querySelectorAll('.showcase-tab'));
+    const showcasePanels = Array.from(document.querySelectorAll('.showcase-panel'));
+    let showcaseIndex = 0;
+    let showcaseInterval = null;
+
+    function activateShowcase(idx) {
+      showcaseTabs.forEach(t => t.classList.remove('active'));
+      showcasePanels.forEach(p => p.classList.remove('active'));
+      showcaseTabs[idx]?.classList.add('active');
+      showcasePanels[idx]?.classList.add('active');
+      showcaseIndex = idx;
+    }
+
+    function startShowcaseAuto() {
+      stopShowcaseAuto();
+      showcaseInterval = setInterval(() => {
+        activateShowcase((showcaseIndex + 1) % showcaseTabs.length);
+      }, 5000);
+    }
+
+    function stopShowcaseAuto() {
+      if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
+    }
+
+    showcaseTabs.forEach((tab, i) => {
+      tab.addEventListener('click', () => {
+        activateShowcase(i);
+        startShowcaseAuto(); // restart timer after manual click
+      });
+    });
+
+    const showcaseContainer = document.querySelector('.feature-showcase');
+    if (showcaseContainer) {
+      showcaseContainer.addEventListener('mouseenter', stopShowcaseAuto);
+      showcaseContainer.addEventListener('mouseleave', startShowcaseAuto);
+    }
+
+    if (showcaseTabs.length) startShowcaseAuto();
+
+    // Carousel dots + auto-scroll
+    const carouselTrack = document.getElementById('carouselTrack');
+    const carouselDots = document.querySelectorAll('.carousel-dot');
+    let carouselIndex = 0;
+    let carouselInterval = null;
+    let carouselUserScrolling = false;
+
+    function scrollCarouselTo(idx) {
+      if (!carouselTrack || !carouselTrack.children[idx]) return;
+      carouselIndex = idx;
+      carouselTrack.children[idx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
+
+    function startCarouselAuto() {
+      stopCarouselAuto();
+      carouselInterval = setInterval(() => {
+        carouselIndex = (carouselIndex + 1) % (carouselTrack ? carouselTrack.children.length : 1);
+        scrollCarouselTo(carouselIndex);
+      }, 5000);
+    }
+
+    function stopCarouselAuto() {
+      if (carouselInterval) { clearInterval(carouselInterval); carouselInterval = null; }
+    }
+
+    if (carouselTrack) {
+      carouselDots.forEach(dot => {
+        dot.addEventListener('click', () => {
+          const idx = parseInt(dot.dataset.index);
+          scrollCarouselTo(idx);
+          startCarouselAuto();
+        });
+      });
+
+      carouselTrack.addEventListener('touchstart', () => { carouselUserScrolling = true; stopCarouselAuto(); }, { passive: true });
+      carouselTrack.addEventListener('touchend', () => { carouselUserScrolling = false; startCarouselAuto(); }, { passive: true });
+
+      carouselTrack.addEventListener('scroll', () => {
+        const scrollLeft = carouselTrack.scrollLeft;
+        const card = carouselTrack.children[0];
+        const cardWidth = card ? card.offsetWidth + 24 : 544;
+        const idx = Math.round(scrollLeft / cardWidth);
+        carouselIndex = idx;
+        carouselDots.forEach((d, i) => d.classList.toggle('active', i === idx));
+      }, { passive: true });
+
+      startCarouselAuto();
+    }
+
+    // FAQ accordion
+    document.querySelectorAll('.faq-question').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const item = btn.parentElement;
+        const wasOpen = item.classList.contains('open');
+        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
+        if (!wasOpen) item.classList.add('open');
+      });
+    });
+
+    // Auto-open after 3s
     setTimeout(() => {
-      console.log('✨ *Psst* That purple bubble is doing a little dance for you 💃');
-      console.log('🏖️ True story: We built the leave management module while... on leave. Meta, right?');
-      
-      // Play sound and vibrate (might be blocked by browser, but we try)
       playNotificationSound();
-      setTimeout(() => vibrateDevice(), 50);
-      
-      // First, buzz the button to get attention
       supportBtn.classList.add('buzz');
-      
-      // After buzz completes, open the card with typing indicator
       setTimeout(() => {
         supportBtn.classList.remove('buzz');
         if (!autoOpenDismissed) {
-          // Show header immediately, clear body text
           cardHeader.textContent = originalHeader;
           cardText.textContent = '';
-          
           supportBtn.classList.add('active');
           supportCard.classList.add('active');
-          typingIndicator.classList.add('active'); // Show typing dots below header
-          
-          // After 1.5 seconds, hide typing and show the typewriter effect for body
+          typingIndicator.classList.add('active');
           setTimeout(async () => {
             typingIndicator.classList.remove('active');
-            
-            // Type out only the body text (header is already shown)
             await typeText(cardText, originalText, 20);
           }, 1500);
         }
-        
-        // Auto-close after 15 seconds (increased to account for typing animation)
         setTimeout(() => {
           if (!autoOpenDismissed) {
             supportBtn.classList.remove('active');
@@ -1131,35 +2541,7 @@
           }
         }, 15000);
       }, 600);
-    }, 1000); // Start sequence 1 second after page load
-    
-    // Easter egg for curious developers
-    console.log('');
-    console.log('════════════════════════════════════════════════════');
-    console.log('🎯 Still here? You must be a developer. Or just really bored.');
-    console.log('');
-    console.log('🌟 Fun fact #1: This entire page is 240KB with images.');
-    console.log('   (BambooHR\'s homepage? 4.2MB. We\'re not saying anything, but... 👀)');
-    console.log('');
-    console.log('🎭 Fun fact #2: Our logo is an SVG. Inline. No HTTP requests wasted.');
-    console.log('   Every byte counts when you\'re shipping productivity tools!');
-    console.log('');
-    console.log('🤓 Fun fact #3: We use exactly ZERO tracking scripts.');
-    console.log('   No Google Analytics. No session replay. Just pure, fast HTML.');
-    console.log('');
-    console.log('🧪 Fun fact #4: Our backend has 98%+ test coverage.');
-    console.log('   Every handler. Every service. Every repository. Tested to death.');
-    console.log('   Ship with confidence or don\'t ship at all. 🎯');
-    console.log('');
-    console.log('💡 Why? Because if we can\'t make HR software fast & simple,');
-    console.log('   we have no business building HR software. Period.');
-    console.log('');
-    console.log('📧 Wanna chat? → my@workived.com (real humans, <24h reply SLA)');
-    console.log('💼 Wanna join? We need: frontend devs who worship performance,');
-    console.log('   backend devs who think in SQL, and designers who *get* B2B SaaS.');
-    console.log('');
-    console.log('🚀 Stay curious. Keep shipping. And never apologize for viewing source.');
-    console.log('════════════════════════════════════════════════════');
+    }, 3000);
   </script>
 
 </body>

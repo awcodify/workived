@@ -18,11 +18,16 @@
   <meta property="og:url" content="https://workived.com">
   <meta property="og:site_name" content="Workived">
   <meta property="og:locale" content="en_US">
+  <meta property="og:image" content="https://workived.com/images/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:type" content="image/jpeg">
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Workived — Free HR & Attendance for Small Teams">
   <meta name="twitter:description" content="Attendance, leave, claims, tasks — one free workspace for startups. No hidden costs.">
+  <meta name="twitter:image" content="https://workived.com/images/og-image.jpg">
 
   <!-- Structured Data (JSON-LD) -->
   <script type="application/ld+json">
@@ -2413,93 +2418,37 @@
       }
     });
 
-    // Showcase tabs — auto-rotate every 5s, pause on hover/click
+    // Showcase tabs
     const showcaseTabs = Array.from(document.querySelectorAll('.showcase-tab'));
     const showcasePanels = Array.from(document.querySelectorAll('.showcase-panel'));
-    let showcaseIndex = 0;
-    let showcaseInterval = null;
-
-    function activateShowcase(idx) {
-      showcaseTabs.forEach(t => t.classList.remove('active'));
-      showcasePanels.forEach(p => p.classList.remove('active'));
-      showcaseTabs[idx]?.classList.add('active');
-      showcasePanels[idx]?.classList.add('active');
-      showcaseIndex = idx;
-    }
-
-    function startShowcaseAuto() {
-      stopShowcaseAuto();
-      showcaseInterval = setInterval(() => {
-        activateShowcase((showcaseIndex + 1) % showcaseTabs.length);
-      }, 5000);
-    }
-
-    function stopShowcaseAuto() {
-      if (showcaseInterval) { clearInterval(showcaseInterval); showcaseInterval = null; }
-    }
 
     showcaseTabs.forEach((tab, i) => {
       tab.addEventListener('click', () => {
-        activateShowcase(i);
-        startShowcaseAuto(); // restart timer after manual click
+        showcaseTabs.forEach(t => t.classList.remove('active'));
+        showcasePanels.forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        showcasePanels[i]?.classList.add('active');
       });
     });
 
-    const showcaseContainer = document.querySelector('.feature-showcase');
-    if (showcaseContainer) {
-      showcaseContainer.addEventListener('mouseenter', stopShowcaseAuto);
-      showcaseContainer.addEventListener('mouseleave', startShowcaseAuto);
-    }
-
-    if (showcaseTabs.length) startShowcaseAuto();
-
-    // Carousel dots + auto-scroll
+    // Carousel dots
     const carouselTrack = document.getElementById('carouselTrack');
     const carouselDots = document.querySelectorAll('.carousel-dot');
-    let carouselIndex = 0;
-    let carouselInterval = null;
-    let carouselUserScrolling = false;
-
-    function scrollCarouselTo(idx) {
-      if (!carouselTrack || !carouselTrack.children[idx]) return;
-      carouselIndex = idx;
-      carouselTrack.children[idx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
-
-    function startCarouselAuto() {
-      stopCarouselAuto();
-      carouselInterval = setInterval(() => {
-        carouselIndex = (carouselIndex + 1) % (carouselTrack ? carouselTrack.children.length : 1);
-        scrollCarouselTo(carouselIndex);
-      }, 5000);
-    }
-
-    function stopCarouselAuto() {
-      if (carouselInterval) { clearInterval(carouselInterval); carouselInterval = null; }
-    }
-
     if (carouselTrack) {
       carouselDots.forEach(dot => {
         dot.addEventListener('click', () => {
           const idx = parseInt(dot.dataset.index);
-          scrollCarouselTo(idx);
-          startCarouselAuto();
+          const card = carouselTrack.children[idx];
+          if (card) card.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         });
       });
-
-      carouselTrack.addEventListener('touchstart', () => { carouselUserScrolling = true; stopCarouselAuto(); }, { passive: true });
-      carouselTrack.addEventListener('touchend', () => { carouselUserScrolling = false; startCarouselAuto(); }, { passive: true });
-
       carouselTrack.addEventListener('scroll', () => {
         const scrollLeft = carouselTrack.scrollLeft;
         const card = carouselTrack.children[0];
         const cardWidth = card ? card.offsetWidth + 24 : 544;
         const idx = Math.round(scrollLeft / cardWidth);
-        carouselIndex = idx;
         carouselDots.forEach((d, i) => d.classList.toggle('active', i === idx));
       }, { passive: true });
-
-      startCarouselAuto();
     }
 
     // FAQ accordion
