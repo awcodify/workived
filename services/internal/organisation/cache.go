@@ -67,3 +67,74 @@ func (s *Service) invalidateCache(ctx context.Context, orgID uuid.UUID) {
 		s.cache.DeletePattern(ctx, cache.OrgPatternKey(orgID, cacheModule))
 	}
 }
+
+// ── Cached OrgInfo provider (for attendance, leave, claims) ─────────────────
+
+// CachedOrgInfo wraps the repository and caches timezone/country lookups.
+// It satisfies the attendance.OrgInfoProvider and similar interfaces.
+type CachedOrgInfo struct {
+	repo  *Repository
+	cache *cache.Store
+}
+
+// NewCachedOrgInfo creates a new CachedOrgInfo. If cacheStore is nil, falls through to DB.
+func NewCachedOrgInfo(repo *Repository, cacheStore *cache.Store) *CachedOrgInfo {
+	return &CachedOrgInfo{repo: repo, cache: cacheStore}
+}
+
+func (c *CachedOrgInfo) GetOrgTimezone(ctx context.Context, orgID uuid.UUID) (string, error) {
+	if c.cache != nil {
+		key := cache.OrgKey(orgID, cacheModule, "tz")
+		if v, ok := cache.Get[string](ctx, c.cache, key); ok {
+			return v, nil
+		}
+	}
+
+	tz, err := c.repo.GetOrgTimezone(ctx, orgID)
+	if err != nil {
+		return "", err
+	}
+
+	if c.cache != nil {
+		cache.Set(ctx, c.cache, cache.OrgKey(orgID, cacheModule, "tz"), tz, cacheTTL)
+	}
+	return tz, nil
+}
+
+func (c *CachedOrgInfo) GetOrgCountryCode(ctx context.Context, orgID uuid.UUID) (string, error) {
+	if c.cache != nil {
+		key := cache.OrgKey(orgID, cacheModule, "cc")
+		if v, ok := cache.Get[string](ctx, c.cache, key); ok {
+			return v, nil
+		}
+	}
+
+	cc, err := c.repo.GetOrgCountryCode(ctx, orgID)
+	if err != nil {
+		return "", err
+	}
+
+	if c.cache != nil {
+		cache.Set(ctx, c.cache, cache.OrgKey(orgID, cacheModule, "cc"), cc, cacheTTL)
+	}
+	return cc, nil
+}
+
+func (c *CachedOrgInfo) GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]int, error) {
+	if c.cache != nil {
+		key := cache.OrgKey(orgID, cacheModule, "workdays")
+		if v, ok := cache.Get[[]int](ctx, c.cache, key); ok {
+			return v, nil
+		}
+	}
+
+	days, err := c.repo.GetOrgWorkDays(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	if c.cache != nil {
+		cache.Set(ctx, c.cache, cache.OrgKey(orgID, cacheModule, "workdays"), days, cacheTTL)
+	}
+	return days, nil
+}

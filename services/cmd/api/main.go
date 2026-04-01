@@ -119,18 +119,19 @@ func main() {
 	cacheStore := cache.New(rdb, log)
 
 	// ── Services ─────────────────────────────────────────────────────────────
+	cachedOrgInfo := organisation.NewCachedOrgInfo(orgRepo, cacheStore)
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL, auth.WithEmailSender(emailSender), auth.WithAppURL(cfg.AppURL), auth.WithLogger(log))
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithLogger(log), employee.WithCache(cacheStore))
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log), department.WithCache(cacheStore))
-	attSvc := attendance.NewService(attRepo, orgRepo, empRepo, log)
+	attSvc := attendance.NewService(attRepo, cachedOrgInfo, empRepo, log)
 	// Tasks service must be created before leave/claims to wire up approval task creation
 	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log))
 	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender), claims.WithTasksService(tasksSvc))
-	leaveSvc := leave.NewService(leaveRepo, orgRepo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender), leave.WithTasksService(tasksSvc), leave.WithCache(cacheStore))
+	leaveSvc := leave.NewService(leaveRepo, cachedOrgInfo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender), leave.WithTasksService(tasksSvc), leave.WithCache(cacheStore))
 	// Org service created after leave — needs leave callback for post-invite balance init
 	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender), organisation.WithCache(cacheStore),
 		organisation.WithOnEmployeeJoined(leaveSvc.InitBalancesForEmployee))
-	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log))
+	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log), admin.WithCache(cacheStore))
 	setupSvc := setup.NewService(setupRepo, log)
 	calendarSvc := calendar.NewService(calendarRepo, orgRepo, log)
 
@@ -235,7 +236,7 @@ func main() {
 	// Authenticated + tenant-scoped routes.
 	authed := v1.Group("")
 	authed.Use(middleware.Auth(cfg.JWTSecret))
-	authed.Use(middleware.Tenant(orgRepo))
+	authed.Use(middleware.TenantWithCache(orgRepo, cacheStore))
 	authed.Use(middleware.RateLimiter(rdb, 600))
 
 	orgHandler.RegisterRoutes(authed)

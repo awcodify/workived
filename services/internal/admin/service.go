@@ -3,14 +3,17 @@ package admin
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/workived/services/pkg/cache"
 )
 
 type Service struct {
-	repo *Repository
-	log  zerolog.Logger
+	repo  *Repository
+	cache *cache.Store
+	log   zerolog.Logger
 }
 
 type ServiceOption func(*Service)
@@ -21,12 +24,50 @@ func WithLogger(log zerolog.Logger) ServiceOption {
 	}
 }
 
+// WithCache sets the cache store for the admin service.
+func WithCache(c *cache.Store) ServiceOption {
+	return func(s *Service) {
+		s.cache = c
+	}
+}
+
 func NewService(repo *Repository, opts ...ServiceOption) *Service {
 	s := &Service{repo: repo}
 	for _, opt := range opts {
 		opt(s)
 	}
 	return s
+}
+
+const (
+	featureFlagsCacheKey = "system:feature_flags:all"
+	featureFlagsCacheTTL = 10 * time.Minute
+)
+
+// listFeatureFlagsCached returns all feature flags, using cache when available.
+func (s *Service) listFeatureFlagsCached(ctx context.Context) ([]FeatureFlag, error) {
+	if s.cache != nil {
+		if v, ok := cache.Get[[]FeatureFlag](ctx, s.cache, featureFlagsCacheKey); ok {
+			return v, nil
+		}
+	}
+
+	flags, err := s.repo.ListFeatureFlags(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.cache != nil {
+		cache.Set(ctx, s.cache, featureFlagsCacheKey, flags, featureFlagsCacheTTL)
+	}
+	return flags, nil
+}
+
+// invalidateFeatureFlagsCache removes the cached feature flags.
+func (s *Service) invalidateFeatureFlagsCache(ctx context.Context) {
+	if s.cache != nil {
+		s.cache.Delete(ctx, featureFlagsCacheKey)
+	}
 }
 
 // ── Feature Flags ───────────────────────────────────────────────────────────
@@ -45,6 +86,8 @@ func (s *Service) UpdateFeatureFlag(ctx context.Context, key string, req UpdateF
 		return nil, fmt.Errorf("update feature flag: %w", err)
 	}
 
+	s.invalidateFeatureFlagsCache(ctx)
+
 	s.log.Info().
 		Str("feature_key", key).
 		Bool("is_enabled", flag.IsEnabled).
@@ -57,18 +100,60 @@ func (s *Service) UpdateFeatureFlag(ctx context.Context, key string, req UpdateF
 
 // GetEnabledFeaturesForOrg returns a map of feature_key → bool for all known flags
 // evaluated against the given org and user. Safe to call from non-admin handlers.
+// Evaluates flags in memory from the single ListFeatureFlags query — no N+1.
 func (s *Service) GetEnabledFeaturesForOrg(ctx context.Context, orgID uuid.UUID, userID uuid.UUID) (map[string]bool, error) {
-	flags, err := s.repo.ListFeatureFlags(ctx)
+	flags, err := s.listFeatureFlagsCached(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("list feature flags: %w", err)
 	}
 
 	result := make(map[string]bool, len(flags))
 	for _, f := range flags {
-		enabled, _ := s.IsFeatureEnabled(ctx, f.FeatureKey, &orgID, &userID)
-		result[f.FeatureKey] = enabled
+		result[f.FeatureKey] = evaluateFlag(&f, &orgID, &userID)
 	}
 	return result, nil
+}
+
+// evaluateFlag checks if a flag is enabled for the given org/user without DB calls.
+func evaluateFlag(flag *FeatureFlag, orgID *uuid.UUID, userID *uuid.UUID) bool {
+	if !flag.IsEnabled {
+		return false
+	}
+
+	// Global scope — enabled for everyone
+	if flag.Scope == "global" {
+		return true
+	}
+
+	// Org scope — check if orgID is in target list
+	if flag.Scope == "org" && orgID != nil {
+		if flag.TargetIDs != nil {
+			if ids, ok := flag.TargetIDs["org_ids"].([]interface{}); ok {
+				for _, id := range ids {
+					if id.(string) == orgID.String() {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+
+	// User scope — check if userID is in target list
+	if flag.Scope == "user" && userID != nil {
+		if flag.TargetIDs != nil {
+			if ids, ok := flag.TargetIDs["user_ids"].([]interface{}); ok {
+				for _, id := range ids {
+					if id.(string) == userID.String() {
+						return true
+					}
+				}
+			}
+		}
+		return false
+	}
+
+	return false
 }
 
 // IsFeatureEnabled checks if a feature is enabled globally or for a specific org/user.
