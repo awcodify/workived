@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workived — Free Attendance, Leave & HR Management for Small Teams</title>
+  <meta name="description" content="Free HR software for startups with 5–25 employees. Attendance tracking, leave management, expense claims, task boards, and team directory — all in one workspace. No hidden costs.">
+  <meta name="keywords" content="attendance management, leave management, HR software, free HR tool, small team management, employee attendance, leave tracker, expense claims, task management, startup HR, Indonesia HR, UAE HR">
+  <meta name="author" content="Workived">
+  <meta name="theme-color" content="#F3F2FB">
+  <link rel="canonical" href="https://workived.com">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Workived — Free Attendance, Leave & HR Management for Small Teams">
+  <meta property="og:description" content="Free HR software for startups with 5–25 employees. Attendance, leave, claims, tasks — one workspace to run your team. No hidden costs.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://workived.com">
+  <meta property="og:site_name" content="Workived">
+  <meta property="og:locale" content="en_US">
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Workived — Free HR & Attendance for Small Teams">
+  <meta name="twitter:description" content="Attendance, leave, claims, tasks — one free workspace for startups. No hidden costs.">
+
+  <!-- Structured Data (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Workived",
+    "url": "https://workived.com",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web",
+    "description": "Free HR and attendance management platform for small teams. Track attendance, manage leave, handle expense claims, and organize tasks in one workspace.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free for teams up to 25 employees"
+    },
+    "creator": {
+      "@type": "Organization",
+      "name": "Workived",
+      "url": "https://workived.com"
+    }
+  }
+  </script>
+
+  <!-- Favicon (inline SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='30' fill='%236357E8'/><text x='90' y='112' text-anchor='middle' dominant-baseline='middle' style='font-family:Plus Jakarta Sans,sans-serif;font-size:108px;font-weight:800;fill:white'>W</text><rect x='55' y='150' width='70' height='10' rx='5' fill='white' opacity='0.7'/></svg>">
+
+  <!-- Plus Jakarta Sans from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --accent: #6357E8;
+      --accent-dim: #EFEDFD;
+      --accent-mid: #8F86F0;
+      --accent-text: #4A3FBF;
+      --ink-900: #0F0E13;
+      --ink-700: #1F1D2B;
+      --ink-500: #72708A;
+      --ink-300: #B0AEBE;
+      --ink-150: #DDDBE8;
+      --ink-100: #EDECF4;
+      --ink-50: #F3F2FB;
+      --ink-0: #FFFFFF;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--ink-0);
+      color: var(--ink-900);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* ── Sticky Header ── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+      padding: 0 40px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: box-shadow 0.3s ease;
+    }
+    .header.scrolled {
+      box-shadow: 0 1px 12px rgba(0,0,0,0.06);
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .logo-icon { flex-shrink: 0; display: block; }
+    .logo-wordmark {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--ink-900);
+      line-height: 1;
+    }
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: 36px;
+    }
+    .header-nav a {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink-500);
+      text-decoration: none;
+      transition: color 0.2s ease;
+      letter-spacing: -0.01em;
+    }
+    .header-nav a:hover { color: var(--accent); }
+    .header-nav a.header-cta,
+    .header-nav a.header-cta:hover {
+      color: #FFFFFF;
+    }
+    .header-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 24px;
+      border-radius: 10px;
+      background: var(--accent);
+      color: #FFFFFF;
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+    .header-cta:hover {
+      background: var(--accent-text);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(99,87,232,0.3);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 24px 80px;
+      text-align: center;
+      min-height: calc(100vh - 72px);
+      overflow: hidden;
+    }
+
+    /* Gradient orbs */
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .hero-bg .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.5;
+    }
+    .hero-bg .orb-1 {
+      width: 600px;
+      height: 600px;
+      background: rgba(99,87,232,0.12);
+      top: -20%;
+      right: -10%;
+      animation: float-orb 18s ease-in-out infinite;
+    }
+    .hero-bg .orb-2 {
+      width: 400px;
+      height: 400px;
+      background: rgba(155,143,247,0.10);
+      bottom: -10%;
+      left: -5%;
+      animation: float-orb 22s ease-in-out infinite reverse;
+    }
+    .hero-bg .orb-3 {
+      width: 300px;
+      height: 300px;
+      background: rgba(129,140,248,0.08);
+      top: 30%;
+      left: 50%;
+      animation: float-orb 15s ease-in-out infinite 3s;
+    }
+    @keyframes float-orb {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -20px) scale(1.05); }
+      66% { transform: translate(-20px, 15px) scale(0.95); }
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      max-width: 800px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 100px;
+      background: var(--accent-dim);
+      border: 1px solid rgba(99,87,232,0.15);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent-text);
+      letter-spacing: 0.02em;
+      margin-bottom: 32px;
+    }
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .hero h1 {
+      font-size: clamp(44px, 7.5vw, 76px);
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      line-height: 1.05;
+      margin-bottom: 24px;
+      color: var(--ink-900);
+    }
+    .highlight {
+      background: linear-gradient(135deg, #9B8FF7 0%, #6357E8 50%, #818CF8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero .subtitle {
+      font-size: clamp(16px, 2.2vw, 19px);
+      color: var(--ink-500);
+      line-height: 1.7;
+      margin: 0 auto 40px;
+    }
+
+    /* Hero CTA buttons */
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 64px;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 16px 36px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--accent-mid) 0%, var(--accent) 100%);
+      color: white;
+      font-size: 16px;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 20px rgba(99,87,232,0.25);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(99,87,232,0.35);
+    }
+    /* Scroll hint */
+    .scroll-hint {
+      margin-top: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink-300);
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .scroll-hint:hover { color: var(--accent); }
+    .scroll-arrow {
+      width: 20px;
+      height: 20px;
+      animation: bounce 2s ease-in-out infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(6px); }
+    }
+
+    /* Stats strip */
+    .stats-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 48px;
+      padding: 32px 0;
+      position: relative;
+      z-index: 1;
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--ink-900);
+      line-height: 1;
+    }
+    .stat-value .accent { color: var(--accent); }
+    .stat-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-300);
+      margin-top: 6px;
+      letter-spacing: 0.02em;
+    }
+    .stat-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--ink-150);
+    }
+
+    /* Markets */
+    .markets {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 48px;
+      position: relative;
+      z-index: 1;
+    }
+    .markets-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--ink-300);
+      margin-right: 8px;
+    }
+    .market-tag {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: 100px;
+      background: white;
+      border: 1px solid var(--ink-100);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-700);
+      transition: border-color 0.2s ease;
+    }
+    .market-tag:hover { border-color: var(--accent-mid); }
+    .flag-svg {
+      width: 20px;
+      height: 15px;
+      border-radius: 3px;
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+      flex-shrink: 0;
+    }
+
+    /* ── Hero Screenshot Preview ── */
+    .hero-screenshot {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+      margin: 64px auto 0;
+      padding: 0 24px;
+    }
+    .browser-frame {
+      background: white;
+      border-radius: 16px;
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.06),
+        0 24px 80px rgba(99,87,232,0.12),
+        0 8px 32px rgba(0,0,0,0.06);
+      overflow: hidden;
+      transition: transform 0.5s ease, box-shadow 0.5s ease;
+    }
+    .browser-frame:hover {
+      transform: translateY(-4px);
+      box-shadow:
+        0 0 0 1px rgba(0,0,0,0.06),
+        0 32px 100px rgba(99,87,232,0.18),
+        0 12px 40px rgba(0,0,0,0.08);
+    }
+    .browser-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      background: var(--ink-50);
+      border-bottom: 1px solid var(--ink-100);
+    }
+    .browser-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--ink-150);
+    }
+    .browser-dot:nth-child(1) { background: #FF6058; }
+    .browser-dot:nth-child(2) { background: #FFBD2E; }
+    .browser-dot:nth-child(3) { background: #28CA42; }
+    .browser-url {
+      flex: 1;
+      margin-left: 12px;
+      padding: 6px 16px;
+      border-radius: 8px;
+      background: white;
+      border: 1px solid var(--ink-100);
+      font-size: 12px;
+      color: var(--ink-300);
+      font-weight: 500;
+    }
+    .browser-frame img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* ── Features section ── */
+    .features-section {
+      padding: 80px 24px 120px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .section-header {
+      text-align: center;
+      margin-bottom: 80px;
+    }
+    .section-label {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+    }
+    .section-header h2 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+      color: var(--ink-900);
+    }
+    .section-header h2 .muted { color: var(--ink-300); }
+
+    /* ── Feature blocks ── */
+    .feature-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      margin-bottom: 120px;
+    }
+    .feature-block:last-child { margin-bottom: 0; }
+    .feature-block.reverse .feature-text { order: 2; }
+    .feature-block.reverse .feature-visual { order: 1; }
+
+    .feature-text {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .feature-icon-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .feature-emoji {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+    .feature-module-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .feature-text h3 {
+      font-size: clamp(24px, 3.5vw, 36px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--ink-900);
+    }
+    .feature-text p {
+      font-size: 16px;
+      color: var(--ink-500);
+      line-height: 1.7;
+      max-width: 440px;
+    }
+    .feature-bullets {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .feature-bullets li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--ink-500);
+      font-weight: 500;
+    }
+    .feature-bullets li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── Screenshot container ── */
+    .feature-visual { position: relative; }
+    .screenshot-wrapper {
+      position: relative;
+      border-radius: 20px;
+      overflow: hidden;
+      transition: transform 0.4s ease, box-shadow 0.4s ease;
+    }
+    .screenshot-wrapper:hover {
+      transform: translateY(-4px);
+    }
+    .screenshot-wrapper img {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    /* Module-specific accent colors */
+    .feature-block[data-module="overview"] .feature-emoji { background: #EFEDFD; }
+    .feature-block[data-module="overview"] .feature-module-name { color: var(--accent); }
+    .feature-block[data-module="overview"] .feature-bullets li::before { background: var(--accent); }
+    .feature-block[data-module="overview"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(99,87,232,0.10), 0 0 0 1px rgba(99,87,232,0.08);
+    }
+    .feature-block[data-module="overview"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(99,87,232,0.15), 0 0 0 1px rgba(99,87,232,0.12);
+    }
+
+    .feature-block[data-module="attendance"] .feature-emoji { background: #EDE9FE; }
+    .feature-block[data-module="attendance"] .feature-module-name { color: #8B5CF6; }
+    .feature-block[data-module="attendance"] .feature-bullets li::before { background: #8B5CF6; }
+    .feature-block[data-module="attendance"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(139,92,246,0.10), 0 0 0 1px rgba(139,92,246,0.08);
+    }
+    .feature-block[data-module="attendance"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(139,92,246,0.15), 0 0 0 1px rgba(139,92,246,0.12);
+    }
+
+    .feature-block[data-module="leave"] .feature-emoji { background: #EFEDFD; }
+    .feature-block[data-module="leave"] .feature-module-name { color: var(--accent); }
+    .feature-block[data-module="leave"] .feature-bullets li::before { background: var(--accent); }
+    .feature-block[data-module="leave"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(99,87,232,0.10), 0 0 0 1px rgba(99,87,232,0.08);
+    }
+    .feature-block[data-module="leave"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(99,87,232,0.15), 0 0 0 1px rgba(99,87,232,0.12);
+    }
+
+    .feature-block[data-module="claims"] .feature-emoji { background: #D1FAE5; }
+    .feature-block[data-module="claims"] .feature-module-name { color: #10B981; }
+    .feature-block[data-module="claims"] .feature-bullets li::before { background: #10B981; }
+    .feature-block[data-module="claims"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(16,185,129,0.10), 0 0 0 1px rgba(16,185,129,0.08);
+    }
+    .feature-block[data-module="claims"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(16,185,129,0.15), 0 0 0 1px rgba(16,185,129,0.12);
+    }
+
+    .feature-block[data-module="tasks"] .feature-emoji { background: #E0E7FF; }
+    .feature-block[data-module="tasks"] .feature-module-name { color: #818CF8; }
+    .feature-block[data-module="tasks"] .feature-bullets li::before { background: #818CF8; }
+    .feature-block[data-module="tasks"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(129,140,248,0.10), 0 0 0 1px rgba(129,140,248,0.08);
+    }
+    .feature-block[data-module="tasks"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(129,140,248,0.15), 0 0 0 1px rgba(129,140,248,0.12);
+    }
+
+    .feature-block[data-module="calendar"] .feature-emoji { background: #FEF3C7; }
+    .feature-block[data-module="calendar"] .feature-module-name { color: #D97706; }
+    .feature-block[data-module="calendar"] .feature-bullets li::before { background: #D97706; }
+    .feature-block[data-module="calendar"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(217,119,6,0.10), 0 0 0 1px rgba(217,119,6,0.08);
+    }
+    .feature-block[data-module="calendar"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(217,119,6,0.15), 0 0 0 1px rgba(217,119,6,0.12);
+    }
+
+    .feature-block[data-module="people"] .feature-emoji { background: #FCE7F3; }
+    .feature-block[data-module="people"] .feature-module-name { color: #EC4899; }
+    .feature-block[data-module="people"] .feature-bullets li::before { background: #EC4899; }
+    .feature-block[data-module="people"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(236,72,153,0.10), 0 0 0 1px rgba(236,72,153,0.08);
+    }
+    .feature-block[data-module="people"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(236,72,153,0.15), 0 0 0 1px rgba(236,72,153,0.12);
+    }
+
+    /* ── Value Proposition bar ── */
+    .value-bar {
+      background: var(--ink-700);
+      padding: 64px 24px;
+    }
+    .value-bar-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 64px;
+      flex-wrap: wrap;
+    }
+    .value-item {
+      text-align: center;
+    }
+    .value-number {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: white;
+      line-height: 1;
+    }
+    .value-number .v-accent { color: var(--accent-mid); }
+    .value-desc {
+      font-size: 14px;
+      font-weight: 500;
+      color: rgba(255,255,255,0.5);
+      margin-top: 8px;
+    }
+    .value-divider {
+      width: 1px;
+      height: 48px;
+      background: rgba(255,255,255,0.12);
+    }
+
+    /* ── CTA section ── */
+    .cta-section {
+      text-align: center;
+      padding: 120px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at center, rgba(99,87,232,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-content {
+      position: relative;
+      z-index: 1;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .cta-section h2 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 16px;
+      color: var(--ink-900);
+      line-height: 1.1;
+    }
+    .cta-section p {
+      font-size: 17px;
+      color: var(--ink-500);
+      line-height: 1.7;
+      margin-bottom: 40px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      border-top: 1px solid var(--ink-100);
+      padding: 48px 40px 32px;
+    }
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .footer-wordmark {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--ink-900);
+      letter-spacing: -0.03em;
+    }
+    .footer-copy {
+      font-size: 13px;
+      color: var(--ink-300);
+    }
+    .footer-right {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .footer-link {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-500);
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .footer-link:hover { color: var(--accent); }
+
+    /* ── Floating Support Button ── */
+    .support-float {
+      position: fixed;
+      bottom: 32px;
+      right: 32px;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 12px;
+    }
+    .support-card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      font-size: 14px;
+      color: var(--ink-900);
+      box-shadow: 0 6px 24px rgba(99,87,232,0.15), 0 2px 8px rgba(0,0,0,0.08);
+      opacity: 0;
+      transform: translateY(8px) scale(0.95);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+      pointer-events: none;
+      max-width: 280px;
+    }
+    .support-card.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 12px;
+      background: var(--ink-50);
+      border-radius: 12px;
+      width: fit-content;
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      transform: translateY(-4px);
+      transition: opacity 0.3s ease, transform 0.3s ease, max-height 0.3s ease, padding 0.3s ease, margin 0.3s ease;
+    }
+    .typing-indicator.active {
+      opacity: 1;
+      transform: translateY(0);
+      max-height: 40px;
+      padding: 8px 12px;
+      margin-bottom: 12px;
+    }
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--ink-300);
+      animation: typing-bounce 1.4s infinite ease-in-out;
+    }
+    .typing-dot:nth-child(1) { animation-delay: 0s; }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typing-bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-8px); opacity: 1; }
+    }
+    .support-card-header {
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: var(--ink-900);
+    }
+    .support-card-text {
+      font-size: 13px;
+      color: var(--ink-500);
+      line-height: 1.6;
+      margin-bottom: 12px;
+      min-height: 60px;
+    }
+    .support-card-text.typing::after {
+      content: '|';
+      animation: blink 0.7s infinite;
+    }
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+    .support-card-email {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent);
+      font-weight: 500;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--ink-50);
+      transition: background 0.2s ease;
+    }
+    .support-card-email:hover { background: #E8E6FB; }
+    .support-btn {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, var(--accent-mid) 0%, var(--accent) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 6px 20px rgba(99,87,232,0.3), 0 2px 8px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      border: none;
+    }
+    .support-btn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 24px rgba(99,87,232,0.4), 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .support-btn svg {
+      width: 24px;
+      height: 24px;
+      color: white;
+      transition: transform 0.3s ease;
+    }
+    .support-btn.active svg { transform: rotate(180deg); }
+    .support-btn.buzz { animation: buzz 0.5s ease-in-out; }
+    @keyframes buzz {
+      0%, 100% { transform: translateX(0) rotate(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-3px) rotate(-2deg); }
+      20%, 40%, 60%, 80% { transform: translateX(3px) rotate(2deg); }
+    }
+
+    /* ── Scroll animations ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 0.1s; }
+    .reveal-delay-2 { transition-delay: 0.2s; }
+    .reveal-delay-3 { transition-delay: 0.3s; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .feature-block {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        margin-bottom: 80px;
+      }
+      .feature-block.reverse .feature-text { order: 1; }
+      .feature-block.reverse .feature-visual { order: 2; }
+      .value-bar-inner {
+        gap: 32px;
+      }
+      .value-divider { display: none; }
+      .stats-strip { gap: 32px; }
+    }
+
+    @media (max-width: 640px) {
+      .header {
+        padding: 0 20px;
+        height: 64px;
+      }
+      .header-nav a:not(.header-cta) { display: none; }
+      .hero { padding: 60px 20px 40px; }
+      .hero-actions { flex-direction: column; }
+      .btn-primary { width: 100%; justify-content: center; }
+      .stats-strip { gap: 16px; }
+      .stat-value { font-size: 22px; }
+      .stat-label { font-size: 11px; }
+      .stat-divider { height: 28px; }
+      .markets { flex-wrap: wrap; }
+      .hero-screenshot { margin-top: 40px; }
+      .features-section { padding: 60px 16px 80px; }
+      .feature-block { margin-bottom: 64px; gap: 32px; }
+      .cta-section { padding: 80px 20px; }
+      .footer { padding: 32px 20px 24px; }
+      .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+      .footer-right { flex-wrap: wrap; justify-content: center; }
+      .support-float { bottom: 20px; right: 20px; }
+      .support-btn { width: 52px; height: 52px; }
+      .support-card { max-width: calc(100vw - 40px); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ═══════════ HEADER ═══════════ -->
+  <header class="header" id="header">
+    <a href="#" class="header-left" style="text-decoration:none;">
+      <svg class="logo-icon" width="36" height="36" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#9B8FF7"/>
+            <stop offset="100%" stop-color="#6357E8"/>
+          </linearGradient>
+        </defs>
+        <rect width="180" height="180" rx="30" fill="url(#g)"/>
+        <text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+        <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
+      </svg>
+      <span class="logo-wordmark">Workived</span>
+    </a>
+    <nav class="header-nav">
+      <a href="#features">Modules</a>
+      <a href="#features">Features</a>
+      <a href="mailto:my@workived.com" class="header-cta">Get Early Access</a>
+    </nav>
+  </header>
+
+  <!-- ═══════════ HERO ═══════════ -->
+  <section class="hero">
+    <div class="hero-bg">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+
+    <div class="hero-content">
+      <div class="pill">
+        <span class="pill-dot"></span>
+        Coming Soon — Free for small teams
+      </div>
+
+      <h1>
+        Your team,<br><span class="highlight">simplified.</span>
+      </h1>
+
+      <p class="subtitle">
+        Born from frustration with enterprise costs. We literally built the leave feature while on leave.<br>
+        Now we use it daily, and it's yours — free for almost everything. No hidden costs.
+      </p>
+
+      <div class="hero-actions">
+        <a href="mailto:my@workived.com" class="btn-primary">
+          Get Early Access
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+        </a>
+      </div>
+
+      <div class="stats-strip">
+        <div class="stat">
+          <div class="stat-value"><span class="accent">$0</span></div>
+          <div class="stat-label">No hidden costs</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-value">5 min</div>
+          <div class="stat-label">Setup time</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <div class="stat-value">25</div>
+          <div class="stat-label">Employees free tier</div>
+        </div>
+      </div>
+
+      <div class="markets">
+        <span class="markets-label">Launching in</span>
+        <div class="market-tag">
+          <svg class="flag-svg" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
+            <rect width="3" height="1" fill="#FF0000"/>
+            <rect y="1" width="3" height="1" fill="#FFFFFF"/>
+          </svg>
+          Indonesia
+        </div>
+        <div class="market-tag">
+          <svg class="flag-svg" viewBox="0 0 3 2" xmlns="http://www.w3.org/2000/svg">
+            <rect width="3" height="2" fill="#00732F"/>
+            <rect y="0.666" width="3" height="0.667" fill="#FFFFFF"/>
+            <rect y="1.333" width="3" height="0.667" fill="#000000"/>
+            <rect width="0.5" height="2" fill="#FF0000"/>
+          </svg>
+          UAE
+        </div>
+      </div>
+
+      <a href="#features" class="scroll-hint">
+        <span>See what's inside</span>
+        <svg class="scroll-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 4L10 16M10 16L5 11M10 16L15 11"/>
+        </svg>
+      </a>
+    </div>
+
+    <!-- Hero screenshot -->
+    <div class="hero-screenshot reveal">
+      <div class="browser-frame">
+        <div class="browser-bar">
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+          <div class="browser-dot"></div>
+          <div class="browser-url">app.workived.com</div>
+        </div>
+        <img src="images/overview.jpeg" alt="Workived overview dashboard showing attendance clock, pending approvals, leave balance and team pulse" loading="eager" width="960" height="600">
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ FEATURES ═══════════ -->
+  <section class="features-section" id="features">
+
+    <div class="section-header reveal">
+      <span class="section-label">Everything you need</span>
+      <h2>One workspace.<br><span class="muted">Seven modules.</span></h2>
+    </div>
+
+    <!-- 1. Overview -->
+    <div class="feature-block reveal" data-module="overview">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">🏠</div>
+          <span class="feature-module-name">Overview</span>
+        </div>
+        <h3>Everything at a glance</h3>
+        <p>Your morning starts here. See who's in, pending approvals, leave balances, and team pulse — all in one dashboard.</p>
+        <ul class="feature-bullets">
+          <li>Real-time attendance clock</li>
+          <li>Pending leave & claim approvals</li>
+          <li>Team pulse with status breakdown</li>
+          <li>Upcoming holidays & events</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/overview.jpeg" alt="Workived overview dashboard showing attendance clock, pending approvals, leave balance and team pulse" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Attendance -->
+    <div class="feature-block reverse reveal" data-module="attendance">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">⏱</div>
+          <span class="feature-module-name">Attendance</span>
+        </div>
+        <h3>Clock in, track time, stay compliant</h3>
+        <p>One-tap clock in with real-time tracking. See who's on time, who's late, and the full daily attendance log.</p>
+        <ul class="feature-bullets">
+          <li>One-click clock in & out</li>
+          <li>Late / on-time status badges</li>
+          <li>Weekly day picker navigation</li>
+          <li>Manager view of all employees</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/attendance.jpeg" alt="Workived attendance tracking with clock in, employee time log and late status badges" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Leave -->
+    <div class="feature-block reveal" data-module="leave">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">🏖</div>
+          <span class="feature-module-name">Leave</span>
+        </div>
+        <h3>Leave requests, without the back-and-forth</h3>
+        <p>Visual leave balances, one-click requests, and instant approvals. No more WhatsApp threads.</p>
+        <ul class="feature-bullets">
+          <li>All leave types with balance bars</li>
+          <li>Click a balance to request leave</li>
+          <li>Manager approval queue</li>
+          <li>Indonesia & UAE compliant policies</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/leave.jpeg" alt="Workived leave management showing leave balances, request flow and manager approval queue" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Claims -->
+    <div class="feature-block reverse reveal" data-module="claims">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">💰</div>
+          <span class="feature-module-name">Claims</span>
+        </div>
+        <h3>Expense claims, tracked to the rupiah</h3>
+        <p>Submit claims against budget categories, attach receipts, and get instant approvals — all with real-time budget visibility.</p>
+        <ul class="feature-bullets">
+          <li>Budget categories with remaining limits</li>
+          <li>Receipt upload & documentation</li>
+          <li>Approve or reject in one click</li>
+          <li>Monthly budget tracking</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/claims.jpeg" alt="Workived expense claims with budget categories, remaining limits and approval workflow" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Tasks -->
+    <div class="feature-block reveal" data-module="tasks">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">✅</div>
+          <span class="feature-module-name">Tasks</span>
+        </div>
+        <h3>Kanban boards for your whole team</h3>
+        <p>Assign tasks, set priorities, track progress. A drag-and-drop board that keeps everyone aligned on what matters.</p>
+        <ul class="feature-bullets">
+          <li>To Do → In Progress → Done columns</li>
+          <li>Priority labels (Urgent, High, Medium)</li>
+          <li>Assignees with due dates</li>
+          <li>Auto-generated approval tasks</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/tasks.jpeg" alt="Workived kanban task board with drag-and-drop columns, priority labels and assignees" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Calendar -->
+    <div class="feature-block reverse reveal" data-module="calendar">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">📅</div>
+          <span class="feature-module-name">Calendar</span>
+        </div>
+        <h3>See who's off, at a glance</h3>
+        <p>A shared team calendar showing leaves, holidays, and events. Plan around your team's availability effortlessly.</p>
+        <ul class="feature-bullets">
+          <li>Monthly calendar with leave overlays</li>
+          <li>Public holidays by country</li>
+          <li>Color-coded leave types</li>
+          <li>Quick visibility into team availability</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/calendar.jpeg" alt="Workived team calendar showing employee leave schedules and public holidays" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. People -->
+    <div class="feature-block reveal" data-module="people">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">👥</div>
+          <span class="feature-module-name">People</span>
+        </div>
+        <h3>Your team directory, organized</h3>
+        <p>Employee profiles, reporting lines, departments, and status — all in a clean, searchable directory.</p>
+        <ul class="feature-bullets">
+          <li>Employee profiles with job titles</li>
+          <li>Reporting hierarchy</li>
+          <li>Active / probation / inactive filters</li>
+          <li>Quick search & org chart</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/people-and-team.jpeg" alt="Workived people directory with employee profiles, reporting lines and status filters" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+  </section>
+  <!-- ═══════════ BOTTOM CTA ═══════════ -->
+  <section class="cta-section">
+    <div class="cta-content reveal">
+      <h2>Ready to simplify<br><span class="highlight">your team ops?</span></h2>
+      <p>Workived is launching soon. Free for teams up to 25 people. No credit card, no trial period, no catch.</p>
+      <a href="mailto:my@workived.com" class="btn-primary">
+        Get Early Access
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ═══════════ FOOTER ═══════════ -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <svg width="28" height="28" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs><linearGradient id="gf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs>
+          <rect width="180" height="180" rx="30" fill="url(#gf)"/>
+          <text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+        </svg>
+        <span class="footer-wordmark">Workived</span>
+        <span class="footer-copy">© 2026</span>
+      </div>
+      <div class="footer-right">
+        <a href="mailto:my@workived.com" class="footer-link">my@workived.com</a>
+        <span style="color: var(--ink-150);">·</span>
+        <span class="footer-copy">Built for modern founders.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ═══════════ SUPPORT WIDGET ═══════════ -->
+  <div class="support-float">
+    <div class="support-card" id="supportCard">
+      <div class="support-card-header">We're all ears 👂</div>
+      <div class="typing-indicator" id="typingIndicator">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+      <div class="support-card-text">No bots. No tickets. Just real founders who built this, use it daily, and genuinely want to hear from you.</div>
+      <a href="mailto:my@workived.com" class="support-card-email">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+        </svg>
+        my@workived.com
+      </a>
+    </div>
+    <button class="support-btn" id="supportBtn" aria-label="Contact support">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+    </button>
+  </div>
+
+  <script>
+    // Header shadow on scroll
+    const header = document.getElementById('header');
+    window.addEventListener('scroll', () => {
+      header.classList.toggle('scrolled', window.scrollY > 10);
+    }, { passive: true });
+
+    // Scroll reveal animations
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) entry.target.classList.add('visible');
+        });
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -40px 0px' }
+    );
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el));
+
+    // Support button
+    const supportBtn = document.getElementById('supportBtn');
+    const supportCard = document.getElementById('supportCard');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const cardHeader = document.querySelector('.support-card-header');
+    const cardText = document.querySelector('.support-card-text');
+    const originalHeader = cardHeader.textContent;
+    const originalText = cardText.textContent;
+    let autoOpenDismissed = false;
+
+    function typeText(element, text, speed = 30) {
+      return new Promise((resolve) => {
+        element.classList.add('typing');
+        let i = 0;
+        element.textContent = '';
+        const interval = setInterval(() => {
+          if (i < text.length) {
+            element.textContent += text.charAt(i);
+            i++;
+          } else {
+            element.classList.remove('typing');
+            clearInterval(interval);
+            resolve();
+          }
+        }, speed);
+      });
+    }
+
+    function playNotificationSound() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.3, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.15);
+      } catch (e) { /* silent fail */ }
+    }
+
+    supportBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpening = !supportBtn.classList.contains('active');
+      supportBtn.classList.toggle('active');
+      supportCard.classList.toggle('active');
+      autoOpenDismissed = true;
+      if (isOpening) {
+        cardHeader.textContent = originalHeader;
+        cardText.textContent = originalText;
+        cardHeader.classList.remove('typing');
+        cardText.classList.remove('typing');
+        playNotificationSound();
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!supportCard.contains(e.target) && !supportBtn.contains(e.target)) {
+        supportBtn.classList.remove('active');
+        supportCard.classList.remove('active');
+      }
+    });
+
+    // Auto-open after 3s
+    setTimeout(() => {
+      playNotificationSound();
+      supportBtn.classList.add('buzz');
+      setTimeout(() => {
+        supportBtn.classList.remove('buzz');
+        if (!autoOpenDismissed) {
+          cardHeader.textContent = originalHeader;
+          cardText.textContent = '';
+          supportBtn.classList.add('active');
+          supportCard.classList.add('active');
+          typingIndicator.classList.add('active');
+          setTimeout(async () => {
+            typingIndicator.classList.remove('active');
+            await typeText(cardText, originalText, 20);
+          }, 1500);
+        }
+        setTimeout(() => {
+          if (!autoOpenDismissed) {
+            supportBtn.classList.remove('active');
+            supportCard.classList.remove('active');
+          }
+        }, 15000);
+      }, 600);
+    }, 3000);
+  </script>
+
+</body>
+</html>
