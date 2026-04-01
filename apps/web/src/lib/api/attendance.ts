@@ -5,6 +5,7 @@ import type {
   MonthlySummary,
   WeekCalendar,
   TeamWeekEntry,
+  WorkScheduleListItem,
   ApiResponse,
 } from '@/types/api'
 
@@ -42,4 +43,7 @@ export const attendanceApi = {
 
   getTeamSummary: (year: number, month: number) =>
     apiClient.get<ApiResponse<MonthlySummary[]>>('/api/v1/attendance/team/summary', { params: { year, month } }),
+
+  listWorkSchedules: () =>
+    apiClient.get<ApiResponse<WorkScheduleListItem[]>>('/api/v1/attendance/work-schedules'),
 }

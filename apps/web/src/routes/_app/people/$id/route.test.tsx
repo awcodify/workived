@@ -20,6 +20,10 @@ vi.mock('@/lib/hooks/useInvitations', () => ({
   useInviteMember: vi.fn(() => ({ mutate: vi.fn(), isPending: false, error: null })),
 }))
 
+vi.mock('@/lib/hooks/useAttendance', () => ({
+  useWorkSchedules: vi.fn(),
+}))
+
 vi.mock('@/components/workived/layout/Avatar', () => ({
   Avatar: ({ name }: { name: string }) => <div data-testid="avatar">{name}</div>,
 }))
@@ -47,6 +51,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 
 import { useEmployee, useEmployees, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
 import { useUnlinkedMembers } from '@/lib/hooks/useInvitations'
+import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -98,6 +103,12 @@ function setupDefaultMocks() {
   } as any)
 
   vi.mocked(useUnlinkedMembers).mockReturnValue({
+    data: [],
+    isLoading: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any)
+
+  vi.mocked(useWorkSchedules).mockReturnValue({
     data: [],
     isLoading: false,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -376,6 +387,61 @@ describe('EditEmployeePage', () => {
     await waitFor(() => {
       expect(mockUpdateMutate).toHaveBeenCalledWith(
         expect.objectContaining({ full_name: 'Ahmad Updated' }),
+        expect.any(Object),
+      )
+    })
+  })
+
+  it('renders work schedule dropdown with org default option', () => {
+    vi.mocked(useWorkSchedules).mockReturnValue({
+      data: [
+        { id: 'ws-1', name: 'Standard 9-5', work_days: [1,2,3,4,5], start_time: '09:00', end_time: '17:00', is_default: true },
+        { id: 'ws-2', name: 'Night Shift', work_days: [1,2,3,4,5], start_time: '22:00', end_time: '06:00', is_default: false },
+      ],
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    renderEditPage()
+    expect(screen.getByText('— Use org default —')).toBeTruthy()
+    expect(screen.getByText('Standard 9-5 (default)')).toBeTruthy()
+    expect(screen.getByText('Night Shift')).toBeTruthy()
+  })
+
+  it('pre-selects employee work schedule when set', async () => {
+    vi.mocked(useWorkSchedules).mockReturnValue({
+      data: [
+        { id: 'ws-1', name: 'Standard 9-5', work_days: [1,2,3,4,5], start_time: '09:00', end_time: '17:00', is_default: true },
+        { id: 'ws-2', name: 'Night Shift', work_days: [1,2,3,4,5], start_time: '22:00', end_time: '06:00', is_default: false },
+      ],
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    renderEditPage(makeEmployee({ work_schedule_id: 'ws-2' }))
+
+    await waitFor(() => {
+      const select = screen.getByDisplayValue('Night Shift')
+      expect(select).toBeTruthy()
+    })
+  })
+
+  it('sends null work_schedule_id when org default is selected', async () => {
+    vi.mocked(useWorkSchedules).mockReturnValue({
+      data: [
+        { id: 'ws-1', name: 'Standard 9-5', work_days: [1,2,3,4,5], start_time: '09:00', end_time: '17:00', is_default: true },
+      ],
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    renderEditPage()
+
+    fireEvent.click(screen.getByRole('button', { name: /save changes/i }))
+
+    await waitFor(() => {
+      expect(mockUpdateMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ work_schedule_id: null }),
         expect.any(Object),
       )
     })

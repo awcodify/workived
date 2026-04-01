@@ -21,8 +21,9 @@ type Employee struct {
 	JobTitle       *string         `json:"job_title,omitempty"`
 	EmploymentType string          `json:"employment_type"`
 	Status         string          `json:"status"`
-	ReportingTo    *uuid.UUID      `json:"reporting_to,omitempty"` // Manager (self-ref FK)
-	Gender         *string         `json:"gender,omitempty"`       // "male", "female", or nil
+	ReportingTo    *uuid.UUID      `json:"reporting_to,omitempty"`    // Manager (self-ref FK)
+	Gender         *string         `json:"gender,omitempty"`          // "male", "female", or nil
+	WorkScheduleID *uuid.UUID      `json:"work_schedule_id,omitempty"` // Per-employee schedule override
 	StartDate      time.Time       `json:"start_date"`
 	EndDate        *time.Time      `json:"end_date,omitempty"`
 	BaseSalary     *int64          `json:"base_salary,omitempty"`
@@ -79,6 +80,7 @@ type UpdateEmployeeRequest struct {
 	Gender         *string    `json:"gender"           validate:"omitempty,oneof=male female"`
 	Status         *string    `json:"status"           validate:"omitempty,oneof=active on_leave probation inactive"`
 	EndDate        *string    `json:"end_date"         validate:"omitempty"`
+	WorkScheduleID *uuid.UUID `json:"work_schedule_id" validate:"omitempty"`
 }
 
 type ListFilters struct {

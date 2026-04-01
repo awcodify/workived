@@ -4,11 +4,12 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { useEffect } from 'react'
 import { useEmployee, useEmployees, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
+import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { moduleBackgrounds, moduleThemes, colors } from '@/design/tokens'
-import { ArrowLeft, UserCheck, UserPlus, Mail, AlertTriangle } from 'lucide-react'
+import { ArrowLeft, UserCheck, UserPlus, Mail, AlertTriangle, Clock } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
 import axios from 'axios'
 
@@ -34,10 +35,11 @@ const baseSchema = z.object({
   start_date: z.string().min(1, 'Start date is required'),
 })
 
-// Edit form adds status and end_date fields
+// Edit form adds status, end_date, and work_schedule_id fields
 const editSchema = baseSchema.extend({
   status: z.enum(['active', 'probation', 'on_leave', 'inactive']),
   end_date: z.string().optional().or(z.literal('')),
+  work_schedule_id: z.string().optional().or(z.literal('')),
 })
 
 // New employee form — email is optional; user_id links to an existing member
@@ -461,6 +463,7 @@ function EditEmployeePage({ id }: { id: string }) {
   const updateMutation = useUpdateEmployee(id)
   const { data: employeesData } = useEmployees({ status: 'active', limit: 100 })
   const activeEmployees = (employeesData?.data ?? []).filter(emp => emp.id !== id)
+  const { data: workSchedules = [] } = useWorkSchedules()
 
   const form = useForm<EditForm>({
     resolver: zodResolver(editSchema),
@@ -475,6 +478,7 @@ function EditEmployeePage({ id }: { id: string }) {
       status: 'active',
       start_date: '',
       end_date: '',
+      work_schedule_id: '',
     },
   })
 
@@ -491,6 +495,7 @@ function EditEmployeePage({ id }: { id: string }) {
         status: employee.status ?? 'active',
         start_date: employee.start_date,
         end_date: employee.end_date ?? '',
+        work_schedule_id: employee.work_schedule_id ?? '',
       })
     }
   }, [employee, form])
@@ -507,6 +512,7 @@ function EditEmployeePage({ id }: { id: string }) {
       reporting_to: data.reporting_to || undefined,
       gender: data.gender === 'male' || data.gender === 'female' ? data.gender : undefined,
       end_date: data.end_date || undefined,
+      work_schedule_id: data.work_schedule_id || null, // null clears the override
     }
     updateMutation.mutate(clean, {
       onSuccess: () => navigate({ to: '/people' }),
@@ -649,6 +655,27 @@ function EditEmployeePage({ id }: { id: string }) {
                   <div className="flex items-start gap-2 mt-2 px-3 py-2 rounded-lg text-xs" style={{ background: `${colors.warn}15`, color: colors.warn }}>
                     <AlertTriangle size={14} className="mt-0.5 shrink-0" />
                     <span>Changing employment type may affect leave and claim eligibility. New policies will apply and ineligible balances will be deactivated.</span>
+                  </div>
+                )}
+              </Field>
+
+              <Field label="Work schedule (optional)">
+                <select
+                  className="form-input-dark"
+                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                  {...form.register('work_schedule_id')}
+                >
+                  <option value="">— Use org default —</option>
+                  {workSchedules.map((ws) => (
+                    <option key={ws.id} value={ws.id}>
+                      {ws.name}{ws.is_default ? ' (default)' : ''}
+                    </option>
+                  ))}
+                </select>
+                {form.watch('work_schedule_id') && (
+                  <div className="flex items-center gap-1.5 mt-1.5 text-xs" style={{ color: t.textMuted }}>
+                    <Clock size={12} />
+                    <span>This employee uses a custom work schedule for attendance tracking</span>
                   </div>
                 )}
               </Field>

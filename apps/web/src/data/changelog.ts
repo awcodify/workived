@@ -20,6 +20,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 23,
+    date: '2026-04-01',
+    type: 'feature',
+    title: 'Per-employee work schedule override',
+    description: 'Employees can now be assigned a specific work schedule that overrides the org default. Useful for shift workers, part-time staff, or remote employees in different timezones. Set it from the employee edit page.',
+    module: 'People',
+  },
+  {
     id: 22,
     date: '2026-04-01',
     type: 'feature',

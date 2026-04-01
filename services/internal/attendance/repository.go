@@ -179,6 +179,30 @@ func (r *Repository) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*
 	return ws, nil
 }
 
+// GetScheduleForEmployee resolves the work schedule for an employee.
+// Resolution order: employee.work_schedule_id → org default (is_default = TRUE).
+// Returns nil, nil if no schedule is found.
+func (r *Repository) GetScheduleForEmployee(ctx context.Context, orgID, employeeID uuid.UUID) (*WorkSchedule, error) {
+	ws := &WorkSchedule{}
+	err := r.db.QueryRow(ctx, `
+		SELECT ws.work_days, ws.start_time
+		FROM employees e
+		JOIN work_schedules ws
+		  ON ws.organisation_id = $1
+		  AND ws.is_active = TRUE
+		  AND ws.id = COALESCE(e.work_schedule_id,
+		      (SELECT id FROM work_schedules WHERE organisation_id = $1 AND is_default = TRUE AND is_active = TRUE LIMIT 1))
+		WHERE e.organisation_id = $1 AND e.id = $2
+	`, orgID, employeeID).Scan(&ws.WorkDays, &ws.StartTime)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return ws, nil
+}
+
 // ListHolidays returns public holidays for a country within a date range.
 func (r *Repository) ListHolidays(ctx context.Context, countryCode string, startDate, endDate string) ([]PublicHoliday, error) {
 	rows, err := r.db.Query(ctx, `
@@ -302,6 +326,31 @@ func (r *Repository) ListByEmployeesDateRange(ctx context.Context, orgID uuid.UU
 		records = append(records, rec)
 	}
 	return records, rows.Err()
+}
+
+// ListWorkSchedules returns all active work schedules for an org.
+func (r *Repository) ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT id, name, work_days, start_time::text, end_time::text, is_default
+		FROM work_schedules
+		WHERE organisation_id = $1
+		  AND is_active = TRUE
+		ORDER BY is_default DESC, name ASC
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var schedules []WorkScheduleListItem
+	for rows.Next() {
+		var s WorkScheduleListItem
+		if err := rows.Scan(&s.ID, &s.Name, &s.WorkDays, &s.StartTime, &s.EndTime, &s.IsDefault); err != nil {
+			return nil, err
+		}
+		schedules = append(schedules, s)
+	}
+	return schedules, rows.Err()
 }
 
 // GetEmployeeName returns the full_name for an employee, scoped to org.

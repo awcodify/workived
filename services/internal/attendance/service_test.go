@@ -55,6 +55,9 @@ func (f *fakeRepo) ListByEmployeesDateRange(ctx context.Context, orgID uuid.UUID
 func (f *fakeRepo) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error) {
 	return f.getDefaultSchedFn(ctx, orgID)
 }
+func (f *fakeRepo) GetScheduleForEmployee(ctx context.Context, orgID, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+	return f.getDefaultSchedFn(ctx, orgID)
+}
 func (f *fakeRepo) ListHolidays(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error) {
 	return f.listHolidaysFn(ctx, cc, start, end)
 }
@@ -63,6 +66,9 @@ func (f *fakeRepo) ListActiveEmployees(ctx context.Context, orgID uuid.UUID, dat
 }
 func (f *fakeRepo) GetEmployeeName(ctx context.Context, orgID, empID uuid.UUID) (string, error) {
 	return f.getEmployeeNameFn(ctx, orgID, empID)
+}
+func (f *fakeRepo) ListWorkSchedules(_ context.Context, _ uuid.UUID) ([]attendance.WorkScheduleListItem, error) {
+	return nil, nil
 }
 
 type fakeOrgInfo struct {

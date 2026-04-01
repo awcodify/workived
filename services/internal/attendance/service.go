@@ -20,9 +20,11 @@ type RepositoryInterface interface {
 	ListByEmployeeMonth(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]Record, error)
 	ListByEmployeesDateRange(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) ([]Record, error)
 	GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*WorkSchedule, error)
+	GetScheduleForEmployee(ctx context.Context, orgID, employeeID uuid.UUID) (*WorkSchedule, error)
 	ListHolidays(ctx context.Context, countryCode string, startDate, endDate string) ([]PublicHoliday, error)
 	ListActiveEmployees(ctx context.Context, orgID uuid.UUID, date string) ([]ActiveEmployee, error)
 	GetEmployeeName(ctx context.Context, orgID, employeeID uuid.UUID) (string, error)
+	ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error)
 }
 
 // OrgInfoProvider is the narrow interface for org data the attendance service needs.
@@ -93,9 +95,9 @@ func (s *Service) ClockIn(ctx context.Context, orgID uuid.UUID, req ClockInReque
 		return nil, apperr.Conflict("already clocked in today")
 	}
 
-	// Determine late status
+	// Determine late status using employee-specific schedule
 	isLate := false
-	schedule, err := s.repo.GetDefaultSchedule(ctx, orgID)
+	schedule, err := s.repo.GetScheduleForEmployee(ctx, orgID, req.EmployeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -364,8 +366,8 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 	localNow := now.In(loc)
 	todayStr := localNow.Format("2006-01-02")
 
-	// Get work schedule and holidays
-	schedule, err := s.repo.GetDefaultSchedule(ctx, orgID)
+	// Get employee-specific work schedule and holidays
+	schedule, err := s.repo.GetScheduleForEmployee(ctx, orgID, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -811,6 +813,11 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 	}
 
 	return result, nil
+}
+
+// ListWorkSchedules returns all active work schedules for an org.
+func (s *Service) ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error) {
+	return s.repo.ListWorkSchedules(ctx, orgID)
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────────────

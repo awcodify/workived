@@ -23,6 +23,7 @@ type ServiceInterface interface {
 	GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UUID, startDate string) (*WeekCalendar, error)
 	GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid.UUID, startDate string) ([]TeamWeekEntry, error)
 	GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate string) ([]TeamWeekEntry, error)
+	ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error)
 }
 
 // EmployeeLookupFunc resolves the authenticated user's employee ID from their user ID.
@@ -67,6 +68,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 
 	att.GET("/monthly", middleware.Require(middleware.PermAttendanceRead), h.MonthlySummaryReport)
 	att.GET("/monthly/:employee_id", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.EmployeeMonthlySummary)
+	att.GET("/work-schedules", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermEmployeeWrite), h.ListWorkSchedules)
 }
 
 func (h *Handler) ClockIn(c *gin.Context) {
@@ -384,4 +386,23 @@ func (h *Handler) GetTeamSummary(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": summaries})
+}
+
+// ListWorkSchedules returns all active work schedules for the org.
+func (h *Handler) ListWorkSchedules(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	schedules, err := h.service.ListWorkSchedules(c.Request.Context(), orgID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to list work schedules", map[string]string{
+			"org_id": orgID.String(),
+		})
+		return
+	}
+
+	if schedules == nil {
+		schedules = []WorkScheduleListItem{}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": schedules})
 }

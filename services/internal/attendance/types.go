@@ -27,6 +27,16 @@ type WorkSchedule struct {
 	StartTime time.Time // only the time component matters
 }
 
+// WorkScheduleListItem is the API-facing representation of a work schedule.
+type WorkScheduleListItem struct {
+	ID        uuid.UUID `json:"id"`
+	Name      string    `json:"name"`
+	WorkDays  []int     `json:"work_days"`
+	StartTime string    `json:"start_time"` // HH:MM
+	EndTime   string    `json:"end_time"`   // HH:MM
+	IsDefault bool      `json:"is_default"`
+}
+
 // PublicHoliday is a minimal projection of the public_holidays table.
 type PublicHoliday struct {
 	Date string // YYYY-MM-DD

@@ -166,6 +166,7 @@ export interface Employee {
   manager_name?: string
   invitation_pending?: boolean
   gender?: 'male' | 'female' | null
+  work_schedule_id?: string | null
   employment_type: 'full_time' | 'part_time' | 'contract' | 'intern'
   status: 'active' | 'probation' | 'inactive'
   start_date: string
@@ -193,6 +194,16 @@ export type UpdateEmployeeInput = Partial<CreateEmployeeInput> & {
   status?: string
   end_date?: string
   reporting_to?: string
+  work_schedule_id?: string | null
+}
+
+export interface WorkScheduleListItem {
+  id: string
+  name: string
+  work_days: number[]
+  start_time: string
+  end_time: string
+  is_default: boolean
 }
 
 // Workload Intelligence Types

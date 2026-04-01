@@ -71,6 +71,9 @@ func (m *mockAttService) GetAllWeek(ctx context.Context, orgID uuid.UUID, startD
 	}
 	return nil, nil
 }
+func (m *mockAttService) ListWorkSchedules(_ context.Context, _ uuid.UUID) ([]attendance.WorkScheduleListItem, error) {
+	return nil, nil
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

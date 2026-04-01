@@ -217,3 +217,11 @@ export function useTodayAttendance(weekStart: string, today: string) {
     error: activeQuery?.error ?? null,
   }
 }
+
+export function useWorkSchedules() {
+  return useQuery({
+    queryKey: [...attendanceKeys.all, 'work-schedules'],
+    queryFn: () => attendanceApi.listWorkSchedules().then((r) => r.data.data),
+    staleTime: 5 * 60 * 1000, // 5 min — schedules rarely change
+  })
+}
