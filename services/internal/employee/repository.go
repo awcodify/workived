@@ -400,6 +400,37 @@ func (r *Repository) GetSubordinateIDs(ctx context.Context, orgID, managerID uui
 	return ids, rows.Err()
 }
 
+// GetEmployeeNamesBatch returns a map of employee IDs to names for multiple employees.
+// This is optimized for batch lookups (e.g., team week attendance view).
+func (r *Repository) GetEmployeeNamesBatch(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID) (map[uuid.UUID]string, error) {
+	if len(employeeIDs) == 0 {
+		return make(map[uuid.UUID]string), nil
+	}
+
+	rows, err := r.db.Query(ctx, `
+		SELECT id, full_name
+		FROM employees
+		WHERE organisation_id = $1
+		  AND id = ANY($2)
+		  AND is_active = TRUE
+	`, orgID, employeeIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID]string, len(employeeIDs))
+	for rows.Next() {
+		var id uuid.UUID
+		var name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return nil, err
+		}
+		result[id] = name
+	}
+	return result, rows.Err()
+}
+
 // GetWithManagerName returns an employee with their managers full name populated.
 func (r *Repository) GetWithManagerName(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error) {
 	result := &EmployeeWithManager{}

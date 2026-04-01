@@ -18,6 +18,7 @@ type RepositoryInterface interface {
 	ListByDate(ctx context.Context, orgID uuid.UUID, date string) ([]Record, error)
 	ListByMonth(ctx context.Context, orgID uuid.UUID, year, month int) ([]Record, error)
 	ListByEmployeeMonth(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]Record, error)
+	ListByEmployeesDateRange(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) ([]Record, error)
 	GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*WorkSchedule, error)
 	ListHolidays(ctx context.Context, countryCode string, startDate, endDate string) ([]PublicHoliday, error)
 	ListActiveEmployees(ctx context.Context, orgID uuid.UUID, date string) ([]ActiveEmployee, error)
@@ -34,6 +35,7 @@ type OrgInfoProvider interface {
 type EmployeeInfoProvider interface {
 	GetSubordinateIDs(ctx context.Context, orgID, managerID uuid.UUID) ([]uuid.UUID, error)
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	GetEmployeeNamesBatch(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID) (map[uuid.UUID]string, error)
 }
 
 // NowFunc can be replaced in tests to control time.
@@ -475,7 +477,19 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 
 // GetTeamWeek returns week calendars for the manager and all their subordinates.
 // startDate must be a Monday in "YYYY-MM-DD" format.
+// GetTeamWeek returns week calendars for the manager and all their subordinates.
+// startDate must be a Monday in "YYYY-MM-DD" format.
+// Optimized with batch queries to avoid N+1 performance issues.
 func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid.UUID, startDate string) ([]TeamWeekEntry, error) {
+	// Parse and validate start date
+	start, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		return nil, apperr.NewField(apperr.CodeValidation, "invalid start_date format, expected YYYY-MM-DD", "start_date")
+	}
+	if start.Weekday() != time.Monday {
+		return nil, apperr.NewField(apperr.CodeValidation, "start_date must be a Monday", "start_date")
+	}
+
 	// Get subordinate employee IDs
 	subordinateIDs, err := s.employeeRepo.GetSubordinateIDs(ctx, orgID, managerEmployeeID)
 	if err != nil {
@@ -484,32 +498,140 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 
 	// Include the manager's own attendance
 	employeeIDs := append([]uuid.UUID{managerEmployeeID}, subordinateIDs...)
+	if len(employeeIDs) == 0 {
+		return []TeamWeekEntry{}, nil
+	}
 
-	// Fetch week calendar for each employee (manager + subordinates)
+	// Batch fetch employee names
+	employeeNames, err := s.employeeRepo.GetEmployeeNamesBatch(ctx, orgID, employeeIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch org-level data once (not per employee)
+	tz, err := s.orgRepo.GetOrgTimezone(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return nil, fmt.Errorf("invalid timezone %q: %w", tz, err)
+	}
+
+	now := s.now()
+	localNow := now.In(loc)
+	todayStr := localNow.Format("2006-01-02")
+
+	schedule, err := s.repo.GetDefaultSchedule(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	workDays := []int{1, 2, 3, 4, 5} // Default Mon-Fri
+	if schedule != nil {
+		workDays = schedule.WorkDays
+	}
+	workDaySet := make(map[int]bool, len(workDays))
+	for _, wd := range workDays {
+		workDaySet[wd] = true
+	}
+
+	endDate := start.AddDate(0, 0, 6) // Sunday
+	countryCode, err := s.orgRepo.GetOrgCountryCode(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	holidays, err := s.repo.ListHolidays(ctx, countryCode, start.Format("2006-01-02"), endDate.Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+	holidaySet := make(map[string]bool, len(holidays))
+	for _, h := range holidays {
+		holidaySet[h.Date] = true
+	}
+
+	// Batch fetch attendance records for all employees in the week
+	allRecords, err := s.repo.ListByEmployeesDateRange(ctx, orgID, employeeIDs, start.Format("2006-01-02"), endDate.Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Group records by employee ID
+	recordsByEmployee := make(map[uuid.UUID]map[string]*Record)
+	for i := range allRecords {
+		rec := &allRecords[i]
+		if recordsByEmployee[rec.EmployeeID] == nil {
+			recordsByEmployee[rec.EmployeeID] = make(map[string]*Record)
+		}
+		recordsByEmployee[rec.EmployeeID][rec.Date] = rec
+	}
+
+	// Build week calendar for each employee
 	result := make([]TeamWeekEntry, 0, len(employeeIDs))
 	for _, employeeID := range employeeIDs {
-		// Get employee name
-		name, _, _, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
-		if err != nil {
-			// Skip if employee not found (soft-deleted, etc.)
+		name, ok := employeeNames[employeeID]
+		if !ok {
+			// Employee not found (soft-deleted, etc.) - skip
 			continue
 		}
 
-		// Get week calendar
-		week, err := s.GetEmployeeWeek(ctx, orgID, employeeID, startDate)
-		if err != nil {
-			// Log error but continue with other employees
-			s.log.Error().Err(err).
-				Str("employee_id", employeeID.String()).
-				Str("start_date", startDate).
-				Msg("failed to get employee week calendar")
-			continue
+		recordMap := recordsByEmployee[employeeID]
+		if recordMap == nil {
+			recordMap = make(map[string]*Record)
+		}
+
+		// Generate 7 days for this employee
+		days := make([]WeekDay, 7)
+		for i := 0; i < 7; i++ {
+			d := start.AddDate(0, 0, i)
+			dateStr := d.Format("2006-01-02")
+			dayName := d.Format("Mon")
+			dayNumber := d.Day()
+
+			weekDay := WeekDay{
+				Date:      dateStr,
+				DayName:   dayName,
+				DayNumber: dayNumber,
+				IsToday:   dateStr == todayStr,
+			}
+
+			// Determine status
+			isFuture := d.After(localNow.Truncate(24 * time.Hour))
+			isWorkDay := workDaySet[int(d.Weekday())] && !holidaySet[dateStr]
+			rec := recordMap[dateStr]
+
+			if isFuture {
+				weekDay.Status = "future"
+			} else if rec != nil {
+				// Has attendance record
+				if !isWorkDay {
+					// Clocked in on weekend/holiday = overtime
+					weekDay.Status = "overtime"
+				} else if rec.IsLate {
+					weekDay.Status = "late"
+				} else {
+					weekDay.Status = "on-time"
+				}
+				weekDay.ClockInAt = &rec.ClockInAt
+				weekDay.ClockOutAt = rec.ClockOutAt
+			} else if !isWorkDay {
+				// Weekend/holiday with no attendance
+				weekDay.Status = "weekend"
+			} else {
+				// No record on past working day
+				weekDay.Status = "absent"
+			}
+
+			days[i] = weekDay
 		}
 
 		result = append(result, TeamWeekEntry{
 			EmployeeID:   employeeID,
 			EmployeeName: name,
-			Week:         week,
+			Week: &WeekCalendar{
+				StartDate: start.Format("2006-01-02"),
+				EndDate:   endDate.Format("2006-01-02"),
+				Days:      days,
+			},
 		})
 	}
 
@@ -518,9 +640,20 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 
 // GetAllWeek returns week calendars for all active employees in the organization.
 // startDate must be a Monday in "YYYY-MM-DD" format.
+// GetAllWeek returns week calendars for all active employees in the organization.
+// startDate must be a Monday in "YYYY-MM-DD" format.
+// Optimized with batch queries to avoid N+1 performance issues.
 func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate string) ([]TeamWeekEntry, error) {
+	// Parse and validate start date
+	start, err := time.Parse("2006-01-02", startDate)
+	if err != nil {
+		return nil, apperr.NewField(apperr.CodeValidation, "invalid start_date format, expected YYYY-MM-DD", "start_date")
+	}
+	if start.Weekday() != time.Monday {
+		return nil, apperr.NewField(apperr.CodeValidation, "start_date must be a Monday", "start_date")
+	}
+
 	// Get all active employees who started on or before end of week
-	start, _ := time.Parse("2006-01-02", startDate)
 	endOfWeek := start.AddDate(0, 0, 6).Format("2006-01-02")
 	employees, err := s.repo.ListActiveEmployees(ctx, orgID, endOfWeek)
 	if err != nil {
@@ -531,24 +664,134 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 		return []TeamWeekEntry{}, nil
 	}
 
-	// Fetch week calendar for each employee
-	result := make([]TeamWeekEntry, 0, len(employees))
-	for _, employee := range employees {
-		// Get week calendar
-		week, err := s.GetEmployeeWeek(ctx, orgID, employee.ID, startDate)
-		if err != nil {
-			// Log error but continue with other employees
-			s.log.Error().Err(err).
-				Str("employee_id", employee.ID.String()).
-				Str("start_date", startDate).
-				Msg("failed to get employee week calendar")
-			continue
+	// Extract employee IDs and build name map
+	employeeIDs := make([]uuid.UUID, len(employees))
+	employeeNames := make(map[uuid.UUID]string, len(employees))
+	for i, emp := range employees {
+		employeeIDs[i] = emp.ID
+		employeeNames[emp.ID] = emp.FullName
+	}
+
+	// Fetch org-level data once (not per employee)
+	tz, err := s.orgRepo.GetOrgTimezone(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return nil, fmt.Errorf("invalid timezone %q: %w", tz, err)
+	}
+
+	now := s.now()
+	localNow := now.In(loc)
+	todayStr := localNow.Format("2006-01-02")
+
+	schedule, err := s.repo.GetDefaultSchedule(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	workDays := []int{1, 2, 3, 4, 5} // Default Mon-Fri
+	if schedule != nil {
+		workDays = schedule.WorkDays
+	}
+	workDaySet := make(map[int]bool, len(workDays))
+	for _, wd := range workDays {
+		workDaySet[wd] = true
+	}
+
+	endDate := start.AddDate(0, 0, 6) // Sunday
+	countryCode, err := s.orgRepo.GetOrgCountryCode(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	holidays, err := s.repo.ListHolidays(ctx, countryCode, start.Format("2006-01-02"), endDate.Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+	holidaySet := make(map[string]bool, len(holidays))
+	for _, h := range holidays {
+		holidaySet[h.Date] = true
+	}
+
+	// Batch fetch attendance records for all employees in the week
+	allRecords, err := s.repo.ListByEmployeesDateRange(ctx, orgID, employeeIDs, start.Format("2006-01-02"), endDate.Format("2006-01-02"))
+	if err != nil {
+		return nil, err
+	}
+
+	// Group records by employee ID
+	recordsByEmployee := make(map[uuid.UUID]map[string]*Record)
+	for i := range allRecords {
+		rec := &allRecords[i]
+		if recordsByEmployee[rec.EmployeeID] == nil {
+			recordsByEmployee[rec.EmployeeID] = make(map[string]*Record)
+		}
+		recordsByEmployee[rec.EmployeeID][rec.Date] = rec
+	}
+
+	// Build week calendar for each employee
+	result := make([]TeamWeekEntry, 0, len(employeeIDs))
+	for _, employeeID := range employeeIDs {
+		name := employeeNames[employeeID]
+
+		recordMap := recordsByEmployee[employeeID]
+		if recordMap == nil {
+			recordMap = make(map[string]*Record)
+		}
+
+		// Generate 7 days for this employee
+		days := make([]WeekDay, 7)
+		for i := 0; i < 7; i++ {
+			d := start.AddDate(0, 0, i)
+			dateStr := d.Format("2006-01-02")
+			dayName := d.Format("Mon")
+			dayNumber := d.Day()
+
+			weekDay := WeekDay{
+				Date:      dateStr,
+				DayName:   dayName,
+				DayNumber: dayNumber,
+				IsToday:   dateStr == todayStr,
+			}
+
+			// Determine status
+			isFuture := d.After(localNow.Truncate(24 * time.Hour))
+			isWorkDay := workDaySet[int(d.Weekday())] && !holidaySet[dateStr]
+			rec := recordMap[dateStr]
+
+			if isFuture {
+				weekDay.Status = "future"
+			} else if rec != nil {
+				// Has attendance record
+				if !isWorkDay {
+					// Clocked in on weekend/holiday = overtime
+					weekDay.Status = "overtime"
+				} else if rec.IsLate {
+					weekDay.Status = "late"
+				} else {
+					weekDay.Status = "on-time"
+				}
+				weekDay.ClockInAt = &rec.ClockInAt
+				weekDay.ClockOutAt = rec.ClockOutAt
+			} else if !isWorkDay {
+				// Weekend/holiday with no attendance
+				weekDay.Status = "weekend"
+			} else {
+				// No record on past working day
+				weekDay.Status = "absent"
+			}
+
+			days[i] = weekDay
 		}
 
 		result = append(result, TeamWeekEntry{
-			EmployeeID:   employee.ID,
-			EmployeeName: employee.FullName,
-			Week:         week,
+			EmployeeID:   employeeID,
+			EmployeeName: name,
+			Week: &WeekCalendar{
+				StartDate: start.Format("2006-01-02"),
+				EndDate:   endDate.Format("2006-01-02"),
+				Days:      days,
+			},
 		})
 	}
 

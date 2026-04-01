@@ -265,6 +265,45 @@ func (r *Repository) ListByEmployeeMonth(ctx context.Context, orgID, employeeID 
 	return records, rows.Err()
 }
 
+// ListByEmployeesDateRange returns attendance records for multiple employees within a date range.
+// This is optimized for batch lookups (e.g., team week attendance view).
+// startDate and endDate must be in YYYY-MM-DD format.
+func (r *Repository) ListByEmployeesDateRange(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) ([]Record, error) {
+	if len(employeeIDs) == 0 {
+		return []Record{}, nil
+	}
+
+	rows, err := r.db.Query(ctx, `
+		SELECT id, organisation_id, employee_id, date::text,
+		       clock_in_at, clock_out_at, is_late, note,
+		       created_at, updated_at
+		FROM attendance_records
+		WHERE organisation_id = $1
+		  AND employee_id = ANY($2)
+		  AND date >= $3::date
+		  AND date <= $4::date
+		ORDER BY employee_id, date ASC
+	`, orgID, employeeIDs, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var records []Record
+	for rows.Next() {
+		var rec Record
+		if err := rows.Scan(
+			&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
+			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.Note,
+			&rec.CreatedAt, &rec.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		records = append(records, rec)
+	}
+	return records, rows.Err()
+}
+
 // GetEmployeeName returns the full_name for an employee, scoped to org.
 func (r *Repository) GetEmployeeName(ctx context.Context, orgID, employeeID uuid.UUID) (string, error) {
 	var name string

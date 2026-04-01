@@ -15,16 +15,17 @@ import (
 // ── Fakes ─────────────────────────────────────────────────────────────────────
 
 type fakeRepo struct {
-	getByEmpDateFn    func(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error)
-	createFn          func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string) (*attendance.Record, error)
-	updateClockOutFn  func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string) (*attendance.Record, error)
-	listByDateFn      func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error)
-	listByMonthFn     func(ctx context.Context, orgID uuid.UUID, year, month int) ([]attendance.Record, error)
-	listByEmpMonthFn  func(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error)
-	getDefaultSchedFn func(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error)
-	listHolidaysFn    func(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error)
-	listActiveEmpsFn  func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.ActiveEmployee, error)
-	getEmployeeNameFn func(ctx context.Context, orgID, empID uuid.UUID) (string, error)
+	getByEmpDateFn        func(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error)
+	createFn              func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string) (*attendance.Record, error)
+	updateClockOutFn      func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string) (*attendance.Record, error)
+	listByDateFn          func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error)
+	listByMonthFn         func(ctx context.Context, orgID uuid.UUID, year, month int) ([]attendance.Record, error)
+	listByEmpMonthFn      func(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error)
+	listByEmpsDateRangeFn func(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) ([]attendance.Record, error)
+	getDefaultSchedFn     func(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error)
+	listHolidaysFn        func(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error)
+	listActiveEmpsFn      func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.ActiveEmployee, error)
+	getEmployeeNameFn     func(ctx context.Context, orgID, empID uuid.UUID) (string, error)
 }
 
 func (f *fakeRepo) GetByEmployeeAndDate(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error) {
@@ -44,6 +45,12 @@ func (f *fakeRepo) ListByMonth(ctx context.Context, orgID uuid.UUID, year, month
 }
 func (f *fakeRepo) ListByEmployeeMonth(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error) {
 	return f.listByEmpMonthFn(ctx, orgID, empID, year, month)
+}
+func (f *fakeRepo) ListByEmployeesDateRange(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) ([]attendance.Record, error) {
+	if f.listByEmpsDateRangeFn != nil {
+		return f.listByEmpsDateRangeFn(ctx, orgID, employeeIDs, startDate, endDate)
+	}
+	return []attendance.Record{}, nil
 }
 func (f *fakeRepo) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error) {
 	return f.getDefaultSchedFn(ctx, orgID)
@@ -79,8 +86,9 @@ func (f *fakeOrgInfo) GetOrgCountryCode(_ context.Context, _ uuid.UUID) (string,
 }
 
 type fakeEmployeeInfo struct {
-	subordinateIDsFn  func(ctx context.Context, orgID, managerID uuid.UUID) ([]uuid.UUID, error)
-	employeeProfileFn func(ctx context.Context, orgID, employeeID uuid.UUID) (string, *string, *uuid.UUID, error)
+	subordinateIDsFn     func(ctx context.Context, orgID, managerID uuid.UUID) ([]uuid.UUID, error)
+	employeeProfileFn    func(ctx context.Context, orgID, employeeID uuid.UUID) (string, *string, *uuid.UUID, error)
+	employeeNamesBatchFn func(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID) (map[uuid.UUID]string, error)
 }
 
 func (f *fakeEmployeeInfo) GetSubordinateIDs(ctx context.Context, orgID, managerID uuid.UUID) ([]uuid.UUID, error) {
@@ -95,6 +103,18 @@ func (f *fakeEmployeeInfo) GetEmployeeProfile(ctx context.Context, orgID, employ
 		return f.employeeProfileFn(ctx, orgID, employeeID)
 	}
 	return "Test Employee", nil, nil, nil
+}
+
+func (f *fakeEmployeeInfo) GetEmployeeNamesBatch(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID) (map[uuid.UUID]string, error) {
+	if f.employeeNamesBatchFn != nil {
+		return f.employeeNamesBatchFn(ctx, orgID, employeeIDs)
+	}
+	// Default: return simple ID -> name mapping
+	result := make(map[uuid.UUID]string, len(employeeIDs))
+	for _, id := range employeeIDs {
+		result[id] = "Employee " + id.String()[:8]
+	}
+	return result, nil
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -959,5 +979,185 @@ func TestService_HolidayOnWeekendNotSubtracted(t *testing.T) {
 	if summariesWithHoliday[0].WorkingDays != summariesNoHoliday[0].WorkingDays {
 		t.Errorf("weekend holiday should not reduce working days: with=%d, without=%d",
 			summariesWithHoliday[0].WorkingDays, summariesNoHoliday[0].WorkingDays)
+	}
+}
+
+// ── GetTeamWeek (batch optimized) ───────────────────────────────────────────
+
+func TestGetTeamWeek_BatchQueriesAndCorrectness(t *testing.T) {
+	managerID := uuid.MustParse("00000000-0000-0000-0000-000000000100")
+	sub1 := uuid.MustParse("00000000-0000-0000-0000-000000000101")
+	sub2 := uuid.MustParse("00000000-0000-0000-0000-000000000102")
+
+	var (
+		batchFetchCalled                bool
+		employeeNamesBatchCalledWithIDs []uuid.UUID
+	)
+
+	empInfo := &fakeEmployeeInfo{
+		subordinateIDsFn: func(_ context.Context, _, _ uuid.UUID) ([]uuid.UUID, error) {
+			return []uuid.UUID{sub1, sub2}, nil
+		},
+		employeeNamesBatchFn: func(_ context.Context, _ uuid.UUID, ids []uuid.UUID) (map[uuid.UUID]string, error) {
+			batchFetchCalled = true
+			employeeNamesBatchCalledWithIDs = ids
+			return map[uuid.UUID]string{
+				managerID: "Manager Name",
+				sub1:      "Sub 1 Name",
+				sub2:      "Sub 2 Name",
+			}, nil
+		},
+	}
+
+	repo := &fakeRepo{
+		getDefaultSchedFn: func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+			return schedule9AM(), nil
+		},
+		listHolidaysFn: func(_ context.Context, _ string, _, _ string) ([]attendance.PublicHoliday, error) {
+			return []attendance.PublicHoliday{}, nil
+		},
+		listByEmpsDateRangeFn: func(_ context.Context, _ uuid.UUID, eids []uuid.UUID, start, end string) ([]attendance.Record, error) {
+			// Should be called once with all 3 employee IDs (manager + 2 subs)
+			if len(eids) != 3 {
+				t.Errorf("expected 3 employee IDs in batch query, got %d", len(eids))
+			}
+			// Return some attendance data
+			return []attendance.Record{
+				{EmployeeID: managerID, Date: "2026-03-31", ClockInAt: time.Date(2026, 3, 31, 9, 0, 0, 0, time.UTC), IsLate: false},
+				{EmployeeID: sub1, Date: "2026-03-31", ClockInAt: time.Date(2026, 3, 31, 9, 30, 0, 0, time.UTC), IsLate: true},
+			}, nil
+		},
+	}
+
+	orgInfo := &fakeOrgInfo{tz: "UTC", cc: "ID"}
+	svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
+
+	result, err := svc.GetTeamWeek(context.Background(), testOrgID, managerID, "2026-03-31") // Monday
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify batch fetch was called
+	if !batchFetchCalled {
+		t.Error("expected GetEmployeeNamesBatch to be called, but it wasn't")
+	}
+
+	// Verify all 3 employee IDs were passed to batch method
+	if len(employeeNamesBatchCalledWithIDs) != 3 {
+		t.Errorf("expected batch fetch called with 3 IDs, got %d", len(employeeNamesBatchCalledWithIDs))
+	}
+
+	// Verify result has all 3 employees
+	if len(result) != 3 {
+		t.Fatalf("expected 3 team members, got %d", len(result))
+	}
+
+	// Verify names are correctly mapped
+	nameMap := make(map[uuid.UUID]string)
+	for _, entry := range result {
+		nameMap[entry.EmployeeID] = entry.EmployeeName
+	}
+
+	if nameMap[managerID] != "Manager Name" {
+		t.Errorf("manager name = %q, want %q", nameMap[managerID], "Manager Name")
+	}
+	if nameMap[sub1] != "Sub 1 Name" {
+		t.Errorf("sub1 name = %q, want %q", nameMap[sub1], "Sub 1 Name")
+	}
+	if nameMap[sub2] != "Sub 2 Name" {
+		t.Errorf("sub2 name = %q, want %q", nameMap[sub2], "Sub 2 Name")
+	}
+
+	// Verify attendance data is correctly assigned
+	var managerEntry *attendance.TeamWeekEntry
+	for i := range result {
+		if result[i].EmployeeID == managerID {
+			managerEntry = &result[i]
+			break
+		}
+	}
+	if managerEntry == nil {
+		t.Fatal("manager not found in result")
+	}
+	if managerEntry.Week.Days[0].Status != "on-time" {
+		t.Errorf("manager Monday status = %q, want on-time", managerEntry.Week.Days[0].Status)
+	}
+}
+
+func TestGetAllWeek_BatchQueriesAndCorrectness(t *testing.T) {
+	emp1 := uuid.MustParse("00000000-0000-0000-0000-000000000201")
+	emp2 := uuid.MustParse("00000000-0000-0000-0000-000000000202")
+	emp3 := uuid.MustParse("00000000-0000-0000-0000-000000000203")
+
+	repo := &fakeRepo{
+		listActiveEmpsFn: func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) {
+			return []attendance.ActiveEmployee{
+				{ID: emp1, FullName: "Alice"},
+				{ID: emp2, FullName: "Bob"},
+				{ID: emp3, FullName: "Charlie"},
+			}, nil
+		},
+		getDefaultSchedFn: func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+			return schedule9AM(), nil
+		},
+		listHolidaysFn: func(_ context.Context, _ string, _, _ string) ([]attendance.PublicHoliday, error) {
+			return []attendance.PublicHoliday{}, nil
+		},
+		listByEmpsDateRangeFn: func(_ context.Context, _ uuid.UUID, eids []uuid.UUID, start, end string) ([]attendance.Record, error) {
+			// Should be called once with all 3 employee IDs
+			if len(eids) != 3 {
+				t.Errorf("expected 3 employee IDs in batch query, got %d", len(eids))
+			}
+			// Return attendance for all 3
+			return []attendance.Record{
+				{EmployeeID: emp1, Date: "2026-04-01", ClockInAt: time.Date(2026, 4, 1, 8, 55, 0, 0, time.UTC), IsLate: false},
+				{EmployeeID: emp2, Date: "2026-04-01", ClockInAt: time.Date(2026, 4, 1, 9, 15, 0, 0, time.UTC), IsLate: true},
+				{EmployeeID: emp3, Date: "2026-04-01", ClockInAt: time.Date(2026, 4, 1, 9, 0, 0, 0, time.UTC), IsLate: false},
+			}, nil
+		},
+	}
+
+	empInfo := &fakeEmployeeInfo{}
+	orgInfo := &fakeOrgInfo{tz: "UTC", cc: "ID"}
+	svc := attendance.NewService(repo, orgInfo, empInfo, zerolog.Nop())
+
+	result, err := svc.GetAllWeek(context.Background(), testOrgID, "2026-03-31") // Monday
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify all 3 employees are in result
+	if len(result) != 3 {
+		t.Fatalf("expected 3 employees, got %d", len(result))
+	}
+
+	// Verify names and attendance
+	nameMap := make(map[uuid.UUID]string)
+	statusMap := make(map[uuid.UUID]string)
+	for _, entry := range result {
+		nameMap[entry.EmployeeID] = entry.EmployeeName
+		// Tuesday is index 1 (Monday=0, Tuesday=1, ...)
+		statusMap[entry.EmployeeID] = entry.Week.Days[1].Status
+	}
+
+	if nameMap[emp1] != "Alice" {
+		t.Errorf("emp1 name = %q, want Alice", nameMap[emp1])
+	}
+	if nameMap[emp2] != "Bob" {
+		t.Errorf("emp2 name = %q, want Bob", nameMap[emp2])
+	}
+	if nameMap[emp3] != "Charlie" {
+		t.Errorf("emp3 name = %q, want Charlie", nameMap[emp3])
+	}
+
+	// Verify statuses (April 1 = Tuesday)
+	if statusMap[emp1] != "on-time" {
+		t.Errorf("Alice Tuesday status = %q, want on-time", statusMap[emp1])
+	}
+	if statusMap[emp2] != "late" {
+		t.Errorf("Bob Tuesday status = %q, want late", statusMap[emp2])
+	}
+	if statusMap[emp3] != "on-time" {
+		t.Errorf("Charlie Tuesday status = %q, want on-time", statusMap[emp3])
 	}
 }
