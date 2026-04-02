@@ -1,6 +1,9 @@
-import { useEffect } from 'react'
-import { useEmployee } from '@/lib/hooks/useEmployees'
+import { useEffect, useState } from 'react'
+import { useEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
+import { useEmployees } from '@/lib/hooks/useEmployees'
+import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { Avatar } from '@/components/workived/layout/Avatar'
+import { Dropdown, type DropdownOption } from './Dropdown'
 import { moduleThemes, colors } from '@/design/tokens'
 import {
   X,
@@ -12,27 +15,137 @@ import {
   Users,
   UserCheck,
   Building2,
+  Edit,
+  Save,
+  XCircle,
 } from 'lucide-react'
 import { Skeleton } from './Skeleton'
+import type { Employee } from '@/types/api'
 
 const t = moduleThemes.attendance
 
 interface EmployeeDetailModalProps {
   employeeId: string
   onClose: () => void
+  canEdit?: boolean
 }
 
-export function EmployeeDetailModal({ employeeId, onClose }: EmployeeDetailModalProps) {
+interface FormData {
+  full_name: string
+  phone: string
+  job_title: string
+  employment_type: string
+  status: string
+  gender: string
+  department_id: string
+  reporting_to: string
+  work_schedule_id: string
+  start_date: string
+  end_date: string
+}
+
+export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: EmployeeDetailModalProps) {
   const { data: employee, isLoading } = useEmployee(employeeId)
+  const { data: employeesData } = useEmployees({})
+  const { data: workSchedules = [] } = useWorkSchedules()
+  const updateEmployee = useUpdateEmployee(employeeId)
+  
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [showConfirmation, setShowConfirmation] = useState(false)
+  const [formData, setFormData] = useState<FormData>({
+    full_name: '',
+    phone: '',
+    job_title: '',
+    employment_type: 'full_time',
+    status: 'active',
+    gender: '',
+    department_id: '',
+    reporting_to: '',
+    work_schedule_id: '',
+    start_date: '',
+    end_date: '',
+  })
+
+  // Initialize form data when employee loads
+  useEffect(() => {
+    if (employee) {
+      setFormData({
+        full_name: employee.full_name || '',
+        phone: employee.phone || '',
+        job_title: employee.job_title || '',
+        employment_type: employee.employment_type || 'full_time',
+        status: employee.status || 'active',
+        gender: employee.gender || '',
+        department_id: employee.department_id || '',
+        reporting_to: employee.reporting_to || '',
+        work_schedule_id: employee.work_schedule_id || '',
+        start_date: employee.start_date || '',
+        end_date: employee.end_date || '',
+      })
+    }
+  }, [employee])
 
   // Close modal on ESC key
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') {
+        if (isEditMode) {
+          setIsEditMode(false)
+        } else {
+          onClose()
+        }
+      }
     }
     document.addEventListener('keydown', handleEsc)
     return () => document.removeEventListener('keydown', handleEsc)
-  }, [onClose])
+  }, [onClose, isEditMode])
+
+  const handleSave = async () => {
+    if (!showConfirmation) {
+      setShowConfirmation(true)
+      return
+    }
+    
+    try {
+      await updateEmployee.mutateAsync({
+        full_name: formData.full_name || undefined,
+        phone: formData.phone || undefined,
+        job_title: formData.job_title || undefined,
+        employment_type: formData.employment_type as any,
+        status: formData.status as any,
+        gender: formData.gender as any || undefined,
+        department_id: formData.department_id || undefined,
+        reporting_to: formData.reporting_to || undefined,
+        work_schedule_id: formData.work_schedule_id || undefined,
+      })
+      setIsEditMode(false)
+      setShowConfirmation(false)
+    } catch (error) {
+      console.error('Failed to update employee:', error)
+      setShowConfirmation(false)
+    }
+  }
+
+  const handleCancel = () => {
+    // Reset form data to original employee data
+    if (employee) {
+      setFormData({
+        full_name: employee.full_name || '',
+        phone: employee.phone || '',
+        job_title: employee.job_title || '',
+        employment_type: employee.employment_type || 'full_time',
+        status: employee.status || 'active',
+        gender: employee.gender || '',
+        department_id: employee.department_id || '',
+        reporting_to: employee.reporting_to || '',
+        work_schedule_id: employee.work_schedule_id || '',
+        start_date: employee.start_date || '',
+        end_date: employee.end_date || '',
+      })
+    }
+    setIsEditMode(false)
+    setShowConfirmation(false)
+  }
 
   // Format date for display
   const formatDate = (dateStr?: string) => {
@@ -45,20 +158,6 @@ export function EmployeeDetailModal({ employeeId, onClose }: EmployeeDetailModal
       })
     } catch {
       return '—'
-    }
-  }
-
-  // Get status badge styling
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'active':
-        return { bg: colors.okDim, color: colors.okText, label: 'Active' }
-      case 'probation':
-        return { bg: colors.warnDim, color: colors.warnText, label: 'Probation' }
-      case 'inactive':
-        return { bg: colors.errDim, color: colors.errText, label: 'Inactive' }
-      default:
-        return { bg: t.border, color: t.textMuted, label: status }
     }
   }
 
@@ -77,15 +176,55 @@ export function EmployeeDetailModal({ employeeId, onClose }: EmployeeDetailModal
     }
   }
 
+  // Get managers list (exclude current employee)
+  const managers = (employeesData?.data || []).filter(emp => emp.id !== employeeId)
+
+  // Dropdown options
+  const employmentTypeOptions: DropdownOption[] = [
+    { value: 'full_time', label: 'Full-time' },
+    { value: 'part_time', label: 'Part-time' },
+    { value: 'contract', label: 'Contract' },
+    { value: 'intern', label: 'Intern' },
+  ]
+
+  const statusOptions: DropdownOption[] = [
+    { value: 'active', label: 'Active' },
+    { value: 'probation', label: 'Probation' },
+    { value: 'inactive', label: 'Inactive' },
+  ]
+
+  const genderOptions: DropdownOption[] = [
+    { value: '', label: 'Not specified' },
+    { value: 'male', label: 'Male' },
+    { value: 'female', label: 'Female' },
+  ]
+
+  const managerOptions: DropdownOption[] = [
+    { value: '', label: 'No manager' },
+    ...managers.map(mgr => ({
+      value: mgr.id,
+      label: mgr.full_name,
+    })),
+  ]
+
+  const scheduleOptions: DropdownOption[] = [
+    { value: '', label: 'Default schedule' },
+    ...workSchedules.map(ws => ({
+      value: ws.id,
+      label: ws.name,
+      badge: ws.is_default ? 'default' : undefined,
+    })),
+  ]
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
+        if (e.target === e.currentTarget && !isEditMode) onClose()
       }}
     >
       <div
-        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl"
+        className="w-full max-w-2xl max-h-[95vh] overflow-y-auto rounded-2xl"
         style={{ background: t.surface }}
       >
         {/* Header */}
@@ -94,14 +233,54 @@ export function EmployeeDetailModal({ employeeId, onClose }: EmployeeDetailModal
           style={{ background: t.surface, borderBottom: `1px solid ${t.border}` }}
         >
           <h2 className="text-lg font-bold" style={{ color: t.text }}>
-            Employee Details
+            {isEditMode ? 'Edit Employee' : 'Employee Details'}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
-          >
-            <X size={20} style={{ color: t.textMuted }} />
-          </button>
+          <div className="flex items-center gap-2">
+            {isEditMode ? (
+              <>
+                <button
+                  onClick={handleCancel}
+                  disabled={updateEmployee.isPending}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-black/5 transition-colors text-sm font-semibold disabled:opacity-50"
+                  style={{ color: t.textMuted }}
+                >
+                  <XCircle size={16} />
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={updateEmployee.isPending}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:opacity-90 transition-colors text-sm font-semibold disabled:opacity-50"
+                  style={{ 
+                    background: showConfirmation ? colors.warn : colors.accent, 
+                    color: '#ffffff'
+                  }}
+                >
+                  <Save size={16} />
+                  {updateEmployee.isPending ? 'Saving...' : (showConfirmation ? 'Sure?' : 'Save')}
+                </button>
+              </>
+            ) : (
+              <>
+                {canEdit && (
+                  <button
+                    onClick={() => setIsEditMode(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-black/5 transition-colors text-sm font-semibold"
+                    style={{ color: colors.accent }}
+                  >
+                    <Edit size={16} />
+                    Edit
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
+                >
+                  <X size={20} style={{ color: t.textMuted }} />
+                </button>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Content */}
@@ -110,65 +289,167 @@ export function EmployeeDetailModal({ employeeId, onClose }: EmployeeDetailModal
             <EmployeeDetailSkeleton />
           ) : employee ? (
             <>
-              {/* Employee Header */}
+              {/* Employee Header - Always visible */}
               <div className="flex items-start gap-4">
                 <Avatar id={employee.id} name={employee.full_name} size={80} />
                 <div className="flex-1 min-w-0">
-                  <h3 className="text-xl font-bold mb-1" style={{ color: t.text }}>
-                    {employee.full_name}
-                  </h3>
-                  {employee.job_title && (
-                    <p className="text-sm font-medium mb-2" style={{ color: t.textMuted }}>
-                      {employee.job_title}
-                    </p>
+                  {isEditMode ? (
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        value={formData.full_name}
+                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        className="text-xl font-bold px-2 py-1 rounded-lg focus:outline-none focus:ring-2 w-full"
+                        style={{
+                          background: t.input,
+                          border: `1px solid ${t.inputBorder}`,
+                          color: t.text,
+                        }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Job Title"
+                        value={formData.job_title}
+                        onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+                        className="text-sm font-medium px-2 py-1 rounded-lg focus:outline-none focus:ring-2 w-full"
+                        style={{
+                          background: t.input,
+                          border: `1px solid ${t.inputBorder}`,
+                          color: t.textMuted,
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <h3 className="text-xl font-bold mb-1" style={{ color: t.text }}>
+                        {employee.full_name}
+                      </h3>
+                      {employee.job_title && (
+                        <p className="text-sm font-medium mb-2" style={{ color: t.textMuted }}>
+                          {employee.job_title}
+                        </p>
+                      )}
+                    </>
                   )}
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <StatusBadge status={employee.status} />
-                    <TypeBadge type={employee.employment_type} />
-                    {employee.invitation_pending && (
-                      <span
-                        className="text-xs font-bold uppercase px-2 py-1 rounded-full"
-                        style={{ background: colors.warnDim, color: colors.warnText }}
-                      >
-                        Invitation Pending
-                      </span>
+                  <div className="flex items-center gap-2 flex-wrap mt-2">
+                    {isEditMode ? (
+                      <>
+                        <Dropdown
+                          value={formData.status}
+                          onChange={(value) => setFormData({ ...formData, status: value })}
+                          options={statusOptions}
+                        />
+                        <Dropdown
+                          value={formData.employment_type}
+                          onChange={(value) => setFormData({ ...formData, employment_type: value })}
+                          options={employmentTypeOptions}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <StatusBadge status={employee.status} />
+                        <TypeBadge type={employee.employment_type} />
+                        {employee.invitation_pending && (
+                          <span
+                            className="text-xs font-bold uppercase px-2 py-1 rounded-full"
+                            style={{ background: colors.warnDim, color: colors.warnText }}
+                          >
+                            Invitation Pending
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
               </div>
 
-              {/* Contact Information */}
+              {/* Contact & Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <InfoCard
-                  icon={<Mail size={18} style={{ color: colors.accent }} />}
-                  label="Email"
-                  value={employee.email || 'Not provided'}
-                />
-                <InfoCard
-                  icon={<Phone size={18} style={{ color: colors.accent }} />}
-                  label="Phone"
-                  value={employee.phone || 'Not provided'}
-                />
-                <InfoCard
-                  icon={<Building2 size={18} style={{ color: colors.accent }} />}
-                  label="Department"
-                  value={employee.department_name || 'Not assigned'}
-                />
-                <InfoCard
-                  icon={<Users size={18} style={{ color: colors.accent }} />}
-                  label="Reports to"
-                  value={employee.manager_name || 'No manager'}
-                />
-                <InfoCard
-                  icon={<Clock size={18} style={{ color: colors.accent }} />}
-                  label="Work Schedule"
-                  value={employee.work_schedule_name || 'Default schedule'}
-                />
-                <InfoCard
-                  icon={<UserCheck size={18} style={{ color: colors.accent }} />}
-                  label="Gender"
-                  value={employee.gender ? employee.gender.charAt(0).toUpperCase() + employee.gender.slice(1) : 'Not specified'}
-                />
+                {isEditMode ? (
+                  <>
+                    <InfoCard
+                      icon={<Mail size={18} style={{ color: colors.accent }} />}
+                      label="Email"
+                      value={employee.email || 'Not provided'}
+                    />
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
+                        Phone
+                      </label>
+                      <input
+                        type="tel"
+                        placeholder="Not provided"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
+                        style={{
+                          background: t.input,
+                          border: `1px solid ${t.inputBorder}`,
+                          color: t.text,
+                        }}
+                      />
+                    </div>
+                    <InfoCard
+                      icon={<Building2 size={18} style={{ color: colors.accent }} />}
+                      label="Department"
+                      value={employee.department_name || 'Not assigned'}
+                    />
+                    <Dropdown
+                      label="Reports to"
+                      value={formData.reporting_to}
+                      onChange={(value) => setFormData({ ...formData, reporting_to: value })}
+                      options={managerOptions}
+                      fullWidth
+                    />
+                    <Dropdown
+                      label="Work Schedule"
+                      value={formData.work_schedule_id}
+                      onChange={(value) => setFormData({ ...formData, work_schedule_id: value })}
+                      options={scheduleOptions}
+                      fullWidth
+                    />
+                    <Dropdown
+                      label="Gender"
+                      value={formData.gender}
+                      onChange={(value) => setFormData({ ...formData, gender: value })}
+                      options={genderOptions}
+                      fullWidth
+                    />
+                  </>
+                ) : (
+                  <>
+                    <InfoCard
+                      icon={<Mail size={18} style={{ color: colors.accent }} />}
+                      label="Email"
+                      value={employee.email || 'Not provided'}
+                    />
+                    <InfoCard
+                      icon={<Phone size={18} style={{ color: colors.accent }} />}
+                      label="Phone"
+                      value={employee.phone || 'Not provided'}
+                    />
+                    <InfoCard
+                      icon={<Building2 size={18} style={{ color: colors.accent }} />}
+                      label="Department"
+                      value={employee.department_name || 'Not assigned'}
+                    />
+                    <InfoCard
+                      icon={<Users size={18} style={{ color: colors.accent }} />}
+                      label="Reports to"
+                      value={employee.manager_name || 'No manager'}
+                    />
+                    <InfoCard
+                      icon={<Clock size={18} style={{ color: colors.accent }} />}
+                      label="Work Schedule"
+                      value={employee.work_schedule_name || 'Default schedule'}
+                    />
+                    <InfoCard
+                      icon={<UserCheck size={18} style={{ color: colors.accent }} />}
+                      label="Gender"
+                      value={employee.gender ? employee.gender.charAt(0).toUpperCase() + employee.gender.slice(1) : 'Not specified'}
+                    />
+                  </>
+                )}
               </div>
 
               {/* Employment Details */}
@@ -181,23 +462,60 @@ export function EmployeeDetailModal({ employeeId, onClose }: EmployeeDetailModal
                   Employment Details
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
-                      Start Date
-                    </p>
-                    <p className="text-sm font-semibold" style={{ color: t.text }}>
-                      {formatDate(employee.start_date)}
-                    </p>
-                  </div>
-                  {employee.end_date && (
-                    <div>
-                      <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
-                        End Date
-                      </p>
-                      <p className="text-sm font-semibold" style={{ color: t.text }}>
-                        {formatDate(employee.end_date)}
-                      </p>
-                    </div>
+                  {isEditMode ? (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
+                          Start Date
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.start_date}
+                          onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                          className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
+                          style={{
+                            background: t.input,
+                            border: `1px solid ${t.inputBorder}`,
+                            color: t.text,
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
+                          End Date
+                        </label>
+                        <input
+                          type="date"
+                          value={formData.end_date}
+                          onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                          className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
+                          style={{
+                            background: t.input,
+                            border: `1px solid ${t.inputBorder}`,
+                            color: t.text,
+                          }}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
+                          Start Date
+                        </p>
+                        <p className="text-sm font-semibold" style={{ color: t.text }}>
+                          {formatDate(employee.start_date)}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
+                          End Date
+                        </p>
+                        <p className="text-sm font-semibold" style={{ color: t.text }}>
+                          {formatDate(employee.end_date)}
+                        </p>
+                      </div>
+                    </>
                   )}
                   {employee.base_salary && (
                     <div>
@@ -209,30 +527,46 @@ export function EmployeeDetailModal({ employeeId, onClose }: EmployeeDetailModal
                       </p>
                     </div>
                   )}
-                  <div>
-                    <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
-                      Employment Type
-                    </p>
-                    <p className="text-sm font-semibold" style={{ color: t.text }}>
-                      {getEmploymentTypeLabel(employee.employment_type)}
-                    </p>
-                  </div>
+                  {isEditMode ? (
+                    <div>
+                      <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
+                        Employment Type
+                      </label>
+                      <Dropdown
+                        value={formData.employment_type}
+                        onChange={(value) => setFormData({ ...formData, employment_type: value })}
+                        options={employmentTypeOptions}
+                        fullWidth
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
+                        Employment Type
+                      </p>
+                      <p className="text-sm font-semibold" style={{ color: t.text }}>
+                        {getEmploymentTypeLabel(employee.employment_type)}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {/* Metadata */}
-              <div className="flex items-center gap-4 text-xs" style={{ color: t.textMuted }}>
-                <div className="flex items-center gap-1">
-                  <Calendar size={12} />
-                  <span>Created {formatDate(employee.created_at)}</span>
-                </div>
-                {employee.updated_at !== employee.created_at && (
+              {/* Metadata - Always visible */}
+              {!isEditMode && (
+                <div className="flex items-center gap-4 text-xs" style={{ color: t.textMuted }}>
                   <div className="flex items-center gap-1">
                     <Calendar size={12} />
-                    <span>Updated {formatDate(employee.updated_at)}</span>
+                    <span>Created {formatDate(employee.created_at)}</span>
                   </div>
-                )}
-              </div>
+                  {employee.updated_at !== employee.created_at && (
+                    <div className="flex items-center gap-1">
+                      <Calendar size={12} />
+                      <span>Updated {formatDate(employee.updated_at)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <div className="text-center py-12">

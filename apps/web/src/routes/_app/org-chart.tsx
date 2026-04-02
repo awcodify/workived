@@ -5,6 +5,7 @@ import { useOrgChart } from '@/lib/hooks/useEmployees'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
+import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
 import { moduleBackgrounds, moduleThemes } from '@/design/tokens'
 import type { OrgChartNode } from '@/types/api'
 
@@ -16,6 +17,8 @@ export const Route = createFileRoute('/_app/org-chart')({
 
 function OrgChartPage() {
   const { data: tree, isLoading } = useOrgChart()
+  const canEdit = useCanManageEmployees()
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
 
   return (
     <div
@@ -61,17 +64,26 @@ function OrgChartPage() {
         <div className="flex justify-center overflow-x-auto pb-8">
           <div className="inline-flex flex-col items-center gap-12">
             {tree.map((node) => (
-              <OrgNode key={node.id} node={node} />
+              <OrgNode key={node.id} node={node} onSelectEmployee={setSelectedEmployeeId} />
             ))}
           </div>
         </div>
+      )}
+
+      {/* Employee Detail Modal */}
+      {selectedEmployeeId && (
+        <EmployeeDetailModal
+          employeeId={selectedEmployeeId}
+          onClose={() => setSelectedEmployeeId(null)}
+          canEdit={canEdit}
+        />
       )}
     </div>
   )
 }
 
 // ── Org Node (Recursive Tree) ────────────────────────────────────────
-function OrgNode({ node }: { node: OrgChartNode }) {
+function OrgNode({ node, onSelectEmployee }: { node: OrgChartNode; onSelectEmployee: (id: string) => void }) {
   const [isExpanded, setIsExpanded] = useState(true)
 
   const hasReports = node.direct_reports && node.direct_reports.length > 0
@@ -80,10 +92,8 @@ function OrgNode({ node }: { node: OrgChartNode }) {
     <div className="flex flex-col items-center">
       {/* Employee Card */}
       <div className="relative">
-        <Link
-          to="/people/$id"
-          params={{ id: node.id }}
-          search={{ user_id: undefined }}
+        <button
+          onClick={() => onSelectEmployee(node.id)}
           className="flex flex-col items-center gap-2 transition-all duration-150"
           style={{
             background: t.surface,
@@ -91,6 +101,7 @@ function OrgNode({ node }: { node: OrgChartNode }) {
             padding: '16px 20px',
             minWidth: 200,
             border: `2px solid ${t.inputBorder}`,
+            cursor: 'pointer',
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.background = t.surfaceHover
@@ -130,7 +141,7 @@ function OrgNode({ node }: { node: OrgChartNode }) {
               </div>
             )}
           </div>
-        </Link>
+        </button>
 
         {/* Expand/Collapse Button */}
         {hasReports && (
@@ -187,7 +198,7 @@ function OrgNode({ node }: { node: OrgChartNode }) {
                     background: t.inputBorder,
                   }}
                 />
-                <OrgNode node={child} />
+                <OrgNode node={child} onSelectEmployee={onSelectEmployee} />
               </div>
             ))}
           </div>

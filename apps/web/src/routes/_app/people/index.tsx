@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
 import { Search, Plus, Network, Users, Clock } from 'lucide-react'
 import { useEmployees } from '@/lib/hooks/useEmployees'
@@ -9,6 +9,7 @@ import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { useModuleTheme, useModuleBackground, typography, colors } from '@/design/tokens'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
+import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
 
 export const Route = createFileRoute('/_app/people/')({
   component: PeoplePage,
@@ -24,12 +25,14 @@ const STATUS_TABS = [
 function PeoplePage() {
   const t = useModuleTheme('people')
   const bg = useModuleBackground('people')
+  const navigate = useNavigate()
   const canManageEmployees = useCanManageEmployees()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | undefined>('active')
   const [scheduleFilter, setScheduleFilter] = useState<string | undefined>(undefined)
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [history, setHistory] = useState<(string | undefined)[]>([undefined])
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
 
   const { data: workSchedules = [] } = useWorkSchedules()
 
@@ -247,18 +250,18 @@ function PeoplePage() {
           {employees.map((emp) => {
             const isInactive = emp.status === 'inactive'
             return (
-              <Link
+              <button
                 key={emp.id}
-                to="/people/$id"
-                params={{ id: emp.id }}
-                search={{ user_id: undefined }}
-                className="grid items-center gap-4 transition-all duration-150 hover:-translate-y-px"
+                onClick={() => setSelectedEmployeeId(emp.id)}
+                className="grid items-center gap-4 transition-all duration-150 hover:-translate-y-px w-full text-left"
                 style={{
                   gridTemplateColumns: '40px 1.5fr 1fr 1fr 1fr 80px',
                   background: t.surface,
                   borderRadius: 12,
                   padding: '14px 20px',
                   opacity: isInactive ? 0.5 : 1,
+                  border: 'none',
+                  cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.background = t.surfaceHover
@@ -306,7 +309,7 @@ function PeoplePage() {
               </p>
 
               <StatusSquare status={emp.invitation_pending ? 'pending' : emp.status} />
-            </Link>
+            </button>
             )
           })}
         </div>
@@ -344,6 +347,15 @@ function PeoplePage() {
             Next
           </button>
         </div>
+      )}
+
+      {/* Employee Detail Modal */}
+      {selectedEmployeeId && (
+        <EmployeeDetailModal
+          employeeId={selectedEmployeeId}
+          onClose={() => setSelectedEmployeeId(null)}
+          canEdit={canManageEmployees}
+        />
       )}
     </div>
   )

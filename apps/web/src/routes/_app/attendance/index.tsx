@@ -5,6 +5,7 @@ import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
+import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
@@ -37,6 +38,7 @@ function AttendancePage() {
   const { data: org } = useOrganisation()
   const tz = org?.timezone ?? 'UTC'
   const role = useAttendanceRole()
+  const canManageEmployees = useCanManageEmployees()
   
   // Track if org has loaded to recalculate initial date
   const orgLoadedRef = useRef(false)
@@ -527,14 +529,19 @@ function AttendancePage() {
                       .sort((a, b) => a - b)
                       .map((d) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][d])
                       .join(', ')
+                    const isSelected = scheduleFilter === ws.name
                     return (
-                      <div
+                      <button
                         key={ws.id}
-                        className="rounded-lg px-3 py-2.5"
-                        style={{ border: `1px solid ${t.border}` }}
+                        onClick={() => setScheduleFilter(isSelected ? undefined : ws.name)}
+                        className="w-full rounded-lg px-3 py-2.5 text-left transition-all hover:bg-black/5"
+                        style={{ 
+                          border: `1px solid ${isSelected ? colors.accent : t.border}`,
+                          background: isSelected ? `${colors.accent}10` : 'transparent',
+                        }}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold" style={{ color: t.text }}>
+                          <span className="text-xs font-semibold" style={{ color: isSelected ? colors.accent : t.text }}>
                             {ws.name}
                           </span>
                           {ws.is_default && (
@@ -549,7 +556,7 @@ function AttendancePage() {
                         <p className="text-[11px] mt-0.5" style={{ color: t.textMuted }}>
                           {dayNames} &middot; {ws.start_time.slice(0, 5)}&ndash;{ws.end_time.slice(0, 5)}
                         </p>
-                      </div>
+                      </button>
                     )
                   })}
                 </div>
@@ -716,6 +723,7 @@ function AttendancePage() {
         <EmployeeDetailModal
           employeeId={selectedEmployeeId}
           onClose={() => setSelectedEmployeeId(null)}
+          canEdit={canManageEmployees}
         />
       )}
     </div>
