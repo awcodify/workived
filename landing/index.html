@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Workived — Free Attendance, Leave & HR Management for Small Teams</title>
-  <meta name="description" content="Free HR software for startups with 5–25 employees. Attendance tracking, leave management, expense claims, task boards, and team directory — all in one workspace. No hidden costs.">
+  <meta name="description" content="Free HR software for startups with 5–15 employees. Attendance tracking, leave management, expense claims, task boards, and team directory — all in one workspace. No hidden costs.">
   <meta name="keywords" content="attendance management, leave management, HR software, free HR tool, small team management, employee attendance, leave tracker, expense claims, task management, startup HR, Indonesia HR, UAE HR">
   <meta name="author" content="Workived">
   <meta name="color-scheme" content="light only">
@@ -14,7 +14,7 @@
 
   <!-- Open Graph -->
   <meta property="og:title" content="Workived — Free Attendance, Leave & HR Management for Small Teams">
-  <meta property="og:description" content="Free HR software for startups with 5–25 employees. Attendance, leave, claims, tasks — one workspace to run your team. No hidden costs.">
+  <meta property="og:description" content="Free HR software for startups with 5–15 employees. Attendance, leave, claims, tasks — one workspace to run your team. No hidden costs.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://workived.com">
   <meta property="og:site_name" content="Workived">
@@ -44,7 +44,7 @@
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD",
-      "description": "Free for teams up to 25 employees"
+      "description": "Free for teams up to 15 employees"
     },
     "creator": {
       "@type": "Organization",
@@ -119,11 +119,30 @@
       transition: background 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease;
     }
     .header.scrolled {
-      background: rgba(255, 255, 255, 0.6);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       border-bottom-color: rgba(0,0,0,0.04);
-      box-shadow: 0 1px 12px rgba(0,0,0,0.06);
+      box-shadow: 0 1px 12px rgba(0,0,0,0.04);
+    }
+    .header.scrolled.on-light {
+      background: rgba(243, 242, 251, 0.7);
+    }
+    .header.scrolled.on-dark {
+      background: rgba(15, 14, 19, 0.75);
+      box-shadow: 0 1px 12px rgba(0,0,0,0.20);
+      border-bottom-color: rgba(255,255,255,0.06);
+    }
+    .header.on-dark .logo-wordmark {
+      color: #FFFFFF;
+    }
+    .header.on-dark .header-nav a {
+      color: rgba(255,255,255,0.7);
+    }
+    .header.on-dark .header-nav a:hover {
+      color: #FFFFFF;
+    }
+    .header.on-dark .header-nav a.header-cta {
+      color: #FFFFFF;
     }
     .header-left {
       display: flex;
@@ -152,6 +171,24 @@
       letter-spacing: -0.01em;
     }
     .header-nav a:hover { color: var(--accent); }
+    .header-nav a.nav-highlight {
+      color: #FFFFFF;
+      background: linear-gradient(135deg, var(--accent-mid) 0%, var(--accent) 100%);
+      padding: 7px 16px;
+      border-radius: 100px;
+      border: none;
+      font-weight: 700;
+      letter-spacing: 0;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(99,87,232,0.25);
+      transition: all 0.2s ease;
+    }
+    .header-nav a.nav-highlight:hover {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-text) 100%);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(99,87,232,0.35);
+      transform: translateY(-1px);
+    }
     .header-nav a.header-cta,
     .header-nav a.header-cta:hover {
       color: #FFFFFF;
@@ -1028,7 +1065,7 @@
     /* ── Trust strip ── */
     .trust-section {
       padding: 64px 24px;
-      background: var(--ink-50);
+      background: var(--ink-900);
     }
     .trust-inner {
       max-width: 800px;
@@ -1046,7 +1083,7 @@
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      border: 3px solid var(--ink-50);
+      border: 3px solid var(--ink-900);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1059,14 +1096,14 @@
     .trust-quote {
       font-size: clamp(16px, 2.5vw, 20px);
       font-weight: 600;
-      color: var(--ink-700);
+      color: rgba(255,255,255,0.85);
       line-height: 1.6;
       letter-spacing: -0.02em;
       margin-bottom: 12px;
     }
     .trust-meta {
       font-size: 14px;
-      color: var(--ink-300);
+      color: rgba(255,255,255,0.35);
       font-weight: 500;
     }
 
@@ -1222,6 +1259,279 @@
       font-size: 15px;
       color: var(--ink-500);
       line-height: 1.7;
+    }
+
+    /* ── AI Vision section ── */
+    .ai-section {
+      padding: 120px 24px;
+      background: linear-gradient(180deg, var(--ink-50) 0%, #EFEDFD 50%, var(--ink-50) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .ai-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(99,87,232,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(129,140,248,0.06) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .ai-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+    .ai-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    .ai-header .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 100px;
+      background: linear-gradient(135deg, rgba(143,134,240,0.12), rgba(99,87,232,0.12));
+      border: 1px solid rgba(99,87,232,0.12);
+    }
+    .ai-header h2 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+      color: var(--ink-900);
+      margin-top: 16px;
+    }
+    .ai-header h2 .muted { color: var(--ink-300); }
+    .ai-subtitle {
+      font-size: clamp(16px, 2vw, 18px);
+      color: var(--ink-500);
+      line-height: 1.7;
+      margin-top: 16px;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .ai-chat-window {
+      background: white;
+      border-radius: 24px;
+      box-shadow:
+        0 0 0 1px rgba(99,87,232,0.08),
+        0 24px 80px rgba(99,87,232,0.12),
+        0 8px 32px rgba(0,0,0,0.06);
+      overflow: hidden;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .ai-chat-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 24px;
+      background: var(--ink-50);
+      border-bottom: 1px solid var(--ink-100);
+    }
+    .ai-chat-bar-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .ai-chat-bar-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink-700);
+      letter-spacing: -0.01em;
+    }
+    .ai-chat-bar-badge {
+      margin-left: auto;
+      padding: 3px 10px;
+      border-radius: 100px;
+      background: linear-gradient(135deg, var(--accent-mid), var(--accent));
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .ai-chat-messages {
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .ai-msg {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .ai-msg.user {
+      flex-direction: row-reverse;
+    }
+    .ai-msg-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .ai-msg.user .ai-msg-avatar {
+      background: var(--ink-100);
+      color: var(--ink-500);
+      font-weight: 700;
+    }
+    .ai-msg.bot .ai-msg-avatar {
+      background: linear-gradient(135deg, var(--accent-mid), var(--accent));
+      color: white;
+    }
+    .ai-msg-bubble {
+      padding: 12px 18px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 420px;
+    }
+    .ai-msg.user .ai-msg-bubble {
+      background: var(--ink-50);
+      color: var(--ink-700);
+      border-bottom-right-radius: 4px;
+      font-weight: 500;
+    }
+    .ai-msg.bot .ai-msg-bubble {
+      background: var(--accent-dim);
+      color: var(--ink-700);
+      border-bottom-left-radius: 4px;
+    }
+    .ai-msg-bubble strong {
+      font-weight: 700;
+      color: var(--ink-900);
+    }
+    .ai-chat-input {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--ink-100);
+    }
+    .ai-chat-input-field {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1.5px solid var(--ink-100);
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--ink-300);
+      background: var(--ink-50);
+      outline: none;
+    }
+    .ai-chat-send {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--accent);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .ai-chat-area {
+      position: relative;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 80px 0;
+    }
+    .ai-float-bubble {
+      position: absolute;
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      padding: 11px 20px 11px 16px;
+      border-radius: 14px;
+      background: white;
+      border: none;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.04),
+        0 6px 20px rgba(99,87,232,0.10);
+      font-size: 14px;
+      color: var(--ink-700);
+      font-weight: 500;
+      font-style: italic;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(10px) scale(0.95);
+      transition: opacity 0.5s cubic-bezier(0.4,0,0.2,1), transform 0.5s cubic-bezier(0.4,0,0.2,1);
+      z-index: 0;
+    }
+    .ai-float-bubble::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-right: 10px;
+    }
+    .ai-float-bubble.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .ai-float-bubble:nth-child(1)::before { background: var(--accent); }
+    .ai-float-bubble:nth-child(2)::before { background: #8B5CF6; }
+    .ai-float-bubble:nth-child(3)::before { background: #10B981; }
+    .ai-float-bubble:nth-child(4)::before { background: #818CF8; }
+    .ai-float-bubble:nth-child(5)::before { background: #EC4899; }
+    .ai-float-bubble:nth-child(6)::before { background: #D97706; }
+    .ai-float-bubble:nth-child(7)::before { background: var(--accent-mid); }
+    .ai-float-bubble:nth-child(8)::before { background: #059669; }
+    /* Positions well outside the chat window */
+    .ai-float-bubble:nth-child(1) { top: 20px; left: -200px; }
+    .ai-float-bubble:nth-child(2) { top: 10%; right: -180px; }
+    .ai-float-bubble:nth-child(3) { top: 38%; left: -220px; }
+    .ai-float-bubble:nth-child(4) { top: 52%; right: -200px; }
+    .ai-float-bubble:nth-child(5) { bottom: 20%; left: -180px; }
+    .ai-float-bubble:nth-child(6) { bottom: 10%; right: -190px; }
+    .ai-float-bubble:nth-child(7) { top: -30px; right: -100px; }
+    .ai-float-bubble:nth-child(8) { bottom: -20px; left: -120px; }
+    @media (max-width: 1100px) {
+      .ai-float-bubble:nth-child(1) { left: -160px; }
+      .ai-float-bubble:nth-child(2) { right: -140px; }
+      .ai-float-bubble:nth-child(3) { left: -170px; }
+      .ai-float-bubble:nth-child(4) { right: -150px; }
+      .ai-float-bubble:nth-child(5) { left: -140px; }
+      .ai-float-bubble:nth-child(6) { right: -150px; }
+      .ai-float-bubble:nth-child(7) { right: -80px; }
+      .ai-float-bubble:nth-child(8) { left: -90px; }
+    }
+    @media (max-width: 860px) {
+      .ai-chat-area { padding: 40px 0; }
+      .ai-float-bubble { display: none; }
+    }
+    .ai-pro-note {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-300);
+    }
+    .ai-pro-note span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 100px;
+      background: linear-gradient(135deg, rgba(143,134,240,0.12), rgba(99,87,232,0.12));
+      color: var(--accent-text);
+      font-weight: 700;
+    }
+    @media (max-width: 640px) {
+      .ai-float-bubble { display: none; }
     }
 
     /* ── Pricing section ── */
@@ -1685,6 +1995,7 @@
     <nav class="header-nav">
       <a href="#features">Features</a>
       <a href="#security">Security</a>
+      <a href="#ai" class="nav-highlight">✨ AI</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
       <a href="mailto:my@workived.com" class="header-cta">Get Early Access</a>
@@ -1724,17 +2035,17 @@
       <div class="stats-strip">
         <div class="stat">
           <div class="stat-value"><span class="accent">$0</span></div>
-          <div class="stat-label">No hidden costs</div>
+          <div class="stat-label">Up to 15 employees</div>
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <div class="stat-value">5 min</div>
-          <div class="stat-label">Setup time</div>
+          <div class="stat-value">24/7</div>
+          <div class="stat-label">Bank-grade access</div>
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <div class="stat-value">25</div>
-          <div class="stat-label">Employees free tier</div>
+          <div class="stat-value">3x</div>
+          <div class="stat-label">Faster flow</div>
         </div>
       </div>
 
@@ -1765,7 +2076,6 @@
         </svg>
       </a>
     </div>
-
     <!-- Hero screenshot -->
     <div class="hero-screenshot reveal">
       <div class="browser-frame">
@@ -2378,6 +2688,66 @@
     </div>
   </section>
 
+  <!-- ═══════════ AI VISION ═══════════ -->
+  <section class="ai-section" id="ai">
+    <div class="ai-inner">
+      <div class="ai-header reveal">
+        <span class="section-label">✨ AI-Powered - Available exclusively on the Pro plan</span>
+        <h2>Just ask.<br><span class="muted">Workived does the rest.</span></h2>
+      </div>
+
+      <div class="ai-chat-area reveal">
+        <!-- Floating prompt bubbles -->
+        <div class="ai-float-bubble"><strong>Most on-time employee?</strong></div>
+        <div class="ai-float-bubble"><strong>Turnover this year?</strong></div>
+        <div class="ai-float-bubble"><strong>Sales this month?</strong></div>
+        <div class="ai-float-bubble"><strong>Pending expense claims?</strong></div>
+        <div class="ai-float-bubble"><strong>Who's on leave next week?</strong></div>
+        <div class="ai-float-bubble"><strong>Average attendance rate?</strong> </div>
+        <div class="ai-float-bubble"><strong>Overdue tasks?</strong> </div>
+        <div class="ai-float-bubble"><strong>Sick days this quarter?</strong></div>
+
+        <div class="ai-chat-window">
+          <div class="ai-chat-bar">
+            <div class="ai-chat-bar-dot"></div>
+            <span class="ai-chat-bar-title">Workived AI</span>
+            <span class="ai-chat-bar-badge">Pro</span>
+          </div>
+          <div class="ai-chat-messages">
+            <div class="ai-msg user">
+              <div class="ai-msg-avatar">WD</div>
+              <div class="ai-msg-bubble">I want to take a leave from 17 Aug to 20 Aug.</div>
+            </div>
+            <div class="ai-msg bot">
+              <div class="ai-msg-avatar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M18 14a6 6 0 0 1-12 0"/><path d="M12 18v4"/></svg>
+              </div>
+              <div class="ai-msg-bubble">Done! 🎉 I've submitted a <strong>4-day annual leave</strong> request (17–20 Aug). Your manager has been notified. You have <strong>12 days</strong> remaining.</div>
+            </div>
+          </div>
+          <div class="ai-chat-input">
+            <div class="ai-chat-input-field">Ask anything about your team…</div>
+            <div class="ai-chat-send">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+  </section>
+
+  <!-- ═══════════ TRUST STRIP ═══════════ -->
+  <section class="trust-section">
+    <div class="trust-inner reveal">
+      <div class="trust-avatars">
+        <div class="trust-avatar" style="background: var(--accent);">D</div>
+        <div class="trust-avatar" style="background: #818CF8;">A</div>
+        <div class="trust-avatar" style="background: #10B981;">R</div>
+      </div>
+      <p class="trust-quote">"We built Workived because we needed it. We've used it every single day for years before showing it to anyone."</p>
+      <p class="trust-meta">— The founding team, who still clock in on it daily</p>
+    </div>
+  </section>
+
   <!-- ═══════════ PRICING ═══════════ -->
   <section class="pricing-section" id="pricing">
     <div class="section-header reveal">
@@ -2394,7 +2764,7 @@
         </div>
         <p class="pricing-desc">Everything you need to run a small team. No credit card required.</p>
         <ul class="pricing-features">
-          <li>Up to 25 employees</li>
+          <li>Up to 15 employees</li>
           <li>All 7 modules included</li>
           <li>Attendance, leave & claims</li>
           <li>Task boards & calendar</li>
@@ -2415,6 +2785,7 @@
         <div class="pricing-savings">We're finalising pricing — early users lock in the best rate</div>
         <p class="pricing-desc" style="margin-top: 12px;">For growing teams who need more power and flexibility.</p>
         <ul class="pricing-features">
+          <li><strong style="color: var(--accent);">✨ AI Assistant — ask anything</strong></li>
           <li>Unlimited employees</li>
           <li>Everything in Explore</li>
           <li>Custom leave policies</li>
@@ -2425,19 +2796,6 @@
         </ul>
         <a href="mailto:my@workived.com" class="pricing-cta filled">Join the Waitlist</a>
       </div>
-    </div>
-  </section>
-
-  <!-- ═══════════ TRUST STRIP ═══════════ -->
-  <section class="trust-section">
-    <div class="trust-inner reveal">
-      <div class="trust-avatars">
-        <div class="trust-avatar" style="background: var(--accent);">D</div>
-        <div class="trust-avatar" style="background: #818CF8;">A</div>
-        <div class="trust-avatar" style="background: #10B981;">R</div>
-      </div>
-      <p class="trust-quote">"We built Workived because we needed it. We've used it every single day for years before showing it to anyone."</p>
-      <p class="trust-meta">— The founding team, who still clock in on it daily</p>
     </div>
   </section>
 
@@ -2455,7 +2813,7 @@
           <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
         <div class="faq-answer">
-          <p>Yes. The Explore plan is free forever for teams up to 25 employees. All 7 modules included. No credit card, no trial that expires, no surprise invoices.</p>
+          <p>Yes. The Explore plan is free forever for teams up to 15 employees. All 7 modules included. No credit card, no trial that expires, no surprise invoices.</p>
         </div>
       </div>
 
@@ -2505,7 +2863,7 @@
   <section class="cta-section">
     <div class="cta-content reveal">
       <h2>Ready to simplify<br><span class="highlight">your team ops?</span></h2>
-      <p>Workived is launching soon. Free for teams up to 25 people. No credit card, no trial period, no catch.</p>
+      <p>Workived is launching soon. Free for teams up to 15 people. No credit card, no trial period, no catch.</p>
       <a href="mailto:my@workived.com" class="btn-primary">
         Get Early Access
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
@@ -2568,11 +2926,27 @@
     console.log('%c💡 If you\'re reading this, you\'re exactly the kind of person who\'d love Workived. Just saying.', 'font-size:12px;color:#6357E8;');
     console.log('%cPS: No, the leave feature really was built while on leave. That\'s not marketing.', 'font-size:11px;color:#B0AEBE;font-style:italic;');
 
-    // Header shadow on scroll
+    // Header: adapt bg based on section behind it
     const header = document.getElementById('header');
-    window.addEventListener('scroll', () => {
+    const darkSections = document.querySelectorAll('.confront-section, .security-section, .pricing-section, .trust-section, .cta-section');
+    
+    const updateHeaderBg = () => {
       header.classList.toggle('scrolled', window.scrollY > 10);
-    }, { passive: true });
+      if (window.scrollY <= 10) {
+        header.classList.remove('on-light', 'on-dark');
+        return;
+      }
+      const headerBottom = header.getBoundingClientRect().bottom;
+      let onDark = false;
+      darkSections.forEach(s => {
+        const r = s.getBoundingClientRect();
+        if (r.top < headerBottom && r.bottom > 0) onDark = true;
+      });
+      header.classList.toggle('on-dark', onDark);
+      header.classList.toggle('on-light', !onDark);
+    };
+    window.addEventListener('scroll', updateHeaderBg, { passive: true });
+    updateHeaderBg();
 
     // Scroll reveal animations
     const observer = new IntersectionObserver(
@@ -2720,6 +3094,40 @@
         }, 15000);
       }, 600);
     }, 3000);
+
+    // AI floating bubbles — show 4 at a time, cycle one by one
+    (() => {
+      const bubbles = document.querySelectorAll('.ai-float-bubble');
+      if (!bubbles.length) return;
+      const total = bubbles.length;
+      const showCount = 4;
+      let active = new Set();
+
+      // Pick initial 4 random indices
+      while (active.size < showCount) {
+        active.add(Math.floor(Math.random() * total));
+      }
+      active.forEach(i => bubbles[i].classList.add('visible'));
+
+      setInterval(() => {
+        // Pick one active to hide
+        const activeArr = [...active];
+        const hideIdx = activeArr[Math.floor(Math.random() * activeArr.length)];
+        bubbles[hideIdx].classList.remove('visible');
+        active.delete(hideIdx);
+
+        // After fade out, show a new one
+        setTimeout(() => {
+          const inactive = [];
+          for (let i = 0; i < total; i++) {
+            if (!active.has(i)) inactive.push(i);
+          }
+          const showIdx = inactive[Math.floor(Math.random() * inactive.length)];
+          bubbles[showIdx].classList.add('visible');
+          active.add(showIdx);
+        }, 600);
+      }, 2200);
+    })();
   </script>
 
 </body>
