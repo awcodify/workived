@@ -435,11 +435,11 @@ func (r *Repository) UpdateTask(ctx context.Context, orgID, id uuid.UUID, req Up
 }
 
 func (r *Repository) MoveTask(ctx context.Context, orgID, taskID uuid.UUID, newListID uuid.UUID, newPosition int) (*Task, error) {
-	// Verify new list exists and is active
-	var isActive bool
+	// Verify new list exists, is active, and check if it's a final state
+	var isActive, isFinalState bool
 	err := r.db.QueryRow(ctx, `
-		SELECT is_active FROM task_lists WHERE organisation_id = $1 AND id = $2
-	`, orgID, newListID).Scan(&isActive)
+		SELECT is_active, is_final_state FROM task_lists WHERE organisation_id = $1 AND id = $2
+	`, orgID, newListID).Scan(&isActive, &isFinalState)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrTaskListNotFound()
@@ -450,14 +450,16 @@ func (r *Repository) MoveTask(ctx context.Context, orgID, taskID uuid.UUID, newL
 		return nil, ErrTaskListInactive("")
 	}
 
+	// Set completed_at when moving to final state, clear when moving out
 	var t Task
 	err = r.db.QueryRow(ctx, `
-		UPDATE tasks 
-		SET task_list_id = $3, position = $4
+		UPDATE tasks
+		SET task_list_id = $3, position = $4,
+		    completed_at = CASE WHEN $5 THEN COALESCE(completed_at, NOW()) ELSE NULL END
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
 		          created_by, priority, due_date, position, completed_at, created_at, updated_at
-	`, orgID, taskID, newListID, newPosition).Scan(
+	`, orgID, taskID, newListID, newPosition, isFinalState).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
 		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.CreatedAt, &t.UpdatedAt,
 	)

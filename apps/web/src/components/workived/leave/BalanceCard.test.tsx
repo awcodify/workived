@@ -153,6 +153,30 @@ describe('BalanceCard', () => {
     expect(screen.getByText(/Used:/)).toBeInTheDocument()
   })
 
+  it('shows infinity for unlimited leave', () => {
+    render(<BalanceCard balance={{ ...mockBalance, is_unlimited: true, entitled_days: 365 }} />)
+    expect(screen.getByText('∞')).toBeInTheDocument()
+    expect(screen.getByText('unlimited')).toBeInTheDocument()
+    expect(screen.queryByText('365')).not.toBeInTheDocument()
+  })
+
+  it('hides progress bar and entitled for unlimited leave', () => {
+    render(<BalanceCard balance={{ ...mockBalance, is_unlimited: true, entitled_days: 365 }} />)
+    expect(screen.queryByText('Usage')).not.toBeInTheDocument()
+    expect(screen.queryByText('Entitled')).not.toBeInTheDocument()
+  })
+
+  it('does not show exhausted for unlimited leave even when used == entitled', () => {
+    render(<BalanceCard balance={{ ...mockBalance, is_unlimited: true, entitled_days: 365, used_days: 365, pending_days: 0 }} />)
+    expect(screen.queryByText('Exhausted')).not.toBeInTheDocument()
+  })
+
+  it('compact unlimited hides entitled stat', () => {
+    render(<BalanceCard balance={{ ...mockBalance, is_unlimited: true, entitled_days: 365 }} variant="compact" />)
+    expect(screen.queryByText(/Entitled:/)).not.toBeInTheDocument()
+    expect(screen.getByText(/Used:/)).toBeInTheDocument()
+  })
+
   it('does not break with very long policy names', () => {
     const longName: LeaveBalanceWithPolicy = {
       ...mockBalance,

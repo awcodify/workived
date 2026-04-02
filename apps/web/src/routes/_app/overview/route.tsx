@@ -459,17 +459,18 @@ function OverviewPage() {
               )
             }
             
-            const annualLeave = leaveBalances.find(b => 
-              b.policy_name.toLowerCase().includes('annual') || 
+            const annualLeave = leaveBalances.find(b =>
+              b.policy_name.toLowerCase().includes('annual') ||
               b.policy_name.toLowerCase().includes('vacation')
             )
-            
+
             if (!annualLeave) return null
-            
+
+            const isUnlimited = annualLeave.is_unlimited
             const available = annualLeave.entitled_days + annualLeave.carried_over_days - annualLeave.used_days - annualLeave.pending_days
             const total = annualLeave.entitled_days + annualLeave.carried_over_days
-            const availablePercentage = total > 0 ? (available / total) * 100 : 0
-            const pendingPercentage = total > 0 ? (annualLeave.pending_days / total) * 100 : 0
+            const availablePercentage = !isUnlimited && total > 0 ? (available / total) * 100 : 0
+            const pendingPercentage = !isUnlimited && total > 0 ? (annualLeave.pending_days / total) * 100 : 0
             
             return (
               <div style={{
@@ -507,10 +508,10 @@ function OverviewPage() {
                     letterSpacing: '-0.02em',
                     lineHeight: 1,
                   }}>
-                    {available === 999 ? '∞' : available.toFixed(1)}
+                    {isUnlimited ? '∞' : available.toFixed(1)}
                   </span>
                   <span style={{ fontSize: 15, color: t.textMuted, fontWeight: 600 }}>
-                    {available === 999 ? 'days' : `/ ${total} days`}
+                    {isUnlimited ? 'unlimited' : `/ ${total} days`}
                   </span>
                 </div>
                 
@@ -557,8 +558,8 @@ function OverviewPage() {
                 {/* Stats */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5 }}>
                   <div>
-                    <span style={{ color: t.textMuted, fontWeight: 500 }}>Entitled: </span>
-                    <span style={{ color: t.text, fontWeight: 700 }}>{annualLeave.entitled_days === 999 ? '∞' : annualLeave.entitled_days}</span>
+                    <span style={{ color: t.textMuted, fontWeight: 500 }}>{isUnlimited ? 'Type: ' : 'Entitled: '}</span>
+                    <span style={{ color: t.text, fontWeight: 700 }}>{isUnlimited ? 'Unlimited' : annualLeave.entitled_days}</span>
                   </div>
                   <div>
                     <span style={{ color: t.textMuted, fontWeight: 500 }}>Used: </span>

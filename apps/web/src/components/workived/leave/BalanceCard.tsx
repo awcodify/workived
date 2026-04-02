@@ -17,14 +17,15 @@ export function BalanceCard({
   variant = 'default',
   showActions = false 
 }: BalanceCardProps) {
+  const isUnlimited = balance.is_unlimited
   const available = calculateAvailableDays(balance)
   const total = balance.entitled_days + balance.carried_over_days
-  const usedPercentage = total > 0 ? (balance.used_days / total) * 100 : 0
-  const pendingPercentage = total > 0 ? (balance.pending_days / total) * 100 : 0
+  const usedPercentage = !isUnlimited && total > 0 ? (balance.used_days / total) * 100 : 0
+  const pendingPercentage = !isUnlimited && total > 0 ? (balance.pending_days / total) * 100 : 0
 
-  // Status indicators
-  const isLowBalance = available < total * 0.2 && available > 0
-  const isExhausted = available <= 0
+  // Status indicators (never show low/exhausted for unlimited)
+  const isLowBalance = !isUnlimited && available < total * 0.2 && available > 0
+  const isExhausted = !isUnlimited && available <= 0
   const hasPending = balance.pending_days > 0
 
   // Icon mapping for common leave types
@@ -156,15 +157,15 @@ export function BalanceCard({
           <span
             className="font-extrabold leading-none"
             style={{
-              fontSize: isCompact ? 28 : 42,
+              fontSize: isUnlimited ? (isCompact ? 34 : 48) : (isCompact ? 28 : 42),
               letterSpacing: '-0.02em',
-              color: isOverview 
-                ? (available > 0 ? colors.ok : 'rgba(255,255,255,0.30)')
-                : (available > 0 ? t.accent : colors.ink300),
-              fontFamily: typography.fontMono,
+              color: isOverview
+                ? (isUnlimited || available > 0 ? colors.ok : 'rgba(255,255,255,0.30)')
+                : (isUnlimited || available > 0 ? t.accent : colors.ink300),
+              fontFamily: isUnlimited ? undefined : typography.fontMono,
             }}
           >
-            {available.toFixed(1)}
+            {isUnlimited ? '∞' : available.toFixed(1)}
           </span>
           <span
             className="font-semibold"
@@ -173,18 +174,18 @@ export function BalanceCard({
               color: isOverview ? 'rgba(255,255,255,0.50)' : t.textMuted,
             }}
           >
-            days available
+            {isUnlimited ? 'unlimited' : 'days available'}
           </span>
         </div>
       </div>
 
-      {/* Enhanced progress bar with segments */}
-      <div className="mb-3">
+      {/* Enhanced progress bar with segments (hidden for unlimited) */}
+      {!isUnlimited && <div className="mb-3">
         {/* Label */}
         <div className="flex items-center justify-between mb-1.5">
           <span
             className="text-xs font-semibold uppercase tracking-wide"
-            style={{ 
+            style={{
               color: isOverview ? 'rgba(255,255,255,0.40)' : t.textMuted,
               fontSize: isCompact ? 9 : 10,
             }}
@@ -193,7 +194,7 @@ export function BalanceCard({
           </span>
           <span
             className="text-xs font-semibold"
-            style={{ 
+            style={{
               color: isOverview ? 'rgba(255,255,255,0.50)' : t.textMuted,
               fontSize: isCompact ? 10 : 11,
             }}
@@ -305,34 +306,36 @@ export function BalanceCard({
             </div>
           </div>
         )}
-      </div>
+      </div>}
 
-      {/* Stats breakdown */}
+      {/* Stats breakdown — for unlimited, just show used + pending */}
       {!isCompact && (
         <div
-          className="grid grid-cols-3 gap-3 py-3 mb-3"
+          className={`grid ${isUnlimited ? 'grid-cols-2' : 'grid-cols-3'} gap-3 py-3 mb-3`}
           style={{
             borderTop: `1px solid ${isOverview ? 'rgba(255,255,255,0.08)' : colors.ink100}`,
             borderBottom: `1px solid ${isOverview ? 'rgba(255,255,255,0.08)' : colors.ink100}`,
           }}
         >
-          <div>
-            <p
-              className="text-xs font-semibold uppercase mb-1"
-              style={{ color: isOverview ? 'rgba(255,255,255,0.40)' : t.textMuted }}
-            >
-              Entitled
-            </p>
-            <p
-              className="font-bold"
-              style={{
-                fontSize: typography.body.size,
-                color: isOverview ? 'rgba(255,255,255,0.80)' : t.text,
-              }}
-            >
-              {balance.entitled_days}
-            </p>
-          </div>
+          {!isUnlimited && (
+            <div>
+              <p
+                className="text-xs font-semibold uppercase mb-1"
+                style={{ color: isOverview ? 'rgba(255,255,255,0.40)' : t.textMuted }}
+              >
+                Entitled
+              </p>
+              <p
+                className="font-bold"
+                style={{
+                  fontSize: typography.body.size,
+                  color: isOverview ? 'rgba(255,255,255,0.80)' : t.text,
+                }}
+              >
+                {balance.entitled_days}
+              </p>
+            </div>
+          )}
           <div>
             <p
               className="text-xs font-semibold uppercase mb-1"
@@ -380,9 +383,11 @@ export function BalanceCard({
             fontWeight: 500,
           }}
         >
-          <span>
-            Entitled: <strong style={{ color: t.text }}>{balance.entitled_days}</strong>
-          </span>
+          {!isUnlimited && (
+            <span>
+              Entitled: <strong style={{ color: t.text }}>{balance.entitled_days}</strong>
+            </span>
+          )}
           <span>
             Used: <strong style={{ color: t.text }}>{balance.used_days}</strong>
           </span>
