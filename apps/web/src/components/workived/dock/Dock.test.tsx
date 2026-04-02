@@ -9,6 +9,7 @@ vi.mock('@tanstack/react-router', () => ({
     </a>
   ),
   useMatches: () => [{ pathname: '/overview' }],
+  useRouter: () => ({ subscribe: () => () => {} }),
 }))
 
 vi.mock('./SettingsMenu', () => ({
@@ -17,8 +18,16 @@ vi.mock('./SettingsMenu', () => ({
   ),
 }))
 
-vi.mock('@/lib/hooks/useAdmin', () => ({
+vi.mock('@/lib/hooks/useFeatures', () => ({
   useEnabledFeatures: vi.fn(() => ({ data: { reports: true, tasks: true }, isLoading: false })),
+}))
+
+vi.mock('@/lib/hooks/useLeave', () => ({
+  useLeaveNotificationCount: vi.fn(() => ({ data: 0 })),
+}))
+
+vi.mock('@/lib/hooks/useClaims', () => ({
+  useClaimNotificationCount: vi.fn(() => ({ data: 0 })),
 }))
 
 import { Dock } from '@/components/workived/dock/Dock'

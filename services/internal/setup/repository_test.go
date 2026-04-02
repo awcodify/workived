@@ -23,9 +23,16 @@ func getTestDB(t *testing.T) *pgxpool.Pool {
 	//nolint:gosec // hardcoded test credentials are acceptable in tests
 	dbURL := "postgres://workived:workived@localhost:5432/workived?sslmode=disable"
 
-	pool, err := pgxpool.New(context.Background(), dbURL)
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, dbURL)
 	if err != nil {
 		t.Skipf("Skipping database tests: %v", err)
+	}
+
+	// pgxpool.New doesn't connect eagerly — ping to verify DB is reachable
+	if err := pool.Ping(ctx); err != nil {
+		pool.Close()
+		t.Skipf("Skipping database tests (DB not reachable): %v", err)
 	}
 
 	return pool

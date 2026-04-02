@@ -39,6 +39,7 @@ describe('Calendar in Dock', () => {
     vi.doMock('@tanstack/react-router', () => ({
       Link: ({ children, to }: { children: React.ReactNode; to: string }) => <a href={to}>{children}</a>,
       useMatches: () => [{ pathname: '/calendar' }],
+      useRouter: () => ({ subscribe: () => () => {} }),
     }))
     vi.doMock('@/components/workived/dock/SettingsMenu', () => ({
       SettingsMenu: () => <div data-testid="settings-menu" />,

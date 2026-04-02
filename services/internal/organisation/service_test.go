@@ -434,13 +434,13 @@ func TestOrgService_Create(t *testing.T) {
 	svc, _ := newTestService(t)
 
 	resp, err := svc.Create(context.Background(), uuid.New(), organisation.CreateOrgRequest{
-		Name: "Workived", Slug: "workived", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		Name: "Acme Corp", Slug: "acmecorp", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
 	})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if resp.Organisation.Name != "Workived" {
-		t.Errorf("name = %q, want %q", resp.Organisation.Name, "Workived")
+	if resp.Organisation.Name != "Acme Corp" {
+		t.Errorf("name = %q, want %q", resp.Organisation.Name, "Acme Corp")
 	}
 	if resp.Organisation.Plan != "free" {
 		t.Errorf("plan = %q, want %q", resp.Organisation.Plan, "free")

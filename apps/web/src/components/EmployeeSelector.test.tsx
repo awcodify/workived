@@ -106,11 +106,11 @@ describe('EmployeeSelector', () => {
     )
 
     const options = screen.getAllByRole('option')
-    // Skip first option (Unassigned)
-    expect(options[1]).toHaveTextContent('Alice Available') // available
-    expect(options[2]).toHaveTextContent('Charlie Warning') // warning
-    expect(options[3]).toHaveTextContent('Bob Overloaded') // overloaded
-    expect(options[4]).toHaveTextContent('Diana OnLeave') // on_leave
+    // Skip first two options (placeholder + Unassigned)
+    expect(options[2]).toHaveTextContent('Alice Available') // available
+    expect(options[3]).toHaveTextContent('Charlie Warning') // warning
+    expect(options[4]).toHaveTextContent('Bob Overloaded') // overloaded
+    expect(options[5]).toHaveTextContent('Diana OnLeave') // on_leave
   })
 
   it('calls onChange when selection changes', async () => {

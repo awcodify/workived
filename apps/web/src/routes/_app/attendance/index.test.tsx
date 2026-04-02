@@ -15,6 +15,7 @@ vi.mock('@/lib/hooks/useAttendance', () => ({
   useMyWeek: vi.fn(),
   useTeamWeek: vi.fn(),
   useAllWeek: vi.fn(),
+  useWorkSchedules: vi.fn(() => ({ data: [], isLoading: false })),
 }))
 
 vi.mock('@/lib/hooks/useAttendanceRole', () => ({

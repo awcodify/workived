@@ -2,7 +2,58 @@
 
 **Reviewers:** PO, Architect, Engineer, QA, Security (all roles except Infra)
 **Sprint:** 24 (Bug-Fix Sprint, March 31–April 4)
+**Previous Review:** March 28, 2026 (Review #2, score 85%)
 **Data Source:** Linear (live) + codebase analysis
+
+---
+
+## Executive Summary
+
+### Production Maturity: **87% Complete — Beta-Ready** (was 85%)
+
+| Category | Review #2 (Mar 28) | Now (Apr 2) | Delta | Notes |
+|----------|-------------------|-------------|-------|-------|
+| **Core Product** | 97% | 96% | -1 | 16+ bugs fixed, new features shipped, but 4 new QA bugs found (WOR-79, WOR-84, WOR-82, WOR-55) |
+| **API Coverage** | 97% | 98% | +1 | New endpoints: work schedule CRUD, Redis cache layer, latency optimization |
+| **Frontend** | 93% | 94% | +1 | 567 tests (up from ~450), bundle optimized (WOR-37), code splitting shipped |
+| **Testing** | 75% | 82% | +7 | Both failing suites fixed (org + setup), all 25 Go packages pass, 567 FE tests pass |
+| **Security** | 88% | 84% | -4 | WOR-67 multi-tenancy FIXED (+5), but stored XSS discovered (-7), no CSP headers (-2) |
+| **Compliance** | 80% | 87% | +7 | Pro-rating, calendar/working days, UAE parental, Hajj one-time — all done or in review |
+| **Infrastructure** | 85% | 85% | 0 | Not in scope for this review |
+| **Monetization** | 0% | 5% | +5 | Backend gating exists (WOR-20 in review), still no UI/Stripe/billing |
+
+### Verdict
+
+**✅ Beta-ready** — WOR-67 multi-tenancy blocker is now fixed, all test suites pass
+**⚠️ New blocker: Stored XSS in task comments** — must fix before beta users touch task board
+**❌ NOT ready for public launch** — monetization UI, E2E tests, analytics still missing
+
+### What Changed Since Review #2 (5 days)
+
+**Fixed (16+ issues):**
+- WOR-67: Custom holidays multi-tenancy leak — **FIXED** (was critical blocker)
+- WOR-76: Attendance N+1 query — FIXED
+- WOR-37: Bundle size optimization — DONE (code splitting)
+- WOR-73: UAE parental leave rules — FIXED
+- WOR-72: Setup review missing work schedule — FIXED
+- WOR-56: Attendance wrong status — FIXED
+- WOR-35: Leave pro-rating — DONE
+- WOR-65: Leave policy modal revamp — DONE
+- WOR-31: Calendar vs working days — DONE
+- Both failing test suites (organisation + setup) — FIXED
+
+**New work in review (11 items):**
+- WOR-85: Work schedule CRUD, WOR-52: Per-employee schedule override
+- WOR-80: Redis caching layer, WOR-81: API latency optimization
+- WOR-68: New employee leave balance, WOR-11: Employment type eligibility
+- WOR-32: Hajj one-time entitlements, WOR-78: Holiday vs weekend badges
+- WOR-60: Resend email, WOR-17: Changelog, WOR-20: Pro feature gating
+
+**New bugs found by QA (Ricko):**
+- WOR-79: Leave policy create/edit 500 error (Backlog — not started)
+- WOR-84: People search broken (Backlog)
+- WOR-82: Employee status mismatch (Backlog)
+- WOR-83: Employee can't see leave balance (Duplicate of WOR-68)
 
 ---
 
@@ -234,14 +285,35 @@ No `X-CSRF-Token` for state-changing requests. Mitigated by Bearer token auth (n
 
 ## 8. Summary
 
-**Overall Grade: B+**
+### Overall Score: 87/100 (was 85/100)
 
-The codebase demonstrates excellent backend security posture — zero SQL injection risk, proper multi-tenancy isolation, secure auth token handling, and solid error abstraction. Architecture is clean and well-structured.
+**+2 improvement** since Review #2 (March 28), driven by:
+- Testing: +7% (both failing suites fixed, 567 FE tests passing)
+- Compliance: +7% (pro-rating, calendar/working days, UAE parental leave all shipped)
+- Security: -4% (WOR-67 fixed but new XSS discovered)
+- Core Product: -1% (many bugs fixed but 4 new QA bugs found)
 
-**Three things that must happen before v1.0 ships:**
+### Beta Blockers (1 remaining)
 
-1. **Fix the stored XSS in task comments** — this is a security vulnerability that allows any user to execute JavaScript in other users' browsers
-2. **Unblock WOR-79** — leave policy creation is broken (500 error) and sitting in Backlog with 2 days left in the sprint
-3. **Clear the merge queue** — 11 items in "In Review" suggest a deployment bottleneck that's stalling progress
+1. **Fix stored XSS in task comments** — `DOMPurify.sanitize()` is already in dependencies, ~5 min fix
 
-The product is close to launch-ready. The gaps are fixable with focused effort over the remaining sprint days.
+### Three Things Before v1.0 Public Launch
+
+1. **Fix the stored XSS + add CSP headers** — defense in depth against injection
+2. **Unblock WOR-79** — leave policy creation returns 500, sitting in Backlog with 2 days left in sprint
+3. **Clear the merge queue** — 11 items in "In Review" represent real progress that isn't deployed yet
+
+### Biggest Risks
+
+| Risk | Severity | Mitigation |
+|------|----------|------------|
+| Stored XSS in task comments | Critical | Fix with DOMPurify (already a dependency) |
+| WOR-79 leave policy 500 in Backlog | High | Pull into sprint immediately |
+| 11 items stuck in review | Medium | Merge/deploy batch before sprint end |
+| No E2E tests | Medium | Post-beta, tracked as WOR-40 |
+| No monetization UI | Low (for beta) | Post-beta, WOR-20 backend ready |
+
+### Timeline Projection
+
+- **Beta launch:** Fix XSS → merge review queue → deploy (1-2 days)
+- **Public launch:** Billing + landing page + analytics + E2E tests (6-8 weeks, unchanged from Review #2)
