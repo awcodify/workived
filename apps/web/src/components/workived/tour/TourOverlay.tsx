@@ -43,12 +43,28 @@ const TOUR_STEPS: TourStep[] = [
       'This is your main navigation. Switch between modules from here \u2014 each one has its own colour world.',
   },
   {
+    id: 'overview-dock',
+    type: 'spotlight',
+    target: '[data-tour="dock-overview"]',
+    title: 'Overview',
+    description:
+      'Your home base. See attendance, leave balance, claims budget, and team pulse at a glance.',
+  },
+  {
     id: 'attendance-dock',
     type: 'spotlight',
     target: '[data-tour="dock-attendance"]',
     title: 'Attendance',
     description:
       'Full attendance page with calendar view, weekly reports, and work schedule management.',
+  },
+  {
+    id: 'tasks-dock',
+    type: 'spotlight',
+    target: '[data-tour="dock-tasks"]',
+    title: 'Tasks',
+    description:
+      'Kanban board for your team. Drag tasks between columns, set priorities, and track progress.',
   },
   {
     id: 'leave-dock',
@@ -67,12 +83,28 @@ const TOUR_STEPS: TourStep[] = [
       'Submit expenses with receipts and track reimbursement status.',
   },
   {
+    id: 'calendar-dock',
+    type: 'spotlight',
+    target: '[data-tour="dock-calendar"]',
+    title: 'Calendar',
+    description:
+      'See leave, holidays, and team events all in one view.',
+  },
+  {
     id: 'people-dock',
     type: 'spotlight',
     target: '[data-tour="dock-people"]',
     title: 'People',
     description:
       'Your team directory with profiles, departments, and org chart.',
+  },
+  {
+    id: 'settings-dock',
+    type: 'spotlight',
+    target: '[data-tour="dock-settings"]',
+    title: 'Settings',
+    description:
+      'Company settings, team members, theme toggle, and your profile. You can also replay this tour from here.',
   },
   // ── Overview widgets ──
   {

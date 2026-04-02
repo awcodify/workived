@@ -26,13 +26,13 @@ describe('useTourStore', () => {
 
   it('nextStep increments currentStep', () => {
     useTourStore.getState().startTour()
-    useTourStore.getState().nextStep(11)
+    useTourStore.getState().nextStep(15)
     expect(useTourStore.getState().currentStep).toBe(1)
   })
 
   it('nextStep on last step completes tour', () => {
-    useTourStore.setState({ isActive: true, currentStep: 10 })
-    useTourStore.getState().nextStep(11)
+    useTourStore.setState({ isActive: true, currentStep: 14 })
+    useTourStore.getState().nextStep(15)
     const state = useTourStore.getState()
     expect(state.isActive).toBe(false)
     expect(state.hasCompleted).toBe(true)

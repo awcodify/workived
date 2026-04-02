@@ -67,7 +67,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
   }
 
   return (
-    <div className="relative" ref={menuRef}>
+    <div className="relative" ref={menuRef} data-tour="dock-settings">
       {/* Settings Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
