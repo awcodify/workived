@@ -70,7 +70,7 @@ func (r *Repository) GetPolicy(ctx context.Context, orgID, policyID uuid.UUID) (
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
 		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
-		&p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.MaxLifetimeUses, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -130,7 +130,7 @@ func (r *Repository) CreatePolicy(ctx context.Context, orgID uuid.UUID, req Crea
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
 		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
-		&p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.MaxLifetimeUses, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create leave policy: %w", err)
@@ -172,7 +172,7 @@ func (r *Repository) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
 		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
-		&p.IsActive, &p.CreatedAt, &p.UpdatedAt,
+		&p.MaxLifetimeUses, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
