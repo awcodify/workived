@@ -9,7 +9,7 @@ import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
-import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Check, ChevronDown } from 'lucide-react'
 import { Skeleton } from '@/components/workived/shared/Skeleton'
 import { WorkSchedulesPanel } from '@/components/workived/attendance/WorkSchedulesPanel'
 
@@ -43,6 +43,7 @@ function AttendancePage() {
   // Work schedules panel and filter
   const [schedulesOpen, setSchedulesOpen] = useState(false)
   const [scheduleFilter, setScheduleFilter] = useState<string | undefined>(undefined)
+  const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false)
   const { data: workSchedules = [] } = useWorkSchedules()
 
   // Sprint 12: Show others toggle
@@ -93,6 +94,20 @@ function AttendancePage() {
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showMonthPicker])
+
+  // Close schedule dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (scheduleDropdownOpen) {
+        const target = e.target as HTMLElement
+        if (!target.closest('[data-schedule-dropdown]')) {
+          setScheduleDropdownOpen(false)
+        }
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [scheduleDropdownOpen])
 
   // Get employee list based on toggle and role
   const getEmployeeList = () => {
@@ -349,26 +364,99 @@ function AttendancePage() {
 
           {/* Schedule Filter */}
           {workSchedules.length > 1 && (
-            <div className="flex items-center gap-1.5">
-              <Clock size={14} style={{ color: t.textMuted }} />
-              <select
-                value={scheduleFilter ?? ''}
-                onChange={(e) => setScheduleFilter(e.target.value || undefined)}
-                className="text-xs font-bold py-2 px-2 pr-7 focus:outline-none"
+            <div className="relative" data-schedule-dropdown>
+              <button
+                onClick={() => setScheduleDropdownOpen(!scheduleDropdownOpen)}
+                className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all"
                 style={{
-                  borderRadius: 8,
                   background: scheduleFilter ? t.surface : 'transparent',
                   color: scheduleFilter ? t.text : t.textMuted,
                   border: `1px solid ${t.border}`,
                 }}
               >
-                <option value="">All schedules</option>
-                {workSchedules.map((ws) => (
-                  <option key={ws.id} value={ws.name}>
-                    {ws.name}{ws.is_default ? ' (default)' : ''}
-                  </option>
-                ))}
-              </select>
+                <Clock size={14} />
+                <span className="text-xs font-bold">
+                  {scheduleFilter || 'All schedules'}
+                </span>
+                <ChevronDown 
+                  size={14} 
+                  style={{ 
+                    transition: 'transform 0.2s',
+                    transform: scheduleDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                  }} 
+                />
+              </button>
+
+              {scheduleDropdownOpen && (
+                <div
+                  className="absolute top-full right-0 mt-2 rounded-lg shadow-lg z-50 py-1 min-w-[220px]"
+                  style={{
+                    background: t.surface,
+                    border: `1px solid ${t.border}`,
+                  }}
+                >
+                  {/* All schedules option */}
+                  <button
+                    onClick={() => {
+                      setScheduleFilter(undefined)
+                      setScheduleDropdownOpen(false)
+                    }}
+                    className="w-full px-4 py-2.5 text-left hover:bg-black/5 transition-colors flex items-center justify-between"
+                  >
+                    <span className="text-sm font-semibold" style={{ color: t.text }}>
+                      All schedules
+                    </span>
+                    {!scheduleFilter && (
+                      <Check size={14} style={{ color: colors.accent }} />
+                    )}
+                  </button>
+
+                  <div className="h-px my-1" style={{ background: t.border }} />
+
+                  {/* Individual schedules */}
+                  {workSchedules.map((ws) => {
+                    const dayNames = [...ws.work_days]
+                      .sort((a, b) => a - b)
+                      .map((d) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][d])
+                      .join(', ')
+                    
+                    return (
+                      <button
+                        key={ws.id}
+                        onClick={() => {
+                          setScheduleFilter(ws.name)
+                          setScheduleDropdownOpen(false)
+                        }}
+                        className="w-full px-4 py-2.5 text-left hover:bg-black/5 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-sm font-semibold" style={{ color: t.text }}>
+                                {ws.name}
+                              </span>
+                              {ws.is_default && (
+                                <span
+                                  className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
+                                  style={{ background: `${colors.accent}20`, color: colors.accent }}
+                                >
+                                  Default
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[11px]" style={{ color: t.textMuted }}>
+                              {dayNames} • {ws.start_time.slice(0, 5)}–{ws.end_time.slice(0, 5)}
+                            </p>
+                          </div>
+                          {scheduleFilter === ws.name && (
+                            <Check size={14} style={{ color: colors.accent }} className="flex-shrink-0 mt-0.5" />
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )}
 
@@ -575,13 +663,13 @@ function AttendancePage() {
               className="px-6 py-4 border-b"
               style={{ borderColor: t.border }}
             >
-              <div className="flex items-center gap-6">
-                <div className="w-10"></div> {/* Avatar space */}
-                <div className="flex-1 text-sm font-bold" style={{ color: t.text }}>Employee</div>
-                <div className="w-28 text-sm font-bold" style={{ color: t.text }}>Schedule</div>
-                <div className="w-32 text-sm font-bold text-center" style={{ color: t.text }}>Clock In</div>
-                <div className="w-32 text-sm font-bold text-center" style={{ color: t.text }}>Clock Out</div>
-                <div className="w-40 text-sm font-bold" style={{ color: t.text }}>Note</div>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 flex-shrink-0"></div> {/* Avatar space */}
+                <div className="flex-1 min-w-0 text-sm font-bold" style={{ color: t.text }}>Employee</div>
+                <div className="w-24 flex-shrink-0 text-sm font-bold hidden lg:block" style={{ color: t.text }}>Schedule</div>
+                <div className="w-28 flex-shrink-0 text-sm font-bold text-center" style={{ color: t.text }}>Clock In</div>
+                <div className="w-28 flex-shrink-0 text-sm font-bold text-center" style={{ color: t.text }}>Clock Out</div>
+                <div className="w-32 flex-shrink-0 text-sm font-bold hidden md:block" style={{ color: t.text }}>Note</div>
               </div>
             </div>
 
@@ -757,25 +845,25 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
         borderColor: t.border,
       }}
     >
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3 min-w-0">
         {/* Avatar */}
         <div className="w-10 flex-shrink-0">
           <Avatar id={employee.employee_id} name={employee.employee_name} size={40} />
         </div>
 
         {/* Employee Name + Status Badge */}
-        <div className="flex-1 flex items-center gap-3">
-          <span className="text-sm font-bold" style={{ color: t.text }}>
+        <div className="flex-1 min-w-0 flex items-center gap-2">
+          <span className="text-sm font-bold truncate" style={{ color: t.text }}>
             {employee.employee_name}
           </span>
           {!dayData && (
-            <span className="text-xs italic" style={{ color: t.textMuted }}>
-              No data for this date
+            <span className="text-xs italic flex-shrink-0" style={{ color: t.textMuted }}>
+              No data
             </span>
           )}
           {badge && (
             <div
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full flex-shrink-0"
               style={{ background: badge.bg }}
             >
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: badge.dot }} />
@@ -787,26 +875,26 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
         </div>
 
         {/* Schedule */}
-        <div className="w-28">
+        <div className="w-24 flex-shrink-0 hidden lg:block">
           <span className="text-xs truncate block" style={{ color: t.textMuted }}>
             {employee.work_schedule_name ?? '—'}
           </span>
         </div>
 
         {/* Clock In */}
-        <div className="w-32 flex justify-center">
+        <div className="w-28 flex-shrink-0 flex justify-center">
           {clockInTime ? (
             <div className="flex flex-col items-center gap-1">
               <div 
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
                 style={{
                   background: dayData.status === 'overtime' ? colors.accentDim : colors.okDim,
                 }}
               >
-                <div className="w-2 h-2 rounded-full" style={{ 
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ 
                   background: dayData.status === 'overtime' ? colors.accent : colors.ok 
                 }} />
-                <span className="text-xs font-bold" style={{ 
+                <span className="text-xs font-bold whitespace-nowrap" style={{ 
                   color: dayData.status === 'overtime' ? colors.accentText : colors.okText 
                 }}>
                   {clockInTime}
@@ -819,7 +907,7 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
             </div>
           ) : (
             <div 
-              className="flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-lg border"
+              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg border"
               style={{
                 background: t.surface,
                 borderColor: t.border,
@@ -831,37 +919,37 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
         </div>
 
         {/* Clock Out */}
-        <div className="w-32 flex justify-center">
+        <div className="w-28 flex-shrink-0 flex justify-center">
           {clockOutTime ? (
             <div className="flex flex-col items-center gap-1">
               <div 
-                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
                 style={{
                   background: colors.ink100,
                 }}
               >
-                <div className="w-2 h-2 rounded-full" style={{ background: colors.ink500 }} />
-                <span className="text-xs font-bold" style={{ color: colors.ink700 }}>
+                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: colors.ink500 }} />
+                <span className="text-xs font-bold whitespace-nowrap" style={{ color: colors.ink700 }}>
                   {clockOutTime}
                 </span>
               </div>
             </div>
           ) : clockInTime ? (
             <div 
-              className="flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-lg border"
+              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg border"
               style={{
                 background: colors.warnDim,
                 borderColor: colors.warn,
               }}
             >
               <div className="w-2 h-2 rounded-full" style={{ background: colors.warn }} />
-              <span className="text-[10px] font-bold" style={{ color: colors.warnText }}>
+              <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: colors.warnText }}>
                 Working
               </span>
             </div>
           ) : (
             <div 
-              className="flex flex-col items-center gap-1.5 px-4 py-2.5 rounded-lg border"
+              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg border"
               style={{
                 background: t.surface,
                 borderColor: t.border,
@@ -873,10 +961,10 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
         </div>
 
         {/* Note */}
-        <div className="w-40">
+        <div className="w-32 flex-shrink-0 hidden md:block">
           {dayData?.note ? (
             <div 
-              className="w-full px-3 py-2 text-xs rounded-lg"
+              className="w-full px-2.5 py-1.5 text-xs rounded-lg truncate"
               style={{
                 background: t.surface,
                 border: `1px solid ${t.border}`,
@@ -907,33 +995,35 @@ function AttendanceTableSkeleton() {
           className="px-6 py-4 border-b animate-pulse"
           style={{ borderColor: t.border }}
         >
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Avatar skeleton */}
-            <Skeleton width={40} height={40} borderRadius={10} />
+            <div className="w-10 flex-shrink-0">
+              <Skeleton width={40} height={40} borderRadius={10} />
+            </div>
             
             {/* Name */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <Skeleton width="40%" height={14} style={{ marginBottom: 4 }} />
               <Skeleton width="30%" height={12} />
             </div>
 
             {/* Schedule */}
-            <div className="w-28">
+            <div className="w-24 flex-shrink-0 hidden lg:block">
               <Skeleton width={70} height={12} />
             </div>
 
             {/* Clock In */}
-            <div className="w-32 flex justify-center">
+            <div className="w-28 flex-shrink-0 flex justify-center">
               <Skeleton width={80} height={28} borderRadius={999} />
             </div>
             
             {/* Clock Out */}
-            <div className="w-32 flex justify-center">
+            <div className="w-28 flex-shrink-0 flex justify-center">
               <Skeleton width={80} height={28} borderRadius={999} />
             </div>
             
             {/* Note */}
-            <div className="w-40">
+            <div className="w-32 flex-shrink-0 hidden md:block">
               <Skeleton width="60%" height={12} />
             </div>
           </div>
