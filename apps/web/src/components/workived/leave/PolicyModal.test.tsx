@@ -90,6 +90,44 @@ describe('PolicyModal', () => {
         expect(mockCreateMutateAsync).not.toHaveBeenCalled()
       })
     })
+
+    it('allows creating policy with description', async () => {
+      const user = userEvent.setup()
+      mockCreateMutateAsync.mockResolvedValueOnce({})
+
+      render(<PolicyModal onClose={onClose} onSuccess={onSuccess} />)
+
+      await user.type(screen.getByPlaceholderText(/annual leave/i), 'Sick Leave')
+      await user.type(screen.getByPlaceholderText(/describe when and how/i), 'For medical emergencies')
+      await user.click(screen.getByText('Create Policy'))
+
+      await waitFor(() => {
+        expect(mockCreateMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ 
+            name: 'Sick Leave',
+            description: 'For medical emergencies',
+          }),
+        )
+      })
+      expect(onSuccess).toHaveBeenCalled()
+    })
+
+    it('allows creating policy without description', async () => {
+      const user = userEvent.setup()
+      mockCreateMutateAsync.mockResolvedValueOnce({})
+
+      render(<PolicyModal onClose={onClose} onSuccess={onSuccess} />)
+
+      await user.type(screen.getByPlaceholderText(/annual leave/i), 'Sick Leave')
+      await user.click(screen.getByText('Create Policy'))
+
+      await waitFor(() => {
+        expect(mockCreateMutateAsync).toHaveBeenCalledWith(
+          expect.objectContaining({ name: 'Sick Leave' }),
+        )
+      })
+      expect(onSuccess).toHaveBeenCalled()
+    })
   })
 
   describe('edit mode', () => {
@@ -102,6 +140,26 @@ describe('PolicyModal', () => {
       render(<PolicyModal policy={mockPolicy} onClose={onClose} onSuccess={onSuccess} />)
       const nameInput = screen.getByPlaceholderText(/annual leave/i)
       expect(nameInput).toHaveValue('Annual Leave')
+    })
+
+    it('pre-fills description when policy has description', () => {
+      const policyWithDescription = {
+        ...mockPolicy,
+        description: 'Yearly vacation days',
+      }
+      render(<PolicyModal policy={policyWithDescription} onClose={onClose} onSuccess={onSuccess} />)
+      const descInput = screen.getByPlaceholderText(/describe when and how/i) as HTMLTextAreaElement
+      expect(descInput).toHaveValue('Yearly vacation days')
+    })
+
+    it('shows empty description field when policy has no description', () => {
+      const policyWithoutDescription = {
+        ...mockPolicy,
+        description: null,
+      }
+      render(<PolicyModal policy={policyWithoutDescription} onClose={onClose} onSuccess={onSuccess} />)
+      const descInput = screen.getByPlaceholderText(/describe when and how/i) as HTMLTextAreaElement
+      expect(descInput).toHaveValue('')
     })
 
     it('shows "Save Changes" submit button', () => {
@@ -158,15 +216,21 @@ describe('PolicyModal', () => {
       expect(onClose).toHaveBeenCalled()
     })
 
-    it('hides days per year field when unlimited is checked', async () => {
+    it('shows disabled days per year field with infinity when unlimited is checked', async () => {
       const user = userEvent.setup()
       render(<PolicyModal onClose={onClose} onSuccess={onSuccess} />)
 
+      // Find the days per year input by placeholder (since label structure changed with tooltip)
+      const daysPerYearInput = screen.getAllByRole('textbox').find(
+        input => (input as HTMLInputElement).classList.contains('text-center')
+      ) as HTMLInputElement
+
+      await user.click(screen.getByRole('checkbox', { name: /unlimited leave/i }))
+
+      // Field should still be visible but disabled and show infinity symbol
       expect(screen.getByText('Days Per Year')).toBeInTheDocument()
-
-      await user.click(screen.getByLabelText('Unlimited leave'))
-
-      expect(screen.queryByText('Days Per Year')).not.toBeInTheDocument()
+      expect(daysPerYearInput).toBeDisabled()
+      expect(daysPerYearInput).toHaveValue('∞')
     })
 
     it('toggles employment type selection', async () => {
@@ -189,7 +253,7 @@ describe('PolicyModal', () => {
 
       expect(screen.queryByText('Maximum uses per employment')).not.toBeInTheDocument()
 
-      await user.click(screen.getByLabelText('Lifetime limit'))
+      await user.click(screen.getByRole('checkbox', { name: /lifetime limit/i }))
 
       expect(screen.getByText('Maximum uses per employment')).toBeInTheDocument()
     })

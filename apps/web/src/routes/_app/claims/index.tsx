@@ -218,15 +218,25 @@ function ClaimsDashboard() {
                   >
                     {/* Header: Category name + Budget info */}
                     <div className="flex items-start justify-between mb-2">
-                      <p
-                        className="font-bold flex-1"
-                        style={{
-                          fontSize: typography.body.size,
-                          color: t.text,
-                        }}
-                      >
-                        {balance.category_name}
-                      </p>
+                      <div className="flex-1 pr-3">
+                        <p
+                          className="font-bold"
+                          style={{
+                            fontSize: typography.body.size,
+                            color: t.text,
+                          }}
+                        >
+                          {balance.category_name}
+                        </p>
+                        {balance.description && (
+                          <p
+                            className="text-xs mt-1"
+                            style={{ color: t.textMuted }}
+                          >
+                            {balance.description}
+                          </p>
+                        )}
+                      </div>
 
                       <div className="text-right">
                         {limit > 0 ? (
@@ -950,7 +960,7 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-2"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-2"
       style={{ background: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >

@@ -27,7 +27,7 @@ func NewRepository(db *pgxpool.Pool, log zerolog.Logger) *Repository {
 
 func (r *Repository) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Category, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, name, monthly_limit, currency_code,
+		SELECT id, organisation_id, name, description, monthly_limit, currency_code,
 		       requires_receipt, is_unlimited, budget_period, eligible_employment_types,
 		       is_active, created_at, updated_at
 		FROM claim_categories
@@ -43,7 +43,7 @@ func (r *Repository) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Cat
 	for rows.Next() {
 		var c Category
 		if err := rows.Scan(
-			&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
+			&c.ID, &c.OrganisationID, &c.Name, &c.Description, &c.MonthlyLimit, &c.CurrencyCode,
 			&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
 			&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 		); err != nil {
@@ -57,13 +57,13 @@ func (r *Repository) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Cat
 func (r *Repository) GetCategory(ctx context.Context, orgID, id uuid.UUID) (*Category, error) {
 	var c Category
 	err := r.db.QueryRow(ctx, `
-		SELECT id, organisation_id, name, monthly_limit, currency_code,
+		SELECT id, organisation_id, name, description, monthly_limit, currency_code,
 		       requires_receipt, is_unlimited, budget_period, eligible_employment_types,
 		       is_active, created_at, updated_at
 		FROM claim_categories
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, id).Scan(
-		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
+		&c.ID, &c.OrganisationID, &c.Name, &c.Description, &c.MonthlyLimit, &c.CurrencyCode,
 		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
 		&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
@@ -107,14 +107,14 @@ func (r *Repository) CreateCategory(ctx context.Context, orgID uuid.UUID, req Cr
 
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO claim_categories (
-			organisation_id, name, monthly_limit, currency_code, requires_receipt, is_unlimited,
+			organisation_id, name, description, monthly_limit, currency_code, requires_receipt, is_unlimited,
 			budget_period, eligible_employment_types
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-		RETURNING id, organisation_id, name, monthly_limit, currency_code,
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, organisation_id, name, description, monthly_limit, currency_code,
 		          requires_receipt, is_unlimited, budget_period, eligible_employment_types,
 		          is_active, created_at, updated_at
-	`, orgID, req.Name, req.MonthlyLimit, *currencyCode, req.RequiresReceipt, isUnlimited, budgetPeriod, eligibleTypes).Scan(
-		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
+	`, orgID, req.Name, req.Description, req.MonthlyLimit, *currencyCode, req.RequiresReceipt, isUnlimited, budgetPeriod, eligibleTypes).Scan(
+		&c.ID, &c.OrganisationID, &c.Name, &c.Description, &c.MonthlyLimit, &c.CurrencyCode,
 		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
 		&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
@@ -134,18 +134,19 @@ func (r *Repository) UpdateCategory(ctx context.Context, orgID, id uuid.UUID, re
 	err := r.db.QueryRow(ctx, `
 		UPDATE claim_categories SET
 			name                       = COALESCE($3, name),
-			monthly_limit              = COALESCE($4, monthly_limit),
-			currency_code              = COALESCE($5, currency_code),
-			requires_receipt           = COALESCE($6, requires_receipt),
-			is_unlimited               = COALESCE($7, is_unlimited),
-			budget_period              = COALESCE($8, budget_period),
-			eligible_employment_types  = COALESCE($9, eligible_employment_types)
+			description                = COALESCE($4, description),
+			monthly_limit              = COALESCE($5, monthly_limit),
+			currency_code              = COALESCE($6, currency_code),
+			requires_receipt           = COALESCE($7, requires_receipt),
+			is_unlimited               = COALESCE($8, is_unlimited),
+			budget_period              = COALESCE($9, budget_period),
+			eligible_employment_types  = COALESCE($10, eligible_employment_types)
 		WHERE organisation_id = $1 AND id = $2
-		RETURNING id, organisation_id, name, monthly_limit, currency_code,
+		RETURNING id, organisation_id, name, description, monthly_limit, currency_code,
 		          requires_receipt, is_unlimited, budget_period, eligible_employment_types,
 		          is_active, created_at, updated_at
-	`, orgID, id, req.Name, req.MonthlyLimit, req.CurrencyCode, req.RequiresReceipt, req.IsUnlimited, req.BudgetPeriod, eligibleTypes).Scan(
-		&c.ID, &c.OrganisationID, &c.Name, &c.MonthlyLimit, &c.CurrencyCode,
+	`, orgID, id, req.Name, req.Description, req.MonthlyLimit, req.CurrencyCode, req.RequiresReceipt, req.IsUnlimited, req.BudgetPeriod, eligibleTypes).Scan(
+		&c.ID, &c.OrganisationID, &c.Name, &c.Description, &c.MonthlyLimit, &c.CurrencyCode,
 		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
 		&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
@@ -584,7 +585,7 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 			-- Monthly categories: return the specific month's balance
 			SELECT b.id, b.organisation_id, b.employee_id, b.category_id, b.year, b.month,
 			       b.total_spent, b.claim_count, b.currency_code, b.monthly_limit,
-			       b.created_at, b.updated_at, c.name, c.budget_period
+			       b.created_at, b.updated_at, c.name, c.description, c.budget_period
 			FROM claim_balances b
 			JOIN claim_categories c ON b.category_id = c.id
 			WHERE b.organisation_id = $1 AND b.employee_id = $2
@@ -596,7 +597,7 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 			SELECT DISTINCT ON (b.category_id)
 			       b.id, b.organisation_id, b.employee_id, b.category_id, b.year, b.month,
 			       agg.total_spent, agg.claim_count, b.currency_code, b.monthly_limit,
-			       b.created_at, b.updated_at, c.name, c.budget_period
+			       b.created_at, b.updated_at, c.name, c.description, c.budget_period
 			FROM claim_balances b
 			JOIN claim_categories c ON b.category_id = c.id
 			JOIN (
@@ -625,7 +626,7 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 		if err := rows.Scan(
 			&b.ID, &b.OrganisationID, &b.EmployeeID, &b.CategoryID, &b.Year, &b.Month,
 			&b.TotalSpent, &b.ClaimCount, &b.CurrencyCode, &b.MonthlyLimit,
-			&b.CreatedAt, &b.UpdatedAt, &b.CategoryName, &b.BudgetPeriod,
+			&b.CreatedAt, &b.UpdatedAt, &b.CategoryName, &b.Description, &b.BudgetPeriod,
 		); err != nil {
 			return nil, err
 		}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { X } from 'lucide-react'
+import { X, Info } from 'lucide-react'
 import { useCreateCategory, useUpdateCategory } from '@/lib/hooks/useClaims'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { moduleThemes, typography } from '@/design/tokens'
@@ -18,6 +18,7 @@ type EmpType = 'full_time' | 'part_time' | 'contract' | 'intern'
 
 interface CategoryFormData {
   name: string
+  description?: string | null
   monthly_limit: string
   currency_code: string
   requires_receipt: boolean
@@ -47,6 +48,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
     defaultValues: isEditMode
       ? {
           name: category.name,
+          description: category.description ?? null,
           monthly_limit: category.monthly_limit ? category.monthly_limit.toString() : '',
           currency_code: category.currency_code || org?.currency_code || 'IDR',
           requires_receipt: category.requires_receipt,
@@ -55,17 +57,18 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
         }
       : {
           name: '',
+          description: null,
           monthly_limit: '',
           currency_code: org?.currency_code || 'IDR',
           requires_receipt: false,
           budget_period: 'monthly',
-          eligible_employment_types: [],
+          eligible_employment_types: ['full_time'],
         },
   })
 
   const hasMonthlyLimit = watch('monthly_limit') !== ''
   const budgetPeriod = watch('budget_period')
-  const eligibleTypes = watch('eligible_employment_types') ?? []
+  const eligibleTypes = watch('eligible_employment_types') ?? (isEditMode ? [] : ['full_time'])
 
   const toggleEmploymentType = (type: EmpType) => {
     if (eligibleTypes.includes(type)) {
@@ -99,6 +102,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
   const onSubmit = async (data: CategoryFormData) => {
     const payload = {
       name: data.name,
+      description: data.description || undefined,
       monthly_limit: hasMonthlyLimit ? Math.round(parseFloat(data.monthly_limit)) : undefined,
       currency_code: hasMonthlyLimit ? data.currency_code : undefined,
       requires_receipt: data.requires_receipt,
@@ -122,7 +126,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       style={{ background: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >
@@ -170,7 +174,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
           {/* Name */}
           <div>
             <label
-              className="block mb-1.5"
+              className="flex items-center gap-1.5 mb-1.5"
               style={{
                 fontSize: typography.label.size,
                 fontWeight:600,
@@ -178,11 +182,30 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
               }}
             >
               Category Name
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg whitespace-nowrap opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    zIndex: 9999,
+                  }}
+                >
+                  Name of the expense category (e.g., Travel, Meals)
+                </div>
+              </div>
             </label>
             <input
               type="text"
               {...register('name', { required: 'Category name is required' })}
               placeholder="e.g. Travel, Meals, Equipment"
+              required
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -199,10 +222,57 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
             )}
           </div>
 
+          {/* Description */}
+          <div>
+            <label
+              className="flex items-center gap-1.5 mb-1.5"
+              style={{
+                fontSize: typography.label.size,
+                fontWeight: 600,
+                color: t.text,
+              }}
+            >
+              Description
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    zIndex: 9999,
+                    width: '200px',
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  Explain what expenses this category covers
+                </div>
+              </div>
+            </label>
+            <textarea
+              {...register('description')}
+              placeholder="Describe what expenses this category covers (optional)"
+              rows={2}
+              className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none"
+              style={{
+                background: t.input,
+                border: `1px solid ${t.inputBorder}`,
+                borderRadius: 10,
+                color: t.text,
+                caretColor: t.accent,
+              }}
+            />
+          </div>
+
           {/* Budget Period */}
           <div>
             <label
-              className="block mb-1.5"
+              className="flex items-center gap-1.5 mb-1.5"
               style={{
                 fontSize: typography.label.size,
                 fontWeight: 600,
@@ -210,6 +280,24 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
               }}
             >
               Budget Period
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg whitespace-nowrap opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    zIndex: 9999,
+                  }}
+                >
+                  How often the budget limit resets
+                </div>
+              </div>
             </label>
             <div className="flex gap-1 p-1" style={{ background: t.input, borderRadius: 10 }}>
               {(['monthly', 'yearly'] as const).map((period) => {
@@ -222,8 +310,8 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
                     className="flex-1 text-sm font-medium py-2 transition-colors capitalize"
                     style={{
                       borderRadius: 8,
-                      background: isActive ? t.surface : 'transparent',
-                      color: isActive ? t.text : t.textMuted,
+                      background: isActive ? t.accent : 'transparent',
+                      color: isActive ? t.accentText : t.textMuted,
                       boxShadow: isActive ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
                     }}
                   >
@@ -237,7 +325,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
           {/* Budget Limit */}
           <div>
             <label
-              className="block mb-1.5"
+              className="flex items-center gap-1.5 mb-1.5"
               style={{
                 fontSize: typography.label.size,
                 fontWeight: 600,
@@ -245,6 +333,26 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
               }}
             >
               {budgetPeriod === 'yearly' ? 'Yearly' : 'Monthly'} Limit (Optional)
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    zIndex: 9999,
+                    width: '220px',
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  Maximum amount per employee per {budgetPeriod === 'yearly' ? 'year' : 'month'}. Leave empty for no limit.
+                </div>
+              </div>
             </label>
             <div className="flex gap-2">
               <select
@@ -278,9 +386,6 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
                 }}
               />
             </div>
-            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
-              Leave empty for no limit. Amount is per employee per {budgetPeriod === 'yearly' ? 'year' : 'month'}.
-            </p>
           </div>
 
           {/* Requires Receipt */}
@@ -296,20 +401,40 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
             />
             <label
               htmlFor="requires-receipt"
-              className="cursor-pointer select-none"
+              className="cursor-pointer select-none flex items-center gap-1.5"
               style={{
                 fontSize: typography.body.size,
                 color: t.text,
               }}
             >
               Require receipt attachment
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    zIndex: 9999,
+                    width: '200px',
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  Employees must upload receipt when submitting claim
+                </div>
+              </div>
             </label>
           </div>
 
           {/* Eligible Employment Types */}
           <div className="pt-2">
             <label
-              className="block mb-1.5"
+              className="flex items-center gap-1.5 mb-1.5"
               style={{
                 fontSize: typography.label.size,
                 fontWeight: 600,
@@ -317,6 +442,26 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
               }}
             >
               Eligible Employment Types
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    zIndex: 9999,
+                    width: '220px',
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  Leave empty for all types or select specific employment types
+                </div>
+              </div>
             </label>
             <div className="flex flex-wrap gap-2">
               {([
@@ -344,9 +489,6 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
                 )
               })}
             </div>
-            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
-              Leave empty for all types. Select specific types to restrict eligibility.
-            </p>
           </div>
 
           {/* Error Message */}

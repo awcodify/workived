@@ -93,7 +93,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
 
       {/* Dialog */}
       <div
-        className="fixed inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 top-1/2 -translate-y-1/2 z-50 max-w-2xl w-full"
+        className="fixed inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 top-1/2 -translate-y-1/2 z-[100] max-w-2xl w-full"
         style={{
           background: t.surface,
           borderRadius: 18,

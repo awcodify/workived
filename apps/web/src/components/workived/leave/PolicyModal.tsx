@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { X } from 'lucide-react'
+import { X, Info } from 'lucide-react'
 import { createPolicySchema, type CreatePolicyFormData } from '@/lib/validations/leave'
 import { useCreatePolicy, useUpdatePolicy } from '@/lib/hooks/useLeave'
 import { moduleThemes, typography } from '@/design/tokens'
@@ -33,6 +33,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
     defaultValues: isEditMode
       ? {
           name: policy.name,
+          description: policy.description ?? null,
           days_per_year: policy.days_per_year,
           carry_over_days: policy.carry_over_days,
           min_tenure_days: policy.min_tenure_days,
@@ -44,13 +45,14 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
         }
       : {
           name: '',
+          description: null,
           days_per_year: 12,
           carry_over_days: 0,
           min_tenure_days: 0,
           requires_approval: true,
           is_unlimited: false,
           gender_eligibility: null,
-          eligible_employment_types: [],
+          eligible_employment_types: ['full_time'],
           max_lifetime_uses: null,
         },
   })
@@ -86,12 +88,12 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       style={{ background: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="w-full max-w-3xl max-h-[90vh] overflow-y-auto relative"
         style={{
           background: t.surface,
           borderRadius: 16,
@@ -138,7 +140,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
           {/* Policy Name */}
           <div>
             <label
-              className="block mb-1.5"
+              className="flex items-center gap-1.5 mb-1.5"
               style={{
                 fontSize: typography.label.size,
                 fontWeight: 600,
@@ -146,11 +148,30 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
               }}
             >
               Policy Name
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg whitespace-nowrap opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                  }}
+                >
+                  Name of the leave policy (e.g., Annual Leave)
+                </div>
+              </div>
             </label>
             <input
               type="text"
               {...register('name')}
               placeholder="e.g. Annual Leave, Sick Leave"
+              required
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -163,6 +184,58 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
             {errors.name && (
               <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
                 {errors.name.message}
+              </p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div>
+            <label
+              className="flex items-center gap-1.5 mb-1.5"
+              style={{
+                fontSize: typography.label.size,
+                fontWeight: 600,
+                color: t.text,
+              }}
+            >
+              Description
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                    width: '200px',
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  Explain when and how employees can use this leave
+                </div>
+              </div>
+            </label>
+            <textarea
+              {...register('description')}
+              placeholder="Describe when and how this leave can be used (optional)"
+              rows={2}
+              className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none"
+              style={{
+                background: t.input,
+                border: `1px solid ${errors.description ? '#EF4444' : t.inputBorder}`,
+                borderRadius: 10,
+                color: t.text,
+                caretColor: t.accent,
+              }}
+            />
+            {errors.description && (
+              <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
+                {errors.description.message}
               </p>
             )}
           </div>
@@ -184,26 +257,42 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
             />
             <label
               htmlFor="is-unlimited"
-              className="cursor-pointer select-none"
+              className="cursor-pointer select-none flex items-center gap-1.5"
               style={{
                 fontSize: typography.body.size,
                 color: t.text,
               }}
             >
               Unlimited leave
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                    width: '200px',
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  No day limit — employees can take as much as needed (e.g., sick leave)
+                </div>
+              </div>
             </label>
           </div>
-          <p className="text-xs -mt-2 ml-8" style={{ color: t.textMuted }}>
-            {isUnlimited
-              ? 'No day limit — employees can take as much as needed (e.g. sick leave)'
-              : 'Set a specific number of days per year'}
-          </p>
 
-          {/* Days Per Year */}
-          {!isUnlimited && (
+          {/* Days Configuration - 3 Column Grid */}
+          <div className="grid grid-cols-3 gap-3">
+            {/* Days Per Year */}
             <div>
               <label
-                className="block mb-1.5"
+                className="flex items-center gap-1.5 mb-1.5 group"
                 style={{
                   fontSize: typography.label.size,
                   fontWeight: 600,
@@ -211,94 +300,156 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                 }}
               >
                 Days Per Year
+                <div className="relative inline-block">
+                  <Info
+                    size={14}
+                    className="cursor-help peer"
+                    style={{ color: t.accent }}
+                  />
+                  <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg whitespace-nowrap opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                    zIndex: 9999,
+                    }}
+                  >
+                    Leave days granted annually
+                  </div>
+                </div>
               </label>
               <input
-                type="number"
-                {...register('days_per_year', { valueAsNumber: true })}
-                min="0"
-                className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
+                type="text"
+                value={isUnlimited ? '∞' : undefined}
+                {...(!isUnlimited && register('days_per_year', { 
+                  valueAsNumber: true,
+                  min: { value: 1, message: 'Days per year must be at least 1' }
+                }))}
+                min="1"
+                disabled={isUnlimited}
+                className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 text-center"
                 style={{
-                  background: t.input,
+                  background: isUnlimited ? t.surfaceHover : t.input,
                   border: `1px solid ${errors.days_per_year ? '#EF4444' : t.inputBorder}`,
                   borderRadius: 10,
                   color: t.text,
                   caretColor: t.accent,
+                  cursor: isUnlimited ? 'not-allowed' : 'text',
+                  opacity: isUnlimited ? 0.7 : 1,
                 }}
               />
-              {errors.days_per_year && (
+              {errors.days_per_year && !isUnlimited && (
                 <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
                   {errors.days_per_year.message}
                 </p>
               )}
             </div>
-          )}
 
-          {/* Carry Over Days */}
-          <div>
-            <label
-              className="block mb-1.5"
-              style={{
-                fontSize: typography.label.size,
-                fontWeight: 600,
-                color: t.text,
-              }}
-            >
-              Carry Over Days
-            </label>
-            <input
-              type="number"
-              {...register('carry_over_days', { valueAsNumber: true })}
-              min="0"
-              className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
-              style={{
-                background: t.input,
-                border: `1px solid ${errors.carry_over_days ? '#EF4444' : t.inputBorder}`,
-                borderRadius: 10,
-                color: t.text,
-                caretColor: t.accent,
-              }}
-            />
-            {errors.carry_over_days && (
-              <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
-                {errors.carry_over_days.message}
-              </p>
-            )}
-          </div>
+              {/* Carry Over Days */}
+              <div>
+                <label
+                  className="flex items-center gap-1.5 mb-1.5 group"
+                  style={{
+                    fontSize: typography.label.size,
+                    fontWeight: 600,
+                    color: t.text,
+                  }}
+                >
+                  Carry Over
+                  <div className="relative inline-block">
+                    <Info
+                      size={14}
+                      className="cursor-help peer"
+                      style={{ color: t.accent }}
+                    />
+                    <div
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg whitespace-nowrap opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                      style={{
+                        background: t.text,
+                        color: t.surface,
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                        zIndex: 9999,
+                      }}
+                    >
+                      Days that can roll to next year
+                    </div>
+                  </div>
+                </label>
+                <input
+                  type="number"
+                  {...register('carry_over_days', { valueAsNumber: true })}
+                  min="0"
+                  className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
+                  style={{
+                    background: t.input,
+                    border: `1px solid ${errors.carry_over_days ? '#EF4444' : t.inputBorder}`,
+                    borderRadius: 10,
+                    color: t.text,
+                    caretColor: t.accent,
+                  }}
+                />
+                {errors.carry_over_days && (
+                  <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
+                    {errors.carry_over_days.message}
+                  </p>
+                )}
+              </div>
 
-          {/* Min Tenure Days */}
-          <div>
-            <label
-              className="block mb-1.5"
-              style={{
-                fontSize: typography.label.size,
-                fontWeight: 600,
-                color: t.text,
-              }}
-            >
-              Minimum Tenure (Days)
-            </label>
-            <input
-              type="number"
-              {...register('min_tenure_days', { valueAsNumber: true })}
-              min="0"
-              className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
-              style={{
-                background: t.input,
-                border: `1px solid ${errors.min_tenure_days ? '#EF4444' : t.inputBorder}`,
-                borderRadius: 10,
-                color: t.text,
-                caretColor: t.accent,
-              }}
-            />
-            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
-              Employees must work this many days before eligibility. Use 0 for immediate eligibility.
-            </p>
-            {errors.min_tenure_days && (
-              <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
-                {errors.min_tenure_days.message}
-              </p>
-            )}
-          </div>
+              {/* Min Tenure Days */}
+              <div>
+                <label
+                  className="flex items-center gap-1.5 mb-1.5 group"
+                  style={{
+                    fontSize: typography.label.size,
+                    fontWeight: 600,
+                    color: t.text,
+                  }}
+                >
+                  Min Tenure
+                  <div className="relative inline-block">
+                    <Info
+                      size={14}
+                      className="cursor-help peer"
+                      style={{ color: t.accent }}
+                    />
+                    <div
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                      style={{
+                        background: t.text,
+                        color: t.surface,
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                        width: '200px',
+                        whiteSpace: 'normal',
+                        zIndex: 9999,
+                      }}
+                    >
+                      Days employee must work before eligible (0 = immediate)
+                    </div>
+                  </div>
+                </label>
+                <input
+                  type="number"
+                  {...register('min_tenure_days', { valueAsNumber: true })}
+                  min="0"
+                  className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
+                  style={{
+                    background: t.input,
+                    border: `1px solid ${errors.min_tenure_days ? '#EF4444' : t.inputBorder}`,
+                    borderRadius: 10,
+                    color: t.text,
+                    caretColor: t.accent,
+                  }}
+                />
+                {errors.min_tenure_days && (
+                  <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
+                    {errors.min_tenure_days.message}
+                  </p>
+                )}
+              </div>
+            </div>
 
           {/* Requires Approval */}
           <div className="flex items-center gap-3 pt-2">
@@ -311,25 +462,40 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
             />
             <label
               htmlFor="requires-approval"
-              className="cursor-pointer select-none"
+              className="cursor-pointer select-none flex items-center gap-1.5"
               style={{
                 fontSize: typography.body.size,
                 color: t.text,
               }}
             >
               Requires approval
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                    width: '220px',
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  If checked, employees need manager/admin approval before taking leave
+                </div>
+              </div>
             </label>
           </div>
-          <p className="text-xs -mt-2 ml-8" style={{ color: t.textMuted }}>
-            {requiresApproval
-              ? 'Employees need manager/admin approval to take leave'
-              : 'Employees can take leave immediately without approval'}
-          </p>
 
           {/* Gender Eligibility */}
           <div className="pt-2">
             <label
-              className="block mb-1.5"
+              className="flex items-center gap-1.5 mb-1.5"
               style={{
                 fontSize: typography.label.size,
                 fontWeight: 600,
@@ -337,6 +503,26 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
               }}
             >
               Eligible Gender
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                    width: '200px',
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  Restrict policy to specific gender (e.g., maternity, paternity)
+                </div>
+              </div>
             </label>
             <div className="flex gap-2">
               {([
@@ -360,15 +546,12 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                 </button>
               ))}
             </div>
-            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
-              Restrict this leave type to a specific gender (e.g., maternity, paternity)
-            </p>
           </div>
 
           {/* Eligible Employment Types */}
           <div className="pt-2">
             <label
-              className="block mb-1.5"
+              className="flex items-center gap-1.5 mb-1.5"
               style={{
                 fontSize: typography.label.size,
                 fontWeight: 600,
@@ -376,6 +559,26 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
               }}
             >
               Eligible Employment Types
+              <div className="relative inline-block">
+                <Info
+                  size={14}
+                  className="cursor-help peer"
+                  style={{ color: t.accent }}
+                />
+                <div
+                  className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                  style={{
+                    background: t.text,
+                    color: t.surface,
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                    width: '220px',
+                    whiteSpace: 'normal',
+                  }}
+                >
+                  Leave empty for all types or select specific employment types
+                </div>
+              </div>
             </label>
             <div className="flex flex-wrap gap-2">
               {([
@@ -403,9 +606,6 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                 )
               })}
             </div>
-            <p className="text-xs mt-1" style={{ color: t.textMuted }}>
-              Leave empty for all types. Select specific types to restrict eligibility.
-            </p>
           </div>
 
           {/* Lifetime Limit */}
@@ -423,20 +623,36 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
               />
               <label
                 htmlFor="has-lifetime-limit"
-                className="cursor-pointer select-none"
+                className="cursor-pointer select-none flex items-center gap-1.5"
                 style={{
                   fontSize: typography.body.size,
                   color: t.text,
                 }}
               >
                 Lifetime limit
+                <div className="relative inline-block">
+                  <Info
+                    size={14}
+                    className="cursor-help peer"
+                    style={{ color: t.accent }}
+                  />
+                  <div
+                    className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 text-xs rounded-lg opacity-0 pointer-events-none peer-hover:opacity-100 transition-opacity"
+                    style={{
+                      background: t.text,
+                      color: t.surface,
+                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                      zIndex: 9999,
+                      width: '200px',
+                      whiteSpace: 'normal',
+                      zIndex: 9999,
+                    }}
+                  >
+                    Limit how many times an employee can use this leave in their lifetime (e.g., Hajj)
+                  </div>
+                </div>
               </label>
             </div>
-            <p className="text-xs mt-1 ml-8" style={{ color: t.textMuted }}>
-              {maxLifetimeUses != null
-                ? 'This leave can only be used a limited number of times per employment (e.g. Hajj)'
-                : 'No lifetime limit — employees can use this leave every year'}
-            </p>
             {maxLifetimeUses != null && (
               <div className="mt-2 ml-8">
                 <label

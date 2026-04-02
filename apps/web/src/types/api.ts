@@ -469,6 +469,7 @@ export interface ClaimCategory {
   id: string
   organisation_id: string
   name: string
+  description?: string | null
   monthly_limit?: number  // Smallest currency unit
   currency_code: string   // Always set to org's currency
   requires_receipt: boolean
@@ -534,6 +535,7 @@ export interface ClaimBalance {
 
 export interface ClaimBalanceWithCategory extends ClaimBalance {
   category_name: string
+  description?: string | null
   budget_period: 'monthly' | 'yearly'
   remaining?: number  // limit - total_spent
 }
@@ -548,6 +550,7 @@ export interface ClaimMonthlySummary {
 
 export interface CreateCategoryInput {
   name: string
+  description?: string | null
   monthly_limit?: number
   currency_code?: string
   requires_receipt: boolean
@@ -556,6 +559,7 @@ export interface CreateCategoryInput {
 
 export interface UpdateCategoryInput {
   name?: string
+  description?: string | null
   monthly_limit?: number
   currency_code?: string
   requires_receipt?: boolean

@@ -9,18 +9,19 @@ import (
 
 // Category represents an expense claim category.
 type Category struct {
-	ID              uuid.UUID `json:"id"`
-	OrganisationID  uuid.UUID `json:"organisation_id"`
-	Name            string    `json:"name"`
-	MonthlyLimit    *int64    `json:"monthly_limit,omitempty"` // Pro only, smallest currency unit
-	CurrencyCode    string    `json:"currency_code"`           // Always set to org's currency
-	RequiresReceipt bool      `json:"requires_receipt"`
-	IsUnlimited     bool      `json:"is_unlimited"`  // When true, monthly_limit is ignored
-	BudgetPeriod            string   `json:"budget_period"` // "monthly" or "yearly"
-	EligibleEmploymentTypes []string `json:"eligible_employment_types"` // nil = all types eligible
-	IsActive                bool     `json:"is_active"`
-	CreatedAt       time.Time `json:"created_at"`
-	UpdatedAt       time.Time `json:"updated_at"`
+	ID                      uuid.UUID `json:"id"`
+	OrganisationID          uuid.UUID `json:"organisation_id"`
+	Name                    string    `json:"name"`
+	Description             *string   `json:"description,omitempty"`
+	MonthlyLimit            *int64    `json:"monthly_limit,omitempty"` // Pro only, smallest currency unit
+	CurrencyCode            string    `json:"currency_code"`           // Always set to org's currency
+	RequiresReceipt         bool      `json:"requires_receipt"`
+	IsUnlimited             bool      `json:"is_unlimited"`              // When true, monthly_limit is ignored
+	BudgetPeriod            string    `json:"budget_period"`             // "monthly" or "yearly"
+	EligibleEmploymentTypes []string  `json:"eligible_employment_types"` // nil = all types eligible
+	IsActive                bool      `json:"is_active"`
+	CreatedAt               time.Time `json:"created_at"`
+	UpdatedAt               time.Time `json:"updated_at"`
 }
 
 // CategoryTemplate represents a pre-defined category template for a country.
@@ -81,15 +82,17 @@ type ClaimBalance struct {
 // ClaimBalanceWithCategory includes category name for display.
 type ClaimBalanceWithCategory struct {
 	ClaimBalance
-	CategoryName string `json:"category_name"`
-	BudgetPeriod string `json:"budget_period"`           // "monthly" or "yearly"
-	Remaining    *int64 `json:"remaining,omitempty"`      // limit - total_spent
+	CategoryName string  `json:"category_name"`
+	Description  *string `json:"description,omitempty"`
+	BudgetPeriod string  `json:"budget_period"`       // "monthly" or "yearly"
+	Remaining    *int64  `json:"remaining,omitempty"` // limit - total_spent
 }
 
 // ── Request types ─────────────────────────────────────────────────────────────
 
 type CreateCategoryRequest struct {
 	Name                    string   `json:"name" binding:"required,max=100"`
+	Description             *string  `json:"description" validate:"omitempty,max=500"`
 	MonthlyLimit            *int64   `json:"monthly_limit,omitempty"` // Pro only
 	CurrencyCode            *string  `json:"currency_code,omitempty"`
 	RequiresReceipt         bool     `json:"requires_receipt"`
@@ -100,6 +103,7 @@ type CreateCategoryRequest struct {
 
 type UpdateCategoryRequest struct {
 	Name                    *string  `json:"name,omitempty"`
+	Description             *string  `json:"description" validate:"omitempty,max=500"`
 	MonthlyLimit            *int64   `json:"monthly_limit,omitempty"`
 	CurrencyCode            *string  `json:"currency_code,omitempty"`
 	RequiresReceipt         *bool    `json:"requires_receipt,omitempty"`
