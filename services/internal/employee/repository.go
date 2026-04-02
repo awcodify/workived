@@ -32,18 +32,22 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 		       e.base_salary, e.salary_currency, e.custom_fields,
 		       e.is_active, e.created_at, e.updated_at,
 		       m.full_name AS manager_name,
+		       COALESCE(ws.name, dws.name) AS work_schedule_name,
 		       (i.id IS NOT NULL) AS invitation_pending
 		FROM employees e
 		LEFT JOIN employees m ON e.reporting_to = m.id AND m.is_active = TRUE
+		LEFT JOIN work_schedules ws ON e.work_schedule_id = ws.id AND ws.is_active = TRUE
+		LEFT JOIN work_schedules dws ON dws.organisation_id = e.organisation_id AND dws.is_default = TRUE AND dws.is_active = TRUE
 		LEFT JOIN invitations i ON i.organisation_id = e.organisation_id
 		          AND i.employee_id = e.id AND i.accepted_at IS NULL
 		WHERE e.organisation_id = $1
 		  AND ($2::varchar IS NULL OR e.status = $2)
 		  AND ($3::varchar IS NULL OR e.department_id::text = $3)
-		  AND ($4::varchar IS NULL OR e.full_name > $4)
+		  AND ($4::varchar IS NULL OR COALESCE(e.work_schedule_id, dws.id)::text = $4)
+		  AND ($5::varchar IS NULL OR e.full_name > $5)
 		ORDER BY e.full_name ASC
-		LIMIT $5
-	`, orgID, f.Status, f.DepartmentID, nilIfEmpty(cursor.Value), limit+1)
+		LIMIT $6
+	`, orgID, f.Status, f.DepartmentID, f.ScheduleID, nilIfEmpty(cursor.Value), limit+1)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +62,7 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
-			&e.ManagerName, &e.InvitationPending,
+			&e.ManagerName, &e.WorkScheduleName, &e.InvitationPending,
 		); err != nil {
 			return nil, err
 		}
@@ -153,7 +157,7 @@ func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employe
 	`, orgID, id).Scan(
 		&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
-		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.StartDate, &e.EndDate,
+		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 		&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 		&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 	)
@@ -312,7 +316,7 @@ func (r *Repository) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (
 	`, orgID, userID).Scan(
 		&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
-		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.StartDate, &e.EndDate,
+		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 		&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 		&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 	)
@@ -425,6 +429,37 @@ func (r *Repository) GetEmployeeNamesBatch(ctx context.Context, orgID uuid.UUID,
 	for rows.Next() {
 		var id uuid.UUID
 		var name string
+		if err := rows.Scan(&id, &name); err != nil {
+			return nil, err
+		}
+		result[id] = name
+	}
+	return result, rows.Err()
+}
+
+func (r *Repository) GetEmployeeScheduleNamesBatch(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID) (map[uuid.UUID]*string, error) {
+	if len(employeeIDs) == 0 {
+		return make(map[uuid.UUID]*string), nil
+	}
+
+	rows, err := r.db.Query(ctx, `
+		SELECT e.id, COALESCE(ws.name, dws.name) AS schedule_name
+		FROM employees e
+		LEFT JOIN work_schedules ws ON e.work_schedule_id = ws.id AND ws.is_active = TRUE
+		LEFT JOIN work_schedules dws ON dws.organisation_id = e.organisation_id AND dws.is_default = TRUE AND dws.is_active = TRUE
+		WHERE e.organisation_id = $1
+		  AND e.id = ANY($2)
+		  AND e.is_active = TRUE
+	`, orgID, employeeIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID]*string, len(employeeIDs))
+	for rows.Next() {
+		var id uuid.UUID
+		var name *string
 		if err := rows.Scan(&id, &name); err != nil {
 			return nil, err
 		}

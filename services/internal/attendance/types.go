@@ -82,15 +82,17 @@ type WeekCalendar struct {
 
 // TeamWeekEntry represents one employee's week calendar in the team view.
 type TeamWeekEntry struct {
-	EmployeeID   uuid.UUID     `json:"employee_id"`
-	EmployeeName string        `json:"employee_name"`
-	Week         *WeekCalendar `json:"week"`
+	EmployeeID       uuid.UUID     `json:"employee_id"`
+	EmployeeName     string        `json:"employee_name"`
+	WorkScheduleName *string       `json:"work_schedule_name,omitempty"`
+	Week             *WeekCalendar `json:"week"`
 }
 
 // ActiveEmployee is a minimal employee projection for attendance calculations.
 type ActiveEmployee struct {
-	ID       uuid.UUID
-	FullName string
+	ID               uuid.UUID
+	FullName         string
+	WorkScheduleName *string
 }
 
 // ── Request / Response types ──────────────────────────────────────────────────

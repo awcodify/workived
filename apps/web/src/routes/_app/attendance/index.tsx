@@ -1,9 +1,9 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useMyWeek, useTeamWeek, useAllWeek } from '@/lib/hooks/useAttendance'
+import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
 import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { Avatar } from '@/components/workived/layout/Avatar'
@@ -11,6 +11,7 @@ import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { Skeleton } from '@/components/workived/shared/Skeleton'
+import { WorkSchedulesPanel } from '@/components/workived/attendance/WorkSchedulesPanel'
 
 const t = moduleThemes.attendance
 
@@ -39,6 +40,11 @@ function AttendancePage() {
   // Track if org has loaded to recalculate initial date
   const orgLoadedRef = useRef(false)
   
+  // Work schedules panel and filter
+  const [schedulesOpen, setSchedulesOpen] = useState(false)
+  const [scheduleFilter, setScheduleFilter] = useState<string | undefined>(undefined)
+  const { data: workSchedules = [] } = useWorkSchedules()
+
   // Sprint 12: Show others toggle
   const [showOthers, setShowOthers] = useState(true)
   
@@ -115,7 +121,12 @@ function AttendancePage() {
         return dayData?.clock_in_at != null
       })
     }
-    
+
+    // Apply schedule filter
+    if (scheduleFilter) {
+      employees = employees.filter((emp: any) => emp.work_schedule_name === scheduleFilter)
+    }
+
     return employees
   }
 
@@ -294,14 +305,6 @@ function AttendancePage() {
         
         {/* Right side: DateTime and Notification */}
         <div className="flex items-center gap-4">
-          <Link
-            to="/attendance/work-schedules"
-            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors hover:bg-black/5"
-            style={{ color: t.textMuted, border: `1px solid ${t.border}` }}
-          >
-            <Clock size={14} />
-            Schedules
-          </Link>
           <DateTime
             textColor={t.text}
             textMutedColor={t.textMuted}
@@ -343,7 +346,32 @@ function AttendancePage() {
               Clocked In
             </button>
           </div>
-          
+
+          {/* Schedule Filter */}
+          {workSchedules.length > 1 && (
+            <div className="flex items-center gap-1.5">
+              <Clock size={14} style={{ color: t.textMuted }} />
+              <select
+                value={scheduleFilter ?? ''}
+                onChange={(e) => setScheduleFilter(e.target.value || undefined)}
+                className="text-xs font-bold py-2 px-2 pr-7 focus:outline-none"
+                style={{
+                  borderRadius: 8,
+                  background: scheduleFilter ? t.surface : 'transparent',
+                  color: scheduleFilter ? t.text : t.textMuted,
+                  border: `1px solid ${t.border}`,
+                }}
+              >
+                <option value="">All schedules</option>
+                {workSchedules.map((ws) => (
+                  <option key={ws.id} value={ws.name}>
+                    {ws.name}{ws.is_default ? ' (default)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Show All Employees Toggle */}
           {(role.canViewTeam || role.canViewAll) && (
           <button
@@ -382,6 +410,59 @@ function AttendancePage() {
         <div>
           <div className="sticky top-6">
             <AttendanceCard variant="light" />
+
+            {/* Schedule list */}
+            {workSchedules.length > 0 && (
+              <div
+                className="mt-6 rounded-2xl p-4"
+                style={{ background: t.surface, border: `1px solid ${t.border}` }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: t.textMuted }}>
+                    Work Schedules
+                  </h3>
+                  <button
+                    onClick={() => setSchedulesOpen(true)}
+                    className="text-[10px] font-bold uppercase px-2 py-1 rounded-md hover:bg-black/5 transition-colors"
+                    style={{ color: colors.accent }}
+                  >
+                    Manage
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {workSchedules.map((ws) => {
+                    const dayNames = [...ws.work_days]
+                      .sort((a, b) => a - b)
+                      .map((d) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][d])
+                      .join(', ')
+                    return (
+                      <div
+                        key={ws.id}
+                        className="rounded-lg px-3 py-2.5"
+                        style={{ border: `1px solid ${t.border}` }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold" style={{ color: t.text }}>
+                            {ws.name}
+                          </span>
+                          {ws.is_default && (
+                            <span
+                              className="text-[9px] font-bold uppercase px-1 py-0.5 rounded"
+                              style={{ background: `${colors.accent}20`, color: colors.accent }}
+                            >
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] mt-0.5" style={{ color: t.textMuted }}>
+                          {dayNames} &middot; {ws.start_time.slice(0, 5)}&ndash;{ws.end_time.slice(0, 5)}
+                        </p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -497,6 +578,7 @@ function AttendancePage() {
               <div className="flex items-center gap-6">
                 <div className="w-10"></div> {/* Avatar space */}
                 <div className="flex-1 text-sm font-bold" style={{ color: t.text }}>Employee</div>
+                <div className="w-28 text-sm font-bold" style={{ color: t.text }}>Schedule</div>
                 <div className="w-32 text-sm font-bold text-center" style={{ color: t.text }}>Clock In</div>
                 <div className="w-32 text-sm font-bold text-center" style={{ color: t.text }}>Clock Out</div>
                 <div className="w-40 text-sm font-bold" style={{ color: t.text }}>Note</div>
@@ -532,6 +614,10 @@ function AttendancePage() {
           </div>
         </div>
       </div>
+
+      {schedulesOpen && (
+        <WorkSchedulesPanel onClose={() => setSchedulesOpen(false)} />
+      )}
     </div>
   )
 }
@@ -688,7 +774,7 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
             </span>
           )}
           {badge && (
-            <div 
+            <div
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
               style={{ background: badge.bg }}
             >
@@ -698,6 +784,13 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
               </span>
             </div>
           )}
+        </div>
+
+        {/* Schedule */}
+        <div className="w-28">
+          <span className="text-xs truncate block" style={{ color: t.textMuted }}>
+            {employee.work_schedule_name ?? '—'}
+          </span>
         </div>
 
         {/* Clock In */}
@@ -823,7 +916,12 @@ function AttendanceTableSkeleton() {
               <Skeleton width="40%" height={14} style={{ marginBottom: 4 }} />
               <Skeleton width="30%" height={12} />
             </div>
-            
+
+            {/* Schedule */}
+            <div className="w-28">
+              <Skeleton width={70} height={12} />
+            </div>
+
             {/* Clock In */}
             <div className="w-32 flex justify-center">
               <Skeleton width={80} height={28} borderRadius={999} />

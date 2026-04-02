@@ -558,55 +558,62 @@ function EditEmployeePage({ id }: { id: string }) {
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          {/* Left column: Personal information */}
-          <div className="rounded-xl overflow-hidden" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
-            <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
-              <h2 className="text-sm font-semibold" style={{ color: t.text }}>Personal Information</h2>
-            </div>
-            
-            <div className="p-5 space-y-4">
-              <Field label="Full name" error={form.formState.errors.full_name?.message}>
-                <input 
-                  className="form-input-dark" 
-                  placeholder="e.g., Ahmad Rahman"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('full_name')} 
-                />
-              </Field>
+          {/* Left column: Personal information + Schedule info */}
+          <div className="space-y-6">
+            <div className="rounded-xl overflow-hidden" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+              <div className="px-5 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+                <h2 className="text-sm font-semibold" style={{ color: t.text }}>Personal Information</h2>
+              </div>
 
-              {employee?.email && (
-                <div>
-                  <label className="block text-sm font-medium mb-1.5" style={{ color: t.textMuted }}>Email</label>
-                  <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: t.input, color: t.text }}>
-                    {employee.email}
+              <div className="p-5 space-y-4">
+                <Field label="Full name" error={form.formState.errors.full_name?.message}>
+                  <input
+                    className="form-input-dark"
+                    placeholder="e.g., Ahmad Rahman"
+                    style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                    {...form.register('full_name')}
+                  />
+                </Field>
+
+                {employee?.email && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5" style={{ color: t.textMuted }}>Email</label>
+                    <div className="rounded-lg px-3 py-2.5 text-sm" style={{ background: t.input, color: t.text }}>
+                      {employee.email}
+                    </div>
+                    <p className="text-xs mt-1" style={{ color: t.textMuted }}>
+                      To change the email, update it in Settings → Members
+                    </p>
                   </div>
-                  <p className="text-xs mt-1" style={{ color: t.textMuted }}>
-                    To change the email, update it in Settings → Members
-                  </p>
-                </div>
-              )}
+                )}
 
-              <Field label="Phone (optional)" error={form.formState.errors.phone?.message}>
-                <input
-                  className="form-input-dark"
-                  placeholder="e.g., +62 812 3456 7890"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('phone')}
-                />
-              </Field>
+                <Field label="Phone (optional)" error={form.formState.errors.phone?.message}>
+                  <input
+                    className="form-input-dark"
+                    placeholder="e.g., +62 812 3456 7890"
+                    style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                    {...form.register('phone')}
+                  />
+                </Field>
 
-              <Field label="Gender (optional)">
-                <select
-                  className="form-input-dark"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('gender')}
-                >
-                  <option value="">— Not specified —</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                </select>
-              </Field>
+                <Field label="Gender (optional)">
+                  <select
+                    className="form-input-dark"
+                    style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                    {...form.register('gender')}
+                  >
+                    <option value="">— Not specified —</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                  </select>
+                </Field>
+              </div>
             </div>
+
+            <ScheduleInfoCard
+              scheduleId={form.watch('work_schedule_id') || employee?.work_schedule_id || undefined}
+              schedules={workSchedules}
+            />
           </div>
 
           {/* Right column: Employment details */}
@@ -757,6 +764,73 @@ function EditEmployeePage({ id }: { id: string }) {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function ScheduleInfoCard({
+  scheduleId,
+  schedules,
+}: {
+  scheduleId?: string
+  schedules: import('@/types/api').WorkScheduleListItem[]
+}) {
+  // Resolve: explicit override → org default
+  const schedule = scheduleId
+    ? schedules.find((ws) => ws.id === scheduleId)
+    : schedules.find((ws) => ws.is_default)
+
+  if (!schedule) return null
+
+  const isOverride = scheduleId ? !schedule.is_default || scheduleId === schedule.id : false
+  const dayNames = [...schedule.work_days]
+    .sort((a, b) => a - b)
+    .map((d) => DAY_LABELS[d])
+    .join(', ')
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+      <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${t.border}` }}>
+        <h2 className="text-sm font-semibold flex items-center gap-1.5" style={{ color: t.text }}>
+          <Clock size={14} style={{ color: t.textMuted }} />
+          Work Schedule
+        </h2>
+        {isOverride && (
+          <span
+            className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded"
+            style={{ background: `${colors.accent}20`, color: colors.accent }}
+          >
+            Override
+          </span>
+        )}
+      </div>
+      <div className="p-5 space-y-3">
+        <div>
+          <p className="text-sm font-semibold" style={{ color: t.text }}>{schedule.name}</p>
+          {schedule.is_default && !isOverride && (
+            <p className="text-xs mt-0.5" style={{ color: t.textMuted }}>Org default schedule</p>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {DAY_LABELS.map((label, idx) => (
+            <div
+              key={idx}
+              className="w-8 h-8 rounded-md flex items-center justify-center text-[10px] font-bold"
+              style={{
+                background: schedule.work_days.includes(idx) ? colors.accent : t.input,
+                color: schedule.work_days.includes(idx) ? '#fff' : t.textMuted,
+              }}
+            >
+              {label}
+            </div>
+          ))}
+        </div>
+        <p className="text-xs" style={{ color: t.textMuted }}>
+          {dayNames} &middot; {schedule.start_time.slice(0, 5)} &ndash; {schedule.end_time.slice(0, 5)}
+        </p>
+      </div>
+    </div>
+  )
+}
 
 function Field({
   label,

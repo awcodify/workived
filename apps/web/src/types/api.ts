@@ -164,6 +164,7 @@ export interface Employee {
   department_name?: string
   reporting_to?: string
   manager_name?: string
+  work_schedule_name?: string
   invitation_pending?: boolean
   gender?: 'male' | 'female' | null
   work_schedule_id?: string | null
@@ -298,6 +299,7 @@ export interface WeekCalendar {
 export interface TeamWeekEntry {
   employee_id: string
   employee_name: string
+  work_schedule_name?: string
   week: WeekCalendar
 }
 
@@ -315,6 +317,7 @@ export interface ListParams {
   search?: string
   status?: string
   department_id?: string
+  schedule_id?: string
 }
 
 export interface ApiError {

@@ -44,6 +44,7 @@ type EmployeeInfoProvider interface {
 	GetSubordinateIDs(ctx context.Context, orgID, managerID uuid.UUID) ([]uuid.UUID, error)
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
 	GetEmployeeNamesBatch(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID) (map[uuid.UUID]string, error)
+	GetEmployeeScheduleNamesBatch(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID) (map[uuid.UUID]*string, error)
 }
 
 // NowFunc can be replaced in tests to control time.
@@ -520,8 +521,12 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 		return []TeamWeekEntry{}, nil
 	}
 
-	// Batch fetch employee names
+	// Batch fetch employee names and schedule names
 	employeeNames, err := s.employeeRepo.GetEmployeeNamesBatch(ctx, orgID, employeeIDs)
+	if err != nil {
+		return nil, err
+	}
+	employeeScheduleNames, err := s.employeeRepo.GetEmployeeScheduleNamesBatch(ctx, orgID, employeeIDs)
 	if err != nil {
 		return nil, err
 	}
@@ -648,8 +653,9 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 		}
 
 		result = append(result, TeamWeekEntry{
-			EmployeeID:   employeeID,
-			EmployeeName: name,
+			EmployeeID:       employeeID,
+			EmployeeName:     name,
+			WorkScheduleName: employeeScheduleNames[employeeID],
 			Week: &WeekCalendar{
 				StartDate: start.Format("2006-01-02"),
 				EndDate:   endDate.Format("2006-01-02"),
@@ -687,12 +693,14 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 		return []TeamWeekEntry{}, nil
 	}
 
-	// Extract employee IDs and build name map
+	// Extract employee IDs and build name/schedule maps
 	employeeIDs := make([]uuid.UUID, len(employees))
 	employeeNames := make(map[uuid.UUID]string, len(employees))
+	employeeScheduleNames := make(map[uuid.UUID]*string, len(employees))
 	for i, emp := range employees {
 		employeeIDs[i] = emp.ID
 		employeeNames[emp.ID] = emp.FullName
+		employeeScheduleNames[emp.ID] = emp.WorkScheduleName
 	}
 
 	// Fetch org-level data once (not per employee)
@@ -813,8 +821,9 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 		}
 
 		result = append(result, TeamWeekEntry{
-			EmployeeID:   employeeID,
-			EmployeeName: name,
+			EmployeeID:       employeeID,
+			EmployeeName:     name,
+			WorkScheduleName: employeeScheduleNames[employeeID],
 			Week: &WeekCalendar{
 				StartDate: start.Format("2006-01-02"),
 				EndDate:   endDate.Format("2006-01-02"),

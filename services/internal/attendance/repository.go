@@ -233,12 +233,14 @@ func (r *Repository) ListHolidays(ctx context.Context, countryCode string, start
 // Only includes employees whose start_date is on or before the given date.
 func (r *Repository) ListActiveEmployees(ctx context.Context, orgID uuid.UUID, date string) ([]ActiveEmployee, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, full_name
-		FROM employees
-		WHERE organisation_id = $1
-		  AND is_active = TRUE
-		  AND start_date <= $2::date
-		ORDER BY full_name ASC
+		SELECT e.id, e.full_name, COALESCE(ws.name, dws.name) AS work_schedule_name
+		FROM employees e
+		LEFT JOIN work_schedules ws ON e.work_schedule_id = ws.id AND ws.is_active = TRUE
+		LEFT JOIN work_schedules dws ON dws.organisation_id = e.organisation_id AND dws.is_default = TRUE AND dws.is_active = TRUE
+		WHERE e.organisation_id = $1
+		  AND e.is_active = TRUE
+		  AND e.start_date <= $2::date
+		ORDER BY e.full_name ASC
 	`, orgID, date)
 	if err != nil {
 		return nil, err
@@ -248,7 +250,7 @@ func (r *Repository) ListActiveEmployees(ctx context.Context, orgID uuid.UUID, d
 	var emps []ActiveEmployee
 	for rows.Next() {
 		var e ActiveEmployee
-		if err := rows.Scan(&e.ID, &e.FullName); err != nil {
+		if err := rows.Scan(&e.ID, &e.FullName, &e.WorkScheduleName); err != nil {
 			return nil, err
 		}
 		emps = append(emps, e)

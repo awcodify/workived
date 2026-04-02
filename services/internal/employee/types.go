@@ -37,8 +37,9 @@ type Employee struct {
 // EmployeeWithManager includes manager name for API responses.
 type EmployeeWithManager struct {
 	Employee
-	ManagerName       *string `json:"manager_name,omitempty"`       // Full name of reporting_to employee
-	InvitationPending bool    `json:"invitation_pending,omitempty"` // True if employee has unaccepted invitation
+	ManagerName       *string `json:"manager_name,omitempty"`        // Full name of reporting_to employee
+	WorkScheduleName  *string `json:"work_schedule_name,omitempty"`  // Resolved schedule name (own or org default)
+	InvitationPending bool    `json:"invitation_pending,omitempty"`  // True if employee has unaccepted invitation
 }
 
 // OrgChartNode represents an employee in the organizational hierarchy with their direct reports.
@@ -86,6 +87,7 @@ type UpdateEmployeeRequest struct {
 type ListFilters struct {
 	Status       *string
 	DepartmentID *string
+	ScheduleID   *string
 	Cursor       string
 	Limit        int
 }

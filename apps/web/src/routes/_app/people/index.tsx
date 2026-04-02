@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Search, Plus, Network, Users } from 'lucide-react'
+import { Search, Plus, Network, Users, Clock } from 'lucide-react'
 import { useEmployees } from '@/lib/hooks/useEmployees'
+import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
@@ -26,14 +27,18 @@ function PeoplePage() {
   const canManageEmployees = useCanManageEmployees()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | undefined>('active')
+  const [scheduleFilter, setScheduleFilter] = useState<string | undefined>(undefined)
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [history, setHistory] = useState<(string | undefined)[]>([undefined])
+
+  const { data: workSchedules = [] } = useWorkSchedules()
 
   const { data, isLoading } = useEmployees({
     cursor,
     limit: 20,
     search: search || undefined,
     status: statusFilter,
+    schedule_id: scheduleFilter,
   })
   const employees = data?.data ?? []
   const meta = data?.meta
@@ -61,6 +66,12 @@ function PeoplePage() {
 
   const handleStatusFilter = (status: string | undefined) => {
     setStatusFilter(status)
+    setCursor(undefined)
+    setHistory([undefined])
+  }
+
+  const handleScheduleFilter = (scheduleId: string | undefined) => {
+    setScheduleFilter(scheduleId)
     setCursor(undefined)
     setHistory([undefined])
   }
@@ -155,26 +166,54 @@ function PeoplePage() {
         )}
       </div>
 
-      {/* Status filter tabs */}
-      <div className="flex items-center gap-1 mb-5">
-        {STATUS_TABS.map((tab) => {
-          const isActive = statusFilter === tab.value
-          return (
-            <button
-              key={tab.label}
-              onClick={() => handleStatusFilter(tab.value)}
-              className="text-sm font-medium px-3.5 py-1.5 transition-colors"
+      {/* Filters row */}
+      <div className="flex items-center justify-between gap-3 mb-5">
+        {/* Status filter tabs */}
+        <div className="flex items-center gap-1">
+          {STATUS_TABS.map((tab) => {
+            const isActive = statusFilter === tab.value
+            return (
+              <button
+                key={tab.label}
+                onClick={() => handleStatusFilter(tab.value)}
+                className="text-sm font-medium px-3.5 py-1.5 transition-colors"
+                style={{
+                  borderRadius: 8,
+                  background: isActive ? t.surfaceHover : 'transparent',
+                  color: isActive ? t.text : t.textMuted,
+                  boxShadow: 'none',
+                }}
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Schedule filter */}
+        {workSchedules.length > 0 && (
+          <div className="flex items-center gap-1.5">
+            <Clock size={14} style={{ color: t.textMuted }} />
+            <select
+              value={scheduleFilter ?? ''}
+              onChange={(e) => handleScheduleFilter(e.target.value || undefined)}
+              className="text-sm font-medium py-1.5 px-2 pr-7 focus:outline-none"
               style={{
                 borderRadius: 8,
-                background: isActive ? t.surfaceHover : 'transparent',
-                color: isActive ? t.text : t.textMuted,
-                boxShadow: 'none',
+                background: scheduleFilter ? t.surfaceHover : 'transparent',
+                color: scheduleFilter ? t.text : t.textMuted,
+                border: `1px solid ${t.border}`,
               }}
             >
-              {tab.label}
-            </button>
-          )
-        })}
+              <option value="">All schedules</option>
+              {workSchedules.map((ws) => (
+                <option key={ws.id} value={ws.id}>
+                  {ws.name}{ws.is_default ? ' (default)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Employee list */}
@@ -188,7 +227,7 @@ function PeoplePage() {
           <div
             className="grid items-center gap-4 px-5 py-2"
             style={{
-              gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
+              gridTemplateColumns: '40px 1.5fr 1fr 1fr 1fr 80px',
               color: t.textMuted,
               fontSize: 11,
               fontWeight: 600,
@@ -198,6 +237,7 @@ function PeoplePage() {
           >
             <div></div>
             <div>Employee</div>
+            <div>Schedule</div>
             <div>Reporting to</div>
             <div>Department</div>
             <div>Status</div>
@@ -214,7 +254,7 @@ function PeoplePage() {
                 search={{ user_id: undefined }}
                 className="grid items-center gap-4 transition-all duration-150 hover:-translate-y-px"
                 style={{
-                  gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
+                  gridTemplateColumns: '40px 1.5fr 1fr 1fr 1fr 80px',
                   background: t.surface,
                   borderRadius: 12,
                   padding: '14px 20px',
@@ -243,6 +283,13 @@ function PeoplePage() {
                   {emp.job_title ?? emp.employment_type.replace('_', ' ')}
                 </p>
               </div>
+
+              <p
+                className="truncate"
+                style={{ fontSize: 12, color: t.textMuted }}
+              >
+                {emp.work_schedule_name ?? '—'}
+              </p>
 
               <p
                 className="truncate"
@@ -312,11 +359,12 @@ function PeopleRowsSkeleton() {
       <div
         className="grid items-center gap-4 px-5 py-2"
         style={{
-          gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
+          gridTemplateColumns: '40px 1.5fr 1fr 1fr 1fr 80px',
         }}
       >
         <div></div>
         <div className="rounded-md" style={{ width: 40, height: 11, background: t.surfaceHover }} />
+        <div className="rounded-md" style={{ width: 60, height: 11, background: t.surfaceHover }} />
         <div className="rounded-md" style={{ width: 50, height: 11, background: t.surfaceHover }} />
         <div className="rounded-md" style={{ width: 70, height: 11, background: t.surfaceHover }} />
         <div className="rounded-md" style={{ width: 40, height: 11, background: t.surfaceHover }} />
@@ -328,7 +376,7 @@ function PeopleRowsSkeleton() {
           key={i}
           className="grid items-center gap-4 animate-pulse"
           style={{
-            gridTemplateColumns: '40px 1.5fr 1fr 1fr 80px',
+            gridTemplateColumns: '40px 1.5fr 1fr 1fr 1fr 80px',
             background: t.surface,
             borderRadius: 12,
             padding: '14px 20px',
@@ -339,6 +387,7 @@ function PeopleRowsSkeleton() {
             <div className="rounded-md" style={{ width: 120, height: 13, background: t.surfaceHover, marginBottom: 4 }} />
             <div className="rounded-md" style={{ width: 90, height: 12, background: t.surface }} />
           </div>
+          <div className="rounded-md" style={{ width: 80, height: 12, background: t.surface }} />
           <div className="rounded-md" style={{ width: 90, height: 12, background: t.surface }} />
           <div className="rounded-md" style={{ width: 70, height: 12, background: t.surface }} />
           <div className="flex items-center gap-1.5">

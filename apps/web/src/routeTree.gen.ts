@@ -39,7 +39,6 @@ import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
-import { Route as AppAttendanceWorkSchedulesRouteRouteImport } from './routes/_app/attendance/work-schedules/route'
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
 import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/policies/index'
 import { Route as AppClaimsCategoriesIndexRouteImport } from './routes/_app/claims/categories/index'
@@ -193,12 +192,6 @@ const AppPeopleIdRouteRoute = AppPeopleIdRouteRouteImport.update({
   path: '/$id',
   getParentRoute: () => AppPeopleRouteRoute,
 } as any)
-const AppAttendanceWorkSchedulesRouteRoute =
-  AppAttendanceWorkSchedulesRouteRouteImport.update({
-    id: '/work-schedules',
-    path: '/work-schedules',
-    getParentRoute: () => AppAttendanceRouteRoute,
-  } as any)
 const AppAttendanceMonthlyRouteRoute =
   AppAttendanceMonthlyRouteRouteImport.update({
     id: '/monthly',
@@ -243,7 +236,6 @@ export interface FileRoutesByFullPath {
   '/setup-org': typeof AuthSetupOrgRouteRoute
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
-  '/attendance/work-schedules': typeof AppAttendanceWorkSchedulesRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
@@ -273,7 +265,6 @@ export interface FileRoutesByTo {
   '/setup-org': typeof AuthSetupOrgRouteRoute
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
-  '/attendance/work-schedules': typeof AppAttendanceWorkSchedulesRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
@@ -311,7 +302,6 @@ export interface FileRoutesById {
   '/_auth/setup-org': typeof AuthSetupOrgRouteRoute
   '/_app/org-chart': typeof AppOrgChartRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
-  '/_app/attendance/work-schedules': typeof AppAttendanceWorkSchedulesRouteRoute
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
@@ -348,7 +338,6 @@ export interface FileRouteTypes {
     | '/setup-org'
     | '/org-chart'
     | '/attendance/monthly'
-    | '/attendance/work-schedules'
     | '/people/$id'
     | '/settings/company'
     | '/settings/members'
@@ -378,7 +367,6 @@ export interface FileRouteTypes {
     | '/setup-org'
     | '/org-chart'
     | '/attendance/monthly'
-    | '/attendance/work-schedules'
     | '/people/$id'
     | '/settings/company'
     | '/settings/members'
@@ -415,7 +403,6 @@ export interface FileRouteTypes {
     | '/_auth/setup-org'
     | '/_app/org-chart'
     | '/_app/attendance/monthly'
-    | '/_app/attendance/work-schedules'
     | '/_app/people/$id'
     | '/_app/settings/company'
     | '/_app/settings/members'
@@ -649,13 +636,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPeopleIdRouteRouteImport
       parentRoute: typeof AppPeopleRouteRoute
     }
-    '/_app/attendance/work-schedules': {
-      id: '/_app/attendance/work-schedules'
-      path: '/work-schedules'
-      fullPath: '/attendance/work-schedules'
-      preLoaderRoute: typeof AppAttendanceWorkSchedulesRouteRouteImport
-      parentRoute: typeof AppAttendanceRouteRoute
-    }
     '/_app/attendance/monthly': {
       id: '/_app/attendance/monthly'
       path: '/monthly'
@@ -689,13 +669,11 @@ declare module '@tanstack/react-router' {
 
 interface AppAttendanceRouteRouteChildren {
   AppAttendanceMonthlyRouteRoute: typeof AppAttendanceMonthlyRouteRoute
-  AppAttendanceWorkSchedulesRouteRoute: typeof AppAttendanceWorkSchedulesRouteRoute
   AppAttendanceIndexRoute: typeof AppAttendanceIndexRoute
 }
 
 const AppAttendanceRouteRouteChildren: AppAttendanceRouteRouteChildren = {
   AppAttendanceMonthlyRouteRoute: AppAttendanceMonthlyRouteRoute,
-  AppAttendanceWorkSchedulesRouteRoute: AppAttendanceWorkSchedulesRouteRoute,
   AppAttendanceIndexRoute: AppAttendanceIndexRoute,
 }
 

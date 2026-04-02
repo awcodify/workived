@@ -151,6 +151,14 @@ func (f *fakeEmployeeInfo) GetEmployeeNamesBatch(ctx context.Context, orgID uuid
 	return result, nil
 }
 
+func (f *fakeEmployeeInfo) GetEmployeeScheduleNamesBatch(_ context.Context, _ uuid.UUID, employeeIDs []uuid.UUID) (map[uuid.UUID]*string, error) {
+	result := make(map[uuid.UUID]*string, len(employeeIDs))
+	for _, id := range employeeIDs {
+		result[id] = nil
+	}
+	return result, nil
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 var (

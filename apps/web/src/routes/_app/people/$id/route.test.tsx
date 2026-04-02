@@ -446,4 +446,35 @@ describe('EditEmployeePage', () => {
       )
     })
   })
+
+  it('shows schedule info card with default schedule when no override', () => {
+    vi.mocked(useWorkSchedules).mockReturnValue({
+      data: [
+        { id: 'ws-1', name: 'Standard 9-5', work_days: [1,2,3,4,5], start_time: '09:00:00', end_time: '17:00:00', is_default: true },
+      ],
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    renderEditPage()
+    expect(screen.getByText('Work Schedule')).toBeTruthy()
+    expect(screen.getByText('Standard 9-5')).toBeTruthy()
+    expect(screen.getByText(/Org default schedule/)).toBeTruthy()
+  })
+
+  it('shows Override badge when employee has custom schedule', () => {
+    vi.mocked(useWorkSchedules).mockReturnValue({
+      data: [
+        { id: 'ws-1', name: 'Standard 9-5', work_days: [1,2,3,4,5], start_time: '09:00:00', end_time: '17:00:00', is_default: true },
+        { id: 'ws-2', name: 'Night Shift', work_days: [1,2,3,4,5], start_time: '22:00:00', end_time: '06:00:00', is_default: false },
+      ],
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    renderEditPage(makeEmployee({ work_schedule_id: 'ws-2' }))
+    // "Night Shift" appears in both dropdown and info card — check both exist
+    expect(screen.getAllByText('Night Shift').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText('Override')).toBeTruthy()
+  })
 })

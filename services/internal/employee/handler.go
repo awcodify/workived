@@ -81,6 +81,9 @@ func (h *Handler) List(c *gin.Context) {
 	if d := c.Query("department_id"); d != "" {
 		f.DepartmentID = &d
 	}
+	if sid := c.Query("schedule_id"); sid != "" {
+		f.ScheduleID = &sid
+	}
 	if l, err := strconv.Atoi(c.Query("limit")); err == nil && l > 0 {
 		f.Limit = l
 	} else {
