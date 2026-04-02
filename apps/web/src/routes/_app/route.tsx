@@ -1,4 +1,5 @@
 import { createFileRoute, Outlet, redirect, useMatches, isRedirect } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { Dock } from '@/components/workived/dock/Dock'
 import { LoadingBar } from '@/components/workived/shared/LoadingBar'
@@ -7,6 +8,8 @@ import { IOSInstallBanner } from '@/components/workived/pwa/IOSInstallBanner'
 import { PWAUpdatePrompt } from '@/components/workived/pwa/PWAUpdatePrompt'
 import { usePWAInstall } from '@/lib/hooks/usePWA'
 import { UpgradeModal } from '@/components/workived/shared/UpgradeModal'
+import { TourOverlay } from '@/components/workived/tour/TourOverlay'
+import { useTourStore } from '@/lib/stores/tour'
 import { getSetupStatus } from '@/lib/api/setup'
 import { isAxiosError } from 'axios'
 
@@ -45,9 +48,19 @@ function AppLayout() {
   const isSetupPage = matches.some(match =>
     match.pathname.startsWith('/setup')
   )
+  const pathname = matches[matches.length - 1]?.pathname ?? '/'
 
   // Initialise PWA install prompt listeners
   usePWAInstall()
+
+  // Auto-trigger tour for first-time users on overview page
+  const { hasCompleted, isActive, startTour } = useTourStore()
+  useEffect(() => {
+    if (!hasCompleted && !isActive && pathname === '/overview' && !isSetupPage) {
+      const timer = setTimeout(startTour, 800)
+      return () => clearTimeout(timer)
+    }
+  }, [hasCompleted, isActive, pathname, isSetupPage, startTour])
 
   return (
     <div className="min-h-screen">
@@ -58,6 +71,7 @@ function AppLayout() {
       {!isSetupPage && (
         <>
           <Dock />
+          <TourOverlay />
           <PWAInstallPrompt />
           <IOSInstallBanner />
         </>

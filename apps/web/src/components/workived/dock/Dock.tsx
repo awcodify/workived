@@ -82,6 +82,7 @@ export function Dock() {
   return (
     <nav
       className="fixed bottom-3 md:bottom-6 left-1/2 -translate-x-1/2 z-50"
+      data-tour="dock"
       style={{
         transition: 'all 0.3s ease',
       }}
@@ -106,6 +107,7 @@ export function Dock() {
               key={item.to}
               to={item.to}
               className={cn("group relative", item.hideOnMobile && "hidden md:flex")}
+              data-tour={`dock-${item.module}`}
               onClick={() => setLoadingPath(item.to)}
             >
               <div

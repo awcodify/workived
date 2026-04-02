@@ -224,13 +224,15 @@ function OverviewPage() {
             textMutedColor={t.textMuted}
             borderColor={t.border}
           />
-          <NotificationBell
-            surfaceColor={t.surface}
-            borderColor={t.border}
-            accentColor={colors.accent}
-            textColor={t.text}
-            textMutedColor={t.textMuted}
-          />
+          <div data-tour="notification-bell">
+            <NotificationBell
+              surfaceColor={t.surface}
+              borderColor={t.border}
+              accentColor={colors.accent}
+              textColor={t.text}
+              textMutedColor={t.textMuted}
+            />
+          </div>
         </div>
       </div>
       </div>
@@ -267,7 +269,9 @@ function OverviewPage() {
         <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* My Attendance Card */}
-          <AttendanceCard variant="light" />
+          <div data-tour="attendance-card">
+            <AttendanceCard variant="light" />
+          </div>
 
           {/* Upcoming Holidays */}
           {upcomingHolidays.length > 0 && (
@@ -332,7 +336,7 @@ function OverviewPage() {
         </div>
 
         {/* ═══ MIDDLE COLUMN: Approvals + Leave + Claims ═══ */}
-        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="dashboard-col" data-tour="balances-column" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Pending Approvals Card (managers only) */}
           {totalPending > 0 && (
@@ -724,7 +728,7 @@ function OverviewPage() {
         </div>
 
         {/* ═══ RIGHT COLUMN: Team Pulse ═══ */}
-        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="dashboard-col" data-tour="team-pulse" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {empLoading || dailyLoading ? (
             <TeamPulseSkeleton />
           ) : (
