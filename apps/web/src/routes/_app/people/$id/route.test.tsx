@@ -335,10 +335,10 @@ describe('EditEmployeePage', () => {
     expect(screen.getByText(/something went wrong/i)).toBeTruthy()
   })
 
-  it('shows API error message when available', () => {
+  it('shows API error message with employee name for duplicate email', () => {
     const axiosError = Object.assign(new Error('Request failed'), {
       isAxiosError: true,
-      response: { data: { error: { message: 'an employee with this email already exists in your organisation' } } },
+      response: { data: { error: { message: 'Email is already added, with employee name Budi Santoso, please add other email' } } },
     })
 
     vi.mocked(useUpdateEmployee).mockReturnValue({
@@ -358,7 +358,7 @@ describe('EditEmployeePage', () => {
     } as any)
 
     render(<EmployeeDetailPage />)
-    expect(screen.getByText(/an employee with this email already exists/i)).toBeTruthy()
+    expect(screen.getByText(/Email is already added, with employee name Budi Santoso/i)).toBeTruthy()
   })
 
   it('shows warning when employment type is changed', () => {

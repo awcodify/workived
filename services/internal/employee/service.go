@@ -124,6 +124,11 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmploye
 		}
 	}
 
+	// Validate email is provided
+	if req.Email == nil || *req.Email == "" {
+		return nil, apperr.New(apperr.CodeValidation, "Email should be filled")
+	}
+
 	// Validate reporting_to if provided
 	if req.ReportingTo != nil {
 		if err := s.validateReportingTo(ctx, orgID, uuid.Nil, *req.ReportingTo); err != nil {

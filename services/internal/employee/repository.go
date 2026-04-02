@@ -136,7 +136,8 @@ func (r *Repository) Create(ctx context.Context, orgID uuid.UUID, req CreateEmpl
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 		)
 	if err != nil {
-		if msg := uniqueViolationMessage(err); msg != "" {
+		if constraint, ok := isUniqueViolation(err); ok {
+			msg := r.conflictMessageWithName(ctx, orgID, constraint, req.Email, req.Phone)
 			return nil, apperr.Conflict(msg)
 		}
 		return nil, err
@@ -605,14 +606,40 @@ func nilIfEmpty(s string) *string {
 	return &s
 }
 
-func uniqueViolationMessage(err error) string {
+func isUniqueViolation(err error) (constraint string, ok bool) {
 	var pgErr *pgconn.PgError
 	if !errors.As(err, &pgErr) || pgErr.Code != "23505" {
-		return ""
+		return "", false
 	}
-	switch pgErr.ConstraintName {
+	return pgErr.ConstraintName, true
+}
+
+// conflictMessageWithName returns a user-friendly duplicate error that includes
+// the existing employee's name so the caller knows who already holds the value.
+func (r *Repository) conflictMessageWithName(ctx context.Context, orgID uuid.UUID, constraint string, email *string, phone *string) string {
+	switch constraint {
 	case "employees_organisation_id_email_key":
+		if email != nil {
+			var name string
+			_ = r.db.QueryRow(ctx,
+				`SELECT full_name FROM employees WHERE organisation_id = $1 AND email = $2 AND is_active = TRUE`,
+				orgID, *email).Scan(&name)
+			if name != "" {
+				return "Email is already added, with employee name " + name + ", please add other email"
+			}
+		}
 		return "an employee with this email already exists in your organisation"
+	case "idx_employees_org_phone_unique":
+		if phone != nil {
+			var name string
+			_ = r.db.QueryRow(ctx,
+				`SELECT full_name FROM employees WHERE organisation_id = $1 AND phone = $2 AND is_active = TRUE`,
+				orgID, *phone).Scan(&name)
+			if name != "" {
+				return "Phone number is already added, with employee name " + name + ", please add other phone number"
+			}
+		}
+		return "an employee with this phone number already exists in your organisation"
 	default:
 		return "an employee with these details already exists in your organisation"
 	}

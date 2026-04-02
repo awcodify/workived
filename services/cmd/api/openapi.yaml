@@ -420,6 +420,12 @@ paths:
                     $ref: "#/components/schemas/Employee"
         "400":
           $ref: "#/components/responses/ValidationError"
+        "409":
+          description: Duplicate email or phone number (includes existing employee name)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorEnvelope"
         "402":
           description: Free plan employee limit reached
           content:

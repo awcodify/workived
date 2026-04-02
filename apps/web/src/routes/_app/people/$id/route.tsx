@@ -48,6 +48,17 @@ const newSchema = baseSchema.extend({
   email_mode: z.enum(['member', 'new', 'skip']),
   selected_user_id: z.string().optional(),
   email: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.email_mode === 'new' && (!data.email || data.email.trim() === '')) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'Email should be filled',
+      path: ['email'],
+    })
+  }
+  if (data.email_mode === 'skip') {
+    // No email validation needed
+  }
 })
 
 type EditForm = z.infer<typeof editSchema>

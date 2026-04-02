@@ -461,6 +461,56 @@ func TestEmployeeService_Create_CountActiveError(t *testing.T) {
 	}
 }
 
+func TestEmployeeService_Create_EmailRequired(t *testing.T) {
+	tests := []struct {
+		name    string
+		email   *string
+		wantErr string
+	}{
+		{
+			name:    "nil email returns validation error",
+			email:   nil,
+			wantErr: "Email should be filled",
+		},
+		{
+			name:    "empty email returns validation error",
+			email:   strPtr(""),
+			wantErr: "Email should be filled",
+		},
+		{
+			name:  "valid email passes",
+			email: strPtr("test@example.com"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeRepo := newFakeEmpRepo()
+			svc := employee.NewService(fakeRepo, &fakeOrgRepo{plan: "pro", limit: nil})
+
+			_, err := svc.Create(context.Background(), uuid.New(), employee.CreateEmployeeRequest{
+				FullName:       "Test Employee",
+				Email:          tt.email,
+				EmploymentType: "full_time",
+				StartDate:      "2026-01-01",
+			})
+
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("expected error %q, got nil", tt.wantErr)
+				}
+				if err.Error() != tt.wantErr {
+					t.Errorf("error = %q, want %q", err.Error(), tt.wantErr)
+				}
+			} else {
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
 func TestEmployeeService_List_RepoError(t *testing.T) {
 	fakeRepo := newFakeEmpRepo()
 	fakeRepo.listErr = errors.New("list db down")
