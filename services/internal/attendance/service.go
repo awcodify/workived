@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/cache"
 )
 
 // RepositoryInterface is the data access interface the service depends on.
@@ -49,16 +50,21 @@ type Service struct {
 	employeeRepo EmployeeInfoProvider
 	now          NowFunc
 	log          zerolog.Logger
+	cache        *cache.Store
 }
 
-func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, employeeRepo EmployeeInfoProvider, log zerolog.Logger) *Service {
-	return &Service{
+func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, employeeRepo EmployeeInfoProvider, log zerolog.Logger, opts ...ServiceOption) *Service {
+	s := &Service{
 		repo:         repo,
 		orgRepo:      orgRepo,
 		employeeRepo: employeeRepo,
 		now:          func() time.Time { return time.Now().UTC() },
 		log:          log,
 	}
+	for _, opt := range opts {
+		opt(s)
+	}
+	return s
 }
 
 // SetNowFunc overrides the clock — used in tests only.
@@ -97,7 +103,7 @@ func (s *Service) ClockIn(ctx context.Context, orgID uuid.UUID, req ClockInReque
 
 	// Determine late status using employee-specific schedule
 	isLate := false
-	schedule, err := s.repo.GetScheduleForEmployee(ctx, orgID, req.EmployeeID)
+	schedule, err := s.getScheduleForEmployeeCached(ctx, orgID, req.EmployeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -367,7 +373,7 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 	todayStr := localNow.Format("2006-01-02")
 
 	// Get employee-specific work schedule and holidays
-	schedule, err := s.repo.GetScheduleForEmployee(ctx, orgID, employeeID)
+	schedule, err := s.getScheduleForEmployeeCached(ctx, orgID, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -817,7 +823,7 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 
 // ListWorkSchedules returns all active work schedules for an org.
 func (s *Service) ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error) {
-	return s.repo.ListWorkSchedules(ctx, orgID)
+	return s.listWorkSchedulesCached(ctx, orgID)
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
