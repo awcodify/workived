@@ -37,7 +37,7 @@ function LeaveDashboard() {
   // If employee has no gender set or policy has no restriction, show the balance.
   const balances = rawBalances?.filter((b) => {
     const policy = policies?.find((p) => p.id === b.leave_policy_id)
-    if (!policy?.gender_eligibility) return true // no restriction
+    if (!policy?.gender_eligibility || policy.gender_eligibility === 'all') return true // no restriction
     if (!myEmployee?.gender) return true // employee gender not set — show all, backend validates at submission
     return policy.gender_eligibility === myEmployee.gender
   })
