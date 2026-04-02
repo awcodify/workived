@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
@@ -294,7 +294,15 @@ function AttendancePage() {
         
         {/* Right side: DateTime and Notification */}
         <div className="flex items-center gap-4">
-          <DateTime 
+          <Link
+            to="/attendance/work-schedules"
+            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg transition-colors hover:bg-black/5"
+            style={{ color: t.textMuted, border: `1px solid ${t.border}` }}
+          >
+            <Clock size={14} />
+            Schedules
+          </Link>
+          <DateTime
             textColor={t.text}
             textMutedColor={t.textMuted}
             borderColor={t.border}

@@ -2250,6 +2250,115 @@ paths:
                   data:
                     $ref: "#/components/schemas/MonthlySummary"
 
+  /attendance/work-schedules:
+    get:
+      operationId: listWorkSchedules
+      summary: List active work schedules
+      tags: [Attendance]
+      responses:
+        "200":
+          description: Active work schedules
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/WorkScheduleListItem"
+    post:
+      operationId: createWorkSchedule
+      summary: Create a new work schedule
+      tags: [Attendance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkScheduleInput"
+      responses:
+        "201":
+          description: Created schedule
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/WorkScheduleListItem"
+
+  /attendance/work-schedules/{schedule_id}:
+    parameters:
+      - name: schedule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    put:
+      operationId: updateWorkSchedule
+      summary: Update a work schedule
+      tags: [Attendance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkScheduleInput"
+      responses:
+        "200":
+          description: Updated schedule
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/WorkScheduleListItem"
+
+  /attendance/work-schedules/{schedule_id}/deactivate:
+    parameters:
+      - name: schedule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: deactivateWorkSchedule
+      summary: Deactivate a work schedule
+      tags: [Attendance]
+      responses:
+        "200":
+          description: Schedule deactivated
+
+  /attendance/work-schedules/{schedule_id}/employees-count:
+    parameters:
+      - name: schedule_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    get:
+      operationId: countEmployeesBySchedule
+      summary: Count employees assigned to a schedule
+      tags: [Attendance]
+      responses:
+        "200":
+          description: Employee count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+
   # ── Admin ─────────────────────────────────────────────────────────────────
   /admin/stats:
     get:
@@ -4230,6 +4339,50 @@ components:
           type: integer
         total_working_days:
           type: integer
+
+    WorkScheduleListItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        work_days:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+        start_time:
+          type: string
+          description: "HH:MM"
+        end_time:
+          type: string
+          description: "HH:MM"
+        is_default:
+          type: boolean
+
+    WorkScheduleInput:
+      type: object
+      required: [name, work_days, start_time, end_time]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        work_days:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+          minItems: 1
+        start_time:
+          type: string
+          description: "HH:MM"
+        end_time:
+          type: string
+          description: "HH:MM"
 
     # ── Admin ─────────────────────────────────────────────────────────────
     SystemStats:

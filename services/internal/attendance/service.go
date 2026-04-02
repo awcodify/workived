@@ -26,6 +26,11 @@ type RepositoryInterface interface {
 	ListActiveEmployees(ctx context.Context, orgID uuid.UUID, date string) ([]ActiveEmployee, error)
 	GetEmployeeName(ctx context.Context, orgID, employeeID uuid.UUID) (string, error)
 	ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error)
+	CreateWorkSchedule(ctx context.Context, orgID uuid.UUID, req CreateWorkScheduleRequest) (*WorkScheduleListItem, error)
+	UpdateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID, req UpdateWorkScheduleRequest) (*WorkScheduleListItem, error)
+	DeactivateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) error
+	IsDefaultSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (bool, error)
+	CountEmployeesBySchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (int, error)
 }
 
 // OrgInfoProvider is the narrow interface for org data the attendance service needs.
@@ -824,6 +829,63 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 // ListWorkSchedules returns all active work schedules for an org.
 func (s *Service) ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error) {
 	return s.listWorkSchedulesCached(ctx, orgID)
+}
+
+// CreateWorkSchedule creates a new work schedule for the org.
+func (s *Service) CreateWorkSchedule(ctx context.Context, orgID uuid.UUID, req CreateWorkScheduleRequest) (*WorkScheduleListItem, error) {
+	ws, err := s.repo.CreateWorkSchedule(ctx, orgID, req)
+	if err != nil {
+		return nil, err
+	}
+	s.invalidateScheduleCache(ctx, orgID)
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("schedule_id", ws.ID.String()).
+		Str("name", ws.Name).
+		Msg("work_schedule.created")
+	return ws, nil
+}
+
+// UpdateWorkSchedule updates an existing work schedule.
+func (s *Service) UpdateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID, req UpdateWorkScheduleRequest) (*WorkScheduleListItem, error) {
+	ws, err := s.repo.UpdateWorkSchedule(ctx, orgID, scheduleID, req)
+	if err != nil {
+		return nil, err
+	}
+	s.invalidateScheduleCache(ctx, orgID)
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("schedule_id", scheduleID.String()).
+		Str("name", req.Name).
+		Msg("work_schedule.updated")
+	return ws, nil
+}
+
+// DeactivateWorkSchedule soft-deletes a work schedule after validation.
+func (s *Service) DeactivateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) error {
+	// Cannot deactivate the default schedule
+	isDefault, err := s.repo.IsDefaultSchedule(ctx, orgID, scheduleID)
+	if err != nil {
+		return err
+	}
+	if isDefault {
+		return apperr.New(apperr.CodeValidation, "cannot deactivate the default work schedule")
+	}
+
+	if err := s.repo.DeactivateWorkSchedule(ctx, orgID, scheduleID); err != nil {
+		return err
+	}
+	s.invalidateScheduleCache(ctx, orgID)
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("schedule_id", scheduleID.String()).
+		Msg("work_schedule.deactivated")
+	return nil
+}
+
+// CountEmployeesBySchedule returns the number of employees using a schedule.
+func (s *Service) CountEmployeesBySchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (int, error) {
+	return s.repo.CountEmployeesBySchedule(ctx, orgID, scheduleID)
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────────────

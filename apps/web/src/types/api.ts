@@ -206,6 +206,13 @@ export interface WorkScheduleListItem {
   is_default: boolean
 }
 
+export interface WorkScheduleInput {
+  name: string
+  work_days: number[]
+  start_time: string
+  end_time: string
+}
+
 // Workload Intelligence Types
 export type WorkloadStatus = 'available' | 'warning' | 'overloaded' | 'on_leave'
 

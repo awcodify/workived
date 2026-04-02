@@ -6,6 +6,7 @@ import type {
   WeekCalendar,
   TeamWeekEntry,
   WorkScheduleListItem,
+  WorkScheduleInput,
   ApiResponse,
 } from '@/types/api'
 
@@ -46,4 +47,16 @@ export const attendanceApi = {
 
   listWorkSchedules: () =>
     apiClient.get<ApiResponse<WorkScheduleListItem[]>>('/api/v1/attendance/work-schedules'),
+
+  createWorkSchedule: (data: WorkScheduleInput) =>
+    apiClient.post<ApiResponse<WorkScheduleListItem>>('/api/v1/attendance/work-schedules', data),
+
+  updateWorkSchedule: (id: string, data: WorkScheduleInput) =>
+    apiClient.put<ApiResponse<WorkScheduleListItem>>(`/api/v1/attendance/work-schedules/${id}`, data),
+
+  deactivateWorkSchedule: (id: string) =>
+    apiClient.patch(`/api/v1/attendance/work-schedules/${id}/deactivate`),
+
+  countEmployeesBySchedule: (id: string) =>
+    apiClient.get<ApiResponse<{ count: number }>>(`/api/v1/attendance/work-schedules/${id}/employees-count`),
 }

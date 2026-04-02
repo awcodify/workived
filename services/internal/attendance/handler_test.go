@@ -74,6 +74,18 @@ func (m *mockAttService) GetAllWeek(ctx context.Context, orgID uuid.UUID, startD
 func (m *mockAttService) ListWorkSchedules(_ context.Context, _ uuid.UUID) ([]attendance.WorkScheduleListItem, error) {
 	return nil, nil
 }
+func (m *mockAttService) CreateWorkSchedule(_ context.Context, _ uuid.UUID, _ attendance.CreateWorkScheduleRequest) (*attendance.WorkScheduleListItem, error) {
+	return nil, nil
+}
+func (m *mockAttService) UpdateWorkSchedule(_ context.Context, _, _ uuid.UUID, _ attendance.UpdateWorkScheduleRequest) (*attendance.WorkScheduleListItem, error) {
+	return nil, nil
+}
+func (m *mockAttService) DeactivateWorkSchedule(_ context.Context, _, _ uuid.UUID) error {
+	return nil
+}
+func (m *mockAttService) CountEmployeesBySchedule(_ context.Context, _, _ uuid.UUID) (int, error) {
+	return 0, nil
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

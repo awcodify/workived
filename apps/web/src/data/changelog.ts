@@ -20,6 +20,14 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 24,
+    date: '2026-04-02',
+    type: 'feature',
+    title: 'Work schedule management',
+    description: 'Create, edit, and deactivate work schedules from Attendance → Schedules. Useful for managing shifts, part-time hours, and flexible arrangements without re-running the setup wizard.',
+    module: 'Attendance',
+  },
+  {
     id: 23,
     date: '2026-04-01',
     type: 'feature',

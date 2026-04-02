@@ -121,3 +121,19 @@ type MonthlyReportFilters struct {
 	Year  int
 	Month int // 1–12
 }
+
+// CreateWorkScheduleRequest is the request body for creating a work schedule.
+type CreateWorkScheduleRequest struct {
+	Name      string `json:"name"       validate:"required,max=100"`
+	WorkDays  []int  `json:"work_days"  validate:"required,min=1,dive,min=0,max=6"`
+	StartTime string `json:"start_time" validate:"required"` // HH:MM
+	EndTime   string `json:"end_time"   validate:"required"` // HH:MM
+}
+
+// UpdateWorkScheduleRequest is the request body for updating a work schedule.
+type UpdateWorkScheduleRequest struct {
+	Name      string `json:"name"       validate:"required,max=100"`
+	WorkDays  []int  `json:"work_days"  validate:"required,min=1,dive,min=0,max=6"`
+	StartTime string `json:"start_time" validate:"required"` // HH:MM
+	EndTime   string `json:"end_time"   validate:"required"` // HH:MM
+}

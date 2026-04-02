@@ -24,6 +24,10 @@ type ServiceInterface interface {
 	GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid.UUID, startDate string) ([]TeamWeekEntry, error)
 	GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate string) ([]TeamWeekEntry, error)
 	ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error)
+	CreateWorkSchedule(ctx context.Context, orgID uuid.UUID, req CreateWorkScheduleRequest) (*WorkScheduleListItem, error)
+	UpdateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID, req UpdateWorkScheduleRequest) (*WorkScheduleListItem, error)
+	DeactivateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) error
+	CountEmployeesBySchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (int, error)
 }
 
 // EmployeeLookupFunc resolves the authenticated user's employee ID from their user ID.
@@ -69,6 +73,10 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	att.GET("/monthly", middleware.Require(middleware.PermAttendanceRead), h.MonthlySummaryReport)
 	att.GET("/monthly/:employee_id", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.EmployeeMonthlySummary)
 	att.GET("/work-schedules", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermEmployeeWrite), h.ListWorkSchedules)
+	att.POST("/work-schedules", middleware.Require(middleware.PermAttendanceRead), h.CreateWorkSchedule)
+	att.PUT("/work-schedules/:schedule_id", middleware.Require(middleware.PermAttendanceRead), h.UpdateWorkSchedule)
+	att.PATCH("/work-schedules/:schedule_id/deactivate", middleware.Require(middleware.PermAttendanceRead), h.DeactivateWorkSchedule)
+	att.GET("/work-schedules/:schedule_id/employees-count", middleware.Require(middleware.PermAttendanceRead), h.CountEmployeesBySchedule)
 }
 
 func (h *Handler) ClockIn(c *gin.Context) {
@@ -405,4 +413,96 @@ func (h *Handler) ListWorkSchedules(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": schedules})
+}
+
+// CreateWorkSchedule creates a new work schedule.
+func (h *Handler) CreateWorkSchedule(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	var req CreateWorkScheduleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.New(apperr.CodeValidation, "invalid request body")))
+		return
+	}
+
+	ws, err := h.service.CreateWorkSchedule(c.Request.Context(), orgID, req)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to create work schedule", map[string]string{
+			"org_id": orgID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"data": ws})
+}
+
+// UpdateWorkSchedule updates an existing work schedule.
+func (h *Handler) UpdateWorkSchedule(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	scheduleID, err := uuid.Parse(c.Param("schedule_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "invalid schedule_id", "schedule_id")))
+		return
+	}
+
+	var req UpdateWorkScheduleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.New(apperr.CodeValidation, "invalid request body")))
+		return
+	}
+
+	ws, err := h.service.UpdateWorkSchedule(c.Request.Context(), orgID, scheduleID, req)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to update work schedule", map[string]string{
+			"org_id":      orgID.String(),
+			"schedule_id": scheduleID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": ws})
+}
+
+// DeactivateWorkSchedule soft-deletes a work schedule.
+func (h *Handler) DeactivateWorkSchedule(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	scheduleID, err := uuid.Parse(c.Param("schedule_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "invalid schedule_id", "schedule_id")))
+		return
+	}
+
+	if err := h.service.DeactivateWorkSchedule(c.Request.Context(), orgID, scheduleID); err != nil {
+		h.logAndRespondError(c, err, "failed to deactivate work schedule", map[string]string{
+			"org_id":      orgID.String(),
+			"schedule_id": scheduleID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "work schedule deactivated"})
+}
+
+// CountEmployeesBySchedule returns the number of employees using a schedule.
+func (h *Handler) CountEmployeesBySchedule(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	scheduleID, err := uuid.Parse(c.Param("schedule_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "invalid schedule_id", "schedule_id")))
+		return
+	}
+
+	count, err := h.service.CountEmployeesBySchedule(c.Request.Context(), orgID, scheduleID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to count employees by schedule", map[string]string{
+			"org_id":      orgID.String(),
+			"schedule_id": scheduleID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"count": count}})
 }

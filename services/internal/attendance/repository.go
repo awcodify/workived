@@ -353,6 +353,84 @@ func (r *Repository) ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]
 	return schedules, rows.Err()
 }
 
+// CreateWorkSchedule inserts a new work schedule.
+func (r *Repository) CreateWorkSchedule(ctx context.Context, orgID uuid.UUID, req CreateWorkScheduleRequest) (*WorkScheduleListItem, error) {
+	ws := &WorkScheduleListItem{}
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO work_schedules (organisation_id, name, work_days, start_time, end_time)
+		VALUES ($1, $2, $3, $4::TIME, $5::TIME)
+		RETURNING id, name, work_days, start_time::text, end_time::text, is_default
+	`, orgID, req.Name, req.WorkDays, req.StartTime, req.EndTime).Scan(
+		&ws.ID, &ws.Name, &ws.WorkDays, &ws.StartTime, &ws.EndTime, &ws.IsDefault,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ws, nil
+}
+
+// UpdateWorkSchedule updates an existing work schedule.
+func (r *Repository) UpdateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID, req UpdateWorkScheduleRequest) (*WorkScheduleListItem, error) {
+	ws := &WorkScheduleListItem{}
+	err := r.db.QueryRow(ctx, `
+		UPDATE work_schedules
+		SET name = $3, work_days = $4, start_time = $5::TIME, end_time = $6::TIME, updated_at = NOW()
+		WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
+		RETURNING id, name, work_days, start_time::text, end_time::text, is_default
+	`, orgID, scheduleID, req.Name, req.WorkDays, req.StartTime, req.EndTime).Scan(
+		&ws.ID, &ws.Name, &ws.WorkDays, &ws.StartTime, &ws.EndTime, &ws.IsDefault,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperr.NotFound("work schedule")
+		}
+		return nil, err
+	}
+	return ws, nil
+}
+
+// DeactivateWorkSchedule soft-deletes a work schedule.
+func (r *Repository) DeactivateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE work_schedules
+		SET is_active = FALSE, updated_at = NOW()
+		WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
+	`, orgID, scheduleID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return apperr.NotFound("work schedule")
+	}
+	return nil
+}
+
+// IsDefaultSchedule checks if a schedule is the org default.
+func (r *Repository) IsDefaultSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (bool, error) {
+	var isDefault bool
+	err := r.db.QueryRow(ctx, `
+		SELECT is_default FROM work_schedules
+		WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
+	`, orgID, scheduleID).Scan(&isDefault)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, apperr.NotFound("work schedule")
+		}
+		return false, err
+	}
+	return isDefault, nil
+}
+
+// CountEmployeesBySchedule returns the number of employees assigned to a schedule.
+func (r *Repository) CountEmployeesBySchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM employees
+		WHERE organisation_id = $1 AND work_schedule_id = $2 AND is_active = TRUE
+	`, orgID, scheduleID).Scan(&count)
+	return count, err
+}
+
 // GetEmployeeName returns the full_name for an employee, scoped to org.
 func (r *Repository) GetEmployeeName(ctx context.Context, orgID, employeeID uuid.UUID) (string, error) {
 	var name string

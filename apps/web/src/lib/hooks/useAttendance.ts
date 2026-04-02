@@ -225,3 +225,29 @@ export function useWorkSchedules() {
     staleTime: 5 * 60 * 1000, // 5 min — schedules rarely change
   })
 }
+
+export function useCreateWorkSchedule() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: import('@/types/api').WorkScheduleInput) =>
+      attendanceApi.createWorkSchedule(data).then((r) => r.data.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...attendanceKeys.all, 'work-schedules'] }),
+  })
+}
+
+export function useUpdateWorkSchedule() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: import('@/types/api').WorkScheduleInput }) =>
+      attendanceApi.updateWorkSchedule(id, data).then((r) => r.data.data),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...attendanceKeys.all, 'work-schedules'] }),
+  })
+}
+
+export function useDeactivateWorkSchedule() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => attendanceApi.deactivateWorkSchedule(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: [...attendanceKeys.all, 'work-schedules'] }),
+  })
+}
