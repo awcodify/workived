@@ -12,6 +12,7 @@ import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/to
 import { ChevronLeft, ChevronRight, Clock, Check, ChevronDown } from 'lucide-react'
 import { Skeleton } from '@/components/workived/shared/Skeleton'
 import { WorkSchedulesPanel } from '@/components/workived/attendance/WorkSchedulesPanel'
+import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
 
 const t = moduleThemes.attendance
 
@@ -45,6 +46,9 @@ function AttendancePage() {
   const [scheduleFilter, setScheduleFilter] = useState<string | undefined>(undefined)
   const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false)
   const { data: workSchedules = [] } = useWorkSchedules()
+
+  // Employee detail modal state
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
 
   // Sprint 12: Show others toggle
   const [showOthers, setShowOthers] = useState(true)
@@ -685,6 +689,7 @@ function AttendancePage() {
                       employee={employee}
                       date={date}
                       tz={tz}
+                      onClick={() => setSelectedEmployeeId(employee.employee_id)}
                     />
                   ))}
                 </>
@@ -705,6 +710,13 @@ function AttendancePage() {
 
       {schedulesOpen && (
         <WorkSchedulesPanel onClose={() => setSchedulesOpen(false)} />
+      )}
+
+      {selectedEmployeeId && (
+        <EmployeeDetailModal
+          employeeId={selectedEmployeeId}
+          onClose={() => setSelectedEmployeeId(null)}
+        />
       )}
     </div>
   )
@@ -753,9 +765,10 @@ interface EmployeeRowProps {
   employee: any
   date: string
   tz: string
+  onClick: () => void
 }
 
-function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
+function EmployeeRow({ employee, date, tz, onClick }: EmployeeRowProps) {
   // Find attendance for selected date
   const dayData = employee.week?.days.find((d: any) => d.date === date)
   
@@ -840,10 +853,11 @@ function EmployeeRow({ employee, date, tz }: EmployeeRowProps) {
 
   return (
     <div
-      className="px-6 py-4 border-b transition-all hover:bg-black/[0.02]"
+      className="px-6 py-4 border-b transition-all hover:bg-black/[0.02] cursor-pointer"
       style={{
         borderColor: t.border,
       }}
+      onClick={onClick}
     >
       <div className="flex items-center gap-3 min-w-0">
         {/* Avatar */}

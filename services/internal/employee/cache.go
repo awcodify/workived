@@ -22,10 +22,10 @@ func WithCache(c *cache.Store) ServiceOption {
 
 // ── Cached reads ─────────────────────────────────────────────────────────────
 
-func (s *Service) getCached(ctx context.Context, orgID, id uuid.UUID) (*Employee, error) {
+func (s *Service) getCached(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error) {
 	if s.cache != nil {
 		key := cache.OrgItemKey(orgID, id, cacheModule)
-		if v, ok := cache.Get[Employee](ctx, s.cache, key); ok {
+		if v, ok := cache.Get[EmployeeWithManager](ctx, s.cache, key); ok {
 			return &v, nil
 		}
 	}

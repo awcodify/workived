@@ -128,8 +128,28 @@ func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
 
 // ── Category Methods ──────────────────────────────────────────────────────────
 
-func (s *Service) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Category, error) {
-	return s.repo.ListCategories(ctx, orgID)
+func (s *Service) ListCategories(ctx context.Context, orgID uuid.UUID, forEmployeeID ...uuid.UUID) ([]Category, error) {
+	categories, err := s.repo.ListCategories(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	// If an employee ID is provided, filter by employment type eligibility.
+	if len(forEmployeeID) > 0 {
+		empType, err := s.employeeRepo.GetEmployeeType(ctx, orgID, forEmployeeID[0])
+		if err != nil {
+			return nil, fmt.Errorf("get employee type for category filter: %w", err)
+		}
+		var filtered []Category
+		for _, c := range categories {
+			if isEmploymentTypeEligible(empType, c.EligibleEmploymentTypes) {
+				filtered = append(filtered, c)
+			}
+		}
+		return filtered, nil
+	}
+
+	return categories, nil
 }
 
 func (s *Service) CreateCategory(ctx context.Context, orgID uuid.UUID, req CreateCategoryRequest, actorUserID ...uuid.UUID) (*Category, error) {

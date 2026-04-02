@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { useMemo } from 'react'
 import { attendanceApi } from '@/lib/api/attendance'
 import { useAttendanceRole } from './useAttendanceRole'
+import type { WeekCalendar, DailyEntry, AttendanceRecord } from '@/types/api'
 
 interface ApiErrorResponse {
   error?: { message?: string }
@@ -53,10 +54,38 @@ export function useClockIn() {
     mutationFn: (data: { note?: string }) =>
       attendanceApi.clockIn(data).then((r) => r.data.data),
     onSuccess: (data) => {
-      // Immediately refetch all attendance queries
+      // Optimistically update my-week cache so the timer shows immediately
+      qc.setQueriesData<WeekCalendar>(
+        { queryKey: [...attendanceKeys.all, 'my-week'] },
+        (old) => {
+          if (!old?.days) return old
+          return {
+            ...old,
+            days: old.days.map((d) =>
+              d.date === data.date
+                ? { ...d, clock_in_at: data.clock_in_at, status: data.is_late ? 'late' as const : 'on-time' as const }
+                : d
+            ),
+          }
+        }
+      )
+
+      // Optimistically update daily report cache
+      qc.setQueriesData<DailyEntry[]>(
+        { queryKey: [...attendanceKeys.all, 'daily'] },
+        (old) => {
+          if (!old) return old
+          return old.map((e) =>
+            e.employee_id === data.employee_id
+              ? { ...e, clock_in_at: data.clock_in_at, status: (data.is_late ? 'late' : 'present') as DailyEntry['status'] }
+              : e
+          )
+        }
+      )
+
+      // Background refresh for full data consistency
       qc.invalidateQueries({ queryKey: attendanceKeys.all })
-      qc.refetchQueries({ queryKey: attendanceKeys.all })
-      
+
       const time = new Date(data.clock_in_at).toLocaleTimeString('en', {
         hour: '2-digit',
         minute: '2-digit',
@@ -78,8 +107,38 @@ export function useClockOut() {
     mutationFn: (data: { note?: string }) =>
       attendanceApi.clockOut(data).then((r) => r.data.data),
     onSuccess: (data) => {
+      // Optimistically update my-week cache
+      qc.setQueriesData<WeekCalendar>(
+        { queryKey: [...attendanceKeys.all, 'my-week'] },
+        (old) => {
+          if (!old?.days) return old
+          return {
+            ...old,
+            days: old.days.map((d) =>
+              d.date === data.date
+                ? { ...d, clock_out_at: data.clock_out_at }
+                : d
+            ),
+          }
+        }
+      )
+
+      // Optimistically update daily report cache
+      qc.setQueriesData<DailyEntry[]>(
+        { queryKey: [...attendanceKeys.all, 'daily'] },
+        (old) => {
+          if (!old) return old
+          return old.map((e) =>
+            e.employee_id === data.employee_id
+              ? { ...e, clock_out_at: data.clock_out_at }
+              : e
+          )
+        }
+      )
+
+      // Background refresh for full data consistency
       qc.invalidateQueries({ queryKey: attendanceKeys.all })
-      
+
       // Calculate hours worked today
       let hoursWorked = '0h 0m'
       if (data.clock_in_at && data.clock_out_at) {
@@ -90,7 +149,7 @@ export function useClockOut() {
         const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60))
         hoursWorked = `${hours}h ${minutes}m`
       }
-      
+
       toast.success('All done today', {
         description: `You worked ${hoursWorked} today`,
       })

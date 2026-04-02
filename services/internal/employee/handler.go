@@ -17,7 +17,7 @@ import (
 type ServiceInterface interface {
 	List(ctx context.Context, orgID uuid.UUID, f ListFilters) (*ListResult, error)
 	Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error)
-	Get(ctx context.Context, orgID, id uuid.UUID) (*Employee, error)
+	Get(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error)
 	GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error)
 	Deactivate(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
@@ -83,6 +83,9 @@ func (h *Handler) List(c *gin.Context) {
 	}
 	if sid := c.Query("schedule_id"); sid != "" {
 		f.ScheduleID = &sid
+	}
+	if q := c.Query("search"); q != "" {
+		f.Search = &q
 	}
 	if l, err := strconv.Atoi(c.Query("limit")); err == nil && l > 0 {
 		f.Limit = l

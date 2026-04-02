@@ -316,8 +316,11 @@ func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int
 		       lp.name, lp.description, lp.is_unlimited
 		FROM leave_balances b
 		JOIN leave_policies lp ON lp.id = b.leave_policy_id
+		JOIN employees e ON e.id = b.employee_id AND e.organisation_id = b.organisation_id
 		WHERE b.organisation_id = $1 AND b.year = $2
 		  AND lp.is_active = TRUE
+		  AND (lp.eligible_employment_types IS NULL
+		       OR e.employment_type = ANY(lp.eligible_employment_types))
 		ORDER BY b.employee_id, lp.name
 	`, orgID, year)
 	if err != nil {
@@ -353,6 +356,8 @@ func (r *Repository) ListEmployeeBalances(ctx context.Context, orgID, employeeID
 		JOIN leave_policies lp ON lp.id = b.leave_policy_id
 		WHERE b.organisation_id = $1 AND b.employee_id = $2 AND b.year = $3
 		  AND lp.is_active = TRUE
+		  AND (lp.eligible_employment_types IS NULL
+		       OR (SELECT employment_type FROM employees WHERE id = $2 AND organisation_id = $1) = ANY(lp.eligible_employment_types))
 		ORDER BY lp.name
 	`, orgID, employeeID, year)
 	if err != nil {

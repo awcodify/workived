@@ -64,12 +64,12 @@ func (f *fakeEmpRepo) Create(_ context.Context, orgID uuid.UUID, req employee.Cr
 	return emp, nil
 }
 
-func (f *fakeEmpRepo) GetByID(_ context.Context, orgID, id uuid.UUID) (*employee.Employee, error) {
+func (f *fakeEmpRepo) GetByID(_ context.Context, orgID, id uuid.UUID) (*employee.EmployeeWithManager, error) {
 	e, ok := f.employees[id]
 	if !ok || e.OrganisationID != orgID {
 		return nil, apperr.NotFound("employee")
 	}
-	return e, nil
+	return &employee.EmployeeWithManager{Employee: *e}, nil
 }
 
 func (f *fakeEmpRepo) GetByUserID(_ context.Context, orgID, userID uuid.UUID) (*employee.Employee, error) {

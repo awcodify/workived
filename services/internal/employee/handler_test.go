@@ -25,7 +25,7 @@ func init() {
 type mockEmpService struct {
 	listFn               func(ctx context.Context, orgID uuid.UUID, f employee.ListFilters) (*employee.ListResult, error)
 	createFn             func(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest) (*employee.Employee, error)
-	getFn                func(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error)
+	getFn                func(ctx context.Context, orgID, id uuid.UUID) (*employee.EmployeeWithManager, error)
 	getByUserIDFn        func(ctx context.Context, orgID, userID uuid.UUID) (*employee.Employee, error)
 	updateFn             func(ctx context.Context, orgID, id uuid.UUID, req employee.UpdateEmployeeRequest) (*employee.Employee, error)
 	deactivateFn         func(ctx context.Context, orgID, id uuid.UUID) error
@@ -40,7 +40,7 @@ func (m *mockEmpService) List(ctx context.Context, orgID uuid.UUID, f employee.L
 func (m *mockEmpService) Create(ctx context.Context, orgID uuid.UUID, req employee.CreateEmployeeRequest, _ ...uuid.UUID) (*employee.Employee, error) {
 	return m.createFn(ctx, orgID, req)
 }
-func (m *mockEmpService) Get(ctx context.Context, orgID, id uuid.UUID) (*employee.Employee, error) {
+func (m *mockEmpService) Get(ctx context.Context, orgID, id uuid.UUID) (*employee.EmployeeWithManager, error) {
 	return m.getFn(ctx, orgID, id)
 }
 func (m *mockEmpService) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*employee.Employee, error) {
@@ -270,11 +270,13 @@ func TestEmployeeHandler_Get(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			svc := &mockEmpService{
-				getFn: func(_ context.Context, _, _ uuid.UUID) (*employee.Employee, error) {
+				getFn: func(_ context.Context, _, _ uuid.UUID) (*employee.EmployeeWithManager, error) {
 					if tt.serviceErr != nil {
 						return nil, tt.serviceErr
 					}
-					return &employee.Employee{ID: testEmpID}, nil
+					return &employee.EmployeeWithManager{
+						Employee: employee.Employee{ID: testEmpID},
+					}, nil
 				},
 			}
 			w := httptest.NewRecorder()

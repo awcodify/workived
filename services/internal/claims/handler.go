@@ -22,7 +22,7 @@ import (
 // ServiceInterface defines the subset of Service that handlers depend on.
 type ServiceInterface interface {
 	// Categories
-	ListCategories(ctx context.Context, orgID uuid.UUID) ([]Category, error)
+	ListCategories(ctx context.Context, orgID uuid.UUID, forEmployeeID ...uuid.UUID) ([]Category, error)
 	CreateCategory(ctx context.Context, orgID uuid.UUID, req CreateCategoryRequest, actorUserID ...uuid.UUID) (*Category, error)
 	UpdateCategory(ctx context.Context, orgID, id uuid.UUID, req UpdateCategoryRequest, actorUserID ...uuid.UUID) (*Category, error)
 	DeactivateCategory(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
@@ -115,8 +115,19 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 
 func (h *Handler) ListCategories(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
 
-	categories, err := h.service.ListCategories(c.Request.Context(), orgID)
+	// Resolve employee so we can filter by employment type eligibility.
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to lookup employee for categories", map[string]string{
+			"org_id":  orgID.String(),
+			"user_id": userID.String(),
+		})
+		return
+	}
+
+	categories, err := h.service.ListCategories(c.Request.Context(), orgID, employeeID)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return

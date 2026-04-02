@@ -17,7 +17,7 @@ type RepositoryInterface interface {
 	CountActive(ctx context.Context, orgID uuid.UUID) (int, error)
 	ListAllActive(ctx context.Context, orgID uuid.UUID) ([]Employee, error)
 	Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest) (*Employee, error)
-	GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employee, error)
+	GetByID(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error)
 	GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Employee, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest) (*Employee, error)
 	SoftDelete(ctx context.Context, orgID, id uuid.UUID) error
@@ -162,7 +162,7 @@ func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmploye
 	return emp, nil
 }
 
-func (s *Service) Get(ctx context.Context, orgID, id uuid.UUID) (*Employee, error) {
+func (s *Service) Get(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error) {
 	return s.getCached(ctx, orgID, id)
 }
 

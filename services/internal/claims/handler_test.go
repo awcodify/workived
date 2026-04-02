@@ -41,7 +41,7 @@ type fakeHandlerService struct {
 	getMonthlySummaryFn  func(ctx context.Context, orgID uuid.UUID, year, month int) ([]claims.MonthlySummary, error)
 }
 
-func (f *fakeHandlerService) ListCategories(ctx context.Context, orgID uuid.UUID) ([]claims.Category, error) {
+func (f *fakeHandlerService) ListCategories(ctx context.Context, orgID uuid.UUID, forEmployeeID ...uuid.UUID) ([]claims.Category, error) {
 	if f.listCategoriesFn != nil {
 		return f.listCategoriesFn(ctx, orgID)
 	}

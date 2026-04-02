@@ -259,6 +259,7 @@ type fakeEmpProvider struct {
 	name      string
 	email     *string
 	managerID *uuid.UUID
+	empType   string
 	err       error
 	verifyErr error
 }
@@ -268,6 +269,9 @@ func (f *fakeEmpProvider) GetEmployeeProfile(_ context.Context, _, _ uuid.UUID) 
 }
 
 func (f *fakeEmpProvider) GetEmployeeType(_ context.Context, _, _ uuid.UUID) (string, error) {
+	if f.empType != "" {
+		return f.empType, nil
+	}
 	return "full_time", nil
 }
 
@@ -862,6 +866,46 @@ func TestService_ListCategories(t *testing.T) {
 		_, err := svc.ListCategories(context.Background(), testOrgID)
 		if err == nil {
 			t.Fatal("expected error, got nil")
+		}
+	})
+
+	t.Run("filters by employment type when employee ID provided", func(t *testing.T) {
+		ftCatID := uuid.New()
+		allCatID := uuid.New()
+		repo := &fakeClaimsRepo{
+			listCategoriesFn: func(_ context.Context, _ uuid.UUID) ([]claims.Category, error) {
+				return []claims.Category{
+					{ID: ftCatID, Name: "Full-Time Medical", EligibleEmploymentTypes: []string{"full_time"}, IsActive: true},
+					{ID: allCatID, Name: "Transport", IsActive: true}, // nil = all types
+				}, nil
+			},
+		}
+		empProvider := &fakeEmpProvider{name: "Intern User", empType: "intern"}
+		orgProvider := &fakeOrgProvider{plan: "pro"}
+		svc := claims.NewService(repo, orgProvider, empProvider, "http://localhost:3000",
+			claims.WithLogger(zerolog.Nop()),
+			claims.WithAuditLog(&noopAudit{}),
+		)
+
+		// With employee ID — should filter out Full-Time Medical
+		cats, err := svc.ListCategories(context.Background(), testOrgID, testEmpID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(cats) != 1 {
+			t.Fatalf("expected 1 category, got %d", len(cats))
+		}
+		if cats[0].ID != allCatID {
+			t.Fatalf("expected Transport category, got %s", cats[0].Name)
+		}
+
+		// Without employee ID — should return all
+		cats, err = svc.ListCategories(context.Background(), testOrgID)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(cats) != 2 {
+			t.Fatalf("expected 2 categories, got %d", len(cats))
 		}
 	})
 }

@@ -88,6 +88,7 @@ type ListFilters struct {
 	Status       *string
 	DepartmentID *string
 	ScheduleID   *string
+	Search       *string
 	Cursor       string
 	Limit        int
 }

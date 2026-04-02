@@ -45,9 +45,10 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 		  AND ($3::varchar IS NULL OR e.department_id::text = $3)
 		  AND ($4::varchar IS NULL OR COALESCE(e.work_schedule_id, dws.id)::text = $4)
 		  AND ($5::varchar IS NULL OR e.full_name > $5)
+		  AND ($7::varchar IS NULL OR e.full_name ILIKE '%' || $7 || '%' OR e.email ILIKE '%' || $7 || '%')
 		ORDER BY e.full_name ASC
 		LIMIT $6
-	`, orgID, f.Status, f.DepartmentID, f.ScheduleID, nilIfEmpty(cursor.Value), limit+1)
+	`, orgID, f.Status, f.DepartmentID, f.ScheduleID, nilIfEmpty(cursor.Value), limit+1, f.Search)
 	if err != nil {
 		return nil, err
 	}
@@ -145,22 +146,31 @@ func (r *Repository) Create(ctx context.Context, orgID uuid.UUID, req CreateEmpl
 	return e, nil
 }
 
-func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employee, error) {
-	e := &Employee{}
+func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*EmployeeWithManager, error) {
+	e := &EmployeeWithManager{}
 	err := r.db.QueryRow(ctx, `
-		SELECT id, organisation_id, user_id, employee_code,
-		       full_name, email, phone, department_id, job_title,
-		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
-		       base_salary, salary_currency, custom_fields,
-		       is_active, created_at, updated_at
-		FROM employees
-		WHERE organisation_id = $1 AND id = $2
+		SELECT e.id, e.organisation_id, e.user_id, e.employee_code,
+		       e.full_name, e.email, e.phone, e.department_id, e.job_title,
+		       e.employment_type, e.status, e.reporting_to, e.gender, e.work_schedule_id, e.start_date, e.end_date,
+		       e.base_salary, e.salary_currency, e.custom_fields,
+		       e.is_active, e.created_at, e.updated_at,
+		       m.full_name AS manager_name,
+		       COALESCE(ws.name, dws.name) AS work_schedule_name,
+		       (i.id IS NOT NULL) AS invitation_pending
+		FROM employees e
+		LEFT JOIN employees m ON e.reporting_to = m.id AND m.is_active = TRUE
+		LEFT JOIN work_schedules ws ON e.work_schedule_id = ws.id AND ws.is_active = TRUE
+		LEFT JOIN work_schedules dws ON dws.organisation_id = e.organisation_id AND dws.is_default = TRUE AND dws.is_active = TRUE
+		LEFT JOIN invitations i ON i.organisation_id = e.organisation_id
+		          AND i.employee_id = e.id AND i.accepted_at IS NULL
+		WHERE e.organisation_id = $1 AND e.id = $2
 	`, orgID, id).Scan(
 		&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
 		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 		&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 		&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
+		&e.ManagerName, &e.WorkScheduleName, &e.InvitationPending,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
