@@ -3,7 +3,9 @@ import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
-import { TaskFilters } from '@/components/TaskFilters'
+import { ColumnTabNav } from '@/components/tasks/ColumnTabNav'
+import { TaskCard as EnhancedTaskCard } from '@/components/tasks/TaskCard'
+import { Dropdown, type DropdownOption } from '@/components/workived/shared/Dropdown'
 import {
   DndContext,
   DragOverlay,
@@ -48,6 +50,7 @@ type TasksSearch = {
   assignee?: string
   priority?: string
   showCompleted: boolean
+  column?: string // Mobile: active column ID
 }
 
 export const Route = createFileRoute('/_app/tasks')({
@@ -58,6 +61,7 @@ export const Route = createFileRoute('/_app/tasks')({
       search: typeof search.search === 'string' ? search.search : undefined,
       assignee: typeof search.assignee === 'string' ? search.assignee : undefined,
       priority: typeof search.priority === 'string' ? search.priority : undefined,
+      column: typeof search.column === 'string' ? search.column : undefined,
       showCompleted: search.showCompleted === false || search.showCompleted === 'false' ? false : true,
     }
   },
@@ -93,6 +97,7 @@ function TasksPage() {
   const selectedAssignee = searchParams.assignee || ''
   const selectedPriority = searchParams.priority || ''
   const showCompleted = searchParams.showCompleted
+  const activeColumnId = searchParams.column // Mobile: current active column
   
   // Update URL params
   const updateSearchParam = useCallback((key: keyof TasksSearch, value: string | boolean) => {
@@ -195,6 +200,32 @@ function TasksPage() {
   
   // Check if any filters are active (showCompleted=true is the default, so only count it if false)
   const hasActiveFilters = !!(searchQuery || selectedAssignee || selectedPriority || showCompleted === false)
+
+  // Mobile: Set default active column to first list if not specified
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 640 && visibleLists.length > 0 && !activeColumnId) {
+      const firstList = visibleLists[0]
+      if (firstList) {
+        updateSearchParam('column', firstList.id)
+      }
+    }
+  }, [visibleLists, activeColumnId, updateSearchParam])
+
+  // Handler for mobile column switching
+  const handleColumnChange = useCallback((columnId: string) => {
+    updateSearchParam('column', columnId)
+  }, [updateSearchParam])
+
+  // Calculate task counts per column
+  const taskCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    visibleLists.forEach((list) => {
+      counts[list.id] = (optimisticTasks || []).filter(
+        (t) => t.task_list_id === list.id
+      ).length
+    })
+    return counts
+  }, [visibleLists, optimisticTasks])
 
   // Visual column config
   const columnConfig = useMemo(() => {
@@ -507,232 +538,441 @@ function TasksPage() {
         </div>
       </div>
 
-      {/* Unified control row: Team + Search/Filters */}
-      <div className="mb-6 relative">
-        <div className="flex items-center justify-between gap-6 flex-wrap">
-        {/* Team Workload - Compact View */}
-        {workloadData.length > 0 && (() => {
-          const counts = {
-            available: workloadData.filter(e => e.workload.status === 'available').length,
-            warning: workloadData.filter(e => e.workload.status === 'warning').length,
-            overloaded: workloadData.filter(e => e.workload.status === 'overloaded').length,
-            on_leave: workloadData.filter(e => e.workload.status === 'on_leave').length,
-          }
-          const statusConfig = [
-            { key: 'available', icon: '?', label: 'available', color: '#10B981' },
-            { key: 'warning', icon: '⚡', label: 'busy', color: '#F59E0B' },
-            { key: 'overloaded', icon: '🔥', label: 'overloaded', color: '#EF4444' },
-            { key: 'on_leave', icon: '✈', label: 'onleave', color: '#8B5CF6' },
-          ]
-
-          return (
-            <div className="flex items-center gap-2 relative">
-              <span
-                className="text-xs font-bold"
+      {/* Jira-style Filter Bar */}
+      <div className="mb-6">
+        {/* Single unified filter row */}
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* View mode tabs on the left */}
+          <div className="flex items-center gap-1.5 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.05)' }}>
+            {([['all', 'All'], ['tasks', 'Tasks'], ['approvals', 'Approvals']] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                onClick={() => updateSearchParam('view', mode === 'all' ? '' : mode)}
+                className="px-4 py-2 rounded-md text-xs font-bold transition-all"
                 style={{
-                  color: '#64748B',
+                  background: viewMode === mode ? 'white' : 'transparent',
+                  color: viewMode === mode ? '#2C3E50' : '#64748B',
+                  boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                   fontFamily: typography.fontFamily,
-                  letterSpacing: '0.3px',
                 }}
               >
-                Team ({workloadData.length})
-              </span>
-              <div className="flex items-center gap-2">
-                {statusConfig.map((status, idx) => {
-                  const count = counts[status.key as keyof typeof counts]
-                  if (count === 0) return null
-                  const rotation = ((idx * 3) % 4) - 2
-                  const isExpanded = expandedWorkloadStatus === status.key
-                  const employeesInStatus = workloadData.filter(e => e.workload.status === status.key)
+                {label}
+              </button>
+            ))}
+          </div>
 
+          {/* Search box - centered and prominent */}
+          <div className="flex-1 min-w-[280px] max-w-[500px]">
+            <div
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg"
+              style={{
+                background: 'white',
+                border: '1px solid #DFE1E6',
+                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+              }}
+            >
+              <span className="text-base" style={{ opacity: 0.5 }}>🔍</span>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => updateSearchParam('search', e.target.value)}
+                placeholder="Search tasks..."
+                className="flex-1 bg-transparent border-none outline-none text-sm"
+                style={{
+                  color: '#2C3E50',
+                  fontFamily: typography.fontFamily,
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => updateSearchParam('search', '')}
+                  className="text-xs font-bold px-2 py-1 rounded transition-opacity hover:opacity-70"
+                  style={{
+                    background: 'rgba(0, 0, 0, 0.05)',
+                    color: '#64748B',
+                  }}
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Avatar-based Assignee Selector */}
+          {(() => {
+            const maxVisibleAvatars = 5
+            const visibleEmployees = employees.slice(0, maxVisibleAvatars)
+            const remainingCount = Math.max(0, employees.length - maxVisibleAvatars)
+            const remainingEmployees = employees.slice(maxVisibleAvatars)
+            
+            // Calculate workload stats for remaining employees
+            const remainingStats = remainingEmployees.reduce((acc, emp) => {
+              const workload = getEmployeeWorkload(emp.id)
+              const status = workload?.workload.status || 'available'
+              acc[status] = (acc[status] || 0) + 1
+              return acc
+            }, {} as Record<string, number>)
+
+            const getInitials = (name: string) => {
+              return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+            }
+
+            const getWorkloadColor = (status: string) => {
+              switch (status) {
+                case 'available': return '#10B981'
+                case 'warning': return '#F59E0B'
+                case 'overloaded': return '#EF4444'
+                case 'on_leave': return '#8B5CF6'
+                default: return '#94A3B8'
+              }
+            }
+
+            return (
+              <div className="flex items-center gap-1.5">
+                {visibleEmployees.map((emp) => {
+                  const workload = getEmployeeWorkload(emp.id)
+                  const status = workload?.workload.status || 'available'
+                  const workloadColor = getWorkloadColor(status)
+                  const isSelected = selectedAssignee === emp.id
+                  
                   return (
-                    <div key={status.key} className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setExpandedWorkloadStatus(isExpanded ? null : status.key)
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 transition-all"
+                    <button
+                      key={emp.id}
+                      onClick={() => updateSearchParam('assignee', isSelected ? '' : emp.id)}
+                      className="relative transition-all hover:scale-110"
+                      title={`${emp.full_name} - ${status}`}
+                    >
+                      <div
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
                         style={{
-                          background: isExpanded ? `${status.color}20` : `${status.color}10`,
-                          borderRadius: '4px',
-                          transform: isExpanded ? 'rotate(0deg) scale(1.05)' : `rotate(${rotation}deg)`,
-                          boxShadow: isExpanded ? `3px 3px 0 ${status.color}30` : 'none',
-                          cursor: 'pointer',
+                          background: isSelected ? workloadColor : '#F4F5F7',
+                          color: isSelected ? 'white' : '#2C3E50',
+                          border: `2px solid ${workloadColor}`,
+                          fontFamily: typography.fontFamily,
                         }}
                       >
-                        <span
-                          className="text-sm"
-                          style={{ fontFamily: typography.fontFamily }}
-                        >
-                          {status.icon}
-                        </span>
-                        <span
-                          className="text-xs font-bold"
-                          style={{
-                            color: status.color,
-                            fontFamily: typography.fontFamily,
-                          }}
-                        >
-                          {count}
-                        </span>
-                        <span
-                          className="text-xs"
-                          style={{
-                            color: '#64748B',
-                            fontFamily: typography.fontFamily,
-                          }}
-                        >
-                          {status.label}
-                        </span>
-                      </button>
-
-                      {/* Dropdown with employee list */}
-                      {isExpanded && (
+                        {getInitials(emp.full_name)}
+                      </div>
+                      {/* Workload indicator dot */}
+                      {!isSelected && (
                         <div
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute left-0 top-full mt-3 z-50 min-w-[260px] max-w-[340px]"
-                          style={{
-                            background: '#FFF9E6',
-                            borderLeft: `3px solid ${status.color}25`,
-                            borderTop: `1px solid #E5DCC5`,
-                            borderRight: `1px solid #E5DCC5`,
-                            borderBottom: `2px solid #D4CAB3`,
-                            boxShadow: '0 8px 16px rgba(0,0,0,0.08)',
-                            transform: 'rotate(-0.8deg)',
-                            padding: '18px 16px',
-                          }}
-                        >
-                          {/* Notebook header */}
-                          <div
-                            className="text-xs font-bold mb-4 pb-2"
-                            style={{
-                              color: status.color,
-                              fontFamily: typography.fontFamily,
-                              borderBottom: `1px solid ${status.color}20`,
-                              textTransform: 'uppercase',
-                              letterSpacing: '1px',
-                              transform: 'rotate(0.5deg)',
-                            }}
-                          >
-                            {status.icon} {status.label} — {count} people
-                          </div>
+                          className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white"
+                          style={{ background: workloadColor }}
+                        />
+                      )}
+                    </button>
+                  )
+                })}
+
+                {/* +N More with employee list */}
+                {remainingCount > 0 && (
+                  <div className="relative group">
+                    <button
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all hover:scale-110"
+                      style={{
+                        background: '#F4F5F7',
+                        color: '#64748B',
+                        border: '2px solid #DFE1E6',
+                        fontFamily: typography.fontFamily,
+                      }}
+                    >
+                      +{remainingCount}
+                    </button>
+                    
+                    {/* Tooltip with employee list and workload */}
+                    <div
+                      className="absolute right-0 top-full mt-2 z-[100] min-w-[240px] max-w-[280px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none group-hover:pointer-events-auto"
+                      style={{
+                        background: 'white',
+                        border: '1px solid #DFE1E6',
+                        borderRadius: '8px',
+                        boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                        padding: '12px',
+                      }}
+                    >
+                      <div
+                        className="text-xs font-semibold mb-3 pb-2"
+                        style={{
+                          color: '#2C3E50',
+                          fontFamily: typography.fontFamily,
+                          borderBottom: '1px solid #F4F5F7',
+                        }}
+                      >
+                        +{remainingCount} more team members
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto space-y-2">
+                        {remainingEmployees.map((emp) => {
+                          const workload = getEmployeeWorkload(emp.id)
+                          const status = workload?.workload.status || 'available'
+                          const workloadColor = getWorkloadColor(status)
+                          const activeTasks = workload?.workload.active_tasks || 0
+                          const overdueTasks = workload?.workload.overdue_tasks || 0
                           
-                          {/* Handwritten-style entries */}
-                          <div className="max-h-[380px] overflow-y-auto">
-                            {employeesInStatus.map((emp, idx) => (
+                          return (
+                            <div
+                              key={emp.id}
+                              className="flex items-start gap-2 p-2 rounded hover:bg-gray-50 transition-colors cursor-pointer"
+                              onClick={() => updateSearchParam('assignee', emp.id)}
+                            >
+                              {/* Avatar */}
                               <div
-                                key={emp.employee_id}
-                                className="mb-3"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold flex-shrink-0"
                                 style={{
-                                  transform: `rotate(${((idx % 3) - 1) * 0.4}deg)`,
-                                  marginLeft: `${(idx % 2) * 4}px`,
+                                  background: '#F4F5F7',
+                                  color: '#2C3E50',
+                                  border: `2px solid ${workloadColor}`,
+                                  fontFamily: typography.fontFamily,
                                 }}
                               >
+                                {getInitials(emp.full_name)}
+                              </div>
+                              
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
                                 <div
-                                  className="text-sm font-bold"
+                                  className="text-xs font-medium truncate"
                                   style={{
                                     color: '#2C3E50',
                                     fontFamily: typography.fontFamily,
-                                    letterSpacing: '0.3px',
                                   }}
                                 >
                                   {emp.full_name}
                                 </div>
-                                {emp.workload.status !== 'on_leave' && (
+                                <div className="flex items-center gap-1.5 mt-0.5">
                                   <div
-                                    className="text-xs mt-1"
+                                    className="w-1.5 h-1.5 rounded-full"
+                                    style={{ background: workloadColor }}
+                                  />
+                                  <span
+                                    className="text-[10px]"
                                     style={{
                                       color: '#64748B',
                                       fontFamily: typography.fontFamily,
-                                      fontStyle: 'italic',
                                     }}
                                   >
-                                    <span
-                                      style={{
-                                        color: status.color,
-                                        fontWeight: 600,
-                                        textDecoration: 'underline',
-                                        textDecorationStyle: 'wavy',
-                                        textDecorationColor: `${status.color}40`,
-                                      }}
-                                    >
-                                      {emp.workload.active_tasks} tasks
-                                    </span>
-                                    {emp.workload.overdue_tasks > 0 && (
-                                      <span
-                                        style={{
-                                          color: '#DC2626',
-                                          fontWeight: 600,
-                                          marginLeft: '8px',
-                                        }}
-                                      >
-                                        ({emp.workload.overdue_tasks} overdue!)
+                                    {status === 'on_leave' ? 'On leave' : `${activeTasks} task${activeTasks !== 1 ? 's' : ''}`}
+                                    {overdueTasks > 0 && (
+                                      <span style={{ color: '#DC2626', marginLeft: '4px' }}>
+                                        · {overdueTasks} overdue
                                       </span>
                                     )}
-                                  </div>
-                                )}
-                                {emp.leave.is_on_leave && emp.leave.leave_end && (
-                                  <div
-                                    className="text-xs mt-1"
-                                    style={{
-                                      color: status.color,
-                                      fontFamily: typography.fontFamily,
-                                      fontStyle: 'italic',
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    back on {new Date(emp.leave.leave_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                  </div>
-                                )}
+                                  </span>
+                                </div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                            </div>
+                          )
+                        })}
+                      </div>
                     </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })()}
-        
-        {/* View mode toggle */}
-        <div className="flex items-center gap-1 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.04)' }}>
-          {([['all', 'All'], ['tasks', 'Tasks'], ['approvals', 'Approvals']] as const).map(([mode, label]) => (
-            <button
-              key={mode}
-              onClick={() => updateSearchParam('view', mode === 'all' ? '' : mode)}
-              className="px-3 py-1 rounded-md text-xs font-semibold transition-all"
-              style={{
-                background: viewMode === mode ? 'white' : 'transparent',
-                color: viewMode === mode ? colors.ink900 : colors.ink500,
-                boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                fontFamily: typography.fontFamily,
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+                  </div>
+                )}
 
-        {/* Search + Filters - Inline controls */}
-        <TaskFilters
-        searchQuery={searchQuery}
-        onSearchChange={(value) => updateSearchParam('search', value)}
-        selectedAssignee={selectedAssignee}
-        onAssigneeChange={(value) => updateSearchParam('assignee', value)}
-        selectedPriority={selectedPriority}
-        onPriorityChange={(value) => updateSearchParam('priority', value)}
-        showCompleted={showCompleted}
-        onShowCompletedChange={(value) => updateSearchParam('showCompleted', value)}
-        employees={employees}
-        getEmployeeWorkload={getEmployeeWorkload}
-        onClearFilters={clearAllFilters}
-        hasActiveFilters={hasActiveFilters}
-      />
+                {/* Divider */}
+                <div
+                  className="w-px h-6 mx-1"
+                  style={{ background: '#DFE1E6' }}
+                />
+              </div>
+            )
+          })()}
+
+          {/* Filters */}
+          <Dropdown
+            value={selectedPriority}
+            onChange={(value) => updateSearchParam('priority', value)}
+            options={[
+              { value: '', label: 'Priority' },
+              { value: 'urgent', label: 'Urgent', badge: '🔥' },
+              { value: 'high', label: 'High' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'low', label: 'Low' },
+            ]}
+            placeholder="Priority"
+            style={{
+              background: 'white',
+              border: '1px solid #DFE1E6',
+              color: selectedPriority ? '#2C3E50' : '#64748B',
+              fontSize: '13px',
+              fontWeight: selectedPriority ? '600' : '400',
+              fontFamily: typography.fontFamily,
+              padding: '6px 12px',
+            }}
+          />
+
+          <button
+            onClick={() => updateSearchParam('showCompleted', !showCompleted)}
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-all"
+            style={{
+              background: !showCompleted ? '#0052CC' : 'white',
+              color: !showCompleted ? 'white' : '#64748B',
+              border: '1px solid #DFE1E6',
+              fontFamily: typography.fontFamily,
+            }}
+          >
+            {showCompleted ? '✓ Done' : 'Hide Done'}
+          </button>
+
+          {/* Team Workload - Right side */}
+          <div className="ml-auto">
+            {workloadData.length > 0 && (() => {
+              const counts = {
+                available: workloadData.filter(e => e.workload.status === 'available').length,
+                warning: workloadData.filter(e => e.workload.status === 'warning').length,
+                overloaded: workloadData.filter(e => e.workload.status === 'overloaded').length,
+                on_leave: workloadData.filter(e => e.workload.status === 'on_leave').length,
+              }
+              const statusConfig = [
+                { key: 'available', icon: '✓', label: 'available', color: '#10B981' },
+                { key: 'warning', icon: '⚡', label: 'busy', color: '#F59E0B' },
+                { key: 'overloaded', icon: '🔥', label: 'overloaded', color: '#EF4444' },
+                { key: 'on_leave', icon: '✈', label: 'on leave', color: '#8B5CF6' },
+              ]
+
+              return (
+                <div className="flex items-center gap-2 relative">
+                  <span
+                    className="text-xs font-medium"
+                    style={{
+                      color: '#64748B',
+                      fontFamily: typography.fontFamily,
+                    }}
+                  >
+                    Team:
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {statusConfig.map((status) => {
+                      const count = counts[status.key as keyof typeof counts]
+                      if (count === 0) return null
+                      const isExpanded = expandedWorkloadStatus === status.key
+                      const employeesInStatus = workloadData.filter(e => e.workload.status === status.key)
+
+                      return (
+                        <div key={status.key} className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setExpandedWorkloadStatus(isExpanded ? null : status.key)
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded transition-all"
+                            style={{
+                              background: isExpanded ? `${status.color}15` : 'white',
+                              border: `1px solid ${isExpanded ? status.color : '#DFE1E6'}`,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <span className="text-xs">{status.icon}</span>
+                            <span
+                              className="text-xs font-semibold"
+                              style={{
+                                color: status.color,
+                                fontFamily: typography.fontFamily,
+                              }}
+                            >
+                              {count}
+                            </span>
+                            <span
+                              className="text-[10px] font-medium"
+                              style={{
+                                color: '#64748B',
+                                fontFamily: typography.fontFamily,
+                              }}
+                            >
+                              {status.label}
+                            </span>
+                          </button>
+
+                          {/* Dropdown with employee list */}
+                          {isExpanded && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute right-0 top-full mt-2 z-50 min-w-[280px]"
+                              style={{
+                                background: 'white',
+                                border: '1px solid #DFE1E6',
+                                borderRadius: '8px',
+                                boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                                padding: '12px',
+                              }}
+                            >
+                              <div
+                                className="text-xs font-semibold mb-3 pb-2"
+                                style={{
+                                  color: status.color,
+                                  fontFamily: typography.fontFamily,
+                                  borderBottom: '1px solid #F4F5F7',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                }}
+                              >
+                                {status.icon} {status.label} ({count})
+                              </div>
+                              
+                              <div className="max-h-[320px] overflow-y-auto space-y-2">
+                                {employeesInStatus.map((emp) => (
+                                  <div
+                                    key={emp.employee_id}
+                                    className="p-2 rounded hover:bg-gray-50 transition-colors"
+                                  >
+                                    <div
+                                      className="text-sm font-medium"
+                                      style={{
+                                        color: '#2C3E50',
+                                        fontFamily: typography.fontFamily,
+                                      }}
+                                    >
+                                      {emp.full_name}
+                                    </div>
+                                    {emp.workload.status !== 'on_leave' && (
+                                      <div
+                                        className="text-xs mt-0.5"
+                                        style={{
+                                          color: '#64748B',
+                                          fontFamily: typography.fontFamily,
+                                        }}
+                                      >
+                                        {emp.workload.active_tasks} tasks
+                                        {emp.workload.overdue_tasks > 0 && (
+                                          <span style={{ color: '#DC2626', marginLeft: '4px' }}>
+                                            · {emp.workload.overdue_tasks} overdue
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {emp.leave.is_on_leave && emp.leave.leave_end && (
+                                      <div
+                                        className="text-xs mt-0.5"
+                                        style={{
+                                          color: status.color,
+                                          fontFamily: typography.fontFamily,
+                                        }}
+                                      >
+                                        Back {new Date(emp.leave.leave_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
+          </div>
         </div>
+      </div>
+
+      {/* Mobile: Column Tab Navigation (<640px) */}
+      <div className="block sm:hidden">
+        <ColumnTabNav
+          columns={visibleLists}
+          activeColumnId={activeColumnId || visibleLists[0]?.id || ''}
+          taskCounts={taskCounts}
+          onColumnChange={handleColumnChange}
+        />
       </div>
 
       {/* Unique Vertical Board */}
@@ -743,7 +983,7 @@ function TasksPage() {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-3 gap-8 relative">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 relative">
           {columnConfig.map((col, idx) => {
             const columnTasks = (optimisticTasks || [])
               .filter((t) => t.task_list_id === col.id)
@@ -758,36 +998,50 @@ function TasksPage() {
                 // Within same group (both approval or both regular), sort by position
                 return a.position - b.position
               })
+            
+            // Mobile: Only show active column, Desktop: show all
+            const isMobileActive = activeColumnId === col.id || !activeColumnId || idx === 0
+            const shouldShow = typeof window === 'undefined' || window.innerWidth >= 640 || isMobileActive
+            
+            if (!shouldShow) return null
+            
             return (
               <React.Fragment key={col.id}>
-                <StatusColumn
-                  listId={col.id}
-                  label={col.name}
-                  count={columnTasks.length}
-                  tasks={columnTasks}
-                  employees={employees}
-                  getEmployeeWorkload={getEmployeeWorkload}
-                  creatingInListId={creatingInListId}
-                  newTaskTitle={newTaskTitle}
-                  newTaskAssignee={newTaskAssignee}
-                  onCreateTask={handleCreateTask}
-                  onTitleChange={setNewTaskTitle}
-                  onAssigneeChange={setNewTaskAssignee}
-                  onCancelCreate={() => {
-                    setCreatingInListId(null)
-                    setNewTaskTitle('')
-                    setNewTaskAssignee('')
-                  }}
-                  onStartCreateModal={setCreateModalListId}
-                  onStartCreateInline={setCreatingInListId}
-                  onTaskClick={setSelectedTask}
-                  isFinalState={col.is_final_state}
-                />
+                <div 
+                  id={`column-${col.id}`}
+                  role="tabpanel"
+                  aria-labelledby={`tab-${col.id}`}
+                  className={typeof window !== 'undefined' && window.innerWidth < 640 && !isMobileActive ? 'hidden' : ''}
+                >
+                  <StatusColumn
+                    listId={col.id}
+                    label={col.name}
+                    count={columnTasks.length}
+                    tasks={columnTasks}
+                    employees={employees}
+                    getEmployeeWorkload={getEmployeeWorkload}
+                    creatingInListId={creatingInListId}
+                    newTaskTitle={newTaskTitle}
+                    newTaskAssignee={newTaskAssignee}
+                    onCreateTask={handleCreateTask}
+                    onTitleChange={setNewTaskTitle}
+                    onAssigneeChange={setNewTaskAssignee}
+                    onCancelCreate={() => {
+                      setCreatingInListId(null)
+                      setNewTaskTitle('')
+                      setNewTaskAssignee('')
+                    }}
+                    onStartCreateModal={setCreateModalListId}
+                    onStartCreateInline={setCreatingInListId}
+                    onTaskClick={setSelectedTask}
+                    isFinalState={col.is_final_state}
+                  />
+                </div>
                 
-                {/* Hand-drawn vertical divider between columns */}
+                {/* Hand-drawn vertical divider between columns (desktop only) */}
                 {idx < columnConfig.length - 1 && (
                   <div 
-                    className="absolute top-0 bottom-0"
+                    className="hidden lg:block absolute top-0 bottom-0"
                     style={{
                       left: `${((idx + 1) / 3) * 100}%`,
                       transform: 'translateX(-50%)',
@@ -823,7 +1077,14 @@ function TasksPage() {
         </div>
 
         <DragOverlay>
-          {activeTask ? <TaskCard task={activeTask} isDragging /> : null}
+          {activeTask ? (
+            <EnhancedTaskCard 
+              task={activeTask} 
+              isDragging 
+              employees={employees}
+              getEmployeeWorkload={getEmployeeWorkload}
+            />
+          ) : null}
         </DragOverlay>
       </DndContext>
       
@@ -941,8 +1202,8 @@ function StatusColumn({
                 className="text-xl font-bold"
                 style={{
                   color: '#2C3E50',
-                  fontFamily: "'Permanent Marker', 'Marker Felt', cursive",
-                  letterSpacing: '1px',
+                  fontFamily: typography.fontFamily,
+                  letterSpacing: '0.5px',
                   transform: `rotate(${isFinalState ? -1 : 0}deg)`,
                 }}
               >
@@ -955,7 +1216,7 @@ function StatusColumn({
                       color: '#27AE60',
                     }}
                   >
-                    ✓
+                    ✓ Available
                   </span>
                 )}
               </h3>
@@ -995,7 +1256,13 @@ function StatusColumn({
       >
         <div className="flex flex-col gap-2 px-4 py-3 flex-1">
           {tasks.map((task) => (
-            <SortableTaskCard key={task.id} task={task} onClick={() => onTaskClick(task)} />
+            <SortableTaskCard 
+              key={task.id} 
+              task={task} 
+              onClick={() => onTaskClick(task)}
+              employees={employees}
+              getEmployeeWorkload={getEmployeeWorkload}
+            />
           ))}
 
           {/* Create Task Form */}
@@ -1113,7 +1380,17 @@ function StatusColumn({
 
 // ── Sortable Task Card Wrapper ──────────────────────────────────
 
-function SortableTaskCard({ task, onClick }: { task: TaskWithDetails; onClick: () => void }) {
+function SortableTaskCard({ 
+  task, 
+  onClick,
+  employees,
+  getEmployeeWorkload
+}: { 
+  task: TaskWithDetails
+  onClick: () => void
+  employees: Employee[]
+  getEmployeeWorkload: (employeeId: string) => EmployeeWorkload | undefined
+}) {
   const {
     attributes,
     listeners,
@@ -1131,328 +1408,16 @@ function SortableTaskCard({ task, onClick }: { task: TaskWithDetails; onClick: (
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} onClick={onClick} isDragging={isDragging} />
+      <EnhancedTaskCard 
+        task={task} 
+        onClick={onClick} 
+        isDragging={isDragging}
+        employees={employees}
+        getEmployeeWorkload={getEmployeeWorkload}
+      />
     </div>
   )
 }
 
-// ── Task Card ───────────────────────────────────────────────────
-
-function TaskCard({ 
-  task, 
-  isDragging, 
-  onClick 
-}: { 
-  task: TaskWithDetails
-  isDragging?: boolean
-  onClick?: () => void
-}) {
-  const isDone = !!task.completed_at
-  
-  // Vibrant sticky note colors
-  const stickyColors: Record<TaskPriority, { bg: string; text: string; pin: string; tape: string }> = {
-    urgent: { bg: '#FF9999', text: '#5C1A1A', pin: '#CC0000', tape: '#FFD6D6' },    // Pink/Red
-    high: { bg: '#B19CD9', text: '#3D2A56', pin: '#6A4C9C', tape: '#E6D9FF' },      // Purple  
-    medium: { bg: '#99EBFF', text: '#0D4552', pin: '#0099CC', tape: '#D6F7FF' },    // Cyan
-    low: { bg: '#FFE066', text: '#5C4D00', pin: '#CCAA00', tape: '#FFF4CC' },       // Yellow
-  }
-
-  const colors = stickyColors[task.priority]
-  
-  // Subtle rotation (seeded by task ID)
-  const seed = task.id.charCodeAt(0) + task.id.charCodeAt(task.id.length - 1)
-  const rotation = ((seed % 9) - 4) * 0.6  // -2.4deg to +2.4deg
-  const hasGrid = seed % 3 === 0  // Some cards have grid pattern
-  const hasTornEdge = seed % 2 === 0  // Some cards have torn top edge
-
-  return (
-    <div
-      onClick={(e) => {
-        if (onClick && !isDragging) {
-          e.stopPropagation()
-          onClick()
-        }
-      }}
-      className="transition-all duration-150"
-      style={{
-        background: isDone ? '#D5DBDB' : colors.bg,
-        borderRadius: '3px',
-        transform: isDragging 
-          ? `rotate(${rotation + 2}deg) scale(1.05)` 
-          : `rotate(${rotation}deg)`,
-        cursor: onClick ? 'pointer' : 'grab',
-        opacity: isDone ? 0.7 : 1,
-        boxShadow: isDragging
-          ? `0 8px 16px rgba(0,0,0,0.2), 0 12px 24px rgba(0,0,0,0.15)`
-          : `0 2px 4px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.08)`,
-        minHeight: '100px',
-        width: '100%',
-        position: 'relative' as const,
-        marginTop: hasTornEdge ? '12px' : '8px',
-      }}
-    >
-      {/* Torn/Notched edge at top */}
-      {hasTornEdge && (
-        <div
-          style={{
-            position: 'absolute',
-            top: '-12px',
-            left: 0,
-            right: 0,
-            height: '12px',
-            background: colors.bg,
-            opacity: isDone ? 0.7 : 1,
-            borderRadius: '3px 3px 0 0',
-            // Create notched/perforated effect
-            backgroundImage: `repeating-linear-gradient(
-              90deg,
-              transparent,
-              transparent 8px,
-              ${colors.bg} 8px,
-              ${colors.bg} 10px,
-              transparent 10px,
-              transparent 12px
-            )`,
-            backgroundPosition: '0 100%',
-            backgroundSize: '100% 6px',
-            backgroundRepeat: 'no-repeat',
-          }}
-        />
-      )}
-      
-      {/* Tape label at top center - Always shows priority */}
-      <div
-        style={{
-          position: 'absolute',
-          top: '-30%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 10,
-        }}
-      >
-        <div
-          className="text-[11px] font-extrabold uppercase px-6 py-2 whitespace-nowrap"
-          style={{
-            background: colors.tape,
-            color: colors.text,
-            fontFamily: typography.fontFamily,
-            letterSpacing: '1px',
-            transform: 'rotate(-1.5deg)',
-            boxShadow: `0 2px 4px rgba(0,0,0,0.1), 0 3px 6px rgba(0,0,0,0.08)`,
-            position: 'relative',
-            clipPath: `polygon(
-              3% 0%, 
-              97% 0%, 
-              100% 8%, 
-              98% 18%, 
-              100% 35%, 
-              97% 50%, 
-              100% 65%, 
-              98% 82%, 
-              100% 92%, 
-              97% 100%, 
-              3% 100%, 
-              0% 92%, 
-              2% 82%, 
-              0% 65%, 
-              3% 50%, 
-              0% 35%, 
-              2% 18%, 
-              0% 8%
-            )`,
-          }}
-        >
-          {task.priority}
-          {/* Paper fiber texture */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background: `
-                repeating-linear-gradient(
-                  0deg,
-                  transparent,
-                  transparent 1px,
-                  rgba(0,0,0,0.015) 1px,
-                  rgba(0,0,0,0.015) 2px
-                ),
-                repeating-linear-gradient(
-                  90deg,
-                  transparent,
-                  transparent 1px,
-                  rgba(255,255,255,0.03) 1px,
-                  rgba(255,255,255,0.03) 2px
-                )
-              `,
-              pointerEvents: 'none',
-              opacity: 0.8,
-            }}
-          />
-          {/* Subtle paper grain */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-              opacity: 0.05,
-              mixBlendMode: 'multiply',
-              pointerEvents: 'none',
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Grid pattern overlay (some cards) */}
-      {hasGrid && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: 'inherit',
-            backgroundImage: `
-              linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px)
-            `,
-            backgroundSize: '12px 12px',
-            pointerEvents: 'none',
-          }}
-        />
-      )}
-      
-      {/* Approval ribbon - Bottom right corner */}
-      {task.approval_type && !task.completed_at && (
-        <div
-          style={{
-            position: 'absolute',
-            bottom: '8px',
-            right: '-4px',
-            zIndex: 11,
-          }}
-        >
-          <div
-            className="flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-extrabold uppercase"
-            style={{
-              background: '#6357E8',
-              color: '#FFFFFF',
-              fontFamily: typography.fontFamily,
-              letterSpacing: '0.5px',
-              transform: 'rotate(2deg)',
-              boxShadow: '0 2px 6px rgba(99,87,232,0.4), 0 4px 8px rgba(0,0,0,0.15)',
-              borderRadius: '3px 0 0 3px',
-              border: '1.5px solid #4A3FBF',
-              borderRight: 'none',
-            }}
-          >
-            <span style={{ fontSize: '12px' }}>📋</span>
-            Approval
-          </div>
-          {/* Triangle fold effect */}
-          <div
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: '100%',
-              width: 0,
-              height: 0,
-              borderLeft: '6px solid #2E2580',
-              borderBottom: '6px solid transparent',
-            }}
-          />
-        </div>
-      )}
-      
-      <div className="px-4 py-3.5 h-full flex flex-col justify-between relative">
-        {/* Title */}
-        <h3
-          className="font-bold text-[15px] leading-snug mb-2.5"
-          style={{
-            color: colors.text,
-            textDecoration: isDone ? 'line-through' : 'none',
-            fontFamily: "'Permanent Marker', 'Marker Felt', cursive",
-            fontWeight: 700,
-          }}
-        >
-          {task.title}
-        </h3>
-
-        {/* Metadata */}
-        <div className="flex items-end justify-between gap-2 text-xs border-t pt-2"
-          style={{ borderColor: `${colors.text}20` }}
-        >
-          <div className="flex flex-col gap-0.5">
-            {task.assignee_name ? (
-              <div
-                className="inline-flex items-center gap-1 px-2 py-1 rounded"
-                style={{
-                  background: `${colors.text}15`,
-                  border: `1px solid ${colors.text}25`,
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: '12px',
-                  }}
-                >
-                  👤
-                </span>
-                <span
-                  className="text-xs font-bold"
-                  style={{
-                    color: colors.text,
-                    fontFamily: typography.fontFamily,
-                    fontSize: '12px',
-                  }}
-                >
-                  {task.assignee_name}
-                </span>
-              </div>
-            ) : (
-              <span
-                className="text-xs italic px-2 py-1"
-                style={{
-                  color: colors.text,
-                  opacity: 0.4,
-                  fontFamily: typography.fontFamily,
-                  fontSize: '11px',
-                }}
-              >
-                Unassigned
-              </span>
-            )}
-          </div>
-
-          {/* Right: Due date or Done */}
-          <div className="flex items-center gap-2">
-            {isDone ? (
-              <span
-                className="text-sm font-bold"
-                style={{
-                  color: colors.text,
-                  opacity: 0.7,
-                }}
-              >
-                ✓
-              </span>
-            ) : (
-              <>
-                {task.due_date && (
-                  <span
-                    className="text-[11px] font-semibold"
-                    style={{
-                      color: colors.text,
-                      opacity: 0.65,
-                      fontFamily: typography.fontFamily,
-                    }}
-                  >
-                    📅 {formatDateLocal(task.due_date)}
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
+// ── Old TaskCard function removed - now using EnhancedTaskCard from components/tasks/TaskCard.tsx ──
 

@@ -21,6 +21,8 @@ interface DropdownProps {
   disabled?: boolean
   fullWidth?: boolean
   className?: string
+  style?: React.CSSProperties
+  labelStyle?: React.CSSProperties
 }
 
 export function Dropdown({
@@ -32,6 +34,8 @@ export function Dropdown({
   disabled = false,
   fullWidth = false,
   className = '',
+  style,
+  labelStyle,
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 })
@@ -43,9 +47,18 @@ export function Dropdown({
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
+      const menuWidth = 240 // Approximate menu width
+      
+      // Check if menu would overflow right edge
+      let left = rect.left + window.scrollX
+      if (left + menuWidth > window.innerWidth) {
+        // Align to right edge of button instead
+        left = rect.right + window.scrollX - menuWidth
+      }
+      
       setMenuPosition({
         top: rect.bottom + window.scrollY + 8, // 8px gap (mt-2)
-        left: rect.left + window.scrollX,
+        left: Math.max(10, left), // Don't go past left edge either
         width: rect.width,
       })
     }
@@ -81,10 +94,14 @@ export function Dropdown({
     return () => document.removeEventListener('keydown', handleEsc)
   }, [isOpen])
 
-  // Close dropdown on scroll or resize
+  // Close dropdown on scroll or resize (but not when scrolling inside the dropdown)
   useEffect(() => {
     if (isOpen) {
-      const handleScrollOrResize = () => {
+      const handleScrollOrResize = (e: Event) => {
+        // Don't close if scrolling inside the dropdown menu
+        if (e.type === 'scroll' && menuRef.current?.contains(e.target as Node)) {
+          return
+        }
         setIsOpen(false)
       }
       window.addEventListener('scroll', handleScrollOrResize, true)
@@ -101,7 +118,7 @@ export function Dropdown({
   return (
     <div className={`relative ${fullWidth ? 'w-full' : ''} ${className}`} ref={dropdownRef}>
       {label && (
-        <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
+        <label className="block text-xs font-medium mb-1.5" style={labelStyle || { color: t.textMuted }}>
           {label}
         </label>
       )}
@@ -113,7 +130,7 @@ export function Dropdown({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className="flex items-center justify-between px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        style={{
+        style={style || {
           background: t.input,
           border: `1px solid ${t.inputBorder}`,
           color: t.text,
@@ -145,7 +162,8 @@ export function Dropdown({
               border: `1px solid ${t.border}`,
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
-              width: `${menuPosition.width}px`,
+              minWidth: `${menuPosition.width}px`,
+              maxWidth: '320px',
             }}
           >
             {options.map((option) => {

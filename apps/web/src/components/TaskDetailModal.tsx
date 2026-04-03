@@ -1,9 +1,9 @@
 import { useState, useMemo, useEffect, useCallback } from 'react'
 import { RichTextEditor } from './RichTextEditor'
 import { ApprovalTaskView } from './ApprovalTaskView'
-import { EmployeeSelector } from './EmployeeSelector'
 import { ReactionPicker } from './ReactionPicker'
-import { typography } from '@/design/tokens'
+import { Dropdown, type DropdownOption } from './workived/shared/Dropdown'
+import { typography, colors } from '@/design/tokens'
 import type { TaskWithDetails, Employee, EmployeeWorkload, TaskPriority } from '@/types/api'
 import {
   useUpdateTask,
@@ -151,6 +151,69 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
 
     return rootComments
   }, [commentsData])
+
+  // Build assignee dropdown options with workload indicators
+  const assigneeOptions = useMemo((): DropdownOption[] => {
+    const options: DropdownOption[] = [
+      { value: '', label: 'Unassigned', description: 'No assignee' },
+    ]
+
+    // Sort employees: available first, then warning, then overloaded, then on leave
+    const sortedEmployees = [...employees].sort((a, b) => {
+      const aWorkload = getEmployeeWorkload(a.id)
+      const bWorkload = getEmployeeWorkload(b.id)
+      
+      const statusPriority = {
+        available: 0,
+        warning: 1,
+        overloaded: 2,
+        on_leave: 3,
+      }
+      
+      const aStatus = aWorkload?.workload.status || 'available'
+      const bStatus = bWorkload?.workload.status || 'available'
+      
+      if (statusPriority[aStatus] !== statusPriority[bStatus]) {
+        return statusPriority[aStatus] - statusPriority[bStatus]
+      }
+      
+      return a.full_name.localeCompare(b.full_name)
+    })
+
+    sortedEmployees.forEach((emp) => {
+      const workload = getEmployeeWorkload(emp.id)
+      let description = ''
+      let badge = ''
+
+      if (workload) {
+        if (workload.workload.status === 'on_leave') {
+          description = 'On Leave'
+          badge = '🏖️'
+        } else if (workload.workload.status === 'overloaded') {
+          description = `Overloaded • ${workload.workload.active_tasks} tasks`
+          badge = '🔴'
+        } else if (workload.workload.status === 'warning') {
+          description = `Busy • ${workload.workload.active_tasks} tasks`
+          badge = '⚠️'
+        } else {
+          description = `Available • ${workload.workload.active_tasks} tasks`
+          badge = '✅'
+        }
+      } else {
+        description = 'Available'
+        badge = '✅'
+      }
+
+      options.push({
+        value: emp.id,
+        label: emp.full_name,
+        description,
+        badge,
+      })
+    })
+
+    return options
+  }, [employees, getEmployeeWorkload])
 
   // Close on Escape key
   useEffect(() => {
@@ -700,52 +763,64 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
           {/* Properties Grid */}
           <div className="grid grid-cols-3 gap-4 mb-6">
             {/* Assignee with workload indicators */}
-            <EmployeeSelector
-              value={assigneeId}
-              onChange={handleAssigneeChange}
-              employees={employees}
-              getEmployeeWorkload={getEmployeeWorkload}
-              label="👤 Assignee"
-              placeholder="Unassigned"
-              showUnassigned={true}
-              style={{
-                background: `${colors.text}08`,
-                border: `2px solid ${colors.text}20`,
-                color: colors.text,
-                fontSize: '14px',
-              }}
-            />
-
-            {/* Priority */}
             <div>
               <label
-                className="block text-sm font-bold mb-2"
-                style={{ color: colors.text, opacity: 0.7, fontFamily: typography.fontFamily }}
+                className="block text-xs font-semibold mb-2"
+                style={{ color:'#64748B', fontFamily: typography.fontFamily }}
               >
-                🏷️ Priority
+                👤 Assignee
               </label>
-              <select
-                value={priority}
-                onChange={(e) => handlePriorityChange(e.target.value)}
-                className="w-full rounded-lg px-3 py-2 text-sm outline-none font-semibold"
+              <Dropdown
+                value={assigneeId}
+                onChange={handleAssigneeChange}
+                options={assigneeOptions}
+                fullWidth
                 style={{
                   background: `${colors.text}08`,
                   border: `2px solid ${colors.text}20`,
                   color: colors.text,
+                  fontSize: '12px',
+                  fontWeight: '500',
                   fontFamily: typography.fontFamily,
+                  width: '100%',
                 }}
+              />
+            </div>
+
+            {/* Priority */}
+            <div>
+              <label
+                className="block text-xs font-semibold mb-2"
+                style={{ color:'#64748B', fontFamily: typography.fontFamily }}
               >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
+                🏷️ Priority
+              </label>
+              <Dropdown
+                value={priority}
+                onChange={handlePriorityChange}
+                options={[
+                  { value: 'low', label: 'Low', description: 'Can wait for later' },
+                  { value: 'medium', label: 'Medium', description: 'Normal priority' },
+                  { value: 'high', label: 'High', description: 'Important task' },
+                  { value: 'urgent', label: 'Urgent', description: 'Needs immediate attention', badge: '🔥' },
+                ]}
+                fullWidth
+                style={{
+                  background: `${colors.text}08`,
+                  border: `2px solid ${colors.text}20`,
+                  color: colors.text,
+                  fontSize: '12px',
+                  fontWeight: '500',
+                  fontFamily: typography.fontFamily,
+                  width: '100%',
+                }}
+              />
             </div>
 
             {/* Due Date */}
             <div>
               <label
-                className="block text-sm font-bold mb-2"
+                className="block text-xs font-semibold mb-2"
                 style={{ color:'#64748B', fontFamily: typography.fontFamily }}
               >
                 📅 Due Date
@@ -754,7 +829,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
                 type="date"
                 value={dueDate}
                 onChange={(e) => handleDueDateChange(e.target.value)}
-                className="w-full rounded-lg px-3 py-2 text-sm outline-none font-semibold"
+                className="w-full rounded-lg px-3 py-2 text-xs outline-none font-medium"
                 style={{
                   background: `${colors.text}08`,
                   border: `2px solid ${colors.text}20`,
