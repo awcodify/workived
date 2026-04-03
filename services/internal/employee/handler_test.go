@@ -143,6 +143,11 @@ func TestEmployeeHandler_List(t *testing.T) {
 			wantStatus: http.StatusOK,
 		},
 		{
+			name:       "with search filter",
+			query:      "?search=ahmad",
+			wantStatus: http.StatusOK,
+		},
+		{
 			name:       "service error",
 			serviceErr: apperr.Internal(),
 			wantStatus: http.StatusInternalServerError,
