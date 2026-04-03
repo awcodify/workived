@@ -43,3 +43,52 @@ export function getMondayOfWeek(tz: string, weekOffset: number = 0): string {
   // Return ISO date string (YYYY-MM-DD)
   return targetDate.toISOString().split('T')[0]!
 }
+
+/**
+ * Format due date with relative time and absolute date
+ * @param dueDate - ISO date string or Date object
+ * @param now - Current time (for testing)
+ * @returns Formatted string like "Due in 3h (17 Dec)" or "Overdue by 2h (15 Dec)"
+ */
+export function formatRelativeDueDate(dueDate: string | Date, now: Date = new Date()): string {
+  const due = new Date(dueDate)
+  const diffMs = due.getTime() - now.getTime()
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  
+  // Absolute date component (always shown in parentheses)
+  const absoluteDate = due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  
+  // Relative time component
+  let relativeTime: string
+  
+  if (diffMs < 0) {
+    // Overdue
+    const absDiffMs = Math.abs(diffMs)
+    const overdueHours = Math.floor(absDiffMs / (1000 * 60 * 60))
+    
+    if (overdueHours < 1) {
+      relativeTime = 'Overdue'
+    } else if (overdueHours < 24) {
+      relativeTime = `Overdue by ${overdueHours}h`
+    } else {
+      const overdueDays = Math.abs(diffDays)
+      relativeTime = `Overdue by ${overdueDays}d`
+    }
+  } else {
+    // Future
+    if (diffHours < 1) {
+      relativeTime = 'Due soon'
+    } else if (diffHours < 24) {
+      relativeTime = `Due in ${diffHours}h`
+    } else if (diffDays === 1) {
+      relativeTime = 'Due tomorrow'
+    } else if (diffDays < 7) {
+      relativeTime = `Due in ${diffDays}d`
+    } else {
+      relativeTime = 'Due'
+    }
+  }
+  
+  return `${relativeTime} (${absoluteDate})`
+}

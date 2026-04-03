@@ -5,6 +5,7 @@
 
 import { useMemo } from 'react'
 import { typography } from '@/design/tokens'
+import { formatRelativeDueDate } from '@/lib/utils/date'
 import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload } from '@/types/api'
 
 interface TaskCardProps {
@@ -46,11 +47,10 @@ export function TaskCard({
     return dueDate.toDateString() === today.toDateString()
   }, [task.due_date, isDone])
 
-  // Format due date
+  // Format due date with relative time
   const formattedDueDate = useMemo(() => {
     if (!task.due_date) return null
-    const date = new Date(task.due_date)
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    return formatRelativeDueDate(task.due_date)
   }, [task.due_date])
   
   // Vibrant sticky note colors
@@ -305,10 +305,8 @@ export function TaskCard({
                   fontFamily: typography.fontFamily,
                 }}
               >
-                <span>{isDueToday ? '⚡' : '📅'}</span>
-                <span>
-                  {isOverdue ? `⚠️ OVERDUE` : isDueToday ? 'Due today' : formattedDueDate}
-                </span>
+                <span>{isOverdue ? '⚠️' : isDueToday ? '⚡' : '📅'}</span>
+                <span>{formattedDueDate}</span>
               </div>
             )}
           </div>

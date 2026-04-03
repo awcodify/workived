@@ -55,9 +55,10 @@ describe('TaskCard', () => {
     expect(avatar).toHaveTextContent('JD')
   })
 
-  it('displays due date badge', () => {
+  it('displays due date badge with relative time', () => {
     render(<TaskCard task={mockTask} employees={mockEmployees} />)
-    expect(screen.getByText(/Apr 10/)).toBeInTheDocument()
+    // Should show relative time and absolute date
+    expect(screen.getByText(/Due.*\(Apr 10\)/)).toBeInTheDocument()
   })
 
   it('shows overdue indicator when task is overdue', () => {
@@ -66,41 +67,22 @@ describe('TaskCard', () => {
       due_date: new Date('2026-04-01').toISOString(), // Past date
     }
     render(<TaskCard task={overdueTask} employees={mockEmployees} />)
-    expect(screen.getByText(/OVERDUE/)).toBeInTheDocument()
+    expect(screen.getByText(/Overdue.*\(Apr 1\)/)).toBeInTheDocument()
   })
 
-  it('shows "due today" indicator for tasks due today', () => {
-    // Set due date to tomorrow to avoid timezone issues
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
-    tomorrow.setHours(12, 0, 0, 0) // Noon tomorrow
+  it('shows "due in X hours" for tasks due later today', () => {
+    // Set due date to 5 hours from now
+    const fiveHoursLater = new Date()
+    fiveHoursLater.setHours(fiveHoursLater.getHours() + 5)
     
     const todayTask = {
       ...mockTask,
-      due_date: tomorrow.toISOString(),
+      due_date: fiveHoursLater.toISOString(),
     }
     
-    // Mock Date to return tomorrow as "today"
-    const originalDate = global.Date
-    global.Date = class extends originalDate {
-      constructor(...args: any[]) {
-        if (args.length === 0) {
-          super(tomorrow)
-        } else {
-          super(...args)
-        }
-        return this
-      }
-      static now() {
-        return tomorrow.getTime()
-      }
-    } as any
-    
     render(<TaskCard task={todayTask} employees={mockEmployees} />)
-    expect(screen.getByText(/Due today/)).toBeInTheDocument()
-    
-    // Restore original Date
-    global.Date = originalDate
+    // Should show "Due in Xh" with date
+    expect(screen.getByText(/Due in \d+h.*\(/)).toBeInTheDocument()
   })
 
   it('shows approval ribbon for approval tasks', () => {

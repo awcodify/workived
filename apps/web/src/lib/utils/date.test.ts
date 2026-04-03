@@ -1,4 +1,4 @@
-import { formatDate, formatDateLocal, todayISO, getMondayOfWeek } from '@/lib/utils/date'
+import { formatDate, formatDateLocal, todayISO, getMondayOfWeek, formatRelativeDueDate } from '@/lib/utils/date'
 
 describe('formatDate', () => {
   const utcDate = '2025-06-15T10:30:00Z'
@@ -138,5 +138,71 @@ describe('getMondayOfWeek', () => {
     
     const result = getMondayOfWeek('UTC', 0)
     expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+})
+
+describe('formatRelativeDueDate', () => {
+  const now = new Date('2026-04-03T10:00:00Z')
+
+  it('shows "Due soon" when less than 1 hour away', () => {
+    const dueDate = new Date('2026-04-03T10:30:00Z') // 30 minutes away
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Due soon (Apr 3)')
+  })
+
+  it('shows "Due in Xh" when within 24 hours', () => {
+    const dueDate = new Date('2026-04-03T13:00:00Z') // 3 hours away
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Due in 3h (Apr 3)')
+  })
+
+  it('shows "Due tomorrow" when exactly 1 day away', () => {
+    const dueDate = new Date('2026-04-04T10:00:00Z') // Tomorrow
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Due tomorrow (Apr 4)')
+  })
+
+  it('shows "Due in Xd" when 2-6 days away', () => {
+    const dueDate = new Date('2026-04-08T10:00:00Z') // 5 days away
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Due in 5d (Apr 8)')
+  })
+
+  it('shows "Due" when more than a week away', () => {
+    const dueDate = new Date('2026-04-15T10:00:00Z') // 12 days away
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Due (Apr 15)')
+  })
+
+  it('shows "Overdue" when less than 1 hour overdue', () => {
+    const dueDate = new Date('2026-04-03T09:30:00Z') // 30 minutes ago
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Overdue (Apr 3)')
+  })
+
+  it('shows "Overdue by Xh" when 1-23 hours overdue', () => {
+    const dueDate = new Date('2026-04-03T05:00:00Z') // 5 hours ago
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Overdue by 5h (Apr 3)')
+  })
+
+  it('shows "Overdue by Xd" when multiple days overdue', () => {
+    const dueDate = new Date('2026-04-01T10:00:00Z') // 2 days ago
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Overdue by 2d (Apr 1)')
+  })
+
+  it('handles ISO date strings', () => {
+    const dueDate = '2026-04-03T15:00:00Z'
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Due in 5h (Apr 3)')
+  })
+
+  it('formats absolute date correctly for different months', () => {
+    const dueDate = new Date('2026-12-25T10:00:00Z')
+    expect(formatRelativeDueDate(dueDate, now)).toContain('Dec 25')
+  })
+
+  it('handles edge case at exactly 24 hours', () => {
+    const dueDate = new Date('2026-04-04T10:00:00Z') // Exactly 24 hours
+    expect(formatRelativeDueDate(dueDate, now)).toBe('Due tomorrow (Apr 4)')
+  })
+
+  it('uses default current time when not provided', () => {
+    // Test that it doesn't throw when now parameter is omitted
+    const futureDueDate = new Date(Date.now() + 3600000) // 1 hour from now
+    const result = formatRelativeDueDate(futureDueDate)
+    expect(result).toMatch(/^Due (in \dh|soon) \(.+\)$/)
   })
 })
