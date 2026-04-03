@@ -3,11 +3,12 @@ import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { useEffect } from 'react'
-import { useEmployee, useEmployees, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
+import { useEmployee, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
 import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
+import { EmployeeDropdown } from '@/components/workived/shared/EmployeeDropdown'
 import { moduleBackgrounds, moduleThemes, colors } from '@/design/tokens'
 import { ArrowLeft, UserCheck, UserPlus, Mail, AlertTriangle, Clock } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
@@ -91,8 +92,6 @@ function NewEmployeePage() {
   const createMutation = useCreateEmployee()
   const inviteMutation = useInviteMember()
   const { data: unlinkedMembers = [], isLoading: loadingMembers } = useUnlinkedMembers()
-  const { data: employeesData } = useEmployees({ status: 'active', limit: 100 })
-  const activeEmployees = employeesData?.data ?? []
 
   const form = useForm<NewForm>({
     resolver: zodResolver(newSchema),
@@ -391,20 +390,20 @@ function NewEmployeePage() {
                 />
               </Field>
 
-              <Field label="Reports to (optional)" error={form.formState.errors.reporting_to?.message}>
-                <select
-                  className="form-input-dark"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('reporting_to')}
-                >
-                  <option value="">— No manager —</option>
-                  {activeEmployees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.full_name} {emp.job_title && `(${emp.job_title})`}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <Controller
+                name="reporting_to"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field label="Reports to (optional)" error={fieldState.error?.message}>
+                    <EmployeeDropdown
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      fullWidth
+                      style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                    />
+                  </Field>
+                )}
+              />
 
               <Field label="Employment type" error={form.formState.errors.employment_type?.message}>
                 <select
@@ -472,8 +471,6 @@ function EditEmployeePage({ id }: { id: string }) {
   const navigate = useNavigate()
   const { data: employee, isLoading } = useEmployee(id)
   const updateMutation = useUpdateEmployee(id)
-  const { data: employeesData } = useEmployees({ status: 'active', limit: 100 })
-  const activeEmployees = (employeesData?.data ?? []).filter(emp => emp.id !== id)
   const { data: workSchedules = [] } = useWorkSchedules()
 
   const form = useForm<EditForm>({
@@ -643,20 +640,21 @@ function EditEmployeePage({ id }: { id: string }) {
                 />
               </Field>
 
-              <Field label="Reports to (optional)" error={form.formState.errors.reporting_to?.message}>
-                <select
-                  className="form-input-dark"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('reporting_to')}
-                >
-                  <option value="">— No manager —</option>
-                  {activeEmployees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.full_name} {emp.job_title && `(${emp.job_title})`}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <Controller
+                name="reporting_to"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field label="Reports to (optional)" error={fieldState.error?.message}>
+                    <EmployeeDropdown
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      excludeEmployeeId={id}
+                      fullWidth
+                      style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                    />
+                  </Field>
+                )}
+              />
 
               <Field label="Employment type" error={form.formState.errors.employment_type?.message}>
                 <select

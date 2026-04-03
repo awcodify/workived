@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
-import { useEmployees } from '@/lib/hooks/useEmployees'
 import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { Dropdown, type DropdownOption } from './Dropdown'
+import { EmployeeDropdown } from './EmployeeDropdown'
 import { moduleThemes, colors } from '@/design/tokens'
 import {
   X,
@@ -46,7 +46,6 @@ interface FormData {
 
 export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: EmployeeDetailModalProps) {
   const { data: employee, isLoading } = useEmployee(employeeId)
-  const { data: employeesData } = useEmployees({})
   const { data: workSchedules = [] } = useWorkSchedules()
   const updateEmployee = useUpdateEmployee(employeeId)
   
@@ -176,9 +175,6 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
     }
   }
 
-  // Get managers list (exclude current employee)
-  const managers = (employeesData?.data || []).filter(emp => emp.id !== employeeId)
-
   // Dropdown options
   const employmentTypeOptions: DropdownOption[] = [
     { value: 'full_time', label: 'Full-time' },
@@ -197,14 +193,6 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
     { value: '', label: 'Not specified' },
     { value: 'male', label: 'Male' },
     { value: 'female', label: 'Female' },
-  ]
-
-  const managerOptions: DropdownOption[] = [
-    { value: '', label: 'No manager' },
-    ...managers.map(mgr => ({
-      value: mgr.id,
-      label: mgr.full_name,
-    })),
   ]
 
   const scheduleOptions: DropdownOption[] = [
@@ -394,11 +382,11 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                       label="Department"
                       value={employee.department_name || 'Not assigned'}
                     />
-                    <Dropdown
+                    <EmployeeDropdown
                       label="Reports to"
                       value={formData.reporting_to}
                       onChange={(value) => setFormData({ ...formData, reporting_to: value })}
-                      options={managerOptions}
+                      excludeEmployeeId={employeeId}
                       fullWidth
                     />
                     <Dropdown
