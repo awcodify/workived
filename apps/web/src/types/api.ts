@@ -81,6 +81,10 @@ export interface InviteMemberRequest {
   employee_id?: string
 }
 
+export interface UpdateMemberRoleRequest {
+  role: MemberRole
+}
+
 export interface InviteResponse {
   id: string
   email: string

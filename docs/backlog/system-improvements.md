@@ -267,6 +267,81 @@ Show users what's being worked on and what issues are known.
 
 ---
 
+## ⭐⭐⭐⭐⭐ Role Assignment & Management (WOR-TBD)
+**Status:** 📋 Backlog  
+**Effort:** M (3-5 days)  
+**Value:** Unblock multi-user orgs — Ahmad can't delegate without this
+
+**Description:**
+Allow admins/owners to assign and change roles for organisation members. Currently, every invited member joins as `member` with no way to change their role after joining.
+
+**Problem:**
+- Backend has full RBAC (6 roles: owner, admin, member + pro: hr_admin, manager, finance)
+- Frontend hardcodes `role: 'member'` on invite — no role selector
+- No UI exists to change a member's role after they join
+- Owner transfer API exists but has no UI
+- **Result:** Ahmad can't delegate HR tasks, finance access, or admin duties to anyone
+
+**User Stories:**
+
+> As an owner, I want to select a role when inviting a team member, so they get the right permissions from day one.
+
+> As an owner/admin, I want to change an existing member's role from their profile page, so I can delegate responsibilities as the company grows.
+
+> As an owner, I want to transfer ownership to another admin, so I can step back from day-to-day operations.
+
+**Scope — Free Tier:**
+| Feature | Detail |
+|---------|--------|
+| Role selector on invite | Dropdown: admin, member |
+| Role badge on People list | Shows current role next to name |
+| Change role from profile | Owner/admin can change another member's role |
+| Owner transfer | UI for existing `TransferOwnership` API |
+| Safety guards | Can't demote yourself, can't have 0 owners, can't change own role |
+
+**Scope — Pro Tier (gated by existing `ProRoles` map):**
+| Feature | Detail |
+|---------|--------|
+| Pro role selector on invite | Additional roles: hr_admin, manager, finance |
+| Pro role change | Upgrade prompt when selecting a pro role on free tier |
+
+**Cut (not in scope):**
+- Custom roles / custom permissions
+- Role change history UI (audit_logs already captures it automatically)
+- Bulk role assignment
+- Role-based dashboard customization
+- Role hierarchy visualization
+
+**Technical Notes:**
+- Backend `PATCH /api/v1/members/:id` already supports role updates
+- `InviteMemberRequest` validates: `oneof=admin member hr_admin manager finance`
+- `ProRoles` map in `middleware/rbac.go` already gates hr_admin, manager, finance
+- `TransferOwnership` handler exists — just needs frontend
+- Permission check: only `owner` and `admin` can change roles; only `owner` can transfer ownership
+
+**Effort Breakdown:**
+- 0.5d — Invite dialog: add role selector dropdown
+- 1d — Profile page: role change section with confirmation dialog
+- 0.5d — People list: role badge column
+- 0.5d — Owner transfer UI (modal with confirmation)
+- 0.5d — Safety guards (can't demote self, last owner check)
+- 1d — Tests (frontend + backend edge cases)
+
+**Monetisation:**
+- **Pro upgrade driver**: Free tier has 3 roles (owner/admin/member). The moment Ahmad needs hr_admin or manager → Pro upgrade trigger
+- Show "Pro" badge next to locked roles in dropdown
+
+**Dependencies:**
+- None (backend RBAC already complete)
+
+**Edge Cases:**
+- Last owner tries to demote themselves → Block with error
+- Owner transfers to member (not admin) → Block, must be admin first
+- Deactivated employee with admin role → Role preserved if reactivated
+- Free tier user selects hr_admin → Show upgrade prompt
+
+---
+
 ## ⭐⭐⭐ Announcements Module
 **Status:** 📋 Backlog (deferred from Sprint 8)  
 **Effort:** M (3 days)  

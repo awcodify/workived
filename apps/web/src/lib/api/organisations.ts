@@ -16,6 +16,7 @@ import type {
   UnlinkedMember,
   MemberWithProfile,
   MyInvitation,
+  UpdateMemberRoleRequest,
 } from '@/types/api'
 
 export const organisationsApi = {
@@ -65,4 +66,8 @@ export const organisationsApi = {
   // Pending invitations addressed to the current user — no org context required
   getMyInvitations: () =>
     apiClient.get<ApiResponse<MyInvitation[]>>('/api/v1/invitations/mine'),
+
+  // Update member role
+  updateMemberRole: (memberId: string, data: UpdateMemberRoleRequest) =>
+    apiClient.patch<ApiResponse<{ message: string }>>(`/api/v1/organisations/members/${memberId}`, data),
 }

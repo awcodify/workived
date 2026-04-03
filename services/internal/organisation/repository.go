@@ -623,6 +623,22 @@ func (r *Repository) ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) (
 	return members, rows.Err()
 }
 
+// UpdateMemberRole changes the role of an active member.
+func (r *Repository) UpdateMemberRole(ctx context.Context, orgID, memberID uuid.UUID, role string) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE organisation_members
+		SET role = $3, updated_at = NOW()
+		WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
+	`, orgID, memberID, role)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return apperr.NotFound("member")
+	}
+	return nil
+}
+
 func isUniqueViolation(err error) bool {
 	return err != nil && containsCode(err.Error(), "23505")
 }

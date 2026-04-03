@@ -118,6 +118,11 @@ type TransferOwnershipRequest struct {
 	NewOwnerUserID uuid.UUID `json:"new_owner_user_id" validate:"required"`
 }
 
+// UpdateMemberRoleRequest changes a member's role within the organisation.
+type UpdateMemberRoleRequest struct {
+	Role string `json:"role" validate:"required,oneof=admin member hr_admin manager finance"`
+}
+
 // OrgDetail extends Organisation with runtime-computed fields for the settings page.
 type OrgDetail struct {
 	Organisation

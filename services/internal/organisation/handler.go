@@ -31,6 +31,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 
 	// All active members with their HR profile link status — used by Settings → Members page.
 	orgs.GET("/members", middleware.Require(middleware.PermOrgRead), h.ListMembers)
+	orgs.PATCH("/members/:id", middleware.Require(middleware.PermInvitationWrite), h.UpdateMemberRole)
 	// Members without a linked employee record — used by the Add Employee form.
 	orgs.GET("/members/unlinked", middleware.Require(middleware.PermEmployeeWrite), h.ListUnlinkedMembers)
 }
@@ -245,6 +246,34 @@ func (h *Handler) ListMembers(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": members})
+}
+
+func (h *Handler) UpdateMemberRole(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	memberID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	var req UpdateMemberRoleRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+	if err := validate.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.UpdateMemberRole(c.Request.Context(), orgID, userID, memberID, req); err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "role updated"}})
 }
 
 func (h *Handler) ListUnlinkedMembers(c *gin.Context) {

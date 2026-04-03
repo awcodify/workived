@@ -8,6 +8,7 @@ import type { MemberWithProfile, PendingInvitation } from '@/types/api'
 const mockInviteMutate = vi.fn()
 const mockRevokeMutate = vi.fn()
 const mockRefetchInvitations = vi.fn()
+const mockUpdateMemberRoleMutate = vi.fn()
 
 vi.mock('@/lib/hooks/useOrganisation', () => ({
   useOrganisation: vi.fn(),
@@ -18,10 +19,15 @@ vi.mock('@/lib/hooks/useInvitations', () => ({
   useInviteMember: vi.fn(),
   useRevokeInvitation: vi.fn(),
   useMembers: vi.fn(),
+  useUpdateMemberRole: vi.fn(),
 }))
 
 vi.mock('@/lib/hooks/useRole', () => ({
   useCanInvite: vi.fn(),
+}))
+
+vi.mock('@/lib/stores/auth', () => ({
+  useAuthStore: vi.fn(),
 }))
 
 vi.mock('@/components/workived/layout/WorkivedLogo', () => ({
@@ -46,8 +52,9 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 // ── Import AFTER mocks ──────────────────────────────────────────────────────
 
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useInvitations, useInviteMember, useRevokeInvitation, useMembers } from '@/lib/hooks/useInvitations'
+import { useInvitations, useInviteMember, useRevokeInvitation, useMembers, useUpdateMemberRole } from '@/lib/hooks/useInvitations'
 import { useCanInvite } from '@/lib/hooks/useRole'
+import { useAuthStore } from '@/lib/stores/auth'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 const { Route } = await import('./route')
@@ -116,6 +123,14 @@ function setupDefaultMocks() {
     isLoading: false,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } as any)
+
+  vi.mocked(useUpdateMemberRole).mockReturnValue({
+    mutate: mockUpdateMemberRoleMutate,
+    isPending: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any)
+
+  vi.mocked(useAuthStore).mockReturnValue({ id: 'current-user-id', email: 'current@example.com' } as any)
 
   vi.mocked(useCanInvite).mockReturnValue(true)
 }
@@ -325,5 +340,208 @@ describe('MembersPage', () => {
 
     renderPage()
     expect(screen.getByText('Linked')).toBeInTheDocument()
+  })
+
+  describe('Role change functionality', () => {
+    it('shows dropdown arrow on role badge for changeable members', () => {
+      const member = makeMember({ role: 'member', full_name: 'Test User' })
+      vi.mocked(useMembers).mockReturnValue({
+        data: [member],
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      renderPage()
+      // Find the role badge button that has both the role text and dropdown arrow
+      const buttons = screen.getAllByRole('button')
+      const roleBadge = buttons.find((btn) => btn.textContent === 'member▾')
+      expect(roleBadge).toBeInTheDocument()
+    })
+
+    it('does not show dropdown arrow for own profile', () => {
+      const member = makeMember({ user_id: 'current-user-id', role: 'admin', full_name: 'Current User' })
+      vi.mocked(useMembers).mockReturnValue({
+        data: [member],
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      renderPage()
+      expect(screen.getByText('(You)')).toBeInTheDocument()
+      // Should find an admin badge without dropdown arrow
+      const buttons = screen.getAllByRole('button')
+      const roleBadge = buttons.find((btn) => btn.textContent === 'admin' && !btn.textContent?.includes('▾'))
+      expect(roleBadge).toBeInTheDocument()
+    })
+
+    it('does not show dropdown arrow for owner role', () => {
+      const member = makeMember({ role: 'owner', full_name: 'Owner User' })
+      vi.mocked(useMembers).mockReturnValue({
+        data: [member],
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      renderPage()
+      // Should find an owner badge without dropdown arrow
+      const buttons = screen.queryAllByRole('button')
+      const roleBadge = buttons.find((btn) => btn.textContent === 'owner▾')
+      expect(roleBadge).toBeUndefined()
+    })
+
+    it('shows role dropdown when clicking role badge', async () => {
+      const member = makeMember({ role: 'member', full_name: 'Test User' })
+      vi.mocked(useMembers).mockReturnValue({
+        data: [member],
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      renderPage()
+      const buttons = screen.getAllByRole('button')
+      const roleBadge = buttons.find((btn) => btn.textContent === 'member▾')
+      expect(roleBadge).toBeInTheDocument()
+      
+      if (roleBadge) fireEvent.click(roleBadge)
+
+      await waitFor(() => {
+        // Check for role descriptions which are unique to the dropdown
+        expect(screen.getByText('Full access to all features')).toBeInTheDocument()
+        expect(screen.getByText('Manage employees & attendance')).toBeInTheDocument()
+      })
+    })
+
+    it('does not show owner option in role dropdown', async () => {
+      const member = makeMember({ role: 'admin', full_name: 'Test Admin' })
+      vi.mocked(useMembers).mockReturnValue({
+        data: [member],
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      renderPage()
+      const buttons = screen.getAllByRole('button')
+      const roleBadge = buttons.find((btn) => btn.textContent === 'admin▾')
+      
+      if (roleBadge) fireEvent.click(roleBadge)
+
+      await waitFor(() => {
+        expect(screen.getByText('Full access to all features')).toBeInTheDocument()
+      })
+
+      // Owner should not be in the dropdown
+      expect(screen.queryByText('Owner')).not.toBeInTheDocument()
+    })
+
+    it('calls updateMemberRole mutation when selecting new role', async () => {
+      const member = makeMember({ id: 'mem-1', role: 'member', full_name: 'Test User' })
+      vi.mocked(useMembers).mockReturnValue({
+        data: [member],
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      renderPage()
+      const buttons = screen.getAllByRole('button')
+      const roleBadge = buttons.find((btn) => btn.textContent === 'member▾')
+      
+      if (roleBadge) fireEvent.click(roleBadge)
+
+      await waitFor(() => {
+        // Find the Admin option in the dropdown by its description
+        const dropdownButtons = screen.getAllByRole('button')
+        const adminOption = dropdownButtons.find((el) => el.textContent?.includes('Full access to all features'))
+        expect(adminOption).toBeInTheDocument()
+        if (adminOption) fireEvent.click(adminOption)
+      })
+
+      await waitFor(() => {
+        expect(mockUpdateMemberRoleMutate).toHaveBeenCalledWith(
+          { memberId: 'mem-1', data: { role: 'admin' } },
+          expect.any(Object),
+        )
+      })
+    })
+
+    it('marks pro roles as disabled on free plan', async () => {
+      const member = makeMember({ role: 'member', full_name: 'Test User' })
+      vi.mocked(useMembers).mockReturnValue({
+        data: [member],
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      vi.mocked(useOrganisation).mockReturnValue({
+        data: { id: 'org-1', name: 'Workived', slug: 'workived', plan: 'free', timezone: 'Asia/Jakarta' },
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      renderPage()
+      const buttons = screen.getAllByRole('button')
+      const roleBadge = buttons.find((btn) => btn.textContent === 'member▾')
+      
+      if (roleBadge) fireEvent.click(roleBadge)
+
+      await waitFor(() => {
+        const dropdownButtons = screen.getAllByRole('button')
+        const hrAdminOption = dropdownButtons.find((el) => el.textContent?.includes('HR Admin'))
+        expect(hrAdminOption).toBeDisabled()
+      })
+    })
+
+    it('closes dropdown when clicking outside', async () => {
+      const member = makeMember({ role: 'member', full_name: 'Test User' })
+      vi.mocked(useMembers).mockReturnValue({
+        data: [member],
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      renderPage()
+      const buttons = screen.getAllByRole('button')
+      const roleBadge = buttons.find((btn) => btn.textContent === 'member▾')
+      
+      if (roleBadge) fireEvent.click(roleBadge)
+
+      await waitFor(() => {
+        expect(screen.getByText('Full access to all features')).toBeInTheDocument()
+      })
+
+      // Click outside
+      fireEvent.mouseDown(document.body)
+
+      await waitFor(() => {
+        expect(screen.queryByText('Full access to all features')).not.toBeInTheDocument()
+      })
+    })
+
+    it('does not call mutation when selecting same role', async () => {
+      const member = makeMember({ role: 'admin', full_name: 'Test Admin' })
+      vi.mocked(useMembers).mockReturnValue({
+        data: [member],
+        isLoading: false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any)
+
+      renderPage()
+      const buttons = screen.getAllByRole('button')
+      const roleBadge = buttons.find((btn) => btn.textContent === 'admin▾')
+      
+      if (roleBadge) fireEvent.click(roleBadge)
+
+      await waitFor(() => {
+        // Find the Admin option in the dropdown (which should be the current role)
+        const dropdownButtons = screen.getAllByRole('button')
+        const adminOption = dropdownButtons.find((el) => 
+          el.textContent?.includes('Full access to all features') &&
+          !el.textContent?.includes('▾')
+        )
+        expect(adminOption).toBeInTheDocument()
+        if (adminOption) fireEvent.click(adminOption)
+      })
+
+      expect(mockUpdateMemberRoleMutate).not.toHaveBeenCalled()
+    })
   })
 })

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { organisationsApi } from '@/lib/api/organisations'
-import type { InviteMemberRequest } from '@/types/api'
+import type { InviteMemberRequest, UpdateMemberRoleRequest } from '@/types/api'
 import { useAuthStore } from '@/lib/stores/auth'
 
 export const invitationKeys = {
@@ -76,5 +76,16 @@ export function useMembers() {
     queryKey: invitationKeys.members,
     queryFn: () => organisationsApi.listMembers().then((r) => r.data.data),
     enabled: isAuthenticated,
+  })
+}
+
+export function useUpdateMemberRole() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ memberId, data }: { memberId: string; data: UpdateMemberRoleRequest }) =>
+      organisationsApi.updateMemberRole(memberId, data).then((r) => r.data.data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: invitationKeys.members })
+    },
   })
 }

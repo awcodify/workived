@@ -268,6 +268,44 @@ paths:
                     items:
                       $ref: "#/components/schemas/Member"
 
+  /organisations/members/{id}:
+    patch:
+      operationId: updateMemberRole
+      summary: Update a member's role
+      description: Update the role of an organisation member. Cannot change own role or the owner's role.
+      tags: [Organisations]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Member ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [role]
+              properties:
+                role:
+                  type: string
+                  enum: [admin, member, hr_admin, manager, finance]
+                  description: New role for the member
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "400":
+          $ref: "#/components/responses/BadRequestError"
+        "403":
+          $ref: "#/components/responses/ForbiddenError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "426":
+          $ref: "#/components/responses/UpgradeRequiredError"
+
   /organisations/me/transfer-ownership:
     post:
       operationId: transferOwnership

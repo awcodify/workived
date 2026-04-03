@@ -1,12 +1,12 @@
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { parseJwtOrgId } from '@/lib/utils/jwt'
 import { useAuthStore } from '@/lib/stores/auth'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useInvitations, useInviteMember, useRevokeInvitation, useMembers } from '@/lib/hooks/useInvitations'
+import { useInvitations, useInviteMember, useRevokeInvitation, useMembers, useUpdateMemberRole } from '@/lib/hooks/useInvitations'
 import { useCanInvite } from '@/lib/hooks/useRole'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 
@@ -264,6 +264,7 @@ function MembersPage() {
           isLoading={loadingMembers}
           filter={memberFilter}
           onFilterChange={setMemberFilter}
+          isFreePlan={isFreePlan}
         />
 
         {/* Pending Invitations */}
@@ -333,11 +334,13 @@ function TeamMembersSection({
   isLoading,
   filter,
   onFilterChange,
+  isFreePlan = false,
 }: {
   members: MemberWithProfile[]
   isLoading: boolean
   filter: 'all' | 'missing_hr'
   onFilterChange: (f: 'all' | 'missing_hr') => void
+  isFreePlan?: boolean
 }) {
   const missingCount = members.filter((m) => !m.has_hr_profile).length
   const filtered = filter === 'missing_hr' ? members.filter((m) => !m.has_hr_profile) : members
@@ -404,7 +407,7 @@ function TeamMembersSection({
       ) : (
         <div className="flex flex-col gap-2">
           {filtered.map((m) => (
-            <MemberRow key={m.id} member={m} />
+            <MemberRow key={m.id} member={m} isFreePlan={isFreePlan} />
           ))}
         </div>
       )}
@@ -412,7 +415,43 @@ function TeamMembersSection({
   )
 }
 
-function MemberRow({ member }: { member: MemberWithProfile }) {
+function MemberRow({ member, isFreePlan = false }: { member: MemberWithProfile; isFreePlan?: boolean }) {
+  const currentUser = useAuthStore((s) => s.user)
+  const updateMemberRole = useUpdateMemberRole()
+  const [showRoleDropdown, setShowRoleDropdown] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const isOwnProfile = currentUser?.id === member.user_id
+  const canChangeRole = !isOwnProfile && member.role !== 'owner'
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowRoleDropdown(false)
+      }
+    }
+    if (showRoleDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showRoleDropdown])
+
+  const handleRoleChange = (newRole: MemberRole) => {
+    if (newRole === member.role) {
+      setShowRoleDropdown(false)
+      return
+    }
+    updateMemberRole.mutate(
+      { memberId: member.id, data: { role: newRole } },
+      {
+        onSuccess: () => {
+          setShowRoleDropdown(false)
+        },
+      },
+    )
+  }
+
   const hrStatus = !member.has_hr_profile
     ? null
     : member.hr_profile_active
@@ -427,6 +466,7 @@ function MemberRow({ member }: { member: MemberWithProfile }) {
       <div className="flex-1 min-w-0">
         <p style={{ fontSize: 14, fontWeight: 600, color: colors.ink0 }} className="truncate">
           {member.full_name}
+          {isOwnProfile && <span style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 8 }}>(You)</span>}
         </p>
         <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }} className="truncate">
           {member.email}
@@ -434,13 +474,49 @@ function MemberRow({ member }: { member: MemberWithProfile }) {
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        {/* Role badge */}
-        <span
-          className="text-xs font-medium px-2 py-0.5 rounded"
-          style={{ background: 'rgba(155,143,247,0.15)', color: '#9B8FF7' }}
-        >
-          {member.role}
-        </span>
+        {/* Role badge with dropdown */}
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => canChangeRole && setShowRoleDropdown(!showRoleDropdown)}
+            disabled={!canChangeRole || updateMemberRole.isPending}
+            className={`text-xs font-medium px-2 py-0.5 rounded ${canChangeRole ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+            style={{ background: 'rgba(155,143,247,0.15)', color: '#9B8FF7' }}
+          >
+            {member.role}
+            {canChangeRole && <span style={{ marginLeft: 4 }}>▾</span>}
+          </button>
+
+          {showRoleDropdown && (
+            <div
+              className="absolute top-full right-0 mt-1 py-1 rounded-xl shadow-lg z-10 min-w-[180px]"
+              style={{ background: 'rgba(30,30,35,0.98)', border: '1px solid rgba(255,255,255,0.12)' }}
+            >
+              {ROLES.filter((r) => r.value !== 'owner').map((role) => {
+                const isDisabled = role.isPro && isFreePlan
+                const isCurrent = role.value === member.role
+                return (
+                  <button
+                    key={role.value}
+                    onClick={() => !isDisabled && handleRoleChange(role.value)}
+                    disabled={isDisabled}
+                    className={`w-full px-4 py-2 text-left text-xs transition-colors ${
+                      isDisabled ? 'cursor-not-allowed opacity-40' : isCurrent ? 'cursor-default' : 'hover:bg-white/5'
+                    }`}
+                    style={{
+                      color: isCurrent ? '#9B8FF7' : 'rgba(255,255,255,0.85)',
+                      fontWeight: isCurrent ? 600 : 500,
+                    }}
+                  >
+                    <div>{role.label}{role.isPro && isFreePlan ? ' (Pro)' : ''}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                      {role.description}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* HR profile status */}
         {hrStatus === 'active' && (

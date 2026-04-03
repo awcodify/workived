@@ -40,6 +40,7 @@ type RepoInterface interface {
 	ListUnlinkedMembers(ctx context.Context, orgID uuid.UUID) ([]UnlinkedMember, error)
 	ListMembers(ctx context.Context, orgID uuid.UUID) ([]MemberWithProfile, error)
 	GetPendingInvitationsByUserID(ctx context.Context, userID uuid.UUID) ([]MyInvitation, error)
+	UpdateMemberRole(ctx context.Context, orgID, memberID uuid.UUID, role string) error
 }
 
 // AuthTokenCreator is the narrow auth interface the org service needs.
@@ -471,6 +472,82 @@ func (s *Service) ListMembers(ctx context.Context, orgID uuid.UUID) ([]MemberWit
 		return nil, fmt.Errorf("list members: %w", err)
 	}
 	return members, nil
+}
+
+// UpdateMemberRole changes a member's role.
+// Guards: cannot change own role, cannot set role to "owner" (use TransferOwnership),
+// pro roles require pro plan.
+func (s *Service) UpdateMemberRole(ctx context.Context, orgID, actorUserID uuid.UUID, memberID uuid.UUID, req UpdateMemberRoleRequest) error {
+	// 1. Verify the target member exists and is active.
+	member, err := s.findMemberByID(ctx, orgID, memberID)
+	if err != nil {
+		return err
+	}
+
+	// 2. Cannot change your own role.
+	if member.UserID == actorUserID {
+		return apperr.New(apperr.CodeValidation, "you cannot change your own role")
+	}
+
+	// 3. Cannot change the owner's role (must use TransferOwnership).
+	if member.Role == "owner" {
+		return apperr.New(apperr.CodeForbidden, "cannot change the owner's role — use transfer ownership instead")
+	}
+
+	// 4. No-op if role is the same.
+	if member.Role == req.Role {
+		return nil
+	}
+
+	// 5. Pro role check.
+	if middleware.IsProRole(req.Role) {
+		plan, _, err := s.repo.GetOrgPlanInfo(ctx, orgID)
+		if err != nil {
+			return fmt.Errorf("get org plan: %w", err)
+		}
+		if plan == "free" {
+			return apperr.New(apperr.CodeUpgradeRequired, "this role requires a Workived Pro plan")
+		}
+	}
+
+	// 6. Persist.
+	if err := s.repo.UpdateMemberRole(ctx, orgID, memberID, req.Role); err != nil {
+		return fmt.Errorf("update member role: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("member_id", memberID.String()).
+		Str("old_role", member.Role).
+		Str("new_role", req.Role).
+		Str("actor_user_id", actorUserID.String()).
+		Msg("member.role_changed")
+
+	s.logAudit(ctx, audit.LogEntry{
+		OrgID:        orgID,
+		ActorUserID:  actorUserID,
+		Action:       "member.role_changed",
+		ResourceType: "member",
+		ResourceID:   memberID,
+		BeforeState:  map[string]any{"role": member.Role},
+		AfterState:   map[string]any{"role": req.Role},
+	})
+
+	return nil
+}
+
+// findMemberByID locates a member in the members list by their member ID.
+func (s *Service) findMemberByID(ctx context.Context, orgID, memberID uuid.UUID) (*MemberWithProfile, error) {
+	members, err := s.repo.ListMembers(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("list members: %w", err)
+	}
+	for i := range members {
+		if members[i].ID == memberID {
+			return &members[i], nil
+		}
+	}
+	return nil, apperr.NotFound("member")
 }
 
 func (s *Service) ListPendingInvitations(ctx context.Context, orgID uuid.UUID) ([]Invitation, error) {

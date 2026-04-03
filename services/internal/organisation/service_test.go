@@ -28,6 +28,7 @@ type fakeRepo struct {
 	getDetailErr         error
 	updateErr            error
 	transferOwnershipErr error
+	updateMemberRoleErr  error
 }
 
 func newFakeRepo() *fakeRepo {
@@ -326,6 +327,19 @@ func (f *fakeRepo) ListUnlinkedMembers(_ context.Context, orgID uuid.UUID) ([]or
 		}
 	}
 	return result, nil
+}
+
+func (f *fakeRepo) UpdateMemberRole(_ context.Context, orgID, memberID uuid.UUID, role string) error {
+	if f.updateMemberRoleErr != nil {
+		return f.updateMemberRoleErr
+	}
+	for _, m := range f.members {
+		if m.OrgID == orgID && m.ID == memberID && m.IsActive {
+			m.Role = role
+			return nil
+		}
+	}
+	return apperr.NotFound("member")
 }
 
 // ── Fake auth token creator ──────────────────────────────────────────────────
@@ -1131,6 +1145,248 @@ func TestOrgService_TransferOwnership(t *testing.T) {
 }
 
 // ── Audit logging tests ──────────────────────────────────────────────────────
+
+func TestOrgService_UpdateMemberRole(t *testing.T) {
+	t.Run("happy path changes role", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Role Org", Slug: "roleorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+
+		// Add a member
+		memberUserID := uuid.New()
+		memberID := uuid.New()
+		repo.members[memberKey(orgID, memberUserID)] = &organisation.Member{
+			ID: memberID, UserID: memberUserID, OrgID: orgID,
+			Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
+		}
+
+		err = svc.UpdateMemberRole(ctx, orgID, ownerID, memberID, organisation.UpdateMemberRoleRequest{Role: "admin"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		// Verify the role was changed
+		m := repo.members[memberKey(orgID, memberUserID)]
+		if m.Role != "admin" {
+			t.Errorf("role = %q, want %q", m.Role, "admin")
+		}
+	})
+
+	t.Run("cannot change own role", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Self Org", Slug: "selforg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+
+		// Get the owner's member ID
+		ownerMember := repo.members[memberKey(orgID, ownerID)]
+
+		err = svc.UpdateMemberRole(ctx, orgID, ownerID, ownerMember.ID, organisation.UpdateMemberRoleRequest{Role: "admin"})
+		if err == nil {
+			t.Fatal("expected error for self-change")
+		}
+		if !apperr.IsCode(err, apperr.CodeValidation) {
+			t.Errorf("expected VALIDATION_ERROR, got %v", err)
+		}
+	})
+
+	t.Run("cannot change owner role", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Owner Org", Slug: "ownerorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+
+		// Add an admin who tries to change the owner's role
+		adminUserID := uuid.New()
+		repo.members[memberKey(orgID, adminUserID)] = &organisation.Member{
+			ID: uuid.New(), UserID: adminUserID, OrgID: orgID,
+			Role: "admin", IsActive: true, JoinedAt: time.Now().UTC(),
+		}
+
+		ownerMember := repo.members[memberKey(orgID, ownerID)]
+		err = svc.UpdateMemberRole(ctx, orgID, adminUserID, ownerMember.ID, organisation.UpdateMemberRoleRequest{Role: "member"})
+		if err == nil {
+			t.Fatal("expected error for changing owner role")
+		}
+		if !apperr.IsCode(err, apperr.CodeForbidden) {
+			t.Errorf("expected FORBIDDEN, got %v", err)
+		}
+	})
+
+	t.Run("pro role rejected on free plan", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Free Org", Slug: "freeroleorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+
+		memberUserID := uuid.New()
+		memberID := uuid.New()
+		repo.members[memberKey(orgID, memberUserID)] = &organisation.Member{
+			ID: memberID, UserID: memberUserID, OrgID: orgID,
+			Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
+		}
+
+		err = svc.UpdateMemberRole(ctx, orgID, ownerID, memberID, organisation.UpdateMemberRoleRequest{Role: "hr_admin"})
+		if err == nil {
+			t.Fatal("expected error for pro role on free plan")
+		}
+		if !apperr.IsCode(err, apperr.CodeUpgradeRequired) {
+			t.Errorf("expected UPGRADE_REQUIRED, got %v", err)
+		}
+	})
+
+	t.Run("pro role allowed on pro plan", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Pro Org", Slug: "proroleorg", CountryCode: "AE", Timezone: "Asia/Dubai", CurrencyCode: "AED",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+		repo.orgs[orgID].Plan = "pro"
+		repo.orgs[orgID].PlanEmployeeLimit = nil
+
+		memberUserID := uuid.New()
+		memberID := uuid.New()
+		repo.members[memberKey(orgID, memberUserID)] = &organisation.Member{
+			ID: memberID, UserID: memberUserID, OrgID: orgID,
+			Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
+		}
+
+		err = svc.UpdateMemberRole(ctx, orgID, ownerID, memberID, organisation.UpdateMemberRoleRequest{Role: "hr_admin"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		m := repo.members[memberKey(orgID, memberUserID)]
+		if m.Role != "hr_admin" {
+			t.Errorf("role = %q, want %q", m.Role, "hr_admin")
+		}
+	})
+
+	t.Run("member not found", func(t *testing.T) {
+		svc, _ := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Not Found Org", Slug: "notfoundroleorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+
+		err = svc.UpdateMemberRole(ctx, resp.Organisation.ID, ownerID, uuid.New(), organisation.UpdateMemberRoleRequest{Role: "admin"})
+		if err == nil {
+			t.Fatal("expected error for non-existent member")
+		}
+		if !apperr.IsCode(err, apperr.CodeNotFound) {
+			t.Errorf("expected NOT_FOUND, got %v", err)
+		}
+	})
+
+	t.Run("same role is no-op", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		ctx := context.Background()
+		ownerID := uuid.New()
+
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+			Name: "Noop Org", Slug: "nooproleorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+		})
+		if err != nil {
+			t.Fatalf("create org: %v", err)
+		}
+		orgID := resp.Organisation.ID
+
+		memberUserID := uuid.New()
+		memberID := uuid.New()
+		repo.members[memberKey(orgID, memberUserID)] = &organisation.Member{
+			ID: memberID, UserID: memberUserID, OrgID: orgID,
+			Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
+		}
+
+		// Should succeed without calling repo.UpdateMemberRole
+		err = svc.UpdateMemberRole(ctx, orgID, ownerID, memberID, organisation.UpdateMemberRoleRequest{Role: "member"})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+	})
+}
+
+func TestOrgService_UpdateMemberRole_AuditLog(t *testing.T) {
+	svc, repo, al := newTestServiceWithAudit(t)
+	ctx := context.Background()
+	ownerID := uuid.New()
+
+	resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+		Name: "Audit Role Org", Slug: "auditroleorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
+	})
+	if err != nil {
+		t.Fatalf("create org: %v", err)
+	}
+	orgID := resp.Organisation.ID
+
+	memberUserID := uuid.New()
+	memberID := uuid.New()
+	repo.members[memberKey(orgID, memberUserID)] = &organisation.Member{
+		ID: memberID, UserID: memberUserID, OrgID: orgID,
+		Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
+	}
+
+	err = svc.UpdateMemberRole(ctx, orgID, ownerID, memberID, organisation.UpdateMemberRoleRequest{Role: "admin"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	found := false
+	for _, e := range al.entries {
+		if e.Action == "member.role_changed" {
+			found = true
+			if e.ResourceID != memberID {
+				t.Errorf("audit resource_id = %s, want %s", e.ResourceID, memberID)
+			}
+			if e.ActorUserID != ownerID {
+				t.Errorf("audit actor = %s, want %s", e.ActorUserID, ownerID)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected member.role_changed audit entry")
+	}
+}
 
 func TestOrgService_AuditLog_InviteMember(t *testing.T) {
 	svc, _, al := newTestServiceWithAudit(t)
