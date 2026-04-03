@@ -123,15 +123,13 @@ export function TaskCard({
         opacity: isDone ? 0.7 : 1,
         boxShadow: isDragging
           ? `0 8px 16px rgba(0,0,0,0.2), 0 12px 24px rgba(0,0,0,0.15)`
-          : isOverdue
-            ? `0 0 0 2px #EF4444, 0 2px 4px rgba(0,0,0,0.1)`
-            : isDueToday
-              ? `0 0 0 2px #F59E0B, 0 2px 4px rgba(0,0,0,0.1)`
-              : task.approval_type === 'claim'
-                ? `0 2px 8px rgba(16, 185, 129, 0.15), 0 1px 3px rgba(16, 185, 129, 0.2)`
-                : task.approval_type === 'leave'
-                  ? `0 2px 8px rgba(139, 92, 246, 0.15), 0 1px 3px rgba(139, 92, 246, 0.2)`
-                  : `0 2px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05)`,
+          : isDueToday
+            ? `0 0 0 2px #F59E0B, 0 2px 4px rgba(0,0,0,0.1)`
+            : task.approval_type === 'claim'
+              ? `0 2px 8px rgba(16, 185, 129, 0.15), 0 1px 3px rgba(16, 185, 129, 0.2)`
+              : task.approval_type === 'leave'
+                ? `0 2px 8px rgba(139, 92, 246, 0.15), 0 1px 3px rgba(139, 92, 246, 0.2)`
+                : `0 2px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05)`,
         minHeight: '88px', // Mobile: 44px touch target x2
         width: '100%',
         position: 'relative' as const,
@@ -141,18 +139,18 @@ export function TaskCard({
           : task.approval_type === 'leave'
             ? '1px solid rgba(139, 92, 246, 0.2)'
             : '1px solid rgba(0,0,0,0.08)',
-        // Overdue pulse animation
-        animation: isOverdue && !isDone ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
+        // Overdue slow blink animation on border
+        animation: isOverdue && !isDone ? 'borderBlink 1s ease-in-out infinite' : 'none',
       }}
     >
-      {/* Pulse animation keyframes */}
+      {/* Blink animation keyframes */}
       <style>{`
-        @keyframes pulse {
+        @keyframes borderBlink {
           0%, 100% { 
             box-shadow: 0 0 0 2px #EF4444, 0 2px 4px rgba(0,0,0,0.1);
           }
           50% { 
-            box-shadow: 0 0 0 2px #EF4444, 0 0 0 4px rgba(239, 68, 68, 0.2), 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2), 0 2px 4px rgba(0,0,0,0.1);
           }
         }
         @media (prefers-reduced-motion: reduce) {
