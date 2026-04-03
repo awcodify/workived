@@ -562,7 +562,7 @@ function EditEmployeePage({ id }: { id: string }) {
             <h1 className="text-xl font-extrabold tracking-tight" style={{ color: t.text }}>
               {employee.full_name}
             </h1>
-            <StatusSquare status={employee.status} />
+            <StatusSquare status={employee.invitation_pending ? 'pending' : employee.status} />
           </div>
         </div>
       )}

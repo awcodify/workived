@@ -304,6 +304,11 @@ describe('EditEmployeePage', () => {
     expect(screen.getByTestId('status')).toBeTruthy()
   })
 
+  it('shows pending status when invitation_pending is true', () => {
+    renderEditPage(makeEmployee({ invitation_pending: true, status: 'active' }))
+    expect(screen.getByTestId('status').textContent).toBe('pending')
+  })
+
   it('has a save changes button', () => {
     renderEditPage()
     expect(screen.getByRole('button', { name: /save changes/i })).toBeTruthy()
