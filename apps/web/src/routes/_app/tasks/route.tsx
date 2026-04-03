@@ -540,18 +540,25 @@ function TasksPage() {
 
       {/* Jira-style Filter Bar */}
       <div 
-        className="mb-6 -mx-6 px-6 md:-mx-11 md:px-11 py-4"
+        className="mb-6 -mx-6 px-6 md:-mx-11 md:px-11 py-4 md:sticky"
         style={{
-          position: 'sticky',
           top: 0,
           zIndex: 40,
-          background: 'rgba(249, 250, 251, 0.85)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(249, 250, 251, 0.95)',
           boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 0 rgba(0,0,0,0.03)',
           marginBottom: '24px',
+          willChange: 'transform',
         }}
       >
+        {/* Blur effect overlay - desktop only for performance */}
+        <div
+          className="absolute inset-0 -z-10 hidden md:block"
+          style={{
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+        />
+        
         {/* Single unified filter row */}
         <div className="flex items-center gap-3 flex-wrap">
           {/* View mode tabs on the left */}
