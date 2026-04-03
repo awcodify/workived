@@ -540,22 +540,29 @@ function TasksPage() {
 
       {/* Jira-style Filter Bar */}
       <div 
-        className="mb-6 -mx-6 px-6 md:-mx-11 md:px-11 py-4 md:sticky"
+        className="mb-6 -mx-6 px-6 md:-mx-11 md:px-11 py-4 md:sticky relative"
         style={{
           top: 0,
           zIndex: 40,
-          background: 'rgba(249, 250, 251, 0.95)',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.04), 0 1px 0 rgba(0,0,0,0.03)',
+          background: 'transparent',
           marginBottom: '24px',
-          willChange: 'transform',
         }}
       >
+        {/* Solid background for mobile */}
+        <div
+          className="absolute inset-0 -z-10 md:hidden"
+          style={{
+            background: moduleBackgrounds.tasks,
+          }}
+        />
         {/* Blur effect overlay - desktop only for performance */}
         <div
           className="absolute inset-0 -z-10 hidden md:block"
           style={{
             backdropFilter: 'blur(12px)',
             WebkitBackdropFilter: 'blur(12px)',
+            background: moduleBackgrounds.tasks,
+            opacity: 0.92,
           }}
         />
         
