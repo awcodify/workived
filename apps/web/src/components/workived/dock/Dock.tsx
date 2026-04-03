@@ -14,7 +14,7 @@ type ThemableModule = 'overview' | 'people'
 const NAV_ITEMS = [
   { to: '/overview', label: 'Overview', icon: LayoutDashboard, module: 'overview' as ModuleKey, featureKey: null, notificationKey: null, hideOnMobile: false },
   { to: '/attendance', label: 'Attendance', icon: Clock, module: 'attendance' as ModuleKey, featureKey: null, notificationKey: 'attendance', hideOnMobile: false },
-  { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey, featureKey: 'tasks', notificationKey: 'tasks', hideOnMobile: true },
+  { to: '/tasks', label: 'Tasks', icon: CheckSquare, module: 'tasks' as ModuleKey, featureKey: 'tasks', notificationKey: 'tasks', hideOnMobile: false },
   { to: '/leave', label: 'Leave', icon: Calendar, module: 'leave' as ModuleKey, featureKey: null, notificationKey: 'leave', hideOnMobile: false },
   { to: '/claims', label: 'Claims', icon: Receipt, module: 'claims' as ModuleKey, featureKey: null, notificationKey: 'claims', hideOnMobile: false },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'calendar' as ModuleKey, featureKey: null, notificationKey: null, hideOnMobile: false },
