@@ -308,6 +308,10 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, apperr.NotFound("employee")
 		}
+		if constraint, ok := isUniqueViolation(err); ok {
+			msg := r.conflictMessageWithName(ctx, orgID, constraint, nil, req.Phone)
+			return nil, apperr.Conflict(msg)
+		}
 		return nil, err
 	}
 	return e, nil
