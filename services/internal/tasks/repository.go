@@ -81,6 +81,23 @@ func (r *Repository) GetTaskList(ctx context.Context, orgID, id uuid.UUID) (*Tas
 	return &tl, nil
 }
 
+func (r *Repository) GetFinalStateList(ctx context.Context, orgID uuid.UUID) (*TaskList, error) {
+	var tl TaskList
+	err := r.db.QueryRow(ctx, `
+		SELECT id, organisation_id, name, position, is_final_state, is_active, created_at, updated_at
+		FROM task_lists
+		WHERE organisation_id = $1 AND is_final_state = TRUE AND is_active = TRUE
+		LIMIT 1
+	`, orgID).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrTaskListNotFound()
+		}
+		return nil, err
+	}
+	return &tl, nil
+}
+
 func (r *Repository) CreateTaskList(ctx context.Context, orgID uuid.UUID, req CreateListRequest) (*TaskList, error) {
 	// Get next position
 	var maxPosition int
@@ -91,12 +108,18 @@ func (r *Repository) CreateTaskList(ctx context.Context, orgID uuid.UUID, req Cr
 		return nil, err
 	}
 
+	// Default is_final_state to false if not provided
+	isFinalState := false
+	if req.IsFinalState != nil {
+		isFinalState = *req.IsFinalState
+	}
+
 	var tl TaskList
 	err = r.db.QueryRow(ctx, `
-		INSERT INTO task_lists (organisation_id, name, position)
-		VALUES ($1, $2, $3)
+		INSERT INTO task_lists (organisation_id, name, position, is_final_state)
+		VALUES ($1, $2, $3, $4)
 		RETURNING id, organisation_id, name, position, is_final_state, is_active, created_at, updated_at
-	`, orgID, req.Name, maxPosition+1000).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
+	`, orgID, req.Name, maxPosition+1000, isFinalState).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

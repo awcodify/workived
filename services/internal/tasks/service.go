@@ -82,9 +82,22 @@ func (s *Service) EnsureDefaultLists(ctx context.Context, orgID uuid.UUID) error
 		return nil // Lists already exist
 	}
 
-	defaultLists := []string{"To Do", "In Progress", "Done"}
-	for _, name := range defaultLists {
-		_, err := s.repo.CreateTaskList(ctx, orgID, CreateListRequest{Name: name})
+	// Create default task lists
+	defaultLists := []struct {
+		name         string
+		isFinalState bool
+	}{
+		{"To Do", false},
+		{"In Progress", false},
+		{"Done", true}, // Done is the final state - tasks here are automatically marked complete
+	}
+
+	for _, list := range defaultLists {
+		isFinalState := list.isFinalState
+		_, err := s.repo.CreateTaskList(ctx, orgID, CreateListRequest{
+			Name:         list.name,
+			IsFinalState: &isFinalState,
+		})
 		if err != nil {
 			// Ignore unique constraint violations (race condition - another request created it)
 			var pgErr *pgconn.PgError
@@ -92,7 +105,7 @@ func (s *Service) EnsureDefaultLists(ctx context.Context, orgID uuid.UUID) error
 				// Unique constraint violation - list already exists from concurrent request
 				continue
 			}
-			return fmt.Errorf("failed to create default list '%s': %w", name, err)
+			return fmt.Errorf("failed to create default list '%s': %w", list.name, err)
 		}
 	}
 
@@ -632,10 +645,27 @@ func (s *Service) CompleteApprovalTask(
 		return nil
 	}
 
-	// Toggle completion (will mark as complete)
-	_, err = s.repo.ToggleTaskCompletion(ctx, task.OrganisationID, task.ID)
+	// Find the Done (final state) list
+	doneList, err := s.repo.GetFinalStateList(ctx, task.OrganisationID)
 	if err != nil {
-		return fmt.Errorf("complete approval task: %w", err)
+		// If no final state list exists, just mark as completed without moving
+		s.log.Warn().
+			Err(err).
+			Str("org_id", task.OrganisationID.String()).
+			Msg("approval_task.no_final_state_list_found")
+
+		// Fallback: just toggle completion
+		_, err = s.repo.ToggleTaskCompletion(ctx, task.OrganisationID, task.ID)
+		if err != nil {
+			return fmt.Errorf("complete approval task: %w", err)
+		}
+	} else {
+		// Move to Done list (will automatically set completed_at when moving to final state)
+		// Use a high position to place at end of list
+		_, err = s.repo.MoveTask(ctx, task.OrganisationID, task.ID, doneList.ID, 999999)
+		if err != nil {
+			return fmt.Errorf("move approval task to done list: %w", err)
+		}
 	}
 
 	s.log.Info().

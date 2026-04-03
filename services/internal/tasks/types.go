@@ -87,7 +87,8 @@ type CommentReactionSummary struct {
 // ── Request DTOs ─────────────────────────────────────────────────────────────
 
 type CreateListRequest struct {
-	Name string `json:"name" binding:"required,max=100"`
+	Name         string `json:"name" binding:"required,max=100"`
+	IsFinalState *bool  `json:"is_final_state,omitempty"`
 }
 
 type UpdateListRequest struct {
@@ -149,6 +150,7 @@ type RepositoryInterface interface {
 	// Task Lists
 	ListTaskLists(ctx context.Context, orgID uuid.UUID) ([]TaskList, error)
 	GetTaskList(ctx context.Context, orgID, id uuid.UUID) (*TaskList, error)
+	GetFinalStateList(ctx context.Context, orgID uuid.UUID) (*TaskList, error)
 	CreateTaskList(ctx context.Context, orgID uuid.UUID, req CreateListRequest) (*TaskList, error)
 	UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, req UpdateListRequest) (*TaskList, error)
 	DeactivateTaskList(ctx context.Context, orgID, id uuid.UUID) error
