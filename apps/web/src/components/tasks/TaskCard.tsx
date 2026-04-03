@@ -104,9 +104,20 @@ export function TaskCard({
       }}
       className="transition-all duration-150 relative"
       style={{
-        background: isDone ? '#F5F5F5' : '#FFFFFF',
+        background: isDone 
+          ? '#F5F5F5' 
+          : task.approval_type === 'claim'
+            ? 'linear-gradient(to bottom, rgba(16, 185, 129, 0.03) 0%, #FFFFFF 60%)'
+            : task.approval_type === 'leave'
+              ? 'linear-gradient(to bottom, rgba(139, 92, 246, 0.03) 0%, #FFFFFF 60%)'
+              : '#FFFFFF',
         borderRadius: '6px',
-        borderLeft: `4px solid ${isDone ? '#9CA3AF' : colors.pin}`,
+        borderLeft: task.approval_type === 'claim'
+          ? `4px solid #10B981`
+          : task.approval_type === 'leave'
+            ? `4px solid #8B5CF6`
+            : `4px solid ${isDone ? '#9CA3AF' : colors.pin}`,
+
         transform: isDragging ? 'scale(1.03)' : 'scale(1)',
         cursor: onClick ? 'pointer' : 'grab',
         opacity: isDone ? 0.7 : 1,
@@ -116,12 +127,20 @@ export function TaskCard({
             ? `0 0 0 2px #EF4444, 0 2px 4px rgba(0,0,0,0.1)`
             : isDueToday
               ? `0 0 0 2px #F59E0B, 0 2px 4px rgba(0,0,0,0.1)`
-              : `0 2px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05)`,
+              : task.approval_type === 'claim'
+                ? `0 2px 8px rgba(16, 185, 129, 0.15), 0 1px 3px rgba(16, 185, 129, 0.2)`
+                : task.approval_type === 'leave'
+                  ? `0 2px 8px rgba(139, 92, 246, 0.15), 0 1px 3px rgba(139, 92, 246, 0.2)`
+                  : `0 2px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.05)`,
         minHeight: '88px', // Mobile: 44px touch target x2
         width: '100%',
         position: 'relative' as const,
         marginTop: '8px',
-        border: '1px solid rgba(0,0,0,0.08)',
+        border: task.approval_type === 'claim'
+          ? '1px solid rgba(16, 185, 129, 0.2)'
+          : task.approval_type === 'leave'
+            ? '1px solid rgba(139, 92, 246, 0.2)'
+            : '1px solid rgba(0,0,0,0.08)',
         // Overdue pulse animation
         animation: isOverdue && !isDone ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
       }}
@@ -197,7 +216,7 @@ export function TaskCard({
         />
       )}
 
-      {/* Approval ribbon */}
+      {/* Approval ribbon - larger and more visible */}
       {task.approval_type && !task.completed_at && (
         <div
           style={{
@@ -205,31 +224,58 @@ export function TaskCard({
             top: 0,
             left: 0,
             right: 0,
-            height: '4px',
-            background: 'linear-gradient(90deg, #8B5CF6 0%, #6D28D9 50%, #8B5CF6 100%)',
+            height: '6px',
+            background: task.approval_type === 'claim'
+              ? 'linear-gradient(90deg, #10B981 0%, #059669 50%, #10B981 100%)'
+              : 'linear-gradient(90deg, #8B5CF6 0%, #6D28D9 50%, #8B5CF6 100%)',
+            borderTopLeftRadius: '6px',
+            borderTopRightRadius: '6px',
             zIndex: 5,
           }}
         />
       )}
 
       <div className="px-4 py-3 h-full flex flex-col justify-between relative">
-        {/* Title */}
-        <h3
-          className="font-bold text-sm leading-snug mb-2 line-clamp-2"
-          style={{
-            color: isDone ? '#6B7280' : '#1F2937',
-            textDecoration: isDone ? 'line-through' : 'none',
-            fontFamily: typography.fontFamily,
-            fontSize: '14px',
-            fontWeight: 600,
-          }}
-        >
-          {task.title}
-        </h3>
+        {/* Title with approval label */}
+        <div className="mb-2">
+          {/* Approval label - prominent and clear */}
+          {task.approval_type && (
+            <div
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md mb-2 text-xs font-bold uppercase"
+              style={{
+                background: task.approval_type === 'claim'
+                  ? 'linear-gradient(135deg, #10B981 0%, #059669 100%)'
+                  : 'linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%)',
+                color: '#FFFFFF',
+                fontFamily: typography.fontFamily,
+                letterSpacing: '0.5px',
+                boxShadow: task.approval_type === 'claim'
+                  ? '0 2px 4px rgba(16, 185, 129, 0.3)'
+                  : '0 2px 4px rgba(139, 92, 246, 0.3)',
+              }}
+            >
+              <span>✓</span>
+              <span>{task.approval_type === 'leave' ? 'Leave Approval' : 'Claim Approval'}</span>
+            </div>
+          )}
+          
+          <h3
+            className="font-bold text-sm leading-snug line-clamp-2"
+            style={{
+              color: isDone ? '#6B7280' : '#1F2937',
+              textDecoration: isDone ? 'line-through' : 'none',
+              fontFamily: typography.fontFamily,
+              fontSize: '14px',
+              fontWeight: 600,
+            }}
+          >
+            {task.title}
+          </h3>
+        </div>
 
         {/* Footer: Priority + Due date + Completed badge */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-2">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {/* Priority badge */}
             <div
               className="px-2 py-0.5 rounded text-xs font-bold uppercase"
