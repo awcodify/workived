@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { ClaimWithDetails } from '@/types/api'
 import { colors, typography, radius, getAvatarColor } from '@/design/tokens'
 import { formatClaimAmount } from './ClaimRequestConfig'
@@ -28,6 +28,15 @@ export function MarkAsPaidSheet({ claim, onClose, onConfirm }: Props) {
         year: 'numeric',
       })
     : null
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isPending) onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose, isPending])
 
   async function handleConfirm() {
     setIsPending(true)

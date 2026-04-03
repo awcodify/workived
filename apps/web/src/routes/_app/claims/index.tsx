@@ -834,6 +834,15 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
 
   const selectedCategory = categories?.find((c) => c.id === categoryId)
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
+
   const formatNumberWithCommas = (value: string): string => {
     // Remove all non-digit characters
     const digitsOnly = value.replace(/\D/g, '')

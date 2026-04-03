@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { X, Info } from 'lucide-react'
 import { useCreateCategory, useUpdateCategory } from '@/lib/hooks/useClaims'
@@ -69,6 +69,15 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
   const hasMonthlyLimit = watch('monthly_limit') !== ''
   const budgetPeriod = watch('budget_period')
   const eligibleTypes = watch('eligible_employment_types') ?? (isEditMode ? [] : ['full_time'])
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
 
   const toggleEmploymentType = (type: EmpType) => {
     if (eligibleTypes.includes(type)) {

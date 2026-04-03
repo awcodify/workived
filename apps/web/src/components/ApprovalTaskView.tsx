@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowLeft, Calendar, DollarSign, FileText, User, CheckCircle, XCircle } from 'lucide-react'
 import { useClaim, useApproveClaim, useRejectClaim } from '@/lib/hooks/useClaims'
 import { useLeaveRequest, useApproveRequest, useRejectRequest } from '@/lib/hooks/useLeave'
@@ -48,6 +48,15 @@ function LeaveApprovalView({ task, approvalId, onClose }: LeaveApprovalViewProps
   const approveMutation = useApproveRequest()
   const rejectMutation = useRejectRequest()
   const moveMutation = useMoveTask()
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
 
   const handleApprove = async () => {
     try {
@@ -231,6 +240,15 @@ function ClaimApprovalView({ task, approvalId, onClose }: ClaimApprovalViewProps
   const [showApproveModal, setShowApproveModal] = useState(false)
   const [showRejectModal, setShowRejectModal] = useState(false)
   const [rejectNote, setRejectNote] = useState('')
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
 
   const handleApprove = async () => {
     try {
@@ -527,6 +545,15 @@ function ApprovalModal({
   onCancel,
   isPending,
 }: ApprovalModalProps) {
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onCancel()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onCancel])
+
   return (
     <>
       {/* Backdrop */}

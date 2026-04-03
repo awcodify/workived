@@ -24,6 +24,15 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
     }
   }, [importMutation.isSuccess, onClose])
 
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
+
   const handleToggle = (id: string) => {
     setSelectedIds((prev) => {
       const next = new Set(prev)

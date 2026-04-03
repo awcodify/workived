@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { X, Info } from 'lucide-react'
@@ -62,6 +63,15 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
   const genderEligibility = watch('gender_eligibility')
   const eligibleTypes = watch('eligible_employment_types') ?? []
   const maxLifetimeUses = watch('max_lifetime_uses')
+
+  // Close on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
 
   const toggleEmploymentType = (type: EmpType) => {
     if (eligibleTypes.includes(type)) {
