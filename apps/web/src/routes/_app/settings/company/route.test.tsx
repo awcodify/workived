@@ -202,7 +202,7 @@ describe('CompanyPage', () => {
     } as any)
 
     render(<CompanyPage />)
-    expect(screen.getByText('Upgrade to Pro')).toBeTruthy()
+    expect(screen.getByText('Upgrade')).toBeTruthy()
   })
 
   it('does not show Upgrade to Pro CTA below 80% usage', () => {
@@ -214,7 +214,7 @@ describe('CompanyPage', () => {
     } as any)
 
     render(<CompanyPage />)
-    expect(screen.queryByText('Upgrade to Pro')).toBeNull()
+    expect(screen.queryByText('Upgrade')).toBeNull()
   })
 
   it('submits company info form with updated name', async () => {
@@ -252,7 +252,7 @@ describe('CompanyPage', () => {
     render(<CompanyPage />)
 
     const uuid = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
-    const uuidInput = screen.getByLabelText(/new owner's user id/i)
+    const uuidInput = screen.getByLabelText(/transfer ownership/i)
     fireEvent.change(uuidInput, { target: { value: uuid } })
 
     const transferButton = screen.getByRole('button', { name: /transfer ownership/i })
@@ -260,7 +260,7 @@ describe('CompanyPage', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('dialog')).toBeTruthy()
-      expect(screen.getByText(/confirm ownership transfer/i)).toBeTruthy()
+      expect(screen.getByText(/confirm transfer/i)).toBeTruthy()
     })
 
     expect(mockTransferMutate).not.toHaveBeenCalled()
@@ -277,7 +277,7 @@ describe('CompanyPage', () => {
     render(<CompanyPage />)
 
     const uuid = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
-    const uuidInput = screen.getByLabelText(/new owner's user id/i)
+    const uuidInput = screen.getByLabelText(/transfer ownership/i)
     fireEvent.change(uuidInput, { target: { value: uuid } })
 
     fireEvent.click(screen.getByRole('button', { name: /transfer ownership/i }))
@@ -319,7 +319,7 @@ describe('CompanyPage', () => {
     render(<CompanyPage />)
 
     const uuid = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890'
-    const uuidInput = screen.getByLabelText(/new owner's user id/i)
+    const uuidInput = screen.getByLabelText(/transfer ownership/i)
     fireEvent.change(uuidInput, { target: { value: uuid } })
 
     fireEvent.click(screen.getByRole('button', { name: /transfer ownership/i }))

@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
@@ -59,134 +59,134 @@ const C = {
   warnDim: colors.warnDim,
 }
 
+// ── Shared style constants ─────────────────────────────────────────────────────
+
+const S = {
+  text:       '#FFFFFF',
+  textMuted:  'rgba(255,255,255,0.55)',
+  textDim:    'rgba(255,255,255,0.35)',
+  divider:    'rgba(255,255,255,0.08)',
+  inputBg:    'rgba(255,255,255,0.07)',
+  inputBorder:'rgba(255,255,255,0.12)',
+}
+
+// ── Sidebar navigation items ───────────────────────────────────────────────────
+
+const NAV_ITEMS = [
+  { id: 'general', label: 'General' },
+  { id: 'location', label: 'Location & currency' },
+  { id: 'plan', label: 'Plan & usage' },
+  { id: 'danger', label: 'Danger zone' },
+]
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-function Card({ children }: { children: React.ReactNode }) {
+function FieldRow({ label, htmlFor, description, children }: {
+  label: string
+  htmlFor: string
+  description?: string
+  children: React.ReactNode
+}) {
   return (
-    <div
-      className="p-8 rounded-2xl"
-      style={{
-        background: 'rgba(255,255,255,0.06)',
-        border: '1px solid rgba(255,255,255,0.08)',
-      }}
-    >
-      {children}
+    <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8 items-start">
+      <div className="pt-2.5">
+        <label htmlFor={htmlFor} style={{ fontSize: 14, fontWeight: 600, color: S.text, display: 'block' }}>
+          {label}
+        </label>
+        {description && (
+          <p style={{ fontSize: 13, color: S.textDim, marginTop: 4, lineHeight: 1.5 }}>{description}</p>
+        )}
+      </div>
+      <div>{children}</div>
     </div>
   )
 }
 
-function CardTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <h2
-      style={{
-        fontSize: 18,
-        fontWeight: 700,
-        color: colors.ink0,
-        marginBottom: 16,
-      }}
-    >
-      {children}
-    </h2>
-  )
-}
-
-function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
-  return (
-    <label
-      htmlFor={htmlFor}
-      style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)', display: 'block', marginBottom: 6 }}
-    >
-      {children}
-    </label>
-  )
-}
-
-function DarkInput({
-  id,
-  disabled,
-  ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { id: string }) {
+function Input({ id, disabled, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { id: string }) {
   return (
     <input
       id={id}
       disabled={disabled}
-      className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
-      style={{
-        background: 'rgba(255,255,255,0.08)',
-        border: '1.5px solid rgba(255,255,255,0.12)',
-        color: colors.ink0,
-      }}
+      className="w-full max-w-md px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+      style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text }}
       {...props}
     />
   )
 }
 
-function SuccessBanner({ message }: { message: string }) {
+function Select({ id, disabled, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement> & { id: string }) {
   return (
-    <div
-      role="alert"
-      aria-live="polite"
-      className="px-4 py-3 rounded-xl"
-      style={{ background: C.okDim, border: `1px solid ${C.ok}` }}
-    >
-      <p style={{ fontSize: 14, color: C.okText, fontWeight: 500 }}>{message}</p>
-    </div>
-  )
-}
-
-function ErrorBanner({ message }: { message: string }) {
-  return (
-    <div
-      role="alert"
-      aria-live="polite"
-      className="px-4 py-3 rounded-xl"
-      style={{ background: C.errDim, border: `1px solid ${C.err}` }}
-    >
-      <p style={{ fontSize: 14, color: C.errText, fontWeight: 500 }}>{message}</p>
-    </div>
-  )
-}
-
-function PrimaryButton({
-  children,
-  disabled,
-  type = 'button',
-  onClick,
-}: {
-  children: React.ReactNode
-  disabled?: boolean
-  type?: 'button' | 'submit' | 'reset'
-  onClick?: () => void
-}) {
-  return (
-    <button
-      type={type}
+    <select
+      id={id}
       disabled={disabled}
-      onClick={onClick}
-      className="px-6 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50"
-      style={{
-        background: C.accent,
-        color: colors.ink0,
-      }}
+      className="w-full max-w-md px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none disabled:opacity-50"
+      style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text }}
+      {...props}
     >
       {children}
-    </button>
+    </select>
   )
 }
 
-// ── Company info card ──────────────────────────────────────────────────────────
+function Divider() {
+  return <div style={{ height: 1, background: S.divider }} />
+}
 
-function CompanyInfoCard() {
+function SectionTitle({ id, children, description }: { id?: string; children: React.ReactNode; description?: string }) {
+  return (
+    <div id={id} className="scroll-mt-8">
+      <h2 style={{ fontSize: 16, fontWeight: 700, color: S.text, letterSpacing: '-0.02em' }}>{children}</h2>
+      {description && (
+        <p style={{ fontSize: 14, color: S.textMuted, marginTop: 4, lineHeight: 1.5 }}>{description}</p>
+      )}
+    </div>
+  )
+}
+
+function Banner({ variant, message }: { variant: 'success' | 'error' | 'warning' | 'info'; message: string }) {
+  const styles = {
+    success: { bg: 'rgba(18,160,92,0.1)', border: 'rgba(18,160,92,0.3)', color: '#34D399' },
+    error:   { bg: 'rgba(212,64,64,0.1)', border: 'rgba(212,64,64,0.3)', color: '#F87171' },
+    warning: { bg: 'rgba(201,123,42,0.1)', border: 'rgba(201,123,42,0.3)', color: '#FBBF24' },
+    info:    { bg: 'rgba(99,87,232,0.1)', border: 'rgba(99,87,232,0.3)', color: '#A5B4FC' },
+  }
+  const s = styles[variant]
+  return (
+    <div role="alert" aria-live="polite" className="px-4 py-3 rounded-lg text-sm font-medium"
+      style={{ background: s.bg, borderLeft: `3px solid ${s.border}`, color: s.color }}>
+      {message}
+    </div>
+  )
+}
+
+function SaveButton({ loading, label = 'Save changes' }: { loading: boolean; label?: string }) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8">
+      <div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+          style={{ background: C.accent, color: '#FFFFFF' }}
+        >
+          {loading ? 'Saving...' : label}
+        </button>
+      </div>
+      <div /> {/* Empty space */}
+    </div>
+  )
+}
+
+// ── Company info section ───────────────────────────────────────────────────────
+
+function CompanyInfoSection() {
   const { data: org } = useOrgDetail()
   const updateOrg = useUpdateOrg()
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
   const form = useForm<CompanyInfoForm>({
     resolver: zodResolver(companyInfoSchema),
-    values: {
-      name: org?.name ?? '',
-      slug: org?.slug ?? '',
-    },
+    values: { name: org?.name ?? '', slug: org?.slug ?? '' },
   })
 
   const apiError = extractApiError(updateOrg.error)
@@ -201,64 +201,42 @@ function CompanyInfoCard() {
   }
 
   return (
-    <Card>
-      <CardTitle>Company info</CardTitle>
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-6">
+      <SectionTitle id="general" description="Your company name and workspace URL.">General</SectionTitle>
 
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-5">
-        {apiError && <ErrorBanner message={apiError} />}
-        {successMessage && <SuccessBanner message={successMessage} />}
+      {apiError && <Banner variant="error" message={apiError} />}
+      {successMessage && <Banner variant="success" message={successMessage} />}
 
-        <div>
-          <FieldLabel htmlFor="company-name">Company name</FieldLabel>
-          <DarkInput
-            id="company-name"
-            type="text"
-            placeholder="Acme Corp"
-            {...form.register('name')}
+      <FieldRow label="Company name" htmlFor="company-name">
+        <Input id="company-name" type="text" placeholder="Acme Corp" {...form.register('name')} />
+        {form.formState.errors.name && (
+          <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>{form.formState.errors.name.message}</p>
+        )}
+      </FieldRow>
+
+      <FieldRow label="Workspace URL" htmlFor="company-slug" description="Used for invitations and sharing.">
+        <div className="flex items-center rounded-lg overflow-hidden max-w-md" style={{ border: `1px solid ${S.inputBorder}` }}>
+          <span className="px-3 py-2.5 text-sm select-none shrink-0" style={{ background: 'rgba(255,255,255,0.04)', color: S.textDim, borderRight: `1px solid ${S.divider}` }}>
+            my.workived.com/
+          </span>
+          <input
+            id="company-slug" type="text" placeholder="acme-corp"
+            className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-transparent"
+            style={{ color: S.text }}
+            {...form.register('slug')}
           />
-          {form.formState.errors.name && (
-            <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>
-              {form.formState.errors.name.message}
-            </p>
-          )}
         </div>
+        {form.formState.errors.slug && (
+          <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>{form.formState.errors.slug.message}</p>
+        )}
+      </FieldRow>
 
-        <div>
-          <FieldLabel htmlFor="company-slug">Workspace URL</FieldLabel>
-          <div className="flex items-center rounded-xl overflow-hidden" style={{ border: '1.5px solid rgba(255,255,255,0.12)' }}>
-            <span
-              className="px-3 py-3 text-sm select-none flex-shrink-0"
-              style={{ background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', borderRight: '1px solid rgba(255,255,255,0.08)' }}
-            >
-              workived.app/
-            </span>
-            <input
-              id="company-slug"
-              type="text"
-              placeholder="acme-corp"
-              className="flex-1 px-4 py-3 text-sm focus:outline-none bg-transparent"
-              style={{ color: colors.ink0 }}
-              {...form.register('slug')}
-            />
-          </div>
-          {form.formState.errors.slug && (
-            <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>
-              {form.formState.errors.slug.message}
-            </p>
-          )}
-        </div>
-
-        <div className="flex justify-end">
-          <PrimaryButton type="submit" disabled={updateOrg.isPending}>
-            {updateOrg.isPending ? 'Saving...' : 'Save changes'}
-          </PrimaryButton>
-        </div>
-      </form>
-    </Card>
+      <SaveButton loading={updateOrg.isPending} />
+    </form>
   )
 }
 
-// ── Location card ──────────────────────────────────────────────────────────────
+// ── Location section ───────────────────────────────────────────────────────────
 
 const TIMEZONES = [
   { value: 'Asia/Jakarta', label: 'WIB — Jakarta (UTC+7)' },
@@ -284,7 +262,7 @@ const CURRENCIES = [
   { value: 'SGD', label: 'SGD — Singapore Dollar' },
 ]
 
-function LocationCard() {
+function LocationSection() {
   const { data: org } = useOrgDetail()
   const updateOrg = useUpdateOrg()
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
@@ -312,141 +290,68 @@ function LocationCard() {
   }
 
   return (
-    <Card>
-      <CardTitle>Location &amp; currency</CardTitle>
+    <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-6">
+      <SectionTitle id="location" description="Regional settings used for compliance and localization.">
+        Location &amp; currency
+      </SectionTitle>
 
-      {isLocked && (
-        <div
-          className="mb-5 px-4 py-3 rounded-xl"
-          style={{ background: C.warnDim, border: `1px solid ${C.warn}` }}
-        >
-          <p style={{ fontSize: 14, color: C.warn, fontWeight: 500 }}>
-            Location settings are locked after employees are added.
+      {isLocked && <Banner variant="warning" message="Location settings are locked after employees are added." />}
+      {apiError && <Banner variant="error" message={apiError} />}
+      {successMessage && <Banner variant="success" message={successMessage} />}
+
+      <FieldRow label="Country" htmlFor="country-code">
+        {isLocked ? (
+          <p id="country-code" style={{ fontSize: 14, color: S.text, fontWeight: 500, paddingTop: 4 }}>
+            {COUNTRIES.find((c) => c.value === org?.country_code)?.label ?? org?.country_code}
           </p>
-        </div>
-      )}
-
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-5">
-        {apiError && <ErrorBanner message={apiError} />}
-        {successMessage && <SuccessBanner message={successMessage} />}
-
-        <div>
-          <FieldLabel htmlFor="country-code">Country</FieldLabel>
-          {isLocked ? (
-            <p
-              id="country-code"
-              style={{ fontSize: 15, color: colors.ink0, fontWeight: 500 }}
-            >
-              {COUNTRIES.find((c) => c.value === org?.country_code)?.label ?? org?.country_code}
-            </p>
-          ) : (
-            <select
-              id="country-code"
-              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none appearance-none"
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1.5px solid rgba(255,255,255,0.12)',
-                color: colors.ink0,
-              }}
-              {...form.register('country_code')}
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.value} value={c.value}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          )}
-          {form.formState.errors.country_code && (
-            <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>
-              {form.formState.errors.country_code.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <FieldLabel htmlFor="timezone">Timezone</FieldLabel>
-          {isLocked ? (
-            <p
-              id="timezone"
-              style={{ fontSize: 15, color: colors.ink0, fontWeight: 500 }}
-            >
-              {TIMEZONES.find((t) => t.value === org?.timezone)?.label ?? org?.timezone}
-            </p>
-          ) : (
-            <select
-              id="timezone"
-              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none appearance-none"
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1.5px solid rgba(255,255,255,0.12)',
-                color: colors.ink0,
-              }}
-              {...form.register('timezone')}
-            >
-              {TIMEZONES.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          )}
-          {form.formState.errors.timezone && (
-            <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>
-              {form.formState.errors.timezone.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <FieldLabel htmlFor="currency-code">Currency</FieldLabel>
-          {isLocked ? (
-            <p
-              id="currency-code"
-              style={{ fontSize: 15, color: colors.ink0, fontWeight: 500 }}
-            >
-              {CURRENCIES.find((cur) => cur.value === org?.currency_code)?.label ?? org?.currency_code}
-            </p>
-          ) : (
-            <select
-              id="currency-code"
-              className="w-full px-4 py-3 rounded-xl text-sm focus:outline-none appearance-none"
-              style={{
-                background: 'rgba(255,255,255,0.08)',
-                border: '1.5px solid rgba(255,255,255,0.12)',
-                color: colors.ink0,
-              }}
-              {...form.register('currency_code')}
-            >
-              {CURRENCIES.map((cur) => (
-                <option key={cur.value} value={cur.value}>
-                  {cur.label}
-                </option>
-              ))}
-            </select>
-          )}
-          {form.formState.errors.currency_code && (
-            <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>
-              {form.formState.errors.currency_code.message}
-            </p>
-          )}
-        </div>
-
-        {!isLocked && (
-          <div className="flex justify-end">
-            <PrimaryButton type="submit" disabled={updateOrg.isPending}>
-              {updateOrg.isPending ? 'Saving...' : 'Save location'}
-            </PrimaryButton>
-          </div>
+        ) : (
+          <Select id="country-code" {...form.register('country_code')}>
+            {COUNTRIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </Select>
         )}
-      </form>
-    </Card>
+        {form.formState.errors.country_code && (
+          <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>{form.formState.errors.country_code.message}</p>
+        )}
+      </FieldRow>
+
+      <FieldRow label="Timezone" htmlFor="timezone">
+        {isLocked ? (
+          <p id="timezone" style={{ fontSize: 14, color: S.text, fontWeight: 500, paddingTop: 4 }}>
+            {TIMEZONES.find((t) => t.value === org?.timezone)?.label ?? org?.timezone}
+          </p>
+        ) : (
+          <Select id="timezone" {...form.register('timezone')}>
+            {TIMEZONES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+          </Select>
+        )}
+        {form.formState.errors.timezone && (
+          <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>{form.formState.errors.timezone.message}</p>
+        )}
+      </FieldRow>
+
+      <FieldRow label="Currency" htmlFor="currency-code">
+        {isLocked ? (
+          <p id="currency-code" style={{ fontSize: 14, color: S.text, fontWeight: 500, paddingTop: 4 }}>
+            {CURRENCIES.find((cur) => cur.value === org?.currency_code)?.label ?? org?.currency_code}
+          </p>
+        ) : (
+          <Select id="currency-code" {...form.register('currency_code')}>
+            {CURRENCIES.map((cur) => <option key={cur.value} value={cur.value}>{cur.label}</option>)}
+          </Select>
+        )}
+        {form.formState.errors.currency_code && (
+          <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>{form.formState.errors.currency_code.message}</p>
+        )}
+      </FieldRow>
+
+      {!isLocked && <SaveButton loading={updateOrg.isPending} label="Save location" />}
+    </form>
   )
 }
 
-// ── Plan card ──────────────────────────────────────────────────────────────────
+// ── Plan section ───────────────────────────────────────────────────────────────
 
-function PlanCard() {
+function PlanSection() {
   const { data: org } = useOrgDetail()
 
   if (!org) return null
@@ -458,36 +363,36 @@ function PlanCard() {
   const planLabel = org.plan === 'free' ? 'Free' : org.plan === 'pro' ? 'Pro' : 'Enterprise'
 
   return (
-    <Card>
-      <CardTitle>Plan</CardTitle>
+    <div className="flex flex-col gap-6">
+      <SectionTitle id="plan" description="Your current subscription and employee usage.">
+        Plan &amp; usage
+      </SectionTitle>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: colors.ink0 }}>{planLabel} plan</p>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
-              {count} employee{count !== 1 ? 's' : ''}
-              {limit ? ` of ${limit} included` : ' (no limit)'}
-            </p>
+      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8 items-start">
+        <p style={{ fontSize: 14, fontWeight: 600, color: S.text, paddingTop: 2 }}>Current plan</p>
+        <div>
+          <div className="flex items-center gap-3">
+            <span style={{ fontSize: 14, fontWeight: 700, color: S.text }}>{planLabel}</span>
+            {isNearLimit && (
+              <a
+                href="mailto:hello@workived.com?subject=Upgrade to Pro"
+                className="px-3 py-1 rounded-md text-xs font-semibold"
+                style={{ background: C.accent, color: '#FFFFFF', textDecoration: 'none' }}
+              >
+                Upgrade
+              </a>
+            )}
           </div>
-
-          {isNearLimit && (
-            <a
-              href="mailto:hello@workived.com?subject=Upgrade to Pro"
-              className="px-4 py-2 rounded-xl text-xs font-bold"
-              style={{
-                background: C.accent,
-                color: colors.ink0,
-                textDecoration: 'none',
-              }}
-            >
-              Upgrade to Pro
-            </a>
-          )}
+          <p style={{ fontSize: 13, color: S.textMuted, marginTop: 4 }}>
+            {count} employee{count !== 1 ? 's' : ''}{limit ? ` of ${limit}` : ''}
+          </p>
         </div>
+      </div>
 
-        {limit && (
-          <div>
+      {limit && (
+        <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8 items-start">
+          <p style={{ fontSize: 14, fontWeight: 600, color: S.text, paddingTop: 2 }}>Usage</p>
+          <div className="max-w-md">
             <div
               className="w-full rounded-full overflow-hidden"
               style={{ height: 6, background: 'rgba(255,255,255,0.08)' }}
@@ -507,19 +412,19 @@ function PlanCard() {
                 }}
               />
             </div>
-            <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 6 }}>
-              {Math.round(usagePct)}% of employee limit used
+            <p style={{ fontSize: 12, color: S.textDim, marginTop: 6 }}>
+              {Math.round(usagePct)}% of limit used
             </p>
           </div>
-        )}
-      </div>
-    </Card>
+        </div>
+      )}
+    </div>
   )
 }
 
-// ── Transfer ownership card ────────────────────────────────────────────────────
+// ── Transfer ownership section ─────────────────────────────────────────────────
 
-function TransferOwnershipCard() {
+function TransferOwnershipSection() {
   const transferOwnership = useTransferOwnership()
   const [showConfirm, setShowConfirm] = useState(false)
   const [pendingData, setPendingData] = useState<TransferForm | null>(null)
@@ -547,145 +452,90 @@ function TransferOwnershipCard() {
         setSuccessMessage('Ownership transferred successfully.')
         setTimeout(() => setSuccessMessage(null), 4000)
       },
-      onError: () => {
-        setShowConfirm(false)
-      },
+      onError: () => setShowConfirm(false),
     })
   }
 
-  const handleCancel = () => {
-    setShowConfirm(false)
-    setPendingData(null)
-  }
-
   return (
-    <Card>
-      <CardTitle>Transfer ownership</CardTitle>
+    <form onSubmit={form.handleSubmit(handleSubmitIntent)} className="flex flex-col gap-6">
+      <SectionTitle id="danger" description="Irreversible actions that affect workspace ownership.">
+        Danger zone
+      </SectionTitle>
 
-      <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', marginBottom: 20 }}>
-        Transfer this workspace to another admin. You will lose owner privileges.
-        This action cannot be undone.
-      </p>
+      {apiError && <Banner variant="error" message={apiError} />}
+      {successMessage && <Banner variant="success" message={successMessage} />}
 
-      <form onSubmit={form.handleSubmit(handleSubmitIntent)} className="flex flex-col gap-5">
-        {apiError && <ErrorBanner message={apiError} />}
-        {successMessage && <SuccessBanner message={successMessage} />}
+      <FieldRow label="Transfer ownership" htmlFor="new-owner-user-id" description="You will lose owner privileges. This cannot be undone.">
+        <Input id="new-owner-user-id" type="text" placeholder="User ID (UUID)" {...form.register('new_owner_user_id')} />
+        {form.formState.errors.new_owner_user_id && (
+          <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>{form.formState.errors.new_owner_user_id.message}</p>
+        )}
+      </FieldRow>
 
+      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8">
         <div>
-          <FieldLabel htmlFor="new-owner-user-id">New owner&apos;s user ID</FieldLabel>
-          <DarkInput
-            id="new-owner-user-id"
-            type="text"
-            placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-            {...form.register('new_owner_user_id')}
-          />
-          {form.formState.errors.new_owner_user_id && (
-            <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>
-              {form.formState.errors.new_owner_user_id.message}
-            </p>
-          )}
-        </div>
-
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="px-6 py-3 rounded-xl font-bold text-sm transition-all disabled:opacity-50"
-            style={{
-              background: 'rgba(212,64,64,0.12)',
-              color: C.err,
-              border: `1px solid rgba(212,64,64,0.25)`,
-            }}
-          >
+          <button type="submit" className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+            style={{ background: 'rgba(212,64,64,0.12)', color: C.err, border: `1px solid rgba(212,64,64,0.25)` }}>
             Transfer ownership
           </button>
         </div>
-      </form>
+        <div /> {/* Empty space */}
+      </div>
 
-      {/* Confirmation modal */}
       {showConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.7)' }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="confirm-transfer-title"
-        >
-          <div
-            className="w-full max-w-md p-8 rounded-2xl flex flex-col gap-5 mx-4"
-            style={{
-              background: '#1A1A2E',
-              border: '1px solid rgba(255,255,255,0.12)',
-            }}
-          >
-            <h3
-              id="confirm-transfer-title"
-              style={{ fontSize: 20, fontWeight: 700, color: colors.ink0 }}
-            >
-              Confirm ownership transfer
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}
+          role="dialog" aria-modal="true" aria-labelledby="confirm-transfer-title">
+          <div className="w-full max-w-md p-6 rounded-xl flex flex-col gap-4 mx-4"
+            style={{ background: colors.ink700, border: `1px solid ${S.divider}` }}>
+            <h3 id="confirm-transfer-title" style={{ fontSize: 18, fontWeight: 700, color: S.text }}>
+              Confirm transfer
             </h3>
-            <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
-              You are about to transfer ownership to user{' '}
-              <span style={{ fontFamily: 'monospace', color: colors.ink0, wordBreak: 'break-all' }}>
+            <p style={{ fontSize: 14, color: S.textMuted, lineHeight: 1.6 }}>
+              Transfer ownership to{' '}
+              <span style={{ fontFamily: 'monospace', color: S.text, wordBreak: 'break-all' }}>
                 {pendingData?.new_owner_user_id}
-              </span>
-              . This action cannot be undone.
+              </span>? This cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold"
-                style={{
-                  background: 'rgba(255,255,255,0.08)',
-                  color: 'rgba(255,255,255,0.7)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                }}
-              >
+              <button type="button" onClick={() => { setShowConfirm(false); setPendingData(null) }}
+                className="px-4 py-2 rounded-lg text-sm font-semibold"
+                style={{ background: 'rgba(255,255,255,0.08)', color: S.textMuted }}>
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleConfirm}
-                disabled={transferOwnership.isPending}
-                className="px-5 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
-                style={{
-                  background: C.err,
-                  color: colors.ink0,
-                }}
-              >
+              <button type="button" onClick={handleConfirm} disabled={transferOwnership.isPending}
+                className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
+                style={{ background: C.err, color: '#FFFFFF' }}>
                 {transferOwnership.isPending ? 'Transferring...' : 'Yes, transfer'}
               </button>
             </div>
           </div>
         </div>
       )}
-    </Card>
+    </form>
   )
 }
 
-// ── Page ───────────────────────────────────────────────────────────────────────
+// ── Read-only view ─────────────────────────────────────────────────────────────
 
 function ReadOnlyOrgInfo({ org }: { org: ReturnType<typeof useOrgDetail>['data'] }) {
   const fields = [
     { label: 'Company name', value: org?.name },
-    { label: 'Workspace URL', value: org?.slug ? `workived.app/${org.slug}` : undefined },
+    { label: 'Workspace URL', value: org?.slug ? `my.workived.com/${org.slug}` : undefined },
     { label: 'Country', value: COUNTRIES.find((c) => c.value === org?.country_code)?.label ?? org?.country_code },
     { label: 'Timezone', value: TIMEZONES.find((t) => t.value === org?.timezone)?.label ?? org?.timezone },
     { label: 'Currency', value: CURRENCIES.find((c) => c.value === org?.currency_code)?.label ?? org?.currency_code },
   ]
 
   return (
-    <Card>
-      <CardTitle>Company info</CardTitle>
-      <div className="flex flex-col gap-4">
-        {fields.map(({ label, value }) => (
-          <div key={label}>
-            <p style={{ fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>{label}</p>
-            <p style={{ fontSize: 15, color: colors.ink0, fontWeight: 500 }}>{value ?? '—'}</p>
-          </div>
-        ))}
-      </div>
-    </Card>
+    <div className="flex flex-col gap-5">
+      <SectionTitle id="general">Company info</SectionTitle>
+      {fields.map(({ label, value }) => (
+        <div key={label} className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-1 md:gap-8">
+          <p style={{ fontSize: 14, fontWeight: 600, color: S.textMuted }}>{label}</p>
+          <p style={{ fontSize: 14, color: S.text, fontWeight: 500 }}>{value ?? '—'}</p>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -708,169 +558,165 @@ function NoOrgView() {
   })
 
   return (
-    <div className="flex flex-col gap-6">
-      <div
-        className="p-8 rounded-2xl"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
-      >
-        <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
+    <div className="flex flex-col gap-8">
+      <div>
+        <p style={{ fontSize: 15, color: S.textMuted, lineHeight: 1.6 }}>
           You haven&apos;t set up a workspace yet. Create one or accept a pending invitation below.
         </p>
         <button
           onClick={() => navigate({ to: '/setup-org' })}
-          className="mt-5 px-6 py-3 rounded-xl font-bold text-sm"
-          style={{ background: colors.accent, color: colors.ink0 }}
+          className="mt-4 px-5 py-2 rounded-lg font-semibold text-sm"
+          style={{ background: colors.accent, color: '#FFFFFF' }}
         >
           Set up workspace
         </button>
       </div>
 
       {myInvitations.length > 0 && (
-        <div className="flex flex-col gap-3">
-          <p
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.5)',
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-            }}
-          >
-            Pending invitations
-          </p>
-          {myInvitations.map((inv: MyInvitation) => {
-            const token = extractInviteToken(inv.invite_url)
-            return (
-              <div
-                key={inv.id}
-                className="px-5 py-4 rounded-xl flex items-center justify-between gap-4"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-              >
-                <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: colors.ink0 }}>{inv.org_name}</p>
-                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: 2 }}>
-                    Invited as{' '}
-                    <span
-                      className="px-1.5 py-0.5 rounded text-xs font-semibold"
-                      style={{ background: 'rgba(155,143,247,0.15)', color: '#9B8FF7' }}
-                    >
-                      {inv.role}
-                    </span>
-                  </p>
+        <>
+          <Divider />
+          <div className="flex flex-col gap-3">
+            <p style={{ fontSize: 12, fontWeight: 600, color: S.textDim, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+              Pending invitations
+            </p>
+            {myInvitations.map((inv: MyInvitation) => {
+              const token = extractInviteToken(inv.invite_url)
+              return (
+                <div key={inv.id} className="flex items-center justify-between gap-4 py-3"
+                  style={{ borderBottom: `1px solid ${S.divider}` }}>
+                  <div>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: S.text }}>{inv.org_name}</p>
+                    <p style={{ fontSize: 13, color: S.textDim, marginTop: 2 }}>
+                      Invited as <span style={{ color: '#9B8FF7', fontWeight: 600 }}>{inv.role}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => acceptInvitation.mutate(token)}
+                    disabled={acceptInvitation.isPending || !token}
+                    className="shrink-0 px-4 py-1.5 rounded-lg font-semibold text-sm disabled:opacity-50"
+                    style={{ background: colors.accent, color: '#FFFFFF' }}
+                  >
+                    {acceptInvitation.isPending ? 'Joining...' : 'Accept'}
+                  </button>
                 </div>
-                <button
-                  onClick={() => acceptInvitation.mutate(token)}
-                  disabled={acceptInvitation.isPending || !token}
-                  className="shrink-0 px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-50"
-                  style={{ background: colors.accent, color: colors.ink0 }}
-                >
-                  {acceptInvitation.isPending ? 'Joining…' : 'Accept & join'}
-                </button>
-              </div>
-            )
-          })}
-        </div>
+              )
+            })}
+          </div>
+        </>
       )}
     </div>
   )
 }
 
+// ── Sidebar nav ────────────────────────────────────────────────────────────────
+
+function SideNav({ items, activeId }: { items: typeof NAV_ITEMS; activeId: string }) {
+  return (
+    <nav className="hidden lg:flex flex-col gap-0.5 sticky top-8 self-start pt-2" style={{ minWidth: 180 }}>
+      {items.map((item) => {
+        const isActive = activeId === item.id
+        const isDanger = item.id === 'danger'
+        return (
+          <a
+            key={item.id}
+            href={`#${item.id}`}
+            className="px-3 py-2 rounded-md text-sm font-medium transition-colors"
+            style={{
+              color: isDanger ? 'rgba(248,113,113,0.8)' : isActive ? S.text : S.textMuted,
+              background: isActive ? 'rgba(255,255,255,0.06)' : 'transparent',
+            }}
+          >
+            {item.label}
+          </a>
+        )
+      })}
+    </nav>
+  )
+}
+
+// ── Page ───────────────────────────────────────────────────────────────────────
+
 function CompanyPage() {
   const hasOrg = useHasOrg()
   const { data: org, isLoading, isError } = useOrgDetail()
   const canEdit = useCanEditOrgSettings()
+  const [activeSection] = useState('general')
 
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: moduleBackgrounds.settings }}
-    >
-      <a
-        href="#main-content"
+    <div className="min-h-screen flex flex-col" style={{ background: moduleBackgrounds.settings }}>
+      <a href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-bold"
-        style={{ background: colors.accent, color: colors.ink0 }}
-      >
+        style={{ background: colors.accent, color: '#FFFFFF' }}>
         Skip to main content
       </a>
 
       {/* Header */}
-      <div className="px-11 pt-10 pb-2">
+      <div className="px-10 pt-8 pb-2">
         <WorkivedLogo size={32} showWordmark variant="light" />
       </div>
 
-      <main id="main-content" className="flex-1 px-11 py-7 flex flex-col gap-7">
-        {/* Title */}
-        <div>
-          <h1
-            style={{
-              fontSize: typography.h1.size,
-              fontWeight: typography.h1.weight,
-              letterSpacing: typography.h1.tracking,
-              color: colors.ink0,
-            }}
-          >
-            Company settings
-          </h1>
-          <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>
-            {org ? org.name : 'Manage your workspace configuration'}
-          </p>
-        </div>
+      {/* Page title */}
+      <div className="px-10 pt-6 pb-2">
+        <h1 style={{ fontSize: typography.h1.size, fontWeight: typography.h1.weight, letterSpacing: typography.h1.tracking, color: '#FFFFFF' }}>
+          Company settings
+        </h1>
+        <p style={{ fontSize: 15, color: S.textMuted, marginTop: 4 }}>
+          {org ? org.name : 'Manage your workspace configuration'}
+        </p>
+      </div>
 
-        {!hasOrg && <NoOrgView />}
+      {/* Two-column layout: sidebar + content */}
+      <div id="main-content" className="flex-1 px-10 pt-8 pb-32 flex gap-12">
 
-        {hasOrg && isLoading && (
-          <div className="flex flex-col gap-5" aria-label="Loading company settings">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="h-48 rounded-2xl animate-pulse"
-                style={{ background: 'rgba(255,255,255,0.04)' }}
-              />
-            ))}
-          </div>
+        {/* Sidebar — only shown when org exists and loaded */}
+        {hasOrg && !isLoading && !isError && canEdit && (
+          <SideNav items={NAV_ITEMS} activeId={activeSection} />
         )}
 
-        {hasOrg && isError && (
-          <div
-            role="alert"
-            className="px-4 py-3 rounded-xl"
-            style={{ background: C.errDim, border: `1px solid ${C.err}` }}
-          >
-            <p style={{ fontSize: 14, color: C.errText, fontWeight: 500 }}>
-              Failed to load company settings. Please refresh the page.
-            </p>
-          </div>
-        )}
+        {/* Content */}
+        <main className="flex-1 flex flex-col gap-10">
 
-        {hasOrg && !isLoading && !isError && (
-          <>
-            {!canEdit && (
-              <div
-                role="note"
-                className="px-4 py-3 rounded-xl"
-                style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-              >
-                <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
-                  You have view-only access to company settings. Contact an admin to make changes.
-                </p>
-              </div>
-            )}
-            {canEdit ? (
-              <>
-                <CompanyInfoCard />
-                <LocationCard />
-                <PlanCard />
-                <TransferOwnershipCard />
-              </>
-            ) : (
-              <>
-                <ReadOnlyOrgInfo org={org} />
-                <PlanCard />
-              </>
-            )}
-          </>
-        )}
-      </main>
+          {!hasOrg && <NoOrgView />}
+
+          {hasOrg && isLoading && (
+            <div className="flex flex-col gap-6" aria-label="Loading company settings">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+              ))}
+            </div>
+          )}
+
+          {hasOrg && isError && (
+            <Banner variant="error" message="Failed to load company settings. Please refresh the page." />
+          )}
+
+          {hasOrg && !isLoading && !isError && (
+            <>
+              {!canEdit && (
+                <Banner variant="info" message="You have view-only access. Contact an admin to make changes." />
+              )}
+
+              {canEdit ? (
+                <>
+                  <CompanyInfoSection />
+                  <Divider />
+                  <LocationSection />
+                  <Divider />
+                  <PlanSection />
+                  <Divider />
+                  <TransferOwnershipSection />
+                </>
+              ) : (
+                <>
+                  <ReadOnlyOrgInfo org={org} />
+                  <Divider />
+                  <PlanSection />
+                </>
+              )}
+            </>
+          )}
+        </main>
+      </div>
     </div>
   )
 }

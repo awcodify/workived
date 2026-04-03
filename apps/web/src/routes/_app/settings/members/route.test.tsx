@@ -191,7 +191,7 @@ describe('MembersPage', () => {
 
     renderPage()
     expect(screen.getByText('pending@example.com')).toBeInTheDocument()
-    expect(screen.getByText('Pending invitations')).toBeInTheDocument()
+    expect(screen.getAllByText('Pending invitations').length).toBeGreaterThan(0)
   })
 
   it('shows empty state when no pending invitations', () => {
@@ -203,7 +203,7 @@ describe('MembersPage', () => {
     } as any)
 
     renderPage()
-    expect(screen.getByText('No pending invitations. Invite someone above to get started.')).toBeInTheDocument()
+    expect(screen.getByText('No pending invitations.')).toBeInTheDocument()
   })
 
   it('shows members list when data exists', () => {
@@ -327,7 +327,7 @@ describe('MembersPage', () => {
     } as any)
 
     renderPage()
-    expect(screen.getByText('No HR profile')).toBeInTheDocument()
+    expect(screen.getByText('Add →')).toBeInTheDocument()
   })
 
   it('shows "Linked" for members with active HR profile', () => {
