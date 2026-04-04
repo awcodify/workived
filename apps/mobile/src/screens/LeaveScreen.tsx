@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiClient } from '@/api/client'
 import type { LeavePolicy, LeaveRequestWithDetails } from '@/types/api'
-import DateTimePicker from '@react-native-community/datetimepicker'
+import { DateRangeCalendar } from '@/components/DateRangeCalendar'
 
 const LEAVE_TOUR_KEY = '@workived_leave_apply_tour_seen'
 const SCREEN_WIDTH = Dimensions.get('window').width
@@ -33,8 +33,6 @@ export default function LeaveScreen() {
   const [startDate, setStartDate] = useState(new Date())
   const [endDate, setEndDate] = useState(new Date())
   const [reason, setReason] = useState('')
-  const [showStartPicker, setShowStartPicker] = useState(false)
-  const [showEndPicker, setShowEndPicker] = useState(false)
   const [showTour, setShowTour] = useState(false)
   const hasInitialExpanded = useRef(false)
   const tourOpacity = useRef(new Animated.Value(0)).current
@@ -153,6 +151,24 @@ export default function LeaveScreen() {
     }
     
     return count
+  }
+
+  const getAvailableDays = () => {
+    if (!selectedPolicy || !leaveBalance) return 0
+    
+    // Map policy name to balance field
+    const policyName = selectedPolicy.name.toLowerCase()
+    
+    if (policyName.includes('annual')) {
+      return leaveBalance.annual
+    } else if (policyName.includes('sick')) {
+      return leaveBalance.sick
+    } else if (policyName.includes('unpaid')) {
+      return leaveBalance.unpaid
+    }
+    
+    // Default fallback
+    return 0
   }
 
   const formatDate = (date: Date) => {
@@ -419,78 +435,27 @@ export default function LeaveScreen() {
           <>
             {/* Apply Form Header with Back Button */}
             <View style={styles.header}>
-              <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
-                <Ionicons name="arrow-back" size={24} color="#111827" />
-              </TouchableOpacity>
               <View style={styles.headerContent}>
                 <Text style={styles.title}>Apply {selectedPolicy?.name} Leave</Text>
                 <Text style={styles.subtitle}>Fill in the details below</Text>
               </View>
+              <TouchableOpacity style={styles.backButton} onPress={handleGoBack}>
+                <Ionicons name="close" size={24} color="#111827" />
+              </TouchableOpacity>
             </View>
 
             {/* Form */}
             <View style={styles.form}>
-              {/* Date Range */}
-              <View style={styles.dateRow}>
-                {/* Start Date */}
-                <View style={[styles.field, styles.dateField]}>
-                  <Text style={styles.label}>Start Date *</Text>
-                  <TouchableOpacity
-                    style={styles.dateButton}
-                    onPress={() => setShowStartPicker(true)}
-                  >
-                    <Ionicons name="calendar-outline" size={20} color="#6357E8" />
-                    <Text style={styles.dateButtonText}>{formatDate(startDate)}</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* End Date */}
-                <View style={[styles.field, styles.dateField]}>
-                  <Text style={styles.label}>End Date *</Text>
-                  <TouchableOpacity
-                    style={styles.dateButton}
-                    onPress={() => setShowEndPicker(true)}
-                  >
-                    <Ionicons name="calendar-outline" size={20} color="#6357E8" />
-                    <Text style={styles.dateButtonText}>{formatDate(endDate)}</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* Date Pickers */}
-              {showStartPicker && (
-                <DateTimePicker
-                  value={startDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={(event, date) => {
-                    setShowStartPicker(Platform.OS === 'ios')
-                    if (date) setStartDate(date)
-                  }}
-                  minimumDate={new Date()}
-                />
-              )}
-
-              {showEndPicker && (
-                <DateTimePicker
-                  value={endDate}
-                  mode="date"
-                  display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                  onChange={(event, date) => {
-                    setShowEndPicker(Platform.OS === 'ios')
-                    if (date) setEndDate(date)
-                  }}
-                  minimumDate={startDate}
-                />
-              )}
-
-              {/* Working Days Summary */}
-              <View style={styles.summaryCard}>
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Working Days</Text>
-                  <Text style={styles.summaryValue}>{calculateWorkingDays()} days</Text>
-                </View>
-              </View>
+              {/* Date Range Calendar */}
+              <DateRangeCalendar
+                startDate={startDate}
+                endDate={endDate}
+                onStartDateChange={setStartDate}
+                onEndDateChange={setEndDate}
+                workingDays={calculateWorkingDays()}
+                availableDays={selectedPolicy ? getAvailableDays() : null}
+                hasInsufficientBalance={selectedPolicy ? calculateWorkingDays() > getAvailableDays() : false}
+              />
 
               {/* Reason */}
               <View style={styles.field}>
@@ -558,7 +523,8 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 16,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
     gap: 12,
   },
   backButton: {
