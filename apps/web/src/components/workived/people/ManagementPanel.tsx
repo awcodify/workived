@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Trash2, Edit2, Plus, Briefcase, Building2 } from 'lucide-react'
 import { useDepartments, useDeleteDepartment } from '@/lib/hooks/useDepartments'
 import { useJobTitles, useDeleteJobTitle } from '@/lib/hooks/useJobTitles'
@@ -30,6 +30,19 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
   // Safely handle null/undefined data
   const safeDepartments = departments ?? []
   const safeJobTitles = jobTitles ?? []
+
+  // Close modal on ESC key
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        onClose()
+      }
+    }
+    document.addEventListener('keydown', handleEsc)
+    return () => document.removeEventListener('keydown', handleEsc)
+  }, [onClose])
 
   const handleDeleteDepartment = async (id: string) => {
     if (!confirm('Are you sure you want to delete this department?')) return

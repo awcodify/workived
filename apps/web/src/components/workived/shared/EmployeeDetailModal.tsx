@@ -392,19 +392,20 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                           border: `1px solid ${t.inputBorder}`,
                           color: t.text,
                         }}
-                      />  
-                      <Dropdown
-                        value={formData.job_title}
-                        onChange={(value) => setFormData({ ...formData, job_title: value })}
-                        options={jobTitleOptions}
-                        placeholder="Select job title"
-                        style={{
-                          background: t.input,
-                          border: `1px solid ${t.inputBorder}`,
-                          color: t.textMuted,
-                          fontSize: '0.875rem',
-                        }}
                       />
+                      <div className="grid grid-cols-2 gap-2">
+                        <Dropdown
+                          value={formData.status}
+                          onChange={(value) => setFormData({ ...formData, status: value })}
+                          options={statusOptions}
+                        />
+                        <Dropdown
+                          value={formData.job_title}
+                          onChange={(value) => setFormData({ ...formData, job_title: value })}
+                          options={jobTitleOptions}
+                          placeholder="Select job title"
+                        />
+                      </div>
                     </div>
                   ) : (
                     <>
@@ -419,20 +420,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                     </>
                   )}
                   <div className="flex items-center gap-2 flex-wrap mt-2">
-                    {isEditMode ? (
-                      <>
-                        <Dropdown
-                          value={formData.status}
-                          onChange={(value) => setFormData({ ...formData, status: value })}
-                          options={statusOptions}
-                        />
-                        <Dropdown
-                          value={formData.employment_type}
-                          onChange={(value) => setFormData({ ...formData, employment_type: value })}
-                          options={employmentTypeOptions}
-                        />
-                      </>
-                    ) : (
+                    {!isEditMode && (
                       <>
                         <StatusBadge status={employee.status} />
                         <TypeBadge type={employee.employment_type} />
@@ -450,109 +438,128 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                 </div>
               </div>
 
-              {/* Contact & Details Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {isEditMode ? (
-                  <>
-                    <InfoCard
-                      icon={<Mail size={18} style={{ color: colors.accent }} />}
-                      label="Email"
-                      value={employee.email || 'Not provided'}
-                    />
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
-                        Phone
-                      </label>
-                      <input
-                        type="tel"
-                        placeholder="Not provided"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
-                        style={{
-                          background: t.input,
-                          border: `1px solid ${t.inputBorder}`,
-                          color: t.text,
-                        }}
-                      />
-                    </div>
-                    <Dropdown
-                      label="Department"
-                      value={formData.department_id}
-                      onChange={(value) => setFormData({ ...formData, department_id: value })}
-                      options={departmentOptions}
-                      fullWidth
-                    />
-                    <EmployeeDropdown
-                      label="Reports to"
-                      value={formData.reporting_to}
-                      onChange={(value) => setFormData({ ...formData, reporting_to: value })}
-                      excludeEmployeeId={employeeId}
-                      fullWidth
-                    />
-                    <Dropdown
-                      label="Work Schedule"
-                      value={formData.work_schedule_id}
-                      onChange={(value) => setFormData({ ...formData, work_schedule_id: value })}
-                      options={scheduleOptions}
-                      fullWidth
-                    />
-                    <Dropdown
-                      label="Gender"
-                      value={formData.gender}
-                      onChange={(value) => setFormData({ ...formData, gender: value })}
-                      options={genderOptions}
-                      fullWidth
-                    />
-                  </>
-                ) : (
-                  <>
-                    <InfoCard
-                      icon={<Mail size={18} style={{ color: colors.accent }} />}
-                      label="Email"
-                      value={employee.email || 'Not provided'}
-                    />
-                    <InfoCard
-                      icon={<Phone size={18} style={{ color: colors.accent }} />}
-                      label="Phone"
-                      value={employee.phone || 'Not provided'}
-                    />
-                    <InfoCard
-                      icon={<Building2 size={18} style={{ color: colors.accent }} />}
-                      label="Department"
-                      value={employee.department_name || 'Not assigned'}
-                    />
-                    <InfoCard
-                      icon={<Users size={18} style={{ color: colors.accent }} />}
-                      label="Reports to"
-                      value={employee.manager_name || 'No manager'}
-                    />
-                    <InfoCard
-                      icon={<Clock size={18} style={{ color: colors.accent }} />}
-                      label="Work Schedule"
-                      value={employee.work_schedule_name || 'Default schedule'}
-                    />
-                    <InfoCard
-                      icon={<UserCheck size={18} style={{ color: colors.accent }} />}
-                      label="Gender"
-                      value={employee.gender ? employee.gender.charAt(0).toUpperCase() + employee.gender.slice(1) : 'Not specified'}
-                    />
-                  </>
-                )}
-              </div>
-
-              {/* Employment Details */}
-              <div
-                className="rounded-xl p-4"
-                style={{ background: t.border }}
-              >
-                <h4 className="text-sm font-bold mb-3 flex items-center gap-2" style={{ color: t.text }}>
-                  <Briefcase size={16} style={{ color: colors.accent }} />
-                  Employment Details
+              {/* Personal Information */}
+              <div>
+                <h4 className="text-sm font-bold mb-3" style={{ color: t.text }}>
+                  Personal Information
                 </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {isEditMode ? (
                     <>
+                      <InfoCard
+                        icon={<Mail size={18} style={{ color: colors.accent }} />}
+                        label="Email"
+                        value={employee.email || 'Not provided'}
+                      />
+                      <div>
+                        <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
+                          Phone
+                        </label>
+                        <input
+                          type="tel"
+                          placeholder="Not provided"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
+                          style={{
+                            background: t.input,
+                            border: `1px solid ${t.inputBorder}`,
+                            color: t.text,
+                          }}
+                        />
+                      </div>
+                      <Dropdown
+                        label="Gender"
+                        value={formData.gender}
+                        onChange={(value) => setFormData({ ...formData, gender: value })}
+                        options={genderOptions}
+                        fullWidth
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <InfoCard
+                        icon={<Mail size={18} style={{ color: colors.accent }} />}
+                        label="Email"
+                        value={employee.email || 'Not provided'}
+                      />
+                      <InfoCard
+                        icon={<Phone size={18} style={{ color: colors.accent }} />}
+                        label="Phone"
+                        value={employee.phone || 'Not provided'}
+                      />
+                      <InfoCard
+                        icon={<UserCheck size={18} style={{ color: colors.accent }} />}
+                        label="Gender"
+                        value={employee.gender ? employee.gender.charAt(0).toUpperCase() + employee.gender.slice(1) : 'Not specified'}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Organizational Structure */}
+              <div>
+                <h4 className="text-sm font-bold mb-3" style={{ color: t.text }}>
+                  Organizational Structure
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {isEditMode ? (
+                    <>
+                      <Dropdown
+                        label="Department"
+                        value={formData.department_id}
+                        onChange={(value) => setFormData({ ...formData, department_id: value })}
+                        options={departmentOptions}
+                        fullWidth
+                      />
+                      <EmployeeDropdown
+                        label="Reports to"
+                        value={formData.reporting_to}
+                        onChange={(value) => setFormData({ ...formData, reporting_to: value })}
+                        excludeEmployeeId={employeeId}
+                        fullWidth
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <InfoCard
+                        icon={<Building2 size={18} style={{ color: colors.accent }} />}
+                        label="Department"
+                        value={employee.department_name || 'Not assigned'}
+                      />
+                      <InfoCard
+                        icon={<Users size={18} style={{ color: colors.accent }} />}
+                        label="Reports to"
+                        value={employee.manager_name || 'No manager'}
+                      />
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Employment Terms */}
+              <div>
+                <h4 className="text-sm font-bold mb-3" style={{ color: t.text }}>
+                  Employment Terms
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {isEditMode ? (
+                    <>
+                      <Dropdown
+                        label="Employment Type"
+                        value={formData.employment_type}
+                        onChange={(value) => setFormData({ ...formData, employment_type: value })}
+                        options={employmentTypeOptions}
+                        fullWidth
+                      />
+                      <Dropdown
+                        label="Work Schedule"
+                        value={formData.work_schedule_id}
+                        onChange={(value) => setFormData({ ...formData, work_schedule_id: value })}
+                        options={scheduleOptions}
+                        fullWidth
+                      />
                       <div>
                         <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
                           Start Date
@@ -585,58 +592,44 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                           }}
                         />
                       </div>
+                      {employee.base_salary && (
+                        <InfoCard
+                          icon={<DollarSign size={18} style={{ color: colors.accent }} />}
+                          label="Base Salary"
+                          value={`${employee.salary_currency} ${(employee.base_salary / 100).toLocaleString()}`}
+                        />
+                      )}
                     </>
                   ) : (
                     <>
-                      <div>
-                        <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
-                          Start Date
-                        </p>
-                        <p className="text-sm font-semibold" style={{ color: t.text }}>
-                          {formatDate(employee.start_date)}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
-                          End Date
-                        </p>
-                        <p className="text-sm font-semibold" style={{ color: t.text }}>
-                          {formatDate(employee.end_date)}
-                        </p>
-                      </div>
-                    </>
-                  )}
-                  {employee.base_salary && (
-                    <div>
-                      <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
-                        Base Salary
-                      </p>
-                      <p className="text-sm font-semibold" style={{ color: t.text }}>
-                        {employee.salary_currency} {(employee.base_salary / 100).toLocaleString()}
-                      </p>
-                    </div>
-                  )}
-                  {isEditMode ? (
-                    <div>
-                      <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
-                        Employment Type
-                      </label>
-                      <Dropdown
-                        value={formData.employment_type}
-                        onChange={(value) => setFormData({ ...formData, employment_type: value })}
-                        options={employmentTypeOptions}
-                        fullWidth
+                      <InfoCard
+                        icon={<Briefcase size={18} style={{ color: colors.accent }} />}
+                        label="Employment Type"
+                        value={getEmploymentTypeLabel(employee.employment_type)}
                       />
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="text-xs font-medium mb-0.5" style={{ color: t.textMuted }}>
-                        Employment Type
-                      </p>
-                      <p className="text-sm font-semibold" style={{ color: t.text }}>
-                        {getEmploymentTypeLabel(employee.employment_type)}
-                      </p>
-                    </div>
+                      <InfoCard
+                        icon={<Clock size={18} style={{ color: colors.accent }} />}
+                        label="Work Schedule"
+                        value={employee.work_schedule_name || 'Default schedule'}
+                      />
+                      <InfoCard
+                        icon={<Calendar size={18} style={{ color: colors.accent }} />}
+                        label="Start Date"
+                        value={formatDate(employee.start_date)}
+                      />
+                      <InfoCard
+                        icon={<Calendar size={18} style={{ color: colors.accent }} />}
+                        label="End Date"
+                        value={formatDate(employee.end_date)}
+                      />
+                      {employee.base_salary && (
+                        <InfoCard
+                          icon={<DollarSign size={18} style={{ color: colors.accent }} />}
+                          label="Base Salary"
+                          value={`${employee.salary_currency} ${(employee.base_salary / 100).toLocaleString()}`}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               </div>
