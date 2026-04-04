@@ -237,48 +237,59 @@ export default function ApprovalsScreen() {
         disabled={isPending}
       >
         <View style={styles.cardContent}>
-          {/* Request Type Badge */}
-          <View style={[styles.typeBadge, { backgroundColor: getRequestTypeColor(requestType) + '15' }]}>
+          {/* Request Type Full-Width Top Banner */}
+          <View style={[styles.notchBadge, { backgroundColor: getRequestTypeColor(requestType) }]}>
             <Ionicons 
               name={getRequestTypeIcon(requestType)} 
               size={12} 
-              color={getRequestTypeColor(requestType)} 
+              color="#FFF" 
             />
-            <Text style={[styles.typeText, { color: getRequestTypeColor(requestType) }]}>
+            <Text style={styles.notchText}>
               {requestType === 'leave' ? 'Leave Request' : 'Claim Request'}
             </Text>
           </View>
 
-          {/* Header */}
-          <View style={styles.cardHeader}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {item.employee_name?.charAt(0)?.toUpperCase() || '?'}
-              </Text>
+          <View style={styles.cardBody}>
+            {/* Header */}
+            <View style={styles.cardHeader}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {item.employee_name?.charAt(0)?.toUpperCase() || '?'}
+                </Text>
+              </View>
+              <View style={styles.cardInfo}>
+                <Text style={styles.employeeName}>{item.employee_name}</Text>
+                <Text style={styles.policyName}>{item.policy_name}</Text>
+              </View>
+              <View style={styles.daysContainer}>
+                <Text style={styles.daysValue}>{item.total_days}</Text>
+                <Text style={styles.daysLabel}>{item.total_days === 1 ? 'day' : 'days'}</Text>
+              </View>
             </View>
-            <View style={styles.cardInfo}>
-              <Text style={styles.employeeName}>{item.employee_name}</Text>
-              <Text style={styles.policyName}>{item.policy_name}</Text>
+
+            {/* Divider */}
+            <View style={styles.cardDivider} />
+
+            {/* Date Range */}
+            <View style={styles.dateRow}>
+              <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+              <Text style={styles.dateText}>{formatDateRange(item.start_date, item.end_date)}</Text>
             </View>
-            <View style={styles.daysContainer}>
-              <Text style={styles.daysValue}>{item.total_days}</Text>
-              <Text style={styles.daysLabel}>{item.total_days === 1 ? 'day' : 'days'}</Text>
+
+            {/* Reason */}
+            {item.reason && (
+              <View style={styles.reasonContainer}>
+                <Text style={styles.reasonLabel}>Reason</Text>
+                <Text style={styles.reasonText}>{item.reason}</Text>
+              </View>
+            )}
+
+            {/* Swipe hint */}
+            <View style={styles.swipeHint}>
+              <Ionicons name="swap-horizontal" size={14} color="#D1D5DB" />
+              <Text style={styles.swipeHintText}>Swipe to approve or reject</Text>
             </View>
           </View>
-
-          {/* Date Range */}
-          <View style={styles.dateRow}>
-            <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-            <Text style={styles.dateText}>{formatDateRange(item.start_date, item.end_date)}</Text>
-          </View>
-
-          {/* Reason */}
-          {item.reason && (
-            <View style={styles.reasonContainer}>
-              <Text style={styles.reasonLabel}>Reason:</Text>
-              <Text style={styles.reasonText}>{item.reason}</Text>
-            </View>
-          )}
         </View>
       </SwipeableCard>
     )
@@ -329,48 +340,52 @@ export default function ApprovalsScreen() {
             ]}
           >
             <View style={styles.cardContent}>
-              {/* Request Type Badge */}
-              <View style={[styles.typeBadge, { backgroundColor: '#8B5CF615' }]}>
-                <Ionicons name="calendar-outline" size={12} color="#8B5CF6" />
-                <Text style={[styles.typeText, { color: '#8B5CF6' }]}>Leave Request</Text>
+              {/* Request Type Full-Width Top Banner */}
+              <View style={[styles.notchBadge, { backgroundColor: '#8B5CF6' }]}>
+                <Ionicons name="calendar-outline" size={12} color="#FFF" />
+                <Text style={styles.notchText}>Leave Request</Text>
               </View>
 
-              {/* Header */}
-              <View style={styles.cardHeader}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>J</Text>
+              <View style={styles.cardBody}>
+                {/* Header */}
+                <View style={styles.cardHeader}>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarText}>J</Text>
+                  </View>
+                  <View style={styles.cardInfo}>
+                    <Text style={styles.employeeName}>John Doe</Text>
+                    <Text style={styles.policyName}>Annual Leave</Text>
+                  </View>
+                  <View style={styles.daysContainer}>
+                    <Text style={styles.daysValue}>3</Text>
+                    <Text style={styles.daysLabel}>days</Text>
+                  </View>
                 </View>
-                <View style={styles.cardInfo}>
-                  <Text style={styles.employeeName}>John Doe</Text>
-                  <Text style={styles.policyName}>Annual Leave</Text>
-                </View>
-                <View style={styles.daysContainer}>
-                  <Text style={styles.daysValue}>3</Text>
-                  <Text style={styles.daysLabel}>days</Text>
-                </View>
-              </View>
 
-              {/* Date Range */}
-              <View style={styles.dateRow}>
-                <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-                <Text style={styles.dateText}>Apr 7 - Apr 9, 2026</Text>
-              </View>
+                <View style={styles.cardDivider} />
 
-              {/* Reason */}
-              <View style={styles.reasonContainer}>
-                <Text style={styles.reasonLabel}>Reason:</Text>
-                <Text style={styles.reasonText}>Family vacation</Text>
-              </View>
-
-              {/* Tutorial Instructions */}
-              <View style={styles.tutorialInstructions}>
-                <View style={styles.tutorialSwipeHint}>
-                  <Ionicons name="arrow-forward" size={24} color="#10B981" />
-                  <Text style={styles.tutorialSwipeText}>Swipe right to approve</Text>
+                {/* Date Range */}
+                <View style={styles.dateRow}>
+                  <Ionicons name="calendar-outline" size={16} color="#6B7280" />
+                  <Text style={styles.dateText}>Apr 7 - Apr 9, 2026</Text>
                 </View>
-                <View style={styles.tutorialSwipeHint}>
-                  <Ionicons name="arrow-back" size={24} color="#EF4444" />
-                  <Text style={styles.tutorialSwipeText}>Swipe left to reject</Text>
+
+                {/* Reason */}
+                <View style={styles.reasonContainer}>
+                  <Text style={styles.reasonLabel}>Reason</Text>
+                  <Text style={styles.reasonText}>Family vacation</Text>
+                </View>
+
+                {/* Tutorial Instructions */}
+                <View style={styles.tutorialInstructions}>
+                  <View style={styles.tutorialSwipeHint}>
+                    <Ionicons name="arrow-forward" size={24} color="#10B981" />
+                    <Text style={styles.tutorialSwipeText}>Swipe right to approve</Text>
+                  </View>
+                  <View style={styles.tutorialSwipeHint}>
+                    <Ionicons name="arrow-back" size={24} color="#EF4444" />
+                    <Text style={styles.tutorialSwipeText}>Swipe left to reject</Text>
+                  </View>
                 </View>
               </View>
             </View>
@@ -550,34 +565,36 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cardContent: {
-    padding: 12,
     backgroundColor: '#FFF',
-    borderRadius: 12,
+    paddingBottom: 14,
   },
-  typeBadge: {
+  notchBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 8,
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    marginBottom: 14,
   },
-  typeText: {
+  notchText: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#FFF',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  cardBody: {
+    paddingHorizontal: 16,
   },
   cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#6357E8',
     justifyContent: 'center',
     alignItems: 'center',
@@ -589,20 +606,24 @@ const styles = StyleSheet.create({
   },
   cardInfo: {
     flex: 1,
-    marginLeft: 10,
+    marginLeft: 12,
   },
   employeeName: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '600',
     color: '#111827',
   },
   policyName: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#6B7280',
-    marginTop: 1,
+    marginTop: 2,
   },
   daysContainer: {
     alignItems: 'center',
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   daysValue: {
     fontSize: 20,
@@ -611,37 +632,55 @@ const styles = StyleSheet.create({
   },
   daysLabel: {
     fontSize: 10,
-    color: '#6B7280',
+    color: '#6357E8',
     textTransform: 'uppercase',
+    fontWeight: '500',
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 12,
   },
   dateRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-    backgroundColor: '#F9FAFB',
-    borderRadius: 6,
-    marginBottom: 8,
+    gap: 8,
+    marginBottom: 10,
   },
   dateText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#374151',
     fontWeight: '500',
   },
   reasonContainer: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 10,
     marginBottom: 10,
   },
   reasonLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#6B7280',
-    marginBottom: 3,
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
   },
   reasonText: {
-    fontSize: 13,
-    color: '#111827',
-    lineHeight: 18,
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+  },
+  swipeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingTop: 4,
+  },
+  swipeHintText: {
+    fontSize: 11,
+    color: '#D1D5DB',
   },
   tutorialOverlay: {
     position: 'absolute',

@@ -44,7 +44,12 @@ export default function SwipeableCard({
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => !disabled,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gesture) => {
+        if (disabled) return false
+        // Only capture horizontal swipes — let vertical scroll pass through
+        return Math.abs(gesture.dx) > Math.abs(gesture.dy) * 2 && Math.abs(gesture.dx) > 10
+      },
       onPanResponderMove: (_, gesture) => {
         if (disabled) return
         position.setValue({ x: gesture.dx, y: 0 })
@@ -172,9 +177,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   card: {
-    backgroundColor: '#FFF',
     borderRadius: 16,
-    padding: 16,
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
