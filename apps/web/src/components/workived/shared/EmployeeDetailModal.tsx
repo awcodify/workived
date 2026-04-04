@@ -3,6 +3,7 @@ import { useEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
 import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useDepartments } from '@/lib/hooks/useDepartments'
 import { useJobTitles } from '@/lib/hooks/useJobTitles'
+import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { Dropdown, type DropdownOption } from './Dropdown'
 import { EmployeeDropdown } from './EmployeeDropdown'
@@ -58,6 +59,9 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
   const { data: departments } = useDepartments()
   const { data: jobTitles } = useJobTitles()
   const updateEmployee = useUpdateEmployee(employeeId)
+  
+  // Lock body scroll when modal is open
+  useBodyScrollLock()
   
   // Safely handle null/undefined data
   const safeDepartments = departments ?? []

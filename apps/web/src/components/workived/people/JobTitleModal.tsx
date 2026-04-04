@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { X } from 'lucide-react'
 import { useCreateJobTitle, useUpdateJobTitle } from '@/lib/hooks/useJobTitles'
+import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock'
 import { moduleThemes, typography } from '@/design/tokens'
 import type { JobTitle } from '@/types/api'
 
@@ -22,6 +23,9 @@ export function JobTitleModal({ jobTitle, onClose, onSuccess }: JobTitleModalPro
   const updateMutation = useUpdateJobTitle(jobTitle?.id ?? '')
 
   const isEditMode = !!jobTitle
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock()
 
   const {
     register,

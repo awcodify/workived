@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { X, Info } from 'lucide-react'
 import { useCreateCategory, useUpdateCategory } from '@/lib/hooks/useClaims'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
+import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock'
 import { moduleThemes, typography } from '@/design/tokens'
 import type { ClaimCategory } from '@/types/api'
 
@@ -32,6 +33,9 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
   const updateMutation = useUpdateCategory(category?.id ?? '')
 
   const isEditMode = !!category
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock()
 
   // Formatted display value for monthly limit input
   const [displayLimit, setDisplayLimit] = useState(

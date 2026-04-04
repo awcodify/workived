@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { X } from 'lucide-react'
 import { useCreateDepartment, useUpdateDepartment } from '@/lib/hooks/useDepartments'
+import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock'
 import { moduleThemes, typography } from '@/design/tokens'
 import type { Department } from '@/types/api'
 
@@ -22,6 +23,9 @@ export function DepartmentModal({ department, onClose, onSuccess }: DepartmentMo
   const updateMutation = useUpdateDepartment(department?.id ?? '')
 
   const isEditMode = !!department
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock()
 
   const {
     register,

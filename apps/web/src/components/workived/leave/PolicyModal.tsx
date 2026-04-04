@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { X, Info } from 'lucide-react'
 import { createPolicySchema, type CreatePolicyFormData } from '@/lib/validations/leave'
 import { useCreatePolicy, useUpdatePolicy } from '@/lib/hooks/useLeave'
+import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock'
 import { moduleThemes, typography } from '@/design/tokens'
 import type { LeavePolicy } from '@/types/api'
 
@@ -22,6 +23,9 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
   const updateMutation = useUpdatePolicy(policy?.id ?? '')
 
   const isEditMode = !!policy
+
+  // Lock body scroll when modal is open
+  useBodyScrollLock()
 
   const {
     register,

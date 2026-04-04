@@ -38,10 +38,12 @@ export function Dropdown({
   labelStyle,
 }: DropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 })
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Update menu position when opened
   useEffect(() => {
@@ -50,17 +52,25 @@ export function Dropdown({
       const menuWidth = rect.width // Use actual button width
       
       // Check if menu would overflow right edge
-      let left = rect.left + window.scrollX
+      let left = rect.left
       if (left + menuWidth > window.innerWidth) {
         // Align to right edge of button instead
-        left = rect.right + window.scrollX - menuWidth
+        left = rect.right - menuWidth
       }
       
       setMenuPosition({
-        top: rect.bottom + window.scrollY + 8, // 8px gap (mt-2)
+        top: rect.bottom + 8, // 8px gap below button
         left: Math.max(10, left), // Don't go past left edge either
         width: rect.width,
       })
+
+      // Focus search input after dropdown opens
+      setTimeout(() => {
+        searchInputRef.current?.focus()
+      }, 50)
+    } else {
+      // Clear search when closing
+      setSearchTerm('')
     }
   }, [isOpen])
 
@@ -115,6 +125,14 @@ export function Dropdown({
 
   const selectedOption = options.find((opt) => opt.value === value)
 
+  // Filter options based on search term
+  const filteredOptions = searchTerm
+    ? options.filter((opt) =>
+        opt.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        opt.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    : options
+
   return (
     <div className={`relative ${fullWidth ? 'w-full' : ''} ${className}`} ref={dropdownRef}>
       {label && (
@@ -157,7 +175,7 @@ export function Dropdown({
         createPortal(
           <div
             ref={menuRef}
-            className="fixed rounded-lg shadow-lg z-[9999] py-1 max-h-60 overflow-y-auto"
+            className="fixed rounded-lg shadow-lg z-[9999] overflow-hidden"
             style={{
               background: t.surface,
               border: `1px solid ${t.border}`,
@@ -166,7 +184,32 @@ export function Dropdown({
               width: `${menuPosition.width}px`,
             }}
           >
-            {options.map((option) => {
+            {/* Search Input */}
+            <div className="px-3 py-2 border-b" style={{ borderColor: t.border }}>
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full px-2 py-1.5 text-sm rounded focus:outline-none focus:ring-2"
+                style={{
+                  background: t.input,
+                  border: `1px solid ${t.inputBorder}`,
+                  color: t.text,
+                }}
+              />
+            </div>
+
+            {/* Options List */}
+            <div className="py-1 max-h-60 overflow-y-auto">
+              {filteredOptions.length === 0 && (
+                <div className="px-4 py-3 text-center text-sm" style={{ color: t.textMuted }}>
+                  No results found
+                </div>
+              )}
+              {filteredOptions.map((option) => {
               const isSelected = option.value === value
               return (
                 <button
@@ -203,6 +246,7 @@ export function Dropdown({
                 </button>
               )
             })}
+            </div>
           </div>,
           document.body
         )}
