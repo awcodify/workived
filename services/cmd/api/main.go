@@ -24,6 +24,7 @@ import (
 	"github.com/workived/services/internal/employmentchange"
 	"github.com/workived/services/internal/jobtitle"
 	"github.com/workived/services/internal/leave"
+	"github.com/workived/services/internal/mobile"
 	"github.com/workived/services/internal/organisation"
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
@@ -187,6 +188,10 @@ func main() {
 	auditHandler := audit.NewHandler(auditRepo)
 	employmentHistoryHandler := employmentchange.NewHandler(employmentChangeRepo)
 
+	// Mobile service — aggregates data from multiple services
+	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, cachedOrgInfo, log, cacheStore)
+	mobileHandler := mobile.NewHandler(mobileSvc)
+
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -259,6 +264,7 @@ func main() {
 	calendarHandler.RegisterRoutes(authed)
 	auditHandler.RegisterRoutes(authed)
 	employmentHistoryHandler.RegisterRoutes(authed)
+	mobileHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)
