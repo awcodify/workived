@@ -39,6 +39,7 @@ type Employee struct {
 type EmployeeWithManager struct {
 	Employee
 	ManagerName       *string `json:"manager_name,omitempty"`       // Full name of reporting_to employee
+	DepartmentName    *string `json:"department_name,omitempty"`    // Name of department (from departments table)
 	WorkScheduleName  *string `json:"work_schedule_name,omitempty"` // Resolved schedule name (own or org default)
 	InvitationPending bool    `json:"invitation_pending,omitempty"` // True if employee has unaccepted invitation
 }

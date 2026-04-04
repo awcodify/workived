@@ -171,8 +171,7 @@ function PeoplePage() {
         {/* Add Employee Button - moved to the right */}
         {canManageEmployees && (
           <Link
-            to="/people/$id"
-            params={{ id: 'new' }}
+            to="/people/new"
             search={{ user_id: undefined }}
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90 whitespace-nowrap"
             style={{
@@ -469,8 +468,7 @@ function PeopleEmptyState({
       </p>
       {!hasFiltering && canManageEmployees && (
         <Link
-          to="/people/$id"
-          params={{ id: 'new' }}
+          to="/people/new"
           search={{ user_id: undefined }}
           className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 mt-2 transition-colors hover:opacity-90"
           style={{

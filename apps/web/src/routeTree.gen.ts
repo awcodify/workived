@@ -39,7 +39,7 @@ import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppSettingsAuditLogsRouteRouteImport } from './routes/_app/settings/audit-logs/route'
-import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
+import { Route as AppPeopleNewRouteRouteImport } from './routes/_app/people/new/route'
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
 import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/policies/index'
 import { Route as AppClaimsCategoriesIndexRouteImport } from './routes/_app/claims/categories/index'
@@ -194,9 +194,9 @@ const AppSettingsAuditLogsRouteRoute =
     path: '/audit-logs',
     getParentRoute: () => AppSettingsRouteRoute,
   } as any)
-const AppPeopleIdRouteRoute = AppPeopleIdRouteRouteImport.update({
-  id: '/$id',
-  path: '/$id',
+const AppPeopleNewRouteRoute = AppPeopleNewRouteRouteImport.update({
+  id: '/new',
+  path: '/new',
   getParentRoute: () => AppPeopleRouteRoute,
 } as any)
 const AppAttendanceMonthlyRouteRoute =
@@ -243,7 +243,7 @@ export interface FileRoutesByFullPath {
   '/setup-org': typeof AuthSetupOrgRouteRoute
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
-  '/people/$id': typeof AppPeopleIdRouteRoute
+  '/people/new': typeof AppPeopleNewRouteRoute
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
@@ -273,7 +273,7 @@ export interface FileRoutesByTo {
   '/setup-org': typeof AuthSetupOrgRouteRoute
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
-  '/people/$id': typeof AppPeopleIdRouteRoute
+  '/people/new': typeof AppPeopleNewRouteRoute
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
@@ -311,7 +311,7 @@ export interface FileRoutesById {
   '/_auth/setup-org': typeof AuthSetupOrgRouteRoute
   '/_app/org-chart': typeof AppOrgChartRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
-  '/_app/people/$id': typeof AppPeopleIdRouteRoute
+  '/_app/people/new': typeof AppPeopleNewRouteRoute
   '/_app/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
@@ -348,7 +348,7 @@ export interface FileRouteTypes {
     | '/setup-org'
     | '/org-chart'
     | '/attendance/monthly'
-    | '/people/$id'
+    | '/people/new'
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
@@ -378,7 +378,7 @@ export interface FileRouteTypes {
     | '/setup-org'
     | '/org-chart'
     | '/attendance/monthly'
-    | '/people/$id'
+    | '/people/new'
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
@@ -415,7 +415,7 @@ export interface FileRouteTypes {
     | '/_auth/setup-org'
     | '/_app/org-chart'
     | '/_app/attendance/monthly'
-    | '/_app/people/$id'
+    | '/_app/people/new'
     | '/_app/settings/audit-logs'
     | '/_app/settings/company'
     | '/_app/settings/members'
@@ -649,11 +649,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsAuditLogsRouteRouteImport
       parentRoute: typeof AppSettingsRouteRoute
     }
-    '/_app/people/$id': {
-      id: '/_app/people/$id'
-      path: '/$id'
-      fullPath: '/people/$id'
-      preLoaderRoute: typeof AppPeopleIdRouteRouteImport
+    '/_app/people/new': {
+      id: '/_app/people/new'
+      path: '/new'
+      fullPath: '/people/new'
+      preLoaderRoute: typeof AppPeopleNewRouteRouteImport
       parentRoute: typeof AppPeopleRouteRoute
     }
     '/_app/attendance/monthly': {
@@ -742,12 +742,12 @@ const AppLeaveRouteRouteWithChildren = AppLeaveRouteRoute._addFileChildren(
 )
 
 interface AppPeopleRouteRouteChildren {
-  AppPeopleIdRouteRoute: typeof AppPeopleIdRouteRoute
+  AppPeopleNewRouteRoute: typeof AppPeopleNewRouteRoute
   AppPeopleIndexRoute: typeof AppPeopleIndexRoute
 }
 
 const AppPeopleRouteRouteChildren: AppPeopleRouteRouteChildren = {
-  AppPeopleIdRouteRoute: AppPeopleIdRouteRoute,
+  AppPeopleNewRouteRoute: AppPeopleNewRouteRoute,
   AppPeopleIndexRoute: AppPeopleIndexRoute,
 }
 

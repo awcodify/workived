@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
 import { useWorkSchedules } from '@/lib/hooks/useAttendance'
+import { useDepartments } from '@/lib/hooks/useDepartments'
+import { useJobTitles } from '@/lib/hooks/useJobTitles'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { Dropdown, type DropdownOption } from './Dropdown'
 import { EmployeeDropdown } from './EmployeeDropdown'
@@ -53,7 +55,13 @@ interface FormData {
 export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: EmployeeDetailModalProps) {
   const { data: employee, isLoading } = useEmployee(employeeId)
   const { data: workSchedules = [] } = useWorkSchedules()
+  const { data: departments } = useDepartments()
+  const { data: jobTitles } = useJobTitles()
   const updateEmployee = useUpdateEmployee(employeeId)
+  
+  // Safely handle null/undefined data
+  const safeDepartments = departments ?? []
+  const safeJobTitles = jobTitles ?? []
   
   const [activeTab, setActiveTab] = useState<TabType>('detail')
   const [isEditMode, setIsEditMode] = useState(false)
@@ -95,6 +103,8 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
         if (isEditMode) {
           setIsEditMode(false)
         } else {
@@ -208,6 +218,22 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
       value: ws.id,
       label: ws.name,
       badge: ws.is_default ? 'default' : undefined,
+    })),
+  ]
+
+  const departmentOptions: DropdownOption[] = [
+    { value: '', label: 'Not assigned' },
+    ...safeDepartments.map(dept => ({
+      value: dept.id,
+      label: dept.name,
+    })),
+  ]
+
+  const jobTitleOptions: DropdownOption[] = [
+    { value: '', label: 'Not specified' },
+    ...safeJobTitles.map(jt => ({
+      value: jt.name,
+      label: jt.name,
     })),
   ]
 
@@ -366,17 +392,17 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                           border: `1px solid ${t.inputBorder}`,
                           color: t.text,
                         }}
-                      />
-                      <input
-                        type="text"
-                        placeholder="Job Title"
+                      />  
+                      <Dropdown
                         value={formData.job_title}
-                        onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
-                        className="text-sm font-medium px-2 py-1 rounded-lg focus:outline-none focus:ring-2 w-full"
+                        onChange={(value) => setFormData({ ...formData, job_title: value })}
+                        options={jobTitleOptions}
+                        placeholder="Select job title"
                         style={{
                           background: t.input,
                           border: `1px solid ${t.inputBorder}`,
                           color: t.textMuted,
+                          fontSize: '0.875rem',
                         }}
                       />
                     </div>
@@ -450,10 +476,12 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                         }}
                       />
                     </div>
-                    <InfoCard
-                      icon={<Building2 size={18} style={{ color: colors.accent }} />}
+                    <Dropdown
                       label="Department"
-                      value={employee.department_name || 'Not assigned'}
+                      value={formData.department_id}
+                      onChange={(value) => setFormData({ ...formData, department_id: value })}
+                      options={departmentOptions}
+                      fullWidth
                     />
                     <EmployeeDropdown
                       label="Reports to"
