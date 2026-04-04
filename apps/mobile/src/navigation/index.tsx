@@ -3,8 +3,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
 import { View, ActivityIndicator, StyleSheet } from 'react-native'
+import { useQuery } from '@tanstack/react-query'
 
 import { useAuth } from '@/contexts/AuthContext'
+import { apiClient } from '@/api/client'
 import HomeScreen from '@/screens/HomeScreen'
 import LeaveScreen from '@/screens/LeaveScreen'
 import ApprovalsScreen from '@/screens/ApprovalsScreen'
@@ -27,6 +29,15 @@ const Stack = createNativeStackNavigator<RootStackParamList>()
 const Tab = createBottomTabNavigator<MainTabParamList>()
 
 function MainTabs() {
+  // Fetch approval count for badge
+  const { data: approvalCount } = useQuery({
+    queryKey: ['approvals', 'count'],
+    queryFn: () => apiClient.getApprovalCount(),
+    refetchInterval: 30000, // Refetch every 30 seconds
+  })
+
+  const badgeCount = approvalCount?.count || 0
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -52,7 +63,13 @@ function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Leave" component={LeaveScreen} />
-      <Tab.Screen name="Approvals" component={ApprovalsScreen} />
+      <Tab.Screen 
+        name="Approvals" 
+        component={ApprovalsScreen}
+        options={{
+          tabBarBadge: badgeCount > 0 ? badgeCount : undefined,
+        }}
+      />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   )

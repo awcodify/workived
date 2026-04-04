@@ -106,6 +106,26 @@ class ApiClient {
     const response = await this.client.get<ApiResponse<LeaveRequestWithDetails[]>>('/leave/requests/me')
     return response.data
   }
+
+  async getPendingApprovals(): Promise<ApiResponse<LeaveRequestWithDetails[]>> {
+    const response = await this.client.get<ApiResponse<LeaveRequestWithDetails[]>>('/leave/requests?status=pending')
+    return response.data
+  }
+
+  async approveLeaveRequest(requestId: string): Promise<ApiResponse<LeaveRequestWithDetails>> {
+    const response = await this.client.post<ApiResponse<LeaveRequestWithDetails>>(`/leave/requests/${requestId}/approve`)
+    return response.data
+  }
+
+  async rejectLeaveRequest(requestId: string, note?: string): Promise<ApiResponse<LeaveRequestWithDetails>> {
+    const response = await this.client.post<ApiResponse<LeaveRequestWithDetails>>(`/leave/requests/${requestId}/reject`, { note })
+    return response.data
+  }
+
+  async getApprovalCount(): Promise<{ count: number }> {
+    const response = await this.client.get<{ count: number }>('/leave/notifications/count')
+    return response.data
+  }
 }
 
 export const apiClient = new ApiClient()

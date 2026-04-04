@@ -25,6 +25,7 @@ interface SwipeableCardProps {
   leftColor?: string
   rightIcon?: keyof typeof Ionicons.glyphMap
   leftIcon?: keyof typeof Ionicons.glyphMap
+  disabled?: boolean
 }
 
 export default function SwipeableCard({
@@ -37,13 +38,15 @@ export default function SwipeableCard({
   leftColor = '#EF4444',
   rightIcon = 'checkmark',
   leftIcon = 'close',
+  disabled = false,
 }: SwipeableCardProps) {
   const position = useRef(new Animated.ValueXY()).current
 
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => !disabled,
       onPanResponderMove: (_, gesture) => {
+        if (disabled) return
         position.setValue({ x: gesture.dx, y: 0 })
       },
       onPanResponderRelease: (_, gesture) => {
