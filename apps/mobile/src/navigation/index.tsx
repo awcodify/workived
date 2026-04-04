@@ -9,6 +9,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { apiClient } from '@/api/client'
 import HomeScreen from '@/screens/HomeScreen'
 import LeaveScreen from '@/screens/LeaveScreen'
+import ClaimsScreen from '@/screens/ClaimsScreen'
 import ApprovalsScreen from '@/screens/ApprovalsScreen'
 import ProfileScreen from '@/screens/ProfileScreen'
 import LoginScreen from '@/screens/LoginScreen'
@@ -21,6 +22,7 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Home: undefined
   Leave: undefined
+  Claims: undefined
   Approvals: { tab?: 'leave' | 'claim' } | undefined
   Profile: undefined
 }
@@ -48,6 +50,8 @@ function MainTabs() {
             iconName = focused ? 'home' : 'home-outline'
           } else if (route.name === 'Leave') {
             iconName = focused ? 'calendar' : 'calendar-outline'
+          } else if (route.name === 'Claims') {
+            iconName = focused ? 'receipt' : 'receipt-outline'
           } else if (route.name === 'Approvals') {
             iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline'
           } else if (route.name === 'Profile') {
@@ -70,6 +74,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Leave" component={LeaveScreen} />
+      <Tab.Screen name="Claims" component={ClaimsScreen} />
       <Tab.Screen 
         name="Approvals" 
         component={ApprovalsScreen}

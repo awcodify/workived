@@ -11,7 +11,11 @@ import type {
   LeaveRequestResponse,
   LeaveRequestWithDetails,
   ClaimWithDetails,
-  EmployeeProfile
+  EmployeeProfile,
+  ClaimCategory,
+  SubmitClaimRequest,
+  ClaimResponse,
+  ClaimBalanceWithCategory,
 } from '@/types/api'
 
 // TODO: Replace with your actual backend URL
@@ -144,6 +148,42 @@ class ApiClient {
 
   async rejectClaim(claimId: string, note?: string): Promise<ApiResponse<ClaimWithDetails>> {
     const response = await this.client.post<ApiResponse<ClaimWithDetails>>(`/claims/${claimId}/reject`, { review_note: note })
+    return response.data
+  }
+
+  async getClaimCategories(): Promise<ApiResponse<ClaimCategory[]>> {
+    const response = await this.client.get<ApiResponse<ClaimCategory[]>>('/claims/categories')
+    return response.data
+  }
+
+  async submitClaim(data: SubmitClaimRequest): Promise<ApiResponse<ClaimResponse>> {
+    // Create FormData for multipart upload (receipt photo)
+    const formData = new FormData()
+    formData.append('category_id', data.category_id)
+    formData.append('amount', data.amount.toString())
+    formData.append('currency_code', data.currency_code)
+    formData.append('description', data.description)
+    formData.append('claim_date', data.claim_date)
+    
+    if (data.receipt) {
+      formData.append('receipt', data.receipt)
+    }
+
+    const response = await this.client.post<ApiResponse<ClaimResponse>>('/claims', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  }
+
+  async getMyClaims(): Promise<ApiResponse<ClaimWithDetails[]>> {
+    const response = await this.client.get<ApiResponse<ClaimWithDetails[]>>('/claims/me')
+    return response.data
+  }
+
+  async getClaimBalances(): Promise<ApiResponse<ClaimBalanceWithCategory[]>> {
+    const response = await this.client.get<ApiResponse<ClaimBalanceWithCategory[]>>('/claims/balances/me')
     return response.data
   }
 

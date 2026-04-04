@@ -169,3 +169,67 @@ export interface EmployeeProfile {
   work_schedule_name: string | null
   invitation_pending: boolean
 }
+
+export interface ClaimCategory {
+  id: string
+  organisation_id: string
+  name: string
+  description: string | null
+  monthly_limit: number | null
+  currency_code: string
+  requires_receipt: boolean
+  is_unlimited: boolean
+  budget_period: 'monthly' | 'yearly'
+  eligible_employment_types: string[] | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface SubmitClaimRequest {
+  category_id: string
+  amount: number
+  currency_code: string
+  description: string
+  claim_date: string // YYYY-MM-DD
+  receipt?: File | null
+}
+
+export interface ClaimResponse {
+  id: string
+  organisation_id: string
+  employee_id: string
+  category_id: string
+  amount: number
+  currency_code: string
+  description: string
+  claim_date: string
+  receipt_url: string | null
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'paid'
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_note: string | null
+  paid_at: string | null
+  paid_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ClaimBalanceWithCategory {
+  id: string
+  organisation_id: string
+  employee_id: string
+  category_id: string
+  year: number
+  month: number
+  total_spent: number // smallest currency unit
+  claim_count: number
+  currency_code: string
+  monthly_limit: number | null
+  category_name: string
+  description: string | null
+  budget_period: 'monthly' | 'yearly'
+  remaining: number | null
+  created_at: string
+  updated_at: string
+}
