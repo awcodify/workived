@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/AuthContext'
+import WorkivedLogo from '@/components/WorkivedLogo'
 
 export default function LoginScreen() {
   const { login } = useAuth()
@@ -50,7 +51,7 @@ export default function LoginScreen() {
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.logoContainer}>
-              <Ionicons name="briefcase" size={48} color="#6357E8" />
+              <WorkivedLogo size={64} showWordmark={false} />
             </View>
             <Text style={styles.title}>Welcome to Workived</Text>
             <Text style={styles.subtitle}>Sign in to continue</Text>
