@@ -51,21 +51,38 @@ export default function HomeScreen() {
     return () => clearInterval(timer)
   }, [])
 
-  // Request location immediately when screen loads (if not already clocked in)
+  // Request GPS location whenever data loads
   useEffect(() => {
-    if (data && !data.clock_status.is_clocked_in && !location && !isLoadingLocation) {
+    console.log('[HomeScreen] GPS fetch check:', {
+      hasData: !!data,
+      hasLocation: !!location,
+      isLoading: isLoadingLocation,
+      willFetch: data && !location && !isLoadingLocation
+    })
+    if (data && !location && !isLoadingLocation) {
+      console.log('[HomeScreen] Fetching GPS location...')
       getCurrentLocation()
     }
-  }, [data?.clock_status.is_clocked_in])
+  }, [data, location, isLoadingLocation])
 
   // Populate clocked-in location from backend data when already clocked in
   useEffect(() => {
     const fetchClockedInLocation = async () => {
+      console.log('[HomeScreen] Clocked-in location check:', {
+        isClockedIn: data?.clock_status.is_clocked_in,
+        hasLat: !!data?.clock_status.clock_in_latitude,
+        hasLng: !!data?.clock_status.clock_in_longitude,
+        hasClockedInLoc: !!clockedInLocation,
+        lat: data?.clock_status.clock_in_latitude,
+        lng: data?.clock_status.clock_in_longitude
+      })
+      
       if (data?.clock_status.is_clocked_in && 
           data.clock_status.clock_in_latitude && 
           data.clock_status.clock_in_longitude &&
           !clockedInLocation) {
         
+        console.log('[HomeScreen] Setting clocked-in location from backend')
         const lat = data.clock_status.clock_in_latitude
         const lng = data.clock_status.clock_in_longitude
         
@@ -297,34 +314,34 @@ export default function HomeScreen() {
           </Text>
         </View>
 
-        {/* Location - Show always at top */}
-        {(isLoadingLocation || location || (data.clock_status.is_clocked_in && clockedInLocation)) && (() => {
-          // Use clocked-in location when clocked in, otherwise use current location
-          const displayLocation = data.clock_status.is_clocked_in && clockedInLocation ? clockedInLocation : location
-          
-          return (
-            <View style={styles.locationCardTop}>
-              {isLoadingLocation ? (
-                <View style={styles.locationLoading}>
-                  <ActivityIndicator size="small" color="#6357E8" />
-                  <Text style={styles.locationLoadingText}>Detecting location...</Text>
-                </View>
-              ) : displayLocation ? (
-                <View style={styles.locationInfo}>
-                  <Ionicons name="location" size={16} color="#6357E8" />
-                  <View style={styles.locationDetails}>
-                    <Text style={styles.locationAddressTop}>
-                      {typeof displayLocation.address === 'string' && displayLocation.address
-                        ? displayLocation.address
-                        : `${displayLocation.latitude.toFixed(4)}, ${displayLocation.longitude.toFixed(4)}`
-                      }
-                    </Text>
-                  </View>
-                </View>
-              ) : null}
+        {/* Location - Show current GPS location (always updated) */}
+        <View style={styles.locationCardTop}>
+          {isLoadingLocation ? (
+            <View style={styles.locationLoading}>
+              <ActivityIndicator size="small" color="#6357E8" />
+              <Text style={styles.locationLoadingText}>Detecting location...</Text>
             </View>
-          )
-        })()}
+          ) : location ? (
+            <View style={styles.locationInfo}>
+              <Ionicons name="location" size={16} color="#6357E8" />
+              <View style={styles.locationDetails}>
+                <Text style={styles.locationAddressTop}>
+                  {typeof location.address === 'string' && location.address
+                    ? location.address
+                    : `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+                  }
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.locationInfo}>
+              <Ionicons name="location-outline" size={16} color="#9CA3AF" />
+              <Text style={[styles.locationAddressTop, { color: '#9CA3AF' }]}>
+                Location unavailable
+              </Text>
+            </View>
+          )}
+        </View>
 
         {/* Clock In/Out Card */}
         <View style={styles.clockCard}>
@@ -366,6 +383,20 @@ export default function HomeScreen() {
                   <View style={styles.hoursContent}>
                     <Text style={styles.hoursLabel}>Hours today</Text>
                     <Text style={styles.hoursValue}>{data.clock_status.hours_worked_today.toFixed(1)}h</Text>
+                  </View>
+                </View>
+              )}
+              
+              {/* Clocked in location */}
+              {clockedInLocation && (
+                <View style={styles.clockedInLocationCard}>
+                  <Ionicons name="location" size={18} color="#6357E8" />
+                  <View style={styles.clockedInLocationContent}>
+                    <Text style={styles.clockedInLocationLabel}>Clocked in from</Text>
+                    <Text style={styles.clockedInLocationText}>
+                      {clockedInLocation.address || 
+                       `${clockedInLocation.latitude.toFixed(4)}, ${clockedInLocation.longitude.toFixed(4)}`}
+                    </Text>
                   </View>
                 </View>
               )}
@@ -753,6 +784,30 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1E40AF',
     fontVariant: ['tabular-nums'],
+  },
+  clockedInLocationCard: {
+    backgroundColor: '#F5F3FF',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    marginBottom: 12,
+  },
+  clockedInLocationContent: {
+    flex: 1,
+  },
+  clockedInLocationLabel: {
+    fontSize: 12,
+    color: '#6357E8',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  clockedInLocationText: {
+    fontSize: 14,
+    color: '#4C1D95',
+    fontWeight: '500',
+    lineHeight: 20,
   },
   locationCard: {
     backgroundColor: '#F9FAFB',
