@@ -164,16 +164,6 @@ export default function LeaveScreen() {
     })
   }
 
-  if (isLoading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6357E8" />
-        </View>
-      </SafeAreaView>
-    )
-  }
-
   const policies = policiesData?.data || []
   const leaveBalance = homeData?.leave_balance
   const myRequests = requestsData?.data || []
@@ -248,6 +238,16 @@ export default function LeaveScreen() {
   // Filter requests by policy
   const getRequestsForPolicy = (policyId: string): LeaveRequestWithDetails[] => {
     return myRequests.filter(req => req.leave_policy_id === policyId)
+  }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6357E8" />
+        </View>
+      </SafeAreaView>
+    )
   }
 
   return (
