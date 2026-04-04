@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { 
   View, 
   Text, 
@@ -8,14 +8,20 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform
+  Platform,
+  Animated,
+  Dimensions
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiClient } from '@/api/client'
 import type { LeavePolicy, LeaveRequestWithDetails } from '@/types/api'
 import DateTimePicker from '@react-native-community/datetimepicker'
+
+const LEAVE_TOUR_KEY = '@workived_leave_apply_tour_seen'
+const SCREEN_WIDTH = Dimensions.get('window').width
 
 type ViewMode = 'list' | 'apply'
 
@@ -29,6 +35,10 @@ export default function LeaveScreen() {
   const [reason, setReason] = useState('')
   const [showStartPicker, setShowStartPicker] = useState(false)
   const [showEndPicker, setShowEndPicker] = useState(false)
+  const [showTour, setShowTour] = useState(false)
+  const hasInitialExpanded = useRef(false)
+  const tourOpacity = useRef(new Animated.Value(0)).current
+  const tourScale = useRef(new Animated.Value(0.8)).current
 
   const { data: policiesData, isLoading } = useQuery({
     queryKey: ['leave', 'policies'],
@@ -168,6 +178,65 @@ export default function LeaveScreen() {
   const leaveBalance = homeData?.leave_balance
   const myRequests = requestsData?.data || []
 
+  // Auto-expand first policy on initial load only
+  useEffect(() => {
+    if (policies.length > 0 && !hasInitialExpanded.current) {
+      setExpandedPolicyId(policies[0].id)
+      hasInitialExpanded.current = true
+    }
+  }, [policies])
+
+  // Check if user has seen the tour
+  useEffect(() => {
+    const checkTour = async () => {
+      try {
+        const seen = await AsyncStorage.getItem(LEAVE_TOUR_KEY)
+        if (!seen && policies.length > 0) {
+          // Show tour after a short delay
+          setTimeout(() => {
+            setShowTour(true)
+            // Animate tour appearance
+            Animated.parallel([
+              Animated.timing(tourOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+              }),
+              Animated.spring(tourScale, {
+                toValue: 1,
+                friction: 8,
+                tension: 40,
+                useNativeDriver: true,
+              }),
+            ]).start()
+
+            // Auto-hide after 5 seconds
+            setTimeout(async () => {
+              Animated.parallel([
+                Animated.timing(tourOpacity, {
+                  toValue: 0,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+                Animated.timing(tourScale, {
+                  toValue: 0.8,
+                  duration: 200,
+                  useNativeDriver: true,
+                }),
+              ]).start(() => {
+                setShowTour(false)
+              })
+              await AsyncStorage.setItem(LEAVE_TOUR_KEY, 'true')
+            }, 5000)
+          }, 500)
+        }
+      } catch (error) {
+        console.error('Error checking tour:', error)
+      }
+    }
+    checkTour()
+  }, [policies, tourOpacity, tourScale])
+
   // Map policy name to balance key
   const getBalanceKey = (policyName: string): 'annual' | 'sick' | 'unpaid' => {
     const name = policyName.toLowerCase()
@@ -187,119 +256,163 @@ export default function LeaveScreen() {
         {viewMode === 'list' ? (
           <>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={styles.headerContainer}>
               <Text style={styles.title}>Leave Balance</Text>
+            </View>
+            <View style={styles.subtitleContainer}>
               <Text style={styles.subtitle}>Apply for leave or view your requests</Text>
             </View>
 
-            {/* Leave Balance Cards */}
-            <View style={styles.balanceList}>
-              {policies.map((policy) => {
-                const balanceKey = getBalanceKey(policy.name)
-                const balance = leaveBalance ? leaveBalance[balanceKey] : 0
-                const isExpanded = expandedPolicyId === policy.id
-                const policyRequests = getRequestsForPolicy(policy.id)
+            {/* Leave Balance Table */}
+            <View style={styles.tableWrapper}>
+              <View style={styles.tableCard}>
+                {/* Table Header */}
+                <View style={styles.tableHeader}>
+                  <Text style={[styles.tableHeaderText, styles.tableColumnType]}>Type</Text>
+                  <Text style={[styles.tableHeaderText, styles.tableColumnNumber]}>Avail</Text>
+                  <Text style={[styles.tableHeaderText, styles.tableColumnNumber]}>Used</Text>
+                  <Text style={[styles.tableHeaderText, styles.tableColumnNumber]}>Total</Text>
+                  <View style={styles.tableColumnAction} />
+                </View>
 
-                return (
-                  <View key={policy.id} style={styles.balanceCard}>
-                    {/* Card Header - Clickable to expand */}
-                    <TouchableOpacity 
-                      style={styles.balanceCardHeader}
-                      onPress={() => handleToggleExpand(policy.id)}
-                      activeOpacity={0.7}
-                    >
-                      <View style={styles.balanceHeaderRow}>
-                        <View style={styles.balanceIcon}>
-                          <Ionicons 
-                            name={balanceKey === 'annual' ? 'calendar' : balanceKey === 'sick' ? 'medkit' : 'time'} 
-                            size={24} 
-                            color="#6357E8" 
-                          />
-                        </View>
-                        <View style={styles.balanceInfo}>
-                          <Text style={styles.balanceName}>{policy.name}</Text>
-                          <Text style={styles.balanceDetails}>
-                            {policy.days_per_year} days per year
+                {/* Table Rows */}
+                {policies.map((policy, index) => {
+                  const balanceKey = getBalanceKey(policy.name)
+                  const balance = leaveBalance ? leaveBalance[balanceKey] : 0
+                  const total = policy.days_per_year
+                  const used = total - balance
+                  const isExpanded = expandedPolicyId === policy.id
+                  const policyRequests = getRequestsForPolicy(policy.id)
+
+                  return (
+                    <View key={policy.id}>
+                      {/* Table Row */}
+                      <View style={[styles.tableRow, index > 0 && styles.tableRowBorder]}>
+                        {/* Type Column with Icon */}
+                        <TouchableOpacity 
+                          style={[styles.tableCell, styles.tableColumnType]}
+                          onPress={() => handleToggleExpand(policy.id)}
+                          activeOpacity={0.7}
+                        >
+                          <View style={styles.typeCell}>
+                            <View style={[styles.leaveTypeIndicator, { 
+                              backgroundColor: balanceKey === 'annual' ? '#3B82F6' : balanceKey === 'sick' ? '#EF4444' : '#6B7280' 
+                            }]} />
+                            <Text style={styles.typeCellText}>{policy.name}</Text>
+                            <Ionicons 
+                              name={isExpanded ? 'chevron-up' : 'chevron-down'} 
+                              size={18} 
+                              color="#9CA3AF"
+                              style={styles.expandIcon}
+                            />
+                          </View>
+                        </TouchableOpacity>
+
+                        {/* Available Column */}
+                        <View style={[styles.tableCell, styles.tableColumnNumber]}>
+                          <Text style={[styles.tableCellText, styles.numberText, { color: '#10B981' }]}>
+                            {balance}
                           </Text>
                         </View>
-                        <Ionicons 
-                          name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-                          size={24} 
-                          color="#9CA3AF" 
-                        />
-                      </View>
-                    </TouchableOpacity>
 
-                    {/* Balance and Apply Button */}
-                    <View style={styles.balanceFooter}>
-                      <View style={styles.balanceValueContainer}>
-                        <Text style={styles.balanceLabel}>Available</Text>
-                        <Text style={styles.balanceValue}>
-                          {leaveBalance ? `${balance} days` : 'Loading...'}
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={styles.applyButton}
-                        onPress={() => handleApplyLeave(policy)}
-                      >
-                        <Ionicons name="add-circle" size={20} color="#FFFFFF" />
-                        <Text style={styles.applyButtonText}>Apply</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Expanded Section - Leave Requests */}
-                    {isExpanded && (
-                      <View style={styles.expandedSection}>
-                        <View style={styles.requestsHeader}>
-                          <Text style={styles.requestsTitle}>Current Requests</Text>
-                          {policyRequests.length > 0 && (
-                            <Text style={styles.requestsCount}>
-                              {policyRequests.length} {policyRequests.length === 1 ? 'request' : 'requests'}
-                            </Text>
-                          )}
+                        {/* Used Column */}
+                        <View style={[styles.tableCell, styles.tableColumnNumber]}>
+                          <Text style={[styles.tableCellText, styles.numberText, { color: '#EF4444' }]}>
+                            {used}
+                          </Text>
                         </View>
 
-                        {policyRequests.length === 0 ? (
-                          <View style={styles.emptyRequests}>
-                            <Ionicons name="document-outline" size={32} color="#D1D5DB" />
-                            <Text style={styles.emptyRequestsText}>No leave requests yet</Text>
-                          </View>
-                        ) : (
-                          <View style={styles.requestsList}>
-                            {policyRequests.map((request) => (
-                              <View key={request.id} style={styles.requestItem}>
-                                <View style={styles.requestHeader}>
-                                  <View style={styles.requestDates}>
-                                    <Ionicons name="calendar-outline" size={14} color="#6B7280" />
-                                    <Text style={styles.requestDateText}>
-                                      {formatDateShort(request.start_date)} - {formatDateShort(request.end_date)}
-                                    </Text>
-                                  </View>
-                                  <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
-                                    <Text style={styles.statusText}>
-                                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                                    </Text>
-                                  </View>
-                                </View>
-                                <View style={styles.requestDetails}>
-                                  <Text style={styles.requestDays}>
-                                    {request.total_days} {request.total_days === 1 ? 'day' : 'days'}
-                                  </Text>
-                                  {request.reason && (
-                                    <Text style={styles.requestReason} numberOfLines={2}>
-                                      {request.reason}
-                                    </Text>
-                                  )}
-                                </View>
+                        {/* Total Column */}
+                        <View style={[styles.tableCell, styles.tableColumnNumber]}>
+                          <Text style={[styles.tableCellText, styles.numberText, { color: '#6B7280' }]}>
+                            {total}
+                          </Text>
+                        </View>
+
+                        {/* Apply Button Column */}
+                        <View style={[styles.tableCell, styles.tableColumnAction]}>
+                          <TouchableOpacity
+                            style={styles.applyButtonSmall}
+                            onPress={() => handleApplyLeave(policy)}
+                          >
+                            <Ionicons name="add-circle" size={18} color="#6357E8" />
+                          </TouchableOpacity>
+                          
+                          {/* Tour Tooltip - Show on first button only */}
+                          {showTour && index === 0 && (
+                            <Animated.View 
+                              style={[
+                                styles.tourTooltip,
+                                {
+                                  opacity: tourOpacity,
+                                  transform: [{ scale: tourScale }]
+                                }
+                              ]}
+                            >
+                              <View style={styles.tourContent}>
+                                <Ionicons name="hand-left" size={16} color="#6357E8" />
+                                <Text style={styles.tourText}>Tap to apply</Text>
                               </View>
-                            ))}
-                          </View>
-                        )}
+                              <View style={styles.tourArrow} />
+                            </Animated.View>
+                          )}
+                        </View>
                       </View>
-                    )}
-                  </View>
-                )
-              })}
+
+                      {/* Expanded Section - Leave Requests */}
+                      {isExpanded && (
+                        <View style={styles.expandedSection}>
+                          <View style={styles.requestsHeader}>
+                            <Text style={styles.requestsTitle}>Current Requests</Text>
+                            {policyRequests.length > 0 && (
+                              <Text style={styles.requestsCount}>
+                                {policyRequests.length} {policyRequests.length === 1 ? 'request' : 'requests'}
+                              </Text>
+                            )}
+                          </View>
+
+                          {policyRequests.length === 0 ? (
+                            <View style={styles.emptyRequests}>
+                              <Ionicons name="document-outline" size={32} color="#D1D5DB" />
+                              <Text style={styles.emptyRequestsText}>No leave requests yet</Text>
+                            </View>
+                          ) : (
+                            <View style={styles.requestsList}>
+                              {policyRequests.map((request) => (
+                                <View key={request.id} style={styles.requestItem}>
+                                  <View style={styles.requestHeader}>
+                                    <View style={styles.requestDates}>
+                                      <Ionicons name="calendar-outline" size={14} color="#6B7280" />
+                                      <Text style={styles.requestDateText}>
+                                        {formatDateShort(request.start_date)} - {formatDateShort(request.end_date)}
+                                      </Text>
+                                    </View>
+                                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(request.status) }]}>
+                                      <Text style={styles.statusText}>
+                                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                                      </Text>
+                                    </View>
+                                  </View>
+                                  <View style={styles.requestDetails}>
+                                    <Text style={styles.requestDays}>
+                                      {request.total_days} {request.total_days === 1 ? 'day' : 'days'}
+                                    </Text>
+                                    {request.reason && (
+                                      <Text style={styles.requestReason} numberOfLines={2}>
+                                        {request.reason}
+                                      </Text>
+                                    )}
+                                  </View>
+                                </View>
+                              ))}
+                            </View>
+                          )}
+                        </View>
+                      )}
+                    </View>
+                  )
+                })}
+              </View>
             </View>
           </>
         ) : (
@@ -429,6 +542,15 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  headerContainer: {
+    paddingHorizontal: 24,
+    paddingTop: 24,
+    paddingBottom: 8,
+  },
+  subtitleContainer: {
+    paddingHorizontal: 24,
+    paddingBottom: 16,
+  },
   header: {
     padding: 24,
     paddingBottom: 16,
@@ -457,11 +579,10 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     marginTop: 4,
   },
-  balanceList: {
+  tableWrapper: {
     padding: 16,
-    gap: 12,
   },
-  balanceCard: {
+  tableCard: {
     backgroundColor: '#FFF',
     borderRadius: 16,
     shadowColor: '#000',
@@ -471,57 +592,83 @@ const styles = StyleSheet.create({
     elevation: 2,
     overflow: 'hidden',
   },
-  balanceCardHeader: {
-    padding: 16,
-  },
-  balanceHeaderRow: {
+  tableHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  balanceIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: '#EEF2FF',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  balanceInfo: {
-    flex: 1,
-  },
-  balanceName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  balanceDetails: {
-    fontSize: 13,
-    color: '#6B7280',
-    marginTop: 2,
-  },
-  balanceFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingBottom: 16,
-    paddingTop: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  tableHeaderText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    minHeight: 56,
+  },
+  tableRowBorder: {
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
   },
-  balanceValueContainer: {
+  tableCell: {
+    justifyContent: 'center',
+  },
+  tableColumnType: {
+    flex: 2.5,
+    paddingRight: 8,
+  },
+  tableColumnNumber: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  tableColumnAction: {
+    width: 52,
+    alignItems: 'center',
+    position: 'relative',
+  },
+  typeCell: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  typeCellText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
     flex: 1,
   },
-  balanceLabel: {
-    fontSize: 12,
-    color: '#6B7280',
-    marginBottom: 4,
+  leaveTypeIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    flexShrink: 0,
   },
-  balanceValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#6357E8',
+  expandIcon: {
+    flexShrink: 0,
+  },
+  tableCellText: {
+    fontSize: 14,
+    color: '#111827',
+  },
+  numberText: {
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
+  applyButtonSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   applyButton: {
     flexDirection: 'row',
@@ -726,5 +873,40 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#FFF',
+  },
+  tourTooltip: {
+    position: 'absolute',
+    bottom: '100%',
+    right: -8,
+    marginBottom: 8,
+    backgroundColor: '#6357E8',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+    zIndex: 1000,
+  },
+  tourContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  tourText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#FFF',
+  },
+  tourArrow: {
+    position: 'absolute',
+    bottom: -4,
+    right: 12,
+    width: 8,
+    height: 8,
+    backgroundColor: '#6357E8',
+    transform: [{ rotate: '45deg' }],
   },
 })
