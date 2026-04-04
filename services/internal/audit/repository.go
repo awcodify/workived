@@ -74,51 +74,74 @@ func marshalNullable(v interface{}) ([]byte, error) {
 // List retrieves audit logs for an organisation with filters.
 func (r *Repository) List(ctx context.Context, orgID uuid.UUID, filters ListFilters) ([]AuditLog, error) {
 	query := `
-		SELECT id, organisation_id, actor_user_id, action, resource_type, resource_id,
-		       before_state, after_state, ip_address, request_id, created_at
-		FROM audit_logs
-		WHERE organisation_id = $1
+		SELECT a.id, a.organisation_id, a.actor_user_id, u.full_name as actor_name,
+		       a.action, a.resource_type, a.resource_id,
+		       a.before_state, a.after_state, a.ip_address, a.request_id, a.created_at
+		FROM audit_logs a
+		LEFT JOIN users u ON a.actor_user_id = u.id
+		WHERE a.organisation_id = $1
+		  AND a.action != 'task.moved'
 	`
 	args := []interface{}{orgID}
 	argIdx := 2
 
+	// Global search across multiple fields
+	if filters.Search != nil && *filters.Search != "" {
+		searchPattern := "%" + *filters.Search + "%"
+		query += fmt.Sprintf(` AND (
+			a.action ILIKE $%d OR
+			a.resource_type ILIKE $%d OR
+			u.full_name ILIKE $%d OR
+			a.before_state::text ILIKE $%d OR
+			a.after_state::text ILIKE $%d
+		)`, argIdx, argIdx+1, argIdx+2, argIdx+3, argIdx+4)
+		args = append(args, searchPattern, searchPattern, searchPattern, searchPattern, searchPattern)
+		argIdx += 5
+	}
+
 	if filters.ResourceType != nil {
-		query += fmt.Sprintf(" AND resource_type = $%d", argIdx)
-		args = append(args, *filters.ResourceType)
+		query += fmt.Sprintf(" AND a.resource_type ILIKE $%d", argIdx)
+		args = append(args, "%"+*filters.ResourceType+"%")
 		argIdx++
 	}
 
 	if filters.ResourceID != nil {
-		query += fmt.Sprintf(" AND resource_id = $%d", argIdx)
+		query += fmt.Sprintf(" AND a.resource_id = $%d", argIdx)
 		args = append(args, *filters.ResourceID)
 		argIdx++
 	}
 
 	if filters.ActorUserID != nil {
-		query += fmt.Sprintf(" AND actor_user_id = $%d", argIdx)
+		query += fmt.Sprintf(" AND a.actor_user_id = $%d", argIdx)
 		args = append(args, *filters.ActorUserID)
 		argIdx++
 	}
 
+	if filters.ActorName != nil && *filters.ActorName != "" {
+		query += fmt.Sprintf(" AND u.full_name ILIKE $%d", argIdx)
+		args = append(args, "%"+*filters.ActorName+"%")
+		argIdx++
+	}
+
 	if filters.Action != nil {
-		query += fmt.Sprintf(" AND action = $%d", argIdx)
-		args = append(args, *filters.Action)
+		query += fmt.Sprintf(" AND a.action ILIKE $%d", argIdx)
+		args = append(args, "%"+*filters.Action+"%")
 		argIdx++
 	}
 
 	if filters.StartDate != nil {
-		query += fmt.Sprintf(" AND created_at >= $%d", argIdx)
+		query += fmt.Sprintf(" AND a.created_at >= $%d", argIdx)
 		args = append(args, *filters.StartDate)
 		argIdx++
 	}
 
 	if filters.EndDate != nil {
-		query += fmt.Sprintf(" AND created_at <= $%d", argIdx)
+		query += fmt.Sprintf(" AND a.created_at <= $%d", argIdx)
 		args = append(args, *filters.EndDate)
 		argIdx++
 	}
 
-	query += " ORDER BY created_at DESC"
+	query += " ORDER BY a.created_at DESC"
 
 	if filters.Limit > 0 {
 		query += fmt.Sprintf(" LIMIT $%d", argIdx)
@@ -141,7 +164,8 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, filters ListFilt
 	for rows.Next() {
 		var log AuditLog
 		err := rows.Scan(
-			&log.ID, &log.OrganisationID, &log.ActorUserID, &log.Action, &log.ResourceType, &log.ResourceID,
+			&log.ID, &log.OrganisationID, &log.ActorUserID, &log.ActorName,
+			&log.Action, &log.ResourceType, &log.ResourceID,
 			&log.BeforeState, &log.AfterState, &log.IPAddress, &log.RequestID, &log.CreatedAt,
 		)
 		if err != nil {

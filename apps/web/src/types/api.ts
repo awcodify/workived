@@ -260,6 +260,33 @@ export interface EmploymentChange {
   created_at: string
 }
 
+// ── Audit Logs ───────────────────────────────────────────────
+export interface AuditLog {
+  id: string
+  organisation_id: string
+  actor_user_id: string
+  actor_name?: string
+  action: string
+  resource_type: string
+  resource_id: string
+  before_state?: Record<string, any>
+  after_state?: Record<string, any>
+  created_at: string
+}
+
+export interface AuditLogFilters {
+  search?: string  // Global search across action, resource type, actor name, and changes
+  resource_type?: string
+  resource_id?: string
+  actor_user_id?: string
+  actor_name?: string  // Filter by actor's full name
+  action?: string
+  start_date?: string
+  end_date?: string
+  limit?: number
+  offset?: number
+}
+
 // ── Departments ──────────────────────────────────────────────
 export interface Department {
   id: string

@@ -38,6 +38,7 @@ import { Route as AppCalendarIndexRouteImport } from './routes/_app/calendar/ind
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
+import { Route as AppSettingsAuditLogsRouteRouteImport } from './routes/_app/settings/audit-logs/route'
 import { Route as AppPeopleIdRouteRouteImport } from './routes/_app/people/$id/route'
 import { Route as AppAttendanceMonthlyRouteRouteImport } from './routes/_app/attendance/monthly/route'
 import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/policies/index'
@@ -187,6 +188,12 @@ const AppSettingsCompanyRouteRoute = AppSettingsCompanyRouteRouteImport.update({
   path: '/company',
   getParentRoute: () => AppSettingsRouteRoute,
 } as any)
+const AppSettingsAuditLogsRouteRoute =
+  AppSettingsAuditLogsRouteRouteImport.update({
+    id: '/audit-logs',
+    path: '/audit-logs',
+    getParentRoute: () => AppSettingsRouteRoute,
+  } as any)
 const AppPeopleIdRouteRoute = AppPeopleIdRouteRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -237,6 +244,7 @@ export interface FileRoutesByFullPath {
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
+  '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance/': typeof AppAttendanceIndexRoute
@@ -266,6 +274,7 @@ export interface FileRoutesByTo {
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/$id': typeof AppPeopleIdRouteRoute
+  '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
   '/attendance': typeof AppAttendanceIndexRoute
@@ -303,6 +312,7 @@ export interface FileRoutesById {
   '/_app/org-chart': typeof AppOrgChartRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/_app/people/$id': typeof AppPeopleIdRouteRoute
+  '/_app/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
   '/_app/attendance/': typeof AppAttendanceIndexRoute
@@ -339,6 +349,7 @@ export interface FileRouteTypes {
     | '/org-chart'
     | '/attendance/monthly'
     | '/people/$id'
+    | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
     | '/attendance/'
@@ -368,6 +379,7 @@ export interface FileRouteTypes {
     | '/org-chart'
     | '/attendance/monthly'
     | '/people/$id'
+    | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
     | '/attendance'
@@ -404,6 +416,7 @@ export interface FileRouteTypes {
     | '/_app/org-chart'
     | '/_app/attendance/monthly'
     | '/_app/people/$id'
+    | '/_app/settings/audit-logs'
     | '/_app/settings/company'
     | '/_app/settings/members'
     | '/_app/attendance/'
@@ -629,6 +642,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsCompanyRouteRouteImport
       parentRoute: typeof AppSettingsRouteRoute
     }
+    '/_app/settings/audit-logs': {
+      id: '/_app/settings/audit-logs'
+      path: '/audit-logs'
+      fullPath: '/settings/audit-logs'
+      preLoaderRoute: typeof AppSettingsAuditLogsRouteRouteImport
+      parentRoute: typeof AppSettingsRouteRoute
+    }
     '/_app/people/$id': {
       id: '/_app/people/$id'
       path: '/$id'
@@ -736,11 +756,13 @@ const AppPeopleRouteRouteWithChildren = AppPeopleRouteRoute._addFileChildren(
 )
 
 interface AppSettingsRouteRouteChildren {
+  AppSettingsAuditLogsRouteRoute: typeof AppSettingsAuditLogsRouteRoute
   AppSettingsCompanyRouteRoute: typeof AppSettingsCompanyRouteRoute
   AppSettingsMembersRouteRoute: typeof AppSettingsMembersRouteRoute
 }
 
 const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
+  AppSettingsAuditLogsRouteRoute: AppSettingsAuditLogsRouteRoute,
   AppSettingsCompanyRouteRoute: AppSettingsCompanyRouteRoute,
   AppSettingsMembersRouteRoute: AppSettingsMembersRouteRoute,
 }

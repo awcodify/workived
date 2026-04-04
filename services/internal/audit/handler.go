@@ -52,6 +52,9 @@ func (h *Handler) List(c *gin.Context) {
 			filters.Offset = offset
 		}
 	}
+	if search := c.Query("search"); search != "" {
+		filters.Search = &search
+	}
 	if resourceType := c.Query("resource_type"); resourceType != "" {
 		filters.ResourceType = &resourceType
 	}
@@ -64,6 +67,9 @@ func (h *Handler) List(c *gin.Context) {
 		if actorID, err := uuid.Parse(actorIDStr); err == nil {
 			filters.ActorUserID = &actorID
 		}
+	}
+	if actorName := c.Query("actor_name"); actorName != "" {
+		filters.ActorName = &actorName
 	}
 	if action := c.Query("action"); action != "" {
 		filters.Action = &action

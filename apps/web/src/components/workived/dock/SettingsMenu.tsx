@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
-import { Settings, LogOut, User, Building2, Users, Moon, Sun, Sparkles, AlertCircle, HelpCircle } from 'lucide-react'
+import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, AlertCircle, HelpCircle } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useThemeStore } from '@/lib/stores/theme'
 import { useTourStore } from '@/lib/stores/tour'
@@ -209,6 +209,21 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           >
             <Users size={16} className="transition-transform group-hover/item:scale-110" />
             <span className="text-xs font-medium">Team members</span>
+          </button>
+          )}
+          {hasOrg && (
+          <button
+            role="menuitem"
+            onClick={() => { setIsOpen(false); navigate({ to: '/settings/audit-logs' }) }}
+            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            style={{ color: menuColors.text }}
+            onMouseEnter={(e) => { 
+              e.currentTarget.style.background = menuColors.hoverBg
+            }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+          >
+            <FileText size={16} className="transition-transform group-hover/item:scale-110" />
+            <span className="text-xs font-medium">Audit logs</span>
           </button>
           )}
 
