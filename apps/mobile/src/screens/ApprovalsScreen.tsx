@@ -5,7 +5,6 @@ import {
   StyleSheet, 
   FlatList,
   ActivityIndicator,
-  Alert,
   RefreshControl,
   TouchableOpacity,
   Animated,
@@ -18,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiClient } from '@/api/client'
 import type { LeaveRequestWithDetails } from '@/types/api'
 import SwipeableCard from '@/components/SwipeableCard'
+import { CustomAlert } from '@/components/CustomAlert'
 
 const SWIPE_TOUR_KEY = '@workived_approvals_swipe_tour_seen'
 const SCREEN_WIDTH = Dimensions.get('window').width
@@ -29,6 +29,14 @@ export default function ApprovalsScreen() {
   const [isTourAnimating, setIsTourAnimating] = useState(false)
   const tourTranslateX = useRef(new Animated.Value(0)).current
   const tourOpacity = useRef(new Animated.Value(0)).current
+  
+  // Alert states
+  const [showApproveAlert, setShowApproveAlert] = useState(false)
+  const [showRejectAlert, setShowRejectAlert] = useState(false)
+  const [showSuccessAlert, setShowSuccessAlert] = useState(false)
+  const [showErrorAlert, setShowErrorAlert] = useState(false)
+  const [alertMessage, setAlertMessage] = useState('')
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
 
   const { data: approvalsData, isLoading, refetch } = useQuery({
     queryKey: ['approvals', 'pending'],
@@ -117,10 +125,12 @@ export default function ApprovalsScreen() {
     onSuccess: (_, requestId) => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] })
       queryClient.invalidateQueries({ queryKey: ['mobile', 'home'] })
-      Alert.alert('Success', 'Request approved successfully')
+      setAlertMessage('Request approved successfully')
+      setShowSuccessAlert(true)
     },
     onError: (error: any) => {
-      Alert.alert('Error', error.response?.data?.error?.message || 'Failed to approve request')
+      setAlertMessage(error.response?.data?.error?.message || 'Failed to approve request')
+      setShowErrorAlert(true)
     },
   })
 
@@ -129,41 +139,39 @@ export default function ApprovalsScreen() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['approvals'] })
       queryClient.invalidateQueries({ queryKey: ['mobile', 'home'] })
-      Alert.alert('Success', 'Request rejected')
+      setAlertMessage('Request rejected')
+      setShowSuccessAlert(true)
     },
     onError: (error: any) => {
-      Alert.alert('Error', error.response?.data?.error?.message || 'Failed to reject request')
+      setAlertMessage(error.response?.data?.error?.message || 'Failed to reject request')
+      setShowErrorAlert(true)
     },
   })
 
   const handleApprove = async (requestId: string) => {
-    Alert.alert(
-      'Approve Request',
-      'Are you sure you want to approve this request?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Approve', 
-          style: 'default',
-          onPress: () => approveMutation.mutate(requestId)
-        },
-      ]
-    )
+    setSelectedRequestId(requestId)
+    setShowApproveAlert(true)
   }
 
   const handleReject = async (requestId: string) => {
-    Alert.alert(
-      'Reject Request',
-      'Are you sure you want to reject this request?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reject', 
-          style: 'destructive',
-          onPress: () => rejectMutation.mutate(requestId)
-        },
-      ]
-    )
+    setSelectedRequestId(requestId)
+    setShowRejectAlert(true)
+  }
+
+  const confirmApprove = () => {
+    if (selectedRequestId) {
+      approveMutation.mutate(selectedRequestId)
+    }
+    setShowApproveAlert(false)
+    setSelectedRequestId(null)
+  }
+
+  const confirmReject = () => {
+    if (selectedRequestId) {
+      rejectMutation.mutate(selectedRequestId)
+    }
+    setShowRejectAlert(false)
+    setSelectedRequestId(null)
   }
 
   const handleRefresh = async () => {
@@ -388,6 +396,92 @@ export default function ApprovalsScreen() {
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       )}
+
+      <CustomAlert
+        visible={showApproveAlert}
+        title="Approve Request"
+        message="Are you sure you want to approve this request?"
+        icon="checkmark-circle"
+        iconColor="#10B981"
+        buttons={[
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setShowApproveAlert(false)
+              setSelectedRequestId(null)
+            },
+          },
+          {
+            text: 'Approve',
+            style: 'primary',
+            onPress: confirmApprove,
+          },
+        ]}
+        onDismiss={() => {
+          setShowApproveAlert(false)
+          setSelectedRequestId(null)
+        }}
+      />
+
+      <CustomAlert
+        visible={showRejectAlert}
+        title="Reject Request"
+        message="Are you sure you want to reject this request?"
+        icon="close-circle"
+        iconColor="#EF4444"
+        buttons={[
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setShowRejectAlert(false)
+              setSelectedRequestId(null)
+            },
+          },
+          {
+            text: 'Reject',
+            style: 'destructive',
+            onPress: confirmReject,
+          },
+        ]}
+        onDismiss={() => {
+          setShowRejectAlert(false)
+          setSelectedRequestId(null)
+        }}
+      />
+
+      <CustomAlert
+        visible={showSuccessAlert}
+        title="Success"
+        message={alertMessage}
+        icon="checkmark-circle"
+        iconColor="#10B981"
+        buttons={[
+          {
+            text: 'OK',
+            style: 'primary',
+            onPress: () => setShowSuccessAlert(false),
+          },
+        ]}
+        onDismiss={() => setShowSuccessAlert(false)}
+      />
+
+      <CustomAlert
+        visible={showErrorAlert}
+        title="Error"
+        message={alertMessage}
+        icon="alert-circle"
+        iconColor="#EF4444"
+        buttons={[
+          {
+            text: 'OK',
+            style: 'cancel',
+            onPress: () => setShowErrorAlert(false),
+          },
+        ]}
+        onDismiss={() => setShowErrorAlert(false)}
+      />
     </SafeAreaView>
   )
 }

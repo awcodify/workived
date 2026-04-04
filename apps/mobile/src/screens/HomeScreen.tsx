@@ -1,18 +1,31 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useEffect, useState } from 'react'
 import * as Location from 'expo-location'
+import { useNavigation } from '@react-navigation/native'
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs'
 import { apiClient } from '@/api/client'
 import type { MobileHomeData } from '@/types/api'
+import type { MainTabParamList } from '@/navigation'
 import { useLocation } from '@/hooks/useLocation'
+import { CustomAlert } from '@/components/CustomAlert'
 
 export default function HomeScreen() {
   const queryClient = useQueryClient()
+  const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [clockedInLocation, setClockedInLocation] = useState<{ latitude: number; longitude: number; address?: string; accuracy?: number | null } | null>(null)
   const [weekOffset, setWeekOffset] = useState(0) // 0 = this week, -1 = last week
+  const [showClockInAlert, setShowClockInAlert] = useState(false)
+  const [showClockOutAlert, setShowClockOutAlert] = useState(false)
+  const [clockInLocationText, setClockInLocationText] = useState('')
+  const [clockOutLocationText, setClockOutLocationText] = useState('')
+  const [pendingClockInLocation, setPendingClockInLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [pendingClockOutLocation, setPendingClockOutLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [clockInAddress, setClockInAddress] = useState<string | null>(null)
+  const [clockOutAddress, setClockOutAddress] = useState<string | null>(null)
   
   const { 
     location, 
@@ -91,6 +104,61 @@ export default function HomeScreen() {
     fetchClockedInLocation()
   }, [data?.clock_status])
 
+  // Reverse geocode summary locations when clocked out
+  useEffect(() => {
+    const geocodeSummaryLocations = async () => {
+      if (data && !data.clock_status.is_clocked_in && data.clock_status.last_clock_out) {
+        // Geocode clock in location
+        if (data.clock_status.clock_in_latitude && data.clock_status.clock_in_longitude && !clockInAddress) {
+          try {
+            const addresses = await Location.reverseGeocodeAsync({
+              latitude: data.clock_status.clock_in_latitude,
+              longitude: data.clock_status.clock_in_longitude,
+            })
+            if (addresses && addresses.length > 0) {
+              const addr = addresses[0]
+              const addressParts = [
+                addr.street || addr.district || addr.name,
+                addr.city,
+                addr.country,
+              ].filter(Boolean)
+              setClockInAddress(addressParts.join(', '))
+            }
+          } catch (error) {
+            console.log('Clock in geocoding failed:', error)
+          }
+        }
+        
+        // Geocode clock out location
+        if (data.clock_status.clock_out_latitude && data.clock_status.clock_out_longitude && !clockOutAddress) {
+          try {
+            const addresses = await Location.reverseGeocodeAsync({
+              latitude: data.clock_status.clock_out_latitude,
+              longitude: data.clock_status.clock_out_longitude,
+            })
+            if (addresses && addresses.length > 0) {
+              const addr = addresses[0]
+              const addressParts = [
+                addr.street || addr.district || addr.name,
+                addr.city,
+                addr.country,
+              ].filter(Boolean)
+              setClockOutAddress(addressParts.join(', '))
+            }
+          } catch (error) {
+            console.log('Clock out geocoding failed:', error)
+          }
+        }
+      } else {
+        // Reset addresses when clocked in or no clock out
+        setClockInAddress(null)
+        setClockOutAddress(null)
+      }
+    }
+    
+    geocodeSummaryLocations()
+  }, [data?.clock_status.is_clocked_in, data?.clock_status.last_clock_out, data?.clock_status.clock_in_latitude, data?.clock_status.clock_out_latitude])
+
   const clockInMutation = useMutation({
     mutationFn: ({ note, latitude, longitude }: { note?: string; latitude?: number; longitude?: number }) => 
       apiClient.clockIn({ note, latitude, longitude }),
@@ -117,7 +185,9 @@ export default function HomeScreen() {
       await refetch()
       clearLocation() // Clear location after clock-out
       setClockedInLocation(null) // Clear clocked-in location
-      Alert.alert('Clocked Out', 'You have successfully clocked out.')
+      setShowClockOutAlert(false)
+      setPendingClockOutLocation(null)
+      // Success message will be shown by the shift summary
     },
   })
 
@@ -134,38 +204,41 @@ export default function HomeScreen() {
         ? `${currentLocation.latitude.toFixed(4)}, ${currentLocation.longitude.toFixed(4)}`
         : 'Location unavailable'
       
-      // Show confirmation dialog
-      Alert.alert(
-        'Clock Out',
-        `Are you sure you want to clock out?\n\nLocation: ${locationText}`,
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Clock Out',
-            onPress: () => {
-              if (currentLocation) {
-                clockOutMutation.mutate({
-                  latitude: currentLocation.latitude,
-                  longitude: currentLocation.longitude,
-                })
-              } else {
-                // Still allow clock-out without location if location fails
-                clockOutMutation.mutate({})
-              }
-            },
-          },
-        ]
-      )
+      setClockOutLocationText(locationText)
+      setPendingClockOutLocation(currentLocation ? { latitude: currentLocation.latitude, longitude: currentLocation.longitude } : null)
+      setShowClockOutAlert(true)
     } else {
-      // Use existing location data for clock-in
-      const params = {
-        latitude: location?.latitude,
-        longitude: location?.longitude,
-      }
-      clockInMutation.mutate(params)
+      // Get current location for clock-in confirmation
+      const locationText = location?.address 
+        ? location.address
+        : location
+        ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+        : 'Location unavailable'
+      
+      setClockInLocationText(locationText)
+      setPendingClockInLocation(location ? { latitude: location.latitude, longitude: location.longitude } : null)
+      setShowClockInAlert(true)
+    }
+  }
+
+  const handleConfirmClockIn = () => {
+    const params = {
+      latitude: pendingClockInLocation?.latitude,
+      longitude: pendingClockInLocation?.longitude,
+    }
+    clockInMutation.mutate(params)
+    setShowClockInAlert(false)
+    setPendingClockInLocation(null)
+  }
+
+  const handleConfirmClockOut = () => {
+    if (pendingClockOutLocation) {
+      clockOutMutation.mutate({
+        latitude: pendingClockOutLocation.latitude,
+        longitude: pendingClockOutLocation.longitude,
+      })
+    } else {
+      clockOutMutation.mutate({})
     }
   }
 
@@ -324,9 +397,10 @@ export default function HomeScreen() {
             const clockOutTime = new Date(data.clock_status.last_clock_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
             const hoursWorked = data.clock_status.hours_worked_today?.toFixed(1) || '0.0'
 
-            const formatLocation = (lat: number | null, lng: number | null) => {
-              if (!lat || !lng) return 'Location not recorded'
-              return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+            const getLocationText = (address: string | null, lat: number | null, lng: number | null) => {
+              if (address) return address
+              if (lat && lng) return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+              return 'Location not recorded'
             }
 
             return (
@@ -342,7 +416,7 @@ export default function HomeScreen() {
                       <Text style={styles.summaryLabel}>Clock In</Text>
                       <Text style={styles.summaryTime}>{clockInTime}</Text>
                       <Text style={styles.summaryLocation}>
-                        {formatLocation(data.clock_status.clock_in_latitude, data.clock_status.clock_in_longitude)}
+                        {getLocationText(clockInAddress, data.clock_status.clock_in_latitude, data.clock_status.clock_in_longitude)}
                       </Text>
                     </View>
                     
@@ -352,7 +426,7 @@ export default function HomeScreen() {
                       <Text style={styles.summaryLabel}>Clock Out</Text>
                       <Text style={styles.summaryTime}>{clockOutTime}</Text>
                       <Text style={styles.summaryLocation}>
-                        {formatLocation(data.clock_status.clock_out_latitude, data.clock_status.clock_out_longitude)}
+                        {getLocationText(clockOutAddress, data.clock_status.clock_out_latitude, data.clock_status.clock_out_longitude)}
                       </Text>
                     </View>
                   </View>
@@ -409,7 +483,7 @@ export default function HomeScreen() {
             </View>
             
             {data.pending_approvals.leave_count > 0 && (
-              <TouchableOpacity style={styles.approvalCategoryRow}>
+              <TouchableOpacity style={styles.approvalCategoryRow} onPress={() => navigation.navigate('Approvals')}>
                 <View style={styles.approvalCategoryLeft}>
                   <Ionicons name="calendar-outline" size={20} color="#8B5CF6" />
                   <Text style={styles.approvalCategoryText}>
@@ -421,7 +495,7 @@ export default function HomeScreen() {
             )}
             
             {data.pending_approvals.claim_count > 0 && (
-              <TouchableOpacity style={styles.approvalCategoryRow}>
+              <TouchableOpacity style={styles.approvalCategoryRow} onPress={() => navigation.navigate('Approvals')}>
                 <View style={styles.approvalCategoryLeft}>
                   <Ionicons name="receipt-outline" size={20} color="#10B981" />
                   <Text style={styles.approvalCategoryText}>
@@ -500,6 +574,60 @@ export default function HomeScreen() {
           </View>
         </View>
       </ScrollView>
+
+      <CustomAlert
+        visible={showClockInAlert}
+        title="Clock In"
+        message={`Are you sure you want to clock in?\n\nLocation: ${clockInLocationText}`}
+        icon="time"
+        iconColor="#6357E8"
+        buttons={[
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setShowClockInAlert(false)
+              setPendingClockInLocation(null)
+            },
+          },
+          {
+            text: 'Clock In',
+            style: 'primary',
+            onPress: handleConfirmClockIn,
+          },
+        ]}
+        onDismiss={() => {
+          setShowClockInAlert(false)
+          setPendingClockInLocation(null)
+        }}
+      />
+
+      <CustomAlert
+        visible={showClockOutAlert}
+        title="Clock Out"
+        message={`Are you sure you want to clock out?\n\nLocation: ${clockOutLocationText}`}
+        icon="checkmark-circle"
+        iconColor="#F59E0B"
+        buttons={[
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              setShowClockOutAlert(false)
+              setPendingClockOutLocation(null)
+            },
+          },
+          {
+            text: 'Clock Out',
+            style: 'primary',
+            onPress: handleConfirmClockOut,
+          },
+        ]}
+        onDismiss={() => {
+          setShowClockOutAlert(false)
+          setPendingClockOutLocation(null)
+        }}
+      />
     </SafeAreaView>
   )
 }
@@ -689,7 +817,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#6357E8',
   },
   clockOutButton: {
-    backgroundColor: '#EF4444',
+    backgroundColor: '#F59E0B',
   },
   clockButtonDisabled: {
     opacity: 0.5,
