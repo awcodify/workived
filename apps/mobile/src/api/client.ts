@@ -9,7 +9,8 @@ import type {
   LeavePolicy,
   LeaveRequest,
   LeaveRequestResponse,
-  LeaveRequestWithDetails
+  LeaveRequestWithDetails,
+  ClaimWithDetails
 } from '@/types/api'
 
 // TODO: Replace with your actual backend URL
@@ -126,6 +127,22 @@ class ApiClient {
 
   async getApprovalCount(): Promise<{ count: number }> {
     const response = await this.client.get<{ count: number }>('/leave/notifications/count')
+    return response.data
+  }
+
+  // Claims
+  async getPendingClaims(): Promise<ApiResponse<ClaimWithDetails[]>> {
+    const response = await this.client.get<ApiResponse<ClaimWithDetails[]>>('/claims?status=pending')
+    return response.data
+  }
+
+  async approveClaim(claimId: string): Promise<ApiResponse<ClaimWithDetails>> {
+    const response = await this.client.post<ApiResponse<ClaimWithDetails>>(`/claims/${claimId}/approve`)
+    return response.data
+  }
+
+  async rejectClaim(claimId: string, note?: string): Promise<ApiResponse<ClaimWithDetails>> {
+    const response = await this.client.post<ApiResponse<ClaimWithDetails>>(`/claims/${claimId}/reject`, { review_note: note })
     return response.data
   }
 }

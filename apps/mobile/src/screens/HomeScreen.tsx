@@ -466,7 +466,7 @@ export default function HomeScreen() {
             </View>
             
             {data.pending_approvals.leave_count > 0 && (
-              <TouchableOpacity style={styles.approvalCategoryRow} onPress={() => navigation.navigate('Approvals')}>
+              <TouchableOpacity style={styles.approvalCategoryRow} onPress={() => navigation.navigate('Approvals', { tab: 'leave' })}>
                 <View style={styles.approvalCategoryLeft}>
                   <Ionicons name="calendar-outline" size={20} color="#8B5CF6" />
                   <Text style={styles.approvalCategoryText}>
@@ -478,7 +478,7 @@ export default function HomeScreen() {
             )}
             
             {data.pending_approvals.claim_count > 0 && (
-              <TouchableOpacity style={styles.approvalCategoryRow} onPress={() => navigation.navigate('Approvals')}>
+              <TouchableOpacity style={styles.approvalCategoryRow} onPress={() => navigation.navigate('Approvals', { tab: 'claim' })}>
                 <View style={styles.approvalCategoryLeft}>
                   <Ionicons name="receipt-outline" size={20} color="#10B981" />
                   <Text style={styles.approvalCategoryText}>

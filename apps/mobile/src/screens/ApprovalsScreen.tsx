@@ -15,15 +15,40 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { apiClient } from '@/api/client'
-import type { LeaveRequestWithDetails } from '@/types/api'
+import type { LeaveRequestWithDetails, ClaimWithDetails } from '@/types/api'
+import type { MainTabParamList } from '@/navigation'
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs'
 import SwipeableCard from '@/components/SwipeableCard'
 import { CustomAlert } from '@/components/CustomAlert'
 
 const SWIPE_TOUR_KEY = '@workived_approvals_swipe_tour_seen'
 const SCREEN_WIDTH = Dimensions.get('window').width
 
-export default function ApprovalsScreen() {
+// Unified approval item type
+type ApprovalItem = 
+  | { type: 'leave'; data: LeaveRequestWithDetails }
+  | { type: 'claim'; data: ClaimWithDetails }
+
+function getApprovalId(item: ApprovalItem): string {
+  return item.data.id
+}
+
+function formatCurrency(amount: number, currencyCode: string): string {
+  const majorAmount = amount / 100
+  const formatter = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currencyCode,
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })
+  return formatter.format(majorAmount)
+}
+
+type ApprovalTab = 'leave' | 'claim'
+
+export default function ApprovalsScreen({ route }: BottomTabScreenProps<MainTabParamList, 'Approvals'>) {
   const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<ApprovalTab>('leave')
   const [refreshing, setRefreshing] = useState(false)
   const [showSwipeTour, setShowSwipeTour] = useState(false)
   const [isTourAnimating, setIsTourAnimating] = useState(false)
@@ -37,11 +62,26 @@ export default function ApprovalsScreen() {
   const [showErrorAlert, setShowErrorAlert] = useState(false)
   const [alertMessage, setAlertMessage] = useState('')
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+  const [selectedRequestType, setSelectedRequestType] = useState<'leave' | 'claim'>('leave')
 
-  const { data: approvalsData, isLoading, refetch } = useQuery({
+  // Sync tab from route params (e.g., navigating from Home screen)
+  useEffect(() => {
+    if (route.params?.tab) {
+      setActiveTab(route.params.tab)
+    }
+  }, [route.params?.tab])
+
+  const { data: approvalsData, isLoading: isLoadingLeave, refetch: refetchLeave } = useQuery({
     queryKey: ['approvals', 'pending'],
     queryFn: () => apiClient.getPendingApprovals(),
   })
+
+  const { data: claimsData, isLoading: isLoadingClaims, refetch: refetchClaims } = useQuery({
+    queryKey: ['approvals', 'claims', 'pending'],
+    queryFn: () => apiClient.getPendingClaims(),
+  })
+
+  const isLoading = isLoadingLeave || isLoadingClaims
 
   // Check if user has seen the swipe tour
   useEffect(() => {
@@ -148,19 +188,53 @@ export default function ApprovalsScreen() {
     },
   })
 
-  const handleApprove = async (requestId: string) => {
+  const approveClaimMutation = useMutation({
+    mutationFn: (claimId: string) => apiClient.approveClaim(claimId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] })
+      queryClient.invalidateQueries({ queryKey: ['mobile', 'home'] })
+      setAlertMessage('Claim approved successfully')
+      setShowSuccessAlert(true)
+    },
+    onError: (error: any) => {
+      setAlertMessage(error.response?.data?.error?.message || 'Failed to approve claim')
+      setShowErrorAlert(true)
+    },
+  })
+
+  const rejectClaimMutation = useMutation({
+    mutationFn: (claimId: string) => apiClient.rejectClaim(claimId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['approvals'] })
+      queryClient.invalidateQueries({ queryKey: ['mobile', 'home'] })
+      setAlertMessage('Claim rejected')
+      setShowSuccessAlert(true)
+    },
+    onError: (error: any) => {
+      setAlertMessage(error.response?.data?.error?.message || 'Failed to reject claim')
+      setShowErrorAlert(true)
+    },
+  })
+
+  const handleApprove = async (requestId: string, type: 'leave' | 'claim') => {
     setSelectedRequestId(requestId)
+    setSelectedRequestType(type)
     setShowApproveAlert(true)
   }
 
-  const handleReject = async (requestId: string) => {
+  const handleReject = async (requestId: string, type: 'leave' | 'claim') => {
     setSelectedRequestId(requestId)
+    setSelectedRequestType(type)
     setShowRejectAlert(true)
   }
 
   const confirmApprove = () => {
     if (selectedRequestId) {
-      approveMutation.mutate(selectedRequestId)
+      if (selectedRequestType === 'claim') {
+        approveClaimMutation.mutate(selectedRequestId)
+      } else {
+        approveMutation.mutate(selectedRequestId)
+      }
     }
     setShowApproveAlert(false)
     setSelectedRequestId(null)
@@ -168,7 +242,11 @@ export default function ApprovalsScreen() {
 
   const confirmReject = () => {
     if (selectedRequestId) {
-      rejectMutation.mutate(selectedRequestId)
+      if (selectedRequestType === 'claim') {
+        rejectClaimMutation.mutate(selectedRequestId)
+      } else {
+        rejectMutation.mutate(selectedRequestId)
+      }
     }
     setShowRejectAlert(false)
     setSelectedRequestId(null)
@@ -176,7 +254,7 @@ export default function ApprovalsScreen() {
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await refetch()
+    await Promise.all([refetchLeave(), refetchClaims()])
     setRefreshing(false)
   }
 
@@ -193,13 +271,11 @@ export default function ApprovalsScreen() {
     return `${formatDate(start)} - ${formatDate(end)}`
   }
 
-  const getRequestType = (policyName: string): 'leave' | 'claim' => {
-    // For now, all items from /leave/requests are leave requests
-    // When claims are added, this will check the policy type or use a type field
-    return 'leave'
+  const getRequestType = (item: ApprovalItem): 'leave' | 'claim' => {
+    return item.type
   }
 
-  const getRequestTypeIcon = (type: 'leave' | 'claim') => {
+  const getRequestTypeIcon = (type: 'leave' | 'claim'): keyof typeof Ionicons.glyphMap => {
     return type === 'leave' ? 'calendar' : 'receipt'
   }
 
@@ -220,14 +296,14 @@ export default function ApprovalsScreen() {
     }
   }
 
-  const renderApprovalCard = ({ item, index }: { item: LeaveRequestWithDetails; index: number }) => {
-    const isPending = approveMutation.isPending || rejectMutation.isPending
-    const requestType = getRequestType(item.policy_name)
+  const renderApprovalCard = ({ item, index }: { item: ApprovalItem; index: number }) => {
+    const isPending = approveMutation.isPending || rejectMutation.isPending || approveClaimMutation.isPending || rejectClaimMutation.isPending
+    const requestType = item.type
 
     return (
       <SwipeableCard
-        onSwipeRight={() => handleApprove(item.id)}
-        onSwipeLeft={() => handleReject(item.id)}
+        onSwipeRight={() => handleApprove(item.data.id, requestType)}
+        onSwipeLeft={() => handleReject(item.data.id, requestType)}
         rightLabel="Approve"
         leftLabel="Reject"
         rightColor="#10B981"
@@ -254,33 +330,54 @@ export default function ApprovalsScreen() {
             <View style={styles.cardHeader}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
-                  {item.employee_name?.charAt(0)?.toUpperCase() || '?'}
+                  {item.data.employee_name?.charAt(0)?.toUpperCase() || '?'}
                 </Text>
               </View>
               <View style={styles.cardInfo}>
-                <Text style={styles.employeeName}>{item.employee_name}</Text>
-                <Text style={styles.policyName}>{item.policy_name}</Text>
+                <Text style={styles.employeeName}>{item.data.employee_name}</Text>
+                <Text style={styles.policyName}>
+                  {item.type === 'leave' ? item.data.policy_name : item.data.category_name}
+                </Text>
               </View>
-              <View style={styles.daysContainer}>
-                <Text style={styles.daysValue}>{item.total_days}</Text>
-                <Text style={styles.daysLabel}>{item.total_days === 1 ? 'day' : 'days'}</Text>
-              </View>
+              {item.type === 'leave' ? (
+                <View style={styles.daysContainer}>
+                  <Text style={styles.daysValue}>{item.data.total_days}</Text>
+                  <Text style={styles.daysLabel}>{item.data.total_days === 1 ? 'day' : 'days'}</Text>
+                </View>
+              ) : (
+                <View style={[styles.daysContainer, { backgroundColor: '#FFFBEB' }]}>
+                  <Text style={[styles.daysValue, { color: '#F59E0B', fontSize: 16 }]}>
+                    {formatCurrency(item.data.amount, item.data.currency_code)}
+                  </Text>
+                </View>
+              )}
             </View>
 
             {/* Divider */}
             <View style={styles.cardDivider} />
 
-            {/* Date Range */}
+            {/* Date */}
             <View style={styles.dateRow}>
               <Ionicons name="calendar-outline" size={16} color="#6B7280" />
-              <Text style={styles.dateText}>{formatDateRange(item.start_date, item.end_date)}</Text>
+              <Text style={styles.dateText}>
+                {item.type === 'leave' 
+                  ? formatDateRange(item.data.start_date, item.data.end_date)
+                  : formatDate(item.data.claim_date)
+                }
+              </Text>
             </View>
 
-            {/* Reason */}
-            {item.reason && (
+            {/* Reason/Description */}
+            {item.type === 'leave' && item.data.reason && (
               <View style={styles.reasonContainer}>
                 <Text style={styles.reasonLabel}>Reason</Text>
-                <Text style={styles.reasonText}>{item.reason}</Text>
+                <Text style={styles.reasonText}>{item.data.reason}</Text>
+              </View>
+            )}
+            {item.type === 'claim' && item.data.description && (
+              <View style={styles.reasonContainer}>
+                <Text style={styles.reasonLabel}>Description</Text>
+                <Text style={styles.reasonText}>{item.data.description}</Text>
               </View>
             )}
 
@@ -305,7 +402,10 @@ export default function ApprovalsScreen() {
     )
   }
 
-  const approvals = approvalsData?.data || []
+  const leaveApprovals: ApprovalItem[] = (approvalsData?.data || []).map(item => ({ type: 'leave' as const, data: item }))
+  const claimApprovals: ApprovalItem[] = (claimsData?.data || []).map(item => ({ type: 'claim' as const, data: item }))
+  const filteredApprovals = activeTab === 'leave' ? leaveApprovals : claimApprovals
+  const totalCount = leaveApprovals.length + claimApprovals.length
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -313,9 +413,9 @@ export default function ApprovalsScreen() {
         <View style={styles.headerContent}>
           <Text style={styles.title}>Approvals</Text>
           <Text style={styles.subtitle}>
-            {approvals.length === 0 
+            {totalCount === 0 
               ? 'No pending approvals' 
-              : `${approvals.length} pending ${approvals.length === 1 ? 'request' : 'requests'}`
+              : `${totalCount} pending ${totalCount === 1 ? 'request' : 'requests'}`
             }
           </Text>
         </View>
@@ -327,8 +427,30 @@ export default function ApprovalsScreen() {
         )}
       </View>
 
+      {/* Tab Bar */}
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'leave' && styles.tabActive]}
+          onPress={() => setActiveTab('leave')}
+        >
+          <Ionicons name="calendar" size={16} color={activeTab === 'leave' ? '#6357E8' : '#9CA3AF'} />
+          <Text style={[styles.tabText, activeTab === 'leave' && styles.tabTextActive]}>
+            Leave ({leaveApprovals.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'claim' && styles.tabActive]}
+          onPress={() => setActiveTab('claim')}
+        >
+          <Ionicons name="receipt" size={16} color={activeTab === 'claim' ? '#F59E0B' : '#9CA3AF'} />
+          <Text style={[styles.tabText, activeTab === 'claim' && styles.tabTextActive]}>
+            Claims ({claimApprovals.length})
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Tutorial Overlay */}
-      {showSwipeTour && approvals.length > 0 && (
+      {showSwipeTour && filteredApprovals.length > 0 && (
         <View style={styles.tutorialOverlay} pointerEvents="none">
           <Animated.View 
             style={[
@@ -393,17 +515,23 @@ export default function ApprovalsScreen() {
         </View>
       )}
 
-      {approvals.length === 0 ? (
+      {filteredApprovals.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Ionicons name="checkmark-done-circle-outline" size={64} color="#6B7280" />
+          <Ionicons 
+            name={activeTab === 'leave' ? 'calendar-outline' : 'receipt-outline'} 
+            size={64} 
+            color="#6B7280" 
+          />
           <Text style={styles.emptyTitle}>All caught up!</Text>
-          <Text style={styles.emptySubtitle}>No pending approvals at this moment</Text>
+          <Text style={styles.emptySubtitle}>
+            No pending {activeTab === 'leave' ? 'leave requests' : 'claims'} at this moment
+          </Text>
         </View>
       ) : (
         <FlatList
-          data={approvals}
+          data={filteredApprovals}
           renderItem={renderApprovalCard}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => `${item.type}-${item.data.id}`}
           contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -513,7 +641,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 24,
-    paddingBottom: 16,
+    paddingBottom: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
@@ -538,6 +666,40 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#6B7280',
     marginTop: 4,
+  },
+  tabBar: {
+    flexDirection: 'row',
+    marginHorizontal: 24,
+    marginBottom: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    padding: 3,
+  },
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  tabActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#9CA3AF',
+  },
+  tabTextActive: {
+    color: '#111827',
+    fontWeight: '600',
   },
   listContent: {
     padding: 12,

@@ -21,7 +21,7 @@ export type RootStackParamList = {
 export type MainTabParamList = {
   Home: undefined
   Leave: undefined
-  Approvals: undefined
+  Approvals: { tab?: 'leave' | 'claim' } | undefined
   Profile: undefined
 }
 

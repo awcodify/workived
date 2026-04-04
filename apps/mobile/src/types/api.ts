@@ -122,3 +122,25 @@ export interface LeaveRequestWithDetails {
   reviewed_by_name: string | null
   requested_at: string
 }
+
+export interface ClaimWithDetails {
+  id: string
+  organisation_id: string
+  employee_id: string
+  category_id: string
+  amount: number
+  currency_code: string
+  description: string
+  claim_date: string
+  receipt_url: string | null
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled' | 'paid'
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_note: string | null
+  paid_at: string | null
+  paid_by: string | null
+  created_at: string
+  updated_at: string
+  employee_name: string
+  category_name: string
+}
