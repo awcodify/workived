@@ -18,7 +18,8 @@ type Employee struct {
 	Email          *string         `json:"email,omitempty"`
 	Phone          *string         `json:"phone,omitempty"`
 	DepartmentID   *uuid.UUID      `json:"department_id,omitempty"`
-	JobTitle       *string         `json:"job_title,omitempty"`
+	JobTitle       *string         `json:"job_title,omitempty"`    // Legacy free-text field
+	JobTitleID     *uuid.UUID      `json:"job_title_id,omitempty"` // FK to job_titles table
 	EmploymentType string          `json:"employment_type"`
 	Status         string          `json:"status"`
 	ReportingTo    *uuid.UUID      `json:"reporting_to,omitempty"`     // Manager (self-ref FK)
@@ -47,7 +48,8 @@ type OrgChartNode struct {
 	ID             uuid.UUID       `json:"id"`
 	FullName       string          `json:"full_name"`
 	Email          *string         `json:"email,omitempty"`
-	JobTitle       *string         `json:"job_title,omitempty"`
+	JobTitle       *string         `json:"job_title,omitempty"`    // Legacy free-text field
+	JobTitleID     *uuid.UUID      `json:"job_title_id,omitempty"` // FK to job_titles table
 	DepartmentID   *uuid.UUID      `json:"department_id,omitempty"`
 	EmploymentType string          `json:"employment_type"`
 	Status         string          `json:"status"`
@@ -63,6 +65,7 @@ type CreateEmployeeRequest struct {
 	UserID         *uuid.UUID `json:"user_id"          validate:"omitempty"`
 	Phone          *string    `json:"phone"            validate:"omitempty,max=30"`
 	DepartmentID   *uuid.UUID `json:"department_id"    validate:"omitempty"`
+	JobTitleID     *uuid.UUID `json:"job_title_id"     validate:"omitempty"`
 	JobTitle       *string    `json:"job_title"        validate:"omitempty,max=150"`
 	EmploymentType string     `json:"employment_type"  validate:"required,oneof=full_time part_time contract intern"`
 	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`
@@ -75,6 +78,7 @@ type UpdateEmployeeRequest struct {
 	FullName       *string    `json:"full_name"        validate:"omitempty,min=1,max=255"`
 	Phone          *string    `json:"phone"            validate:"omitempty,max=30"`
 	DepartmentID   *uuid.UUID `json:"department_id"    validate:"omitempty"`
+	JobTitleID     *uuid.UUID `json:"job_title_id"     validate:"omitempty"`
 	JobTitle       *string    `json:"job_title"        validate:"omitempty,max=150"`
 	EmploymentType *string    `json:"employment_type"  validate:"omitempty,oneof=full_time part_time contract intern"`
 	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`

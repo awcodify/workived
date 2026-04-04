@@ -22,6 +22,7 @@ import (
 	"github.com/workived/services/internal/department"
 	"github.com/workived/services/internal/employee"
 	"github.com/workived/services/internal/employmentchange"
+	"github.com/workived/services/internal/jobtitle"
 	"github.com/workived/services/internal/leave"
 	"github.com/workived/services/internal/organisation"
 	"github.com/workived/services/internal/platform/config"
@@ -107,6 +108,7 @@ func main() {
 	orgRepo := organisation.NewRepository(db)
 	empRepo := employee.NewRepository(db)
 	deptRepo := department.NewRepository(db)
+	jtRepo := jobtitle.NewRepository(db)
 	attRepo := attendance.NewRepository(db)
 	leaveRepo := leave.NewRepository(db)
 	claimsRepo := claims.NewRepository(db, log)
@@ -125,6 +127,7 @@ func main() {
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL, auth.WithEmailSender(emailSender), auth.WithAppURL(cfg.AppURL), auth.WithLogger(log))
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithEmploymentChangeRepo(employmentChangeRepo), employee.WithLogger(log), employee.WithCache(cacheStore))
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log), department.WithCache(cacheStore))
+	jtSvc := jobtitle.NewService(jtRepo, jobtitle.WithLogger(log), jobtitle.WithCache(cacheStore))
 	attSvc := attendance.NewService(attRepo, cachedOrgInfo, empRepo, log, attendance.WithCache(cacheStore))
 	// Tasks service must be created before leave/claims to wire up approval task creation
 	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log))
@@ -142,6 +145,7 @@ func main() {
 	orgHandler := organisation.NewHandler(orgSvc)
 	empHandler := employee.NewHandler(empSvc)
 	deptHandler := department.NewHandler(deptSvc, log)
+	jtHandler := jobtitle.NewHandler(jtSvc, log)
 	adminHandler := admin.NewHandler(adminSvc, log)
 	adminUIHandler, err := admin.NewUIHandler(adminSvc, authSvc)
 	if err != nil {
@@ -246,6 +250,7 @@ func main() {
 	orgHandler.RegisterRoutes(authed)
 	empHandler.RegisterRoutes(authed)
 	deptHandler.RegisterRoutes(authed)
+	jtHandler.RegisterRoutes(authed)
 	attHandler.RegisterRoutes(authed)
 	leaveHandler.RegisterRoutes(authed)
 	claimsHandler.RegisterRoutes(authed)

@@ -27,7 +27,7 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 
 	rows, err := r.db.Query(ctx, `
 		SELECT e.id, e.organisation_id, e.user_id, e.employee_code,
-		       e.full_name, e.email, e.phone, e.department_id, e.job_title,
+		       e.full_name, e.email, e.phone, e.department_id, e.job_title, e.job_title_id,
 		       e.employment_type, e.status, e.reporting_to, e.gender, e.work_schedule_id, e.start_date, e.end_date,
 		       e.base_salary, e.salary_currency, e.custom_fields,
 		       e.is_active, e.created_at, e.updated_at,
@@ -59,7 +59,7 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 		var e EmployeeWithManager
 		if err := rows.Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
-			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
+			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
 			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
@@ -85,7 +85,7 @@ func (r *Repository) CountActive(ctx context.Context, orgID uuid.UUID) (int, err
 func (r *Repository) ListAllActive(ctx context.Context, orgID uuid.UUID) ([]Employee, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, user_id, employee_code,
-		       full_name, email, phone, department_id, job_title,
+		       full_name, email, phone, department_id, job_title, job_title_id,
 		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
 		       base_salary, salary_currency, custom_fields,
 		       is_active, created_at, updated_at
@@ -103,7 +103,7 @@ func (r *Repository) ListAllActive(ctx context.Context, orgID uuid.UUID) ([]Empl
 		var e Employee
 		if err := rows.Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
-			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
+			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
 			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
@@ -120,18 +120,18 @@ func (r *Repository) Create(ctx context.Context, orgID uuid.UUID, req CreateEmpl
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO employees (
 			organisation_id, user_id, employee_code, full_name, email, phone,
-			department_id, job_title, employment_type, reporting_to, gender, start_date
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12::date)
+			department_id, job_title, job_title_id, employment_type, reporting_to, gender, start_date
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::date)
 		RETURNING id, organisation_id, user_id, employee_code,
-		          full_name, email, phone, department_id, job_title,
+		          full_name, email, phone, department_id, job_title, job_title_id,
 		          employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
 		          base_salary, salary_currency, custom_fields,
 		          is_active, created_at, updated_at
 	`, orgID, req.UserID, req.EmployeeCode, req.FullName, req.Email, req.Phone,
-		req.DepartmentID, req.JobTitle, req.EmploymentType, req.ReportingTo, req.Gender, req.StartDate).
+		req.DepartmentID, req.JobTitle, req.JobTitleID, req.EmploymentType, req.ReportingTo, req.Gender, req.StartDate).
 		Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
-			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
+			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
 			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
@@ -150,7 +150,7 @@ func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employe
 	e := &EmployeeWithManager{}
 	err := r.db.QueryRow(ctx, `
 		SELECT e.id, e.organisation_id, e.user_id, e.employee_code,
-		       e.full_name, e.email, e.phone, e.department_id, e.job_title,
+		       e.full_name, e.email, e.phone, e.department_id, e.job_title, e.job_title_id,
 		       e.employment_type, e.status, e.reporting_to, e.gender, e.work_schedule_id, e.start_date, e.end_date,
 		       e.base_salary, e.salary_currency, e.custom_fields,
 		       e.is_active, e.created_at, e.updated_at,
@@ -166,7 +166,7 @@ func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employe
 		WHERE e.organisation_id = $1 AND e.id = $2
 	`, orgID, id).Scan(
 		&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
-		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
+		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
 		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 		&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 		&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
@@ -281,27 +281,28 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 			phone            = COALESCE($4, phone),
 			department_id    = COALESCE($5, department_id),
 			job_title        = COALESCE($6, job_title),
-			employment_type  = COALESCE($7, employment_type),
-			status           = COALESCE($8, status),
-			reporting_to     = COALESCE($9, reporting_to),
-			gender           = COALESCE($10, gender),
-			end_date         = COALESCE($11::date, end_date),
-			work_schedule_id = $12,
-			base_salary      = COALESCE($13, base_salary),
-			salary_currency  = COALESCE($14, salary_currency)
+			job_title_id     = COALESCE($7, job_title_id),
+			employment_type  = COALESCE($8, employment_type),
+			status           = COALESCE($9, status),
+			reporting_to     = COALESCE($10, reporting_to),
+			gender           = COALESCE($11, gender),
+			end_date         = COALESCE($12::date, end_date),
+			work_schedule_id = $13,
+			base_salary      = COALESCE($14, base_salary),
+			salary_currency  = COALESCE($15, salary_currency)
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, user_id, employee_code,
-		          full_name, email, phone, department_id, job_title,
+		          full_name, email, phone, department_id, job_title, job_title_id,
 		          employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
 		          base_salary, salary_currency, custom_fields,
 		          is_active, created_at, updated_at
 	`, orgID, id,
-		req.FullName, req.Phone, req.DepartmentID, req.JobTitle,
+		req.FullName, req.Phone, req.DepartmentID, req.JobTitle, req.JobTitleID,
 		req.EmploymentType, req.Status, req.ReportingTo, req.Gender, req.EndDate,
 		req.WorkScheduleID, req.BaseSalary, req.SalaryCurrency).
 		Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
-			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
+			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
 			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
@@ -324,7 +325,7 @@ func (r *Repository) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (
 	e := &Employee{}
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, user_id, employee_code,
-		       full_name, email, phone, department_id, job_title,
+		       full_name, email, phone, department_id, job_title, job_title_id,
 		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
 		       base_salary, salary_currency, custom_fields,
 		       is_active, created_at, updated_at
@@ -332,7 +333,7 @@ func (r *Repository) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (
 		WHERE organisation_id = $1 AND user_id = $2 AND is_active = TRUE
 	`, orgID, userID).Scan(
 		&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
-		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
+		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
 		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 		&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 		&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
@@ -365,7 +366,7 @@ func (r *Repository) SoftDelete(ctx context.Context, orgID, id uuid.UUID) error 
 func (r *Repository) GetDirectReports(ctx context.Context, orgID, managerID uuid.UUID) ([]Employee, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, user_id, employee_code,
-		       full_name, email, phone, department_id, job_title,
+		       full_name, email, phone, department_id, job_title, job_title_id,
 		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
 		       base_salary, salary_currency, custom_fields,
 		       is_active, created_at, updated_at
@@ -385,7 +386,7 @@ func (r *Repository) GetDirectReports(ctx context.Context, orgID, managerID uuid
 		var e Employee
 		if err := rows.Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
-			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,
+			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
 			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,

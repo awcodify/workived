@@ -163,7 +163,8 @@ export interface Employee {
   full_name: string
   email?: string
   phone?: string
-  job_title?: string
+  job_title?: string                          // Legacy free-text field
+  job_title_id?: string                        // FK to job_titles table
   department_id?: string
   department_name?: string
   reporting_to?: string
@@ -188,7 +189,8 @@ export interface CreateEmployeeInput {
   email?: string
   user_id?: string
   phone?: string
-  job_title?: string
+  job_title?: string         // Legacy free-text field
+  job_title_id?: string      // FK to job_titles table
   department_id?: string
   employment_type: string
   start_date: string
@@ -295,6 +297,15 @@ export interface Department {
   is_active: boolean
   created_at: string
 }
+export interface JobTitle {
+  id: string
+  organisation_id: string
+  name: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 
 // ── Attendance ───────────────────────────────────────────────
 export interface AttendanceRecord {
