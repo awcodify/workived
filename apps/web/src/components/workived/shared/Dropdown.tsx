@@ -47,7 +47,7 @@ export function Dropdown({
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect()
-      const menuWidth = 240 // Approximate menu width
+      const menuWidth = rect.width // Use actual button width
       
       // Check if menu would overflow right edge
       let left = rect.left + window.scrollX
@@ -130,12 +130,13 @@ export function Dropdown({
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
         className="flex items-center justify-between px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        style={style || {
+        style={{
           background: t.input,
           border: `1px solid ${t.inputBorder}`,
           color: t.text,
           width: fullWidth ? '100%' : 'auto',
           minWidth: fullWidth ? undefined : '200px',
+          ...style, // Merge custom styles after defaults
         }}
       >
         <span className={!selectedOption ? 'text-opacity-50' : ''}>
@@ -162,8 +163,7 @@ export function Dropdown({
               border: `1px solid ${t.border}`,
               top: `${menuPosition.top}px`,
               left: `${menuPosition.left}px`,
-              minWidth: `${menuPosition.width}px`,
-              maxWidth: '320px',
+              width: `${menuPosition.width}px`,
             }}
           >
             {options.map((option) => {

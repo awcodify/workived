@@ -6,9 +6,12 @@ import { useEffect } from 'react'
 import { useEmployee, useCreateEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
 import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
+import { useDepartments } from '@/lib/hooks/useDepartments'
+import { useJobTitles } from '@/lib/hooks/useJobTitles'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
 import { EmployeeDropdown } from '@/components/workived/shared/EmployeeDropdown'
+import { Dropdown } from '@/components/workived/shared/Dropdown'
 import { moduleBackgrounds, moduleThemes, colors } from '@/design/tokens'
 import { ArrowLeft, UserCheck, UserPlus, Mail, AlertTriangle, Clock } from 'lucide-react'
 import { Link } from '@tanstack/react-router'
@@ -92,6 +95,12 @@ function NewEmployeePage() {
   const createMutation = useCreateEmployee()
   const inviteMutation = useInviteMember()
   const { data: unlinkedMembers = [], isLoading: loadingMembers } = useUnlinkedMembers()
+  const { data: departments } = useDepartments()
+  const { data: jobTitles } = useJobTitles()
+  
+  // Safely handle null/undefined data
+  const safeDepartments = departments ?? []
+  const safeJobTitles = jobTitles ?? []
 
   const form = useForm<NewForm>({
     resolver: zodResolver(newSchema),
@@ -381,14 +390,51 @@ function NewEmployeePage() {
             </div>
 
             <div className="p-5 space-y-4">
-              <Field label="Job title (optional)" error={form.formState.errors.job_title?.message}>
-                <input
-                  className="form-input-dark"
-                  placeholder="e.g., Senior Designer"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('job_title')}
-                />
-              </Field>
+              <Controller
+                name="job_title"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field label="Job title (optional)" error={fieldState.error?.message}>
+                    <Dropdown
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      options={[
+                        { value: '', label: '— Not specified —' },
+                        ...safeJobTitles.map((jt) => ({
+                          value: jt.name,
+                          label: jt.name,
+                        }))
+                      ]}
+                      placeholder="Select job title"
+                      fullWidth
+                      style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                    />
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="department_id"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field label="Department (optional)" error={fieldState.error?.message}>
+                    <Dropdown
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      options={[
+                        { value: '', label: '— Not specified —' },
+                        ...safeDepartments.map((dept) => ({
+                          value: dept.id,
+                          label: dept.name,
+                        }))
+                      ]}
+                      placeholder="Select department"
+                      fullWidth
+                      style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                    />
+                  </Field>
+                )}
+              />
 
               <Controller
                 name="reporting_to"
@@ -472,6 +518,12 @@ function EditEmployeePage({ id }: { id: string }) {
   const { data: employee, isLoading } = useEmployee(id)
   const updateMutation = useUpdateEmployee(id)
   const { data: workSchedules = [] } = useWorkSchedules()
+  const { data: departments } = useDepartments()
+  const { data: jobTitles } = useJobTitles()
+  
+  // Safely handle null/undefined data
+  const safeDepartments = departments ?? []
+  const safeJobTitles = jobTitles ?? []
 
   const form = useForm<EditForm>({
     resolver: zodResolver(editSchema),
@@ -631,14 +683,51 @@ function EditEmployeePage({ id }: { id: string }) {
             </div>
 
             <div className="p-5 space-y-4">
-              <Field label="Job title (optional)" error={form.formState.errors.job_title?.message}>
-                <input
-                  className="form-input-dark"
-                  placeholder="e.g., Senior Designer"
-                  style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
-                  {...form.register('job_title')}
-                />
-              </Field>
+              <Controller
+                name="job_title"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field label="Job title (optional)" error={fieldState.error?.message}>
+                    <Dropdown
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      options={[
+                        { value: '', label: '— Not specified —' },
+                        ...safeJobTitles.map((jt) => ({
+                          value: jt.name,
+                          label: jt.name,
+                        }))
+                      ]}
+                      placeholder="Select job title"
+                      fullWidth
+                      style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                    />
+                  </Field>
+                )}
+              />
+
+              <Controller
+                name="department_id"
+                control={form.control}
+                render={({ field, fieldState }) => (
+                  <Field label="Department (optional)" error={fieldState.error?.message}>
+                    <Dropdown
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      options={[
+                        { value: '', label: '— Not specified —' },
+                        ...safeDepartments.map((dept) => ({
+                          value: dept.id,
+                          label: dept.name,
+                        }))
+                      ]}
+                      placeholder="Select department"
+                      fullWidth
+                      style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                    />
+                  </Field>
+                )}
+              />
 
               <Controller
                 name="reporting_to"

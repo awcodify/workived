@@ -150,7 +150,7 @@ function PeoplePage() {
           }}
         >
           <Settings size={16} />
-          Manage
+          Dept. & Job Titles
         </button>
         
         {/* Org Chart Button */}
