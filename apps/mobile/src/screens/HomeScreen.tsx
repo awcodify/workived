@@ -343,81 +343,22 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Clock In/Out Card */}
-        <View style={styles.clockCard}>
-          <View style={styles.clockHeader}>
-            <View style={styles.statusRow}>
-              <View style={[styles.statusDot, data.clock_status.is_clocked_in && styles.statusDotActive]} />
-              <Text style={styles.statusText}>
-                {data.clock_status.is_clocked_in ? 'Working' : 'Not clocked in'}
-              </Text>
-            </View>
-            <View>
-              <Text style={styles.timeLabel}>
-                {data.clock_status.is_clocked_in ? 'Clocked in at' : 'Current time'}
-              </Text>
-              <Text style={styles.timeValue}>
-                {data.clock_status.is_clocked_in && data.clock_status.last_clock_in
-                  ? new Date(data.clock_status.last_clock_in).toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: false,
-                    })
-                  : currentTime.toLocaleTimeString('en-US', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: false,
-                    })
-                }
-              </Text>
-            </View>
-          </View>
+        {/* Shift Complete Summary - Shows after clock out */}
+        {!data.clock_status.is_clocked_in && data.clock_status.last_clock_out ? (() => {
+          const clockInTime = data.clock_status.last_clock_in 
+            ? new Date(data.clock_status.last_clock_in).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+            : 'N/A'
+          const clockOutTime = new Date(data.clock_status.last_clock_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+          const hoursWorked = data.clock_status.hours_worked_today?.toFixed(1) || '0.0'
 
-          {/* Hours Worked & Location - Combined when clocked in */}
-          {data.clock_status.is_clocked_in && (
-            <>
-              {data.clock_status.hours_worked_today !== null && (
-                <View style={styles.hoursCard}>
-                  <Ionicons name="time-outline" size={20} color="#1E3A8A" />
-                  <View style={styles.hoursContent}>
-                    <Text style={styles.hoursLabel}>Hours today</Text>
-                    <Text style={styles.hoursValue}>{data.clock_status.hours_worked_today.toFixed(1)}h</Text>
-                  </View>
-                </View>
-              )}
-              
-              {/* Clocked in location */}
-              {clockedInLocation && (
-                <View style={styles.clockedInLocationCard}>
-                  <Ionicons name="location" size={18} color="#6357E8" />
-                  <View style={styles.clockedInLocationContent}>
-                    <Text style={styles.clockedInLocationLabel}>Clocked in from</Text>
-                    <Text style={styles.clockedInLocationText}>
-                      {clockedInLocation.address || 
-                       `${clockedInLocation.latitude.toFixed(4)}, ${clockedInLocation.longitude.toFixed(4)}`}
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </>
-          )}
+          const getLocationText = (address: string | null, lat: number | null, lng: number | null) => {
+            if (address) return address
+            if (lat && lng) return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+            return 'Location not recorded'
+          }
 
-          {/* Work Summary - Shows after clock out */}
-          {!data.clock_status.is_clocked_in && data.clock_status.last_clock_out && (() => {
-            const clockInTime = data.clock_status.last_clock_in 
-              ? new Date(data.clock_status.last_clock_in).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-              : 'N/A'
-            const clockOutTime = new Date(data.clock_status.last_clock_out).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-            const hoursWorked = data.clock_status.hours_worked_today?.toFixed(1) || '0.0'
-
-            const getLocationText = (address: string | null, lat: number | null, lng: number | null) => {
-              if (address) return address
-              if (lat && lng) return `${lat.toFixed(4)}, ${lng.toFixed(4)}`
-              return 'Location not recorded'
-            }
-
-            return (
+          return (
+            <View style={styles.clockCard}>
               <View style={styles.summaryCard}>
                 <View style={styles.summaryHeader}>
                   <Ionicons name="checkmark-circle" size={24} color="#10B981" />
@@ -456,11 +397,70 @@ export default function HomeScreen() {
                   <Text style={styles.summaryTotalHours}>{hoursWorked}h</Text>
                 </View>
               </View>
-            )
-          })()}
+            </View>
+          )
+        })() : (
+          /* Clock In/Out Card - Active state */
+          <View style={styles.clockCard}>
+            <View style={styles.clockHeader}>
+              <View style={styles.statusRow}>
+                <View style={[styles.statusDot, data.clock_status.is_clocked_in && styles.statusDotActive]} />
+                <Text style={styles.statusText}>
+                  {data.clock_status.is_clocked_in ? 'Working' : 'Not clocked in'}
+                </Text>
+              </View>
+              <View>
+                <Text style={styles.timeLabel}>
+                  {data.clock_status.is_clocked_in ? 'Clocked in at' : 'Current time'}
+                </Text>
+                <Text style={styles.timeValue}>
+                  {data.clock_status.is_clocked_in && data.clock_status.last_clock_in
+                    ? new Date(data.clock_status.last_clock_in).toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                      })
+                    : currentTime.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false,
+                      })
+                  }
+                </Text>
+              </View>
+            </View>
 
-          {/* Clock In/Out Button - Only show if not showing summary */}
-          {(data.clock_status.is_clocked_in || !data.clock_status.last_clock_out) && (
+            {/* Hours Worked & Location - When clocked in */}
+            {data.clock_status.is_clocked_in && (
+              <>
+                {data.clock_status.hours_worked_today !== null && (
+                  <View style={styles.hoursCard}>
+                    <Ionicons name="time-outline" size={20} color="#1E3A8A" />
+                    <View style={styles.hoursContent}>
+                      <Text style={styles.hoursLabel}>Hours today</Text>
+                      <Text style={styles.hoursValue}>{data.clock_status.hours_worked_today.toFixed(1)}h</Text>
+                    </View>
+                  </View>
+                )}
+                
+                {/* Clocked in location */}
+                {clockedInLocation && (
+                  <View style={styles.clockedInLocationCard}>
+                    <Ionicons name="location" size={18} color="#6357E8" />
+                    <View style={styles.clockedInLocationContent}>
+                      <Text style={styles.clockedInLocationLabel}>Clocked in from</Text>
+                      <Text style={styles.clockedInLocationText}>
+                        {clockedInLocation.address || 
+                         `${clockedInLocation.latitude.toFixed(4)}, ${clockedInLocation.longitude.toFixed(4)}`}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+
+            {/* Clock In/Out Button */}
             <TouchableOpacity
               style={[
                 styles.clockButton,
@@ -485,8 +485,8 @@ export default function HomeScreen() {
                 </>
               )}
             </TouchableOpacity>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* Pending Approvals (Managers) */}
         {(data.pending_approvals.leave_count > 0 || data.pending_approvals.claim_count > 0) && (
