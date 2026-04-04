@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Search, Plus, Network, Users, Clock } from 'lucide-react'
+import { Search, Plus, Network, Users, Clock, Settings } from 'lucide-react'
 import { useEmployees } from '@/lib/hooks/useEmployees'
 import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
@@ -10,6 +10,8 @@ import { useModuleTheme, useModuleBackground, typography, colors } from '@/desig
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
+import { ManagementPanel } from '@/components/workived/people/ManagementPanel'
+import { Dropdown } from '@/components/workived/shared/Dropdown'
 
 export const Route = createFileRoute('/_app/people/')({
   component: PeoplePage,
@@ -33,6 +35,7 @@ function PeoplePage() {
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [history, setHistory] = useState<(string | undefined)[]>([undefined])
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
+  const [showManagementPanel, setShowManagementPanel] = useState(false)
 
   const { data: workSchedules = [] } = useWorkSchedules()
 
@@ -116,7 +119,7 @@ function PeoplePage() {
         </div>
       </div>
       {/* Search and Action Buttons Row */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto_auto] gap-3 mb-4">
         {/* Search */}
         <div className="relative">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: t.textMuted }} />
@@ -135,6 +138,21 @@ function PeoplePage() {
           />
         </div>
         
+        {/* Manage Button - visible to everyone */}
+        <button
+          onClick={() => setShowManagementPanel(true)}
+          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90 whitespace-nowrap"
+          style={{
+            background: t.surface,
+            color: t.text,
+            borderRadius: 12,
+            border: `1px solid ${t.border}`,
+          }}
+        >
+          <Settings size={16} />
+          Manage
+        </button>
+        
         {/* Org Chart Button */}
         <Link
           to="/org-chart"
@@ -150,7 +168,7 @@ function PeoplePage() {
           Org Chart
         </Link>
         
-        {/* Add Employee Button */}
+        {/* Add Employee Button - moved to the right */}
         {canManageEmployees && (
           <Link
             to="/people/$id"
@@ -197,24 +215,26 @@ function PeoplePage() {
         {workSchedules.length > 0 && (
           <div className="flex items-center gap-1.5">
             <Clock size={14} style={{ color: t.textMuted }} />
-            <select
+            <Dropdown
               value={scheduleFilter ?? ''}
-              onChange={(e) => handleScheduleFilter(e.target.value || undefined)}
-              className="text-sm font-medium py-1.5 px-2 pr-7 focus:outline-none"
+              onChange={(value) => handleScheduleFilter(value || undefined)}
+              options={[
+                { value: '', label: 'All schedules' },
+                ...workSchedules.map((ws) => ({
+                  value: ws.id,
+                  label: ws.name,
+                  badge: ws.is_default ? 'default' : undefined,
+                }))
+              ]}
+              placeholder="All schedules"
               style={{
                 borderRadius: 8,
                 background: scheduleFilter ? t.surfaceHover : 'transparent',
                 color: scheduleFilter ? t.text : t.textMuted,
                 border: `1px solid ${t.border}`,
+                minWidth: '180px',
               }}
-            >
-              <option value="">All schedules</option>
-              {workSchedules.map((ws) => (
-                <option key={ws.id} value={ws.id}>
-                  {ws.name}{ws.is_default ? ' (default)' : ''}
-                </option>
-              ))}
-            </select>
+            />
           </div>
         )}
       </div>
@@ -356,6 +376,11 @@ function PeoplePage() {
           onClose={() => setSelectedEmployeeId(null)}
           canEdit={canManageEmployees}
         />
+      )}
+
+      {/* Management Panel */}
+      {showManagementPanel && (
+        <ManagementPanel onClose={() => setShowManagementPanel(false)} />
       )}
     </div>
   )

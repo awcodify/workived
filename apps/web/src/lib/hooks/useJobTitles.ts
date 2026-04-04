@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from '@tantml:react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { jobTitlesApi, type JobTitle, type CreateJobTitleInput, type UpdateJobTitleInput } from '@/lib/api/jobtitles'
 
 export const jobTitleKeys = {
