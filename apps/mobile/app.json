@@ -50,7 +50,8 @@
           "locationAlwaysAndWhenInUsePermission": "Allow Workived to use your location for attendance verification."
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      "@react-native-community/datetimepicker"
     ]
   }
 }

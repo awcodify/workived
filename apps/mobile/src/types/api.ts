@@ -73,3 +73,50 @@ export interface LoginResponse {
     role: string
   }
 }
+
+export interface LeavePolicy {
+  id: string
+  name: string
+  days_per_year: number
+  requires_approval: boolean
+  can_carry_forward: boolean
+}
+
+export interface LeaveRequest {
+  leave_policy_id: string
+  start_date: string  // YYYY-MM-DD format
+  end_date: string    // YYYY-MM-DD format
+  reason?: string
+}
+
+export interface LeaveRequestResponse {
+  id: string
+  employee_id: string
+  leave_policy_id: string
+  start_date: string
+  end_date: string
+  working_days: number
+  reason: string | null
+  status: 'pending' | 'approved' | 'rejected'
+}
+
+export interface LeaveRequestWithDetails {
+  id: string
+  organisation_id: string
+  employee_id: string
+  leave_policy_id: string
+  start_date: string
+  end_date: string
+  total_days: number
+  reason: string | null
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_note: string | null
+  created_at: string
+  updated_at: string
+  employee_name: string
+  policy_name: string
+  reviewed_by_name: string | null
+  requested_at: string
+}

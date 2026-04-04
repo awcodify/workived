@@ -1,6 +1,16 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
 import * as SecureStore from 'expo-secure-store'
-import type { MobileHomeData, AttendanceRecord, ApiResponse, LoginRequest, LoginResponse } from '@/types/api'
+import type { 
+  MobileHomeData, 
+  AttendanceRecord, 
+  ApiResponse, 
+  LoginRequest, 
+  LoginResponse,
+  LeavePolicy,
+  LeaveRequest,
+  LeaveRequestResponse,
+  LeaveRequestWithDetails
+} from '@/types/api'
 
 // TODO: Replace with your actual backend URL
 const API_BASE_URL = __DEV__ 
@@ -78,6 +88,22 @@ class ApiClient {
 
   async getToday(employeeId: string): Promise<ApiResponse<AttendanceRecord>> {
     const response = await this.client.get<ApiResponse<AttendanceRecord>>(`/attendance/today/${employeeId}`)
+    return response.data
+  }
+
+  // Leave
+  async getLeavePolicies(): Promise<ApiResponse<LeavePolicy[]>> {
+    const response = await this.client.get<ApiResponse<LeavePolicy[]>>('/leave/policies')
+    return response.data
+  }
+
+  async applyLeave(data: LeaveRequest): Promise<ApiResponse<LeaveRequestResponse>> {
+    const response = await this.client.post<ApiResponse<LeaveRequestResponse>>('/leave/requests', data)
+    return response.data
+  }
+
+  async getMyLeaveRequests(): Promise<ApiResponse<LeaveRequestWithDetails[]>> {
+    const response = await this.client.get<ApiResponse<LeaveRequestWithDetails[]>>('/leave/requests/me')
     return response.data
   }
 }
