@@ -1,40 +1,78 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
+import { useEffect, useState } from 'react'
 import { apiClient } from '@/api/client'
 import type { MobileHomeData } from '@/types/api'
+import { useLocation } from '@/hooks/useLocation'
 
 export default function HomeScreen() {
   const queryClient = useQueryClient()
+  const [currentTime, setCurrentTime] = useState(new Date())
+  
+  const { 
+    location, 
+    isLoading: isLoadingLocation, 
+    error: locationError,
+    permissionGranted,
+    getCurrentLocation,
+    clearLocation 
+  } = useLocation()
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch, isRefetching } = useQuery({
     queryKey: ['mobile', 'home'],
     queryFn: () => apiClient.getMobileHome(),
     refetchInterval: 60_000, // Refresh every minute
   })
 
+  // Update current time every second
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date())
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [])
+
+  // Request location immediately when screen loads (if not already clocked in)
+  useEffect(() => {
+    if (data && !data.clock_status.is_clocked_in && !location && !isLoadingLocation) {
+      getCurrentLocation()
+    }
+  }, [data?.clock_status.is_clocked_in])
+
   const clockInMutation = useMutation({
-    mutationFn: (note?: string) => apiClient.clockIn({ note }),
+    mutationFn: ({ note, latitude, longitude }: { note?: string; latitude?: number; longitude?: number }) => 
+      apiClient.clockIn({ note, latitude, longitude }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mobile', 'home'] })
+      // Keep location visible after clock-in (don't clear it)
     },
   })
 
   const clockOutMutation = useMutation({
-    mutationFn: (note?: string) => apiClient.clockOut({ note }),
+    mutationFn: ({ note, latitude, longitude }: { note?: string; latitude?: number; longitude?: number }) => 
+      apiClient.clockOut({ note, latitude, longitude }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['mobile', 'home'] })
+      clearLocation() // Clear location after clock-out
     },
   })
 
-  const handleClockAction = () => {
+  const handleClockAction = async () => {
     if (!data) return
     
+    // Use existing location data for clock-in
+    const params = {
+      latitude: location?.latitude,
+      longitude: location?.longitude,
+    }
+    
     if (data.clock_status.is_clocked_in) {
-      clockOutMutation.mutate()
+      clockOutMutation.mutate(params)
     } else {
-      clockInMutation.mutate()
+      clockInMutation.mutate(params)
     }
   }
 
@@ -68,7 +106,17 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView 
+        style={styles.scrollView}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            colors={['#6357E8']}
+            tintColor="#6357E8"
+          />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>{getGreeting()},</Text>
@@ -102,9 +150,10 @@ export default function HomeScreen() {
                       minute: '2-digit',
                       hour12: false,
                     })
-                  : new Date().toLocaleTimeString('en-US', {
+                  : currentTime.toLocaleTimeString('en-US', {
                       hour: '2-digit',
                       minute: '2-digit',
+                      second: '2-digit',
                       hour12: false,
                     })
                 }
@@ -112,10 +161,60 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {data.clock_status.is_clocked_in && data.clock_status.hours_worked_today !== null && (
-            <View style={styles.hoursCard}>
-              <Text style={styles.hoursLabel}>Hours today</Text>
-              <Text style={styles.hoursValue}>{data.clock_status.hours_worked_today.toFixed(1)}h</Text>
+          {/* Hours Worked & Location - Combined when clocked in */}
+          {data.clock_status.is_clocked_in && (
+            <>
+              {data.clock_status.hours_worked_today !== null && (
+                <View style={styles.hoursCard}>
+                  <Ionicons name="time-outline" size={20} color="#1E3A8A" />
+                  <View style={styles.hoursContent}>
+                    <Text style={styles.hoursLabel}>Hours today</Text>
+                    <Text style={styles.hoursValue}>{data.clock_status.hours_worked_today.toFixed(1)}h</Text>
+                  </View>
+                </View>
+              )}
+            </>
+          )}
+
+          {/* Location - Show before and after clock-in */}
+          {(isLoadingLocation || location) && (
+            <View style={[
+              styles.locationCard,
+              data.clock_status.is_clocked_in && styles.locationCardActive
+            ]}>
+              {isLoadingLocation ? (
+                <View style={styles.locationLoading}>
+                  <ActivityIndicator size="small" color="#6357E8" />
+                  <Text style={styles.locationLoadingText}>Detecting location...</Text>
+                </View>
+              ) : location ? (
+                <>
+                  {data.clock_status.is_clocked_in && (
+                    <View style={styles.locationHeader}>
+                      <Text style={styles.locationTitle}>Working from</Text>
+                    </View>
+                  )}
+                  <View style={styles.locationInfo}>
+                    <Ionicons name="location" size={16} color={data.clock_status.is_clocked_in ? "#10B981" : "#6B7280"} />
+                    <View style={styles.locationDetails}>
+                      <Text style={[
+                        styles.locationAddress,
+                        data.clock_status.is_clocked_in && styles.locationAddressActive
+                      ]}>
+                        {typeof location.address === 'string' && location.address
+                          ? location.address
+                          : `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+                        }
+                      </Text>
+                      {location.accuracy && (
+                        <Text style={styles.locationAccuracy}>
+                          ± {Math.round(location.accuracy)}m accuracy
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                </>
+              ) : null}
             </View>
           )}
 
@@ -312,19 +411,82 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 12,
     flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 12,
+  },
+  hoursContent: {
+    flex: 1,
+    flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
   },
   hoursLabel: {
     fontSize: 14,
     color: '#1E3A8A',
+    fontWeight: '500',
   },
   hoursValue: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#1E3A8A',
+    color: '#1E40AF',
     fontVariant: ['tabular-nums'],
+  },
+  locationCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+  },
+  locationCardActive: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  locationLoading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  locationLoadingText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  locationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  locationTitle: {
+    fontSize: 12,
+    color: '#065F46',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  locationInfo: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  locationDetails: {
+    flex: 1,
+  },
+  locationAddress: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '500',
+    lineHeight: 20,
+  },
+  locationAddressActive: {
+    color: '#047857',
+  },
+  locationAccuracy: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 4,
   },
   clockButton: {
     flexDirection: 'row',
