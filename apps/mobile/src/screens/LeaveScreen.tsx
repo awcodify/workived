@@ -166,7 +166,7 @@ export default function LeaveScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6357E8" />
         </View>
@@ -251,8 +251,8 @@ export default function LeaveScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollViewContent}>
         {viewMode === 'list' ? (
           <>
             {/* Header */}
@@ -541,6 +541,9 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+  },
+  scrollViewContent: {
+    paddingBottom: 80,
   },
   headerContainer: {
     paddingHorizontal: 24,

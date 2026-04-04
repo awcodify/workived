@@ -286,7 +286,7 @@ export default function ApprovalsScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6357E8" />
         </View>
@@ -297,7 +297,7 @@ export default function ApprovalsScreen() {
   const approvals = approvalsData?.data || []
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={styles.headerContent}>
           <Text style={styles.title}>Approvals</Text>
@@ -526,7 +526,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 12,
-    paddingBottom: 24,
+    paddingBottom: 80,
   },
   separator: {
     height: 12,

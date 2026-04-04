@@ -251,7 +251,7 @@ export default function HomeScreen() {
 
   if (isLoading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6357E8" />
         </View>
@@ -261,7 +261,7 @@ export default function HomeScreen() {
 
   if (error || !data) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.errorContainer}>
           <Ionicons name="alert-circle" size={48} color="#EF4444" />
           <Text style={styles.errorText}>Failed to load data</Text>
@@ -271,9 +271,10 @@ export default function HomeScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView 
         style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -295,6 +296,35 @@ export default function HomeScreen() {
             })}
           </Text>
         </View>
+
+        {/* Location - Show always at top */}
+        {(isLoadingLocation || location || (data.clock_status.is_clocked_in && clockedInLocation)) && (() => {
+          // Use clocked-in location when clocked in, otherwise use current location
+          const displayLocation = data.clock_status.is_clocked_in && clockedInLocation ? clockedInLocation : location
+          
+          return (
+            <View style={styles.locationCardTop}>
+              {isLoadingLocation ? (
+                <View style={styles.locationLoading}>
+                  <ActivityIndicator size="small" color="#6357E8" />
+                  <Text style={styles.locationLoadingText}>Detecting location...</Text>
+                </View>
+              ) : displayLocation ? (
+                <View style={styles.locationInfo}>
+                  <Ionicons name="location" size={16} color="#6357E8" />
+                  <View style={styles.locationDetails}>
+                    <Text style={styles.locationAddressTop}>
+                      {typeof displayLocation.address === 'string' && displayLocation.address
+                        ? displayLocation.address
+                        : `${displayLocation.latitude.toFixed(4)}, ${displayLocation.longitude.toFixed(4)}`
+                      }
+                    </Text>
+                  </View>
+                </View>
+              ) : null}
+            </View>
+          )
+        })()}
 
         {/* Clock In/Out Card */}
         <View style={styles.clockCard}>
@@ -341,53 +371,6 @@ export default function HomeScreen() {
               )}
             </>
           )}
-
-          {/* Location - Show before and after clock-in */}
-          {(isLoadingLocation || location || (data.clock_status.is_clocked_in && clockedInLocation)) && (() => {
-            // Use clocked-in location when clocked in, otherwise use current location
-            const displayLocation = data.clock_status.is_clocked_in && clockedInLocation ? clockedInLocation : location
-            
-            return (
-              <View style={[
-                styles.locationCard,
-                data.clock_status.is_clocked_in && styles.locationCardActive
-              ]}>
-                {isLoadingLocation ? (
-                  <View style={styles.locationLoading}>
-                    <ActivityIndicator size="small" color="#6357E8" />
-                    <Text style={styles.locationLoadingText}>Detecting location...</Text>
-                  </View>
-                ) : displayLocation ? (
-                  <>
-                    {data.clock_status.is_clocked_in && (
-                      <View style={styles.locationHeader}>
-                        <Text style={styles.locationTitle}>Working from</Text>
-                      </View>
-                    )}
-                    <View style={styles.locationInfo}>
-                      <Ionicons name="location" size={16} color={data.clock_status.is_clocked_in ? "#10B981" : "#6B7280"} />
-                      <View style={styles.locationDetails}>
-                        <Text style={[
-                          styles.locationAddress,
-                          data.clock_status.is_clocked_in && styles.locationAddressActive
-                        ]}>
-                          {typeof displayLocation.address === 'string' && displayLocation.address
-                            ? displayLocation.address
-                            : `${displayLocation.latitude.toFixed(4)}, ${displayLocation.longitude.toFixed(4)}`
-                          }
-                        </Text>
-                        {displayLocation.accuracy && (
-                          <Text style={styles.locationAccuracy}>
-                            ± {Math.round(displayLocation.accuracy)}m accuracy
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                  </>
-                ) : null}
-              </View>
-            )
-          })()}
 
           {/* Work Summary - Shows after clock out */}
           {!data.clock_status.is_clocked_in && data.clock_status.last_clock_out && (() => {
@@ -640,6 +623,9 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+  scrollViewContent: {
+    paddingBottom: 80,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -674,6 +660,25 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  locationCardTop: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    paddingHorizontal: 4,
+  },
+  locationLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  locationAddressTop: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '400',
+    lineHeight: 18,
   },
   clockCard: {
     backgroundColor: '#FFF',
