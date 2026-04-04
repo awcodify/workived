@@ -13,6 +13,7 @@ import (
 	"github.com/workived/services/internal/claims"
 	"github.com/workived/services/internal/employee"
 	"github.com/workived/services/internal/leave"
+	"github.com/workived/services/internal/tasks"
 	"github.com/workived/services/pkg/cache"
 )
 
@@ -39,6 +40,11 @@ type ClaimsProvider interface {
 	ListClaims(ctx context.Context, orgID uuid.UUID, f claims.ClaimFilters, role string, managerEmployeeID *uuid.UUID) (*claims.ListResult, error)
 }
 
+// TasksProvider provides tasks data.
+type TasksProvider interface {
+	ListTasks(ctx context.Context, orgID uuid.UUID, f tasks.TaskFilters) ([]tasks.TaskWithDetails, error)
+}
+
 // OrgInfoProvider provides organisation configuration.
 type OrgInfoProvider interface {
 	GetOrgTimezone(ctx context.Context, orgID uuid.UUID) (string, error)
@@ -50,6 +56,7 @@ type Service struct {
 	attendanceRepo AttendanceProvider
 	leaveRepo      LeaveProvider
 	claimsRepo     ClaimsProvider
+	tasksRepo      TasksProvider
 	orgRepo        OrgInfoProvider
 	log            zerolog.Logger
 	cache          *cache.Store
@@ -61,6 +68,7 @@ func NewService(
 	attendanceRepo AttendanceProvider,
 	leaveRepo LeaveProvider,
 	claimsRepo ClaimsProvider,
+	tasksRepo TasksProvider,
 	orgRepo OrgInfoProvider,
 	log zerolog.Logger,
 	cache *cache.Store,
@@ -70,6 +78,7 @@ func NewService(
 		attendanceRepo: attendanceRepo,
 		leaveRepo:      leaveRepo,
 		claimsRepo:     claimsRepo,
+		tasksRepo:      tasksRepo,
 		orgRepo:        orgRepo,
 		log:            log,
 		cache:          cache,
@@ -131,6 +140,7 @@ func (s *Service) GetHomeData(ctx context.Context, orgID, employeeID uuid.UUID, 
 		leaveBalance     *LeaveBalanceInfo
 		pendingApprovals *PendingApprovalsInfo
 		weekAttendance   *WeekAttendanceInfo
+		myTasks          []TaskInfo
 		err              error
 	}
 
@@ -204,6 +214,28 @@ func (s *Service) GetHomeData(ctx context.Context, orgID, employeeID uuid.UUID, 
 			res.weekAttendance = weekAtt
 		}()
 
+		// Fetch my tasks (assigned to this employee, pending only, exclude approval tasks)
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			assigneeIDStr := employeeID.String()
+			statusPending := "pending"
+			excludeApprovals := true
+			tasksList, err := s.tasksRepo.ListTasks(ctx, orgID, tasks.TaskFilters{
+				AssigneeID:           &assigneeIDStr,
+				Status:               &statusPending,
+				ExcludeApprovalTasks: &excludeApprovals,
+				Limit:                5, // Only show first 5 tasks
+			})
+			mu.Lock()
+			defer mu.Unlock()
+			if err != nil {
+				res.err = fmt.Errorf("get my tasks: %w", err)
+				return
+			}
+			res.myTasks = mapTasksToTaskInfo(tasksList)
+		}()
+
 		wg.Wait()
 		resultCh <- res
 	}()
@@ -227,6 +259,7 @@ func (s *Service) GetHomeData(ctx context.Context, orgID, employeeID uuid.UUID, 
 		LeaveBalance:     *res.leaveBalance,
 		PendingApprovals: *res.pendingApprovals,
 		WeekAttendance:   *res.weekAttendance,
+		MyTasks:          res.myTasks,
 		WeekOffset:       weekOffset,
 	}, nil
 }
@@ -445,4 +478,26 @@ func toLower(b byte) byte {
 // ptrString returns a pointer to a string.
 func ptrString(s string) *string {
 	return &s
+}
+
+// mapTasksToTaskInfo converts TaskWithDetails to TaskInfo for mobile display
+func mapTasksToTaskInfo(tasksList []tasks.TaskWithDetails) []TaskInfo {
+	result := make([]TaskInfo, 0, len(tasksList))
+	for _, t := range tasksList {
+		ti := TaskInfo{
+			ID:          t.ID,
+			Title:       t.Title,
+			Description: t.Description,
+			Priority:    t.Priority,
+			ListName:    t.ListName,
+			CreatorName: t.CreatorName,
+		}
+		// Convert DueDate from *time.Time to *string (YYYY-MM-DD)
+		if t.DueDate != nil {
+			dueDateStr := t.DueDate.Format("2006-01-02")
+			ti.DueDate = &dueDateStr
+		}
+		result = append(result, ti)
+	}
+	return result
 }

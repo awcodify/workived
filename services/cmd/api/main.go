@@ -189,7 +189,7 @@ func main() {
 	employmentHistoryHandler := employmentchange.NewHandler(employmentChangeRepo)
 
 	// Mobile service — aggregates data from multiple services
-	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, cachedOrgInfo, log, cacheStore)
+	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, tasksRepo, cachedOrgInfo, log, cacheStore)
 	mobileHandler := mobile.NewHandler(mobileSvc)
 
 	// ── Router ────────────────────────────────────────────────────────────────

@@ -9,6 +9,7 @@ type HomeData struct {
 	LeaveBalance     LeaveBalanceInfo     `json:"leave_balance"`
 	PendingApprovals PendingApprovalsInfo `json:"pending_approvals"`
 	WeekAttendance   WeekAttendanceInfo   `json:"week_attendance"`
+	MyTasks          []TaskInfo           `json:"my_tasks"`    // Tasks assigned to this employee
 	WeekOffset       int                  `json:"week_offset"` // 0 = this week, -1 = last week
 }
 
@@ -48,6 +49,17 @@ type PendingApprovalsInfo struct {
 type WeekAttendanceInfo struct {
 	Days       []string `json:"days"`       // 5 days: ["checked", "checked", "absent", "checked", "weekend"]
 	Percentage int      `json:"percentage"` // Percentage on time (e.g., 80)
+}
+
+// TaskInfo contains task data for mobile home display.
+type TaskInfo struct {
+	ID          uuid.UUID `json:"id"`
+	Title       string    `json:"title"`
+	Description *string   `json:"description,omitempty"`
+	Priority    string    `json:"priority"`           // low, medium, high, urgent
+	DueDate     *string   `json:"due_date,omitempty"` // YYYY-MM-DD
+	ListName    string    `json:"list_name"`
+	CreatorName string    `json:"creator_name"`
 }
 
 // MobileHomeFilter contains filter criteria for the mobile home endpoint.

@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl, Modal, Pressable, Animated } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import * as Location from 'expo-location'
 import { useNavigation } from '@react-navigation/native'
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs'
@@ -26,6 +26,9 @@ export default function HomeScreen() {
   const [pendingClockOutLocation, setPendingClockOutLocation] = useState<{ latitude: number; longitude: number } | null>(null)
   const [clockInAddress, setClockInAddress] = useState<string | null>(null)
   const [clockOutAddress, setClockOutAddress] = useState<string | null>(null)
+  const [selectedTask, setSelectedTask] = useState<any>(null) // For task detail modal
+  const [isModalVisible, setIsModalVisible] = useState(false) // Control modal visibility
+  const slideAnim = useRef(new Animated.Value(300)).current // Start 300px below
   
   const { 
     location, 
@@ -175,6 +178,36 @@ export default function HomeScreen() {
     
     geocodeSummaryLocations()
   }, [data?.clock_status.is_clocked_in, data?.clock_status.last_clock_out, data?.clock_status.clock_in_latitude, data?.clock_status.clock_out_latitude])
+
+  // Animate task modal slide up when opening
+  useEffect(() => {
+    if (selectedTask !== null) {
+      setIsModalVisible(true)
+      // Reset to bottom position
+      slideAnim.setValue(300)
+      // Slide up after a tiny delay to let overlay fade in first
+      setTimeout(() => {
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          useNativeDriver: true,
+          tension: 65,
+          friction: 11,
+        }).start()
+      }, 50)
+    }
+  }, [selectedTask, slideAnim])
+
+  // Handle modal close with animation
+  const closeModal = () => {
+    Animated.timing(slideAnim, {
+      toValue: 300,
+      duration: 200,
+      useNativeDriver: true,
+    }).start(() => {
+      setIsModalVisible(false)
+      setSelectedTask(null)
+    })
+  }
 
   const clockInMutation = useMutation({
     mutationFn: ({ note, latitude, longitude }: { note?: string; latitude?: number; longitude?: number }) => 
@@ -522,6 +555,49 @@ export default function HomeScreen() {
           </View>
         )}
 
+        {/* My Tasks */}
+        {data.my_tasks && data.my_tasks.length > 0 && (
+          <View style={styles.card}>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="checkbox-outline" size={20} color="#6357E8" />
+              <Text style={styles.cardTitle}>My Tasks</Text>
+            </View>
+            
+            {data.my_tasks.map(task => (
+              <TouchableOpacity 
+                key={task.id} 
+                style={styles.taskRow}
+                onPress={() => setSelectedTask(task)}
+              >
+                <View style={styles.taskContent}>
+                  <View style={styles.taskHeader}>
+                    <Text style={styles.taskTitle} numberOfLines={1}>{task.title}</Text>
+                    <View style={[
+                      styles.priorityBadge,
+                      task.priority === 'urgent' && styles.priorityUrgent,
+                      task.priority === 'high' && styles.priorityHigh,
+                      task.priority === 'medium' && styles.priorityMedium,
+                      task.priority === 'low' && styles.priorityLow,
+                    ]}>
+                      <Text style={styles.priorityText}>{task.priority}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.taskFooter}>
+                    <Text style={styles.taskListName}>{task.list_name}</Text>
+                    {task.due_date && (
+                      <View style={styles.taskDueDate}>
+                        <Ionicons name="calendar-outline" size={12} color="#6B7280" />
+                        <Text style={styles.taskDueDateText}>{task.due_date}</Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+
         {/* Week Attendance */}
         <View style={styles.card}>
           <View style={styles.weekHeader}>
@@ -642,6 +718,76 @@ export default function HomeScreen() {
           setPendingClockOutLocation(null)
         }}
       />
+
+      {/* Task Detail Modal */}
+      <Modal
+        visible={isModalVisible}
+        animationType="fade"
+        transparent
+        onRequestClose={closeModal}
+      >
+        <Pressable style={styles.modalOverlay} onPress={closeModal}>
+          <Animated.View 
+            style={[
+              styles.modalContent,
+              { transform: [{ translateY: slideAnim }] }
+            ]}
+          >
+            <Pressable onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Task Details</Text>
+              <TouchableOpacity onPress={closeModal}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            
+            {selectedTask && (
+              <View style={styles.modalBody}>
+                <Text style={styles.taskDetailTitle}>{selectedTask.title}</Text>
+                
+                <View style={styles.taskDetailRow}>
+                  <Text style={styles.taskDetailLabel}>Priority</Text>
+                  <View style={[
+                    styles.priorityBadge,
+                    selectedTask.priority === 'urgent' && styles.priorityUrgent,
+                    selectedTask.priority === 'high' && styles.priorityHigh,
+                    selectedTask.priority === 'medium' && styles.priorityMedium,
+                    selectedTask.priority === 'low' && styles.priorityLow,
+                  ]}>
+                    <Text style={styles.priorityText}>{selectedTask.priority}</Text>
+                  </View>
+                </View>
+
+                {selectedTask.due_date && (
+                  <View style={styles.taskDetailRow}>
+                    <Text style={styles.taskDetailLabel}>Due Date</Text>
+                    <Text style={styles.taskDetailValue}>{selectedTask.due_date}</Text>
+                  </View>
+                )}
+
+                <View style={styles.taskDetailRow}>
+                  <Text style={styles.taskDetailLabel}>List</Text>
+                  <Text style={styles.taskDetailValue}>{selectedTask.list_name}</Text>
+                </View>
+
+                <View style={styles.taskDetailRow}>
+                  <Text style={styles.taskDetailLabel}>Created By</Text>
+                  <Text style={styles.taskDetailValue}>{selectedTask.creator_name}</Text>
+                </View>
+
+                {selectedTask.description && (
+                  <View style={styles.taskDetailSection}>
+                    <Text style={styles.taskDetailLabel}>Description</Text>
+                    <Text style={styles.taskDetailDescription}>{selectedTask.description}</Text>
+                  </View>
+                )}
+              </View>
+            )}
+            </Pressable>
+          </Animated.View>
+        </Pressable>
+      </Modal>
+      
     </SafeAreaView>
   )
 }
@@ -1104,5 +1250,137 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1E40AF',
     fontVariant: ['tabular-nums'],
+  },
+  // Task styles
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  taskContent: {
+    flex: 1,
+    marginRight: 12,
+  },
+  taskHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  taskTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+    flex: 1,
+    marginRight: 8,
+  },
+  priorityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  priorityUrgent: {
+    backgroundColor: '#FEE2E2',
+  },
+  priorityHigh: {
+    backgroundColor: '#FED7AA',
+  },
+  priorityMedium: {
+    backgroundColor: '#FEF3C7',
+  },
+  priorityLow: {
+    backgroundColor: '#E0E7FF',
+  },
+  priorityText: {
+    fontSize: 11,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: '#374151',
+  },
+  taskFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  taskListName: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  taskDueDate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  taskDueDateText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  // Task modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  modalBody: {
+    padding: 20,
+  },
+  taskDetailTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 24,
+  },
+  taskDetailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  taskDetailLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  taskDetailValue: {
+    fontSize: 14,
+    color: '#111827',
+  },
+  taskDetailSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  taskDetailDescription: {
+    fontSize: 14,
+    color: '#374151',
+    lineHeight: 20,
+    marginTop: 8,
   },
 })

@@ -30,7 +30,18 @@ export interface MobileHomeData {
     days: string[]
     percentage: number
   }
+  my_tasks: TaskInfo[]
   week_offset: number // 0 = this week, -1 = last week
+}
+
+export interface TaskInfo {
+  id: string
+  title: string
+  description: string | null
+  priority: 'low' | 'medium' | 'high' | 'urgent'
+  due_date: string | null // YYYY-MM-DD
+  list_name: string
+  creator_name: string
 }
 
 export interface AttendanceRecord {
