@@ -99,6 +99,9 @@ func (h *Handler) ClockIn(c *gin.Context) {
 	rec, err := h.service.ClockIn(c.Request.Context(), orgID, ClockInRequest{
 		EmployeeID: employeeID,
 		Note:       httpReq.Note,
+		Latitude:   httpReq.Latitude,
+		Longitude:  httpReq.Longitude,
+		PhotoURL:   httpReq.PhotoURL,
 	})
 	if err != nil {
 		h.logAndRespondError(c, err, "failed to clock in", map[string]string{
@@ -130,6 +133,9 @@ func (h *Handler) ClockOut(c *gin.Context) {
 	rec, err := h.service.ClockOut(c.Request.Context(), orgID, ClockOutRequest{
 		EmployeeID: employeeID,
 		Note:       httpReq.Note,
+		Latitude:   httpReq.Latitude,
+		Longitude:  httpReq.Longitude,
+		PhotoURL:   httpReq.PhotoURL,
 	})
 	if err != nil {
 		h.logAndRespondError(c, err, "failed to clock out", map[string]string{

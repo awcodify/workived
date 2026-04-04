@@ -77,19 +77,21 @@ func NewService(
 }
 
 // GetHomeDataForUser is a convenience wrapper that looks up the employee ID from user ID first.
-func (s *Service) GetHomeDataForUser(ctx context.Context, orgID, userID uuid.UUID) (*HomeData, error) {
+// weekOffset: 0 = this week, -1 = last week, -2 = two weeks ago, etc.
+func (s *Service) GetHomeDataForUser(ctx context.Context, orgID, userID uuid.UUID, weekOffset int) (*HomeData, error) {
 	// Lookup employee by user ID
 	emp, err := s.employeeRepo.GetByUserID(ctx, orgID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("get employee by user ID: %w", err)
 	}
 
-	return s.GetHomeData(ctx, orgID, emp.ID)
+	return s.GetHomeData(ctx, orgID, emp.ID, weekOffset)
 }
 
 // GetHomeData aggregates all data for the mobile home screen.
 // Uses goroutines to fetch data in parallel for optimal performance.
-func (s *Service) GetHomeData(ctx context.Context, orgID, employeeID uuid.UUID) (*HomeData, error) {
+// weekOffset: 0 = this week, -1 = last week, -2 = two weeks ago, etc.
+func (s *Service) GetHomeData(ctx context.Context, orgID, employeeID uuid.UUID, weekOffset int) (*HomeData, error) {
 	// Fetch employee info first (needed for manager check and display)
 	emp, err := s.employeeRepo.Get(ctx, orgID, employeeID)
 	if err != nil {
@@ -112,8 +114,16 @@ func (s *Service) GetHomeData(ctx context.Context, orgID, employeeID uuid.UUID) 
 	today := now.Format("2006-01-02")
 	year := now.Year()
 
-	// Calculate week range (Monday to Friday)
-	weekStart, weekEnd := getWeekRange(now)
+	// Calculate week range (Monday to Friday) with offset
+	weekStart, weekEnd := getWeekRangeWithOffset(now, weekOffset)
+
+	s.log.Info().
+		Int("week_offset", weekOffset).
+		Str("week_start", weekStart).
+		Str("week_end", weekEnd).
+		Str("now", now.Format("2006-01-02 15:04:05")).
+		Str("timezone", tz).
+		Msg("calculated week range")
 
 	// Fetch all data in parallel
 	type result struct {
@@ -217,6 +227,7 @@ func (s *Service) GetHomeData(ctx context.Context, orgID, employeeID uuid.UUID) 
 		LeaveBalance:     *res.leaveBalance,
 		PendingApprovals: *res.pendingApprovals,
 		WeekAttendance:   *res.weekAttendance,
+		WeekOffset:       weekOffset,
 	}, nil
 }
 
@@ -234,13 +245,18 @@ func (s *Service) getClockStatus(ctx context.Context, orgID, employeeID uuid.UUI
 	}
 
 	status := &ClockStatusInfo{
-		IsClockedIn:  record.ClockOutAt == nil,
-		LastClockIn:  ptrString(record.ClockInAt.Format(time.RFC3339)),
-		LastClockOut: nil,
+		IsClockedIn:      record.ClockOutAt == nil,
+		LastClockIn:      ptrString(record.ClockInAt.Format(time.RFC3339)),
+		LastClockOut:     nil,
+		ClockInLat:       record.ClockInLatitude,
+		ClockInLng:       record.ClockInLongitude,
+		WorkLocationType: record.WorkLocationType,
 	}
 
 	if record.ClockOutAt != nil {
 		status.LastClockOut = ptrString(record.ClockOutAt.Format(time.RFC3339))
+		status.ClockOutLat = record.ClockOutLatitude
+		status.ClockOutLng = record.ClockOutLongitude
 		// Calculate hours worked
 		duration := record.ClockOutAt.Sub(record.ClockInAt)
 		hours := duration.Hours()
@@ -276,34 +292,10 @@ func (s *Service) getPendingApprovals(ctx context.Context, orgID uuid.UUID, mana
 		return nil, fmt.Errorf("list pending claims: %w", err)
 	}
 
-	// Combine and format
-	items := []PendingApprovalItem{}
-
-	for _, req := range leaveReqs {
-		items = append(items, PendingApprovalItem{
-			EmployeeName: req.EmployeeName,
-			Type:         "leave",
-			Summary:      fmt.Sprintf("%s (%.1f days)", req.PolicyName, req.TotalDays),
-		})
-	}
-
-	for _, claim := range claimsResult.Claims {
-		items = append(items, PendingApprovalItem{
-			EmployeeName: claim.EmployeeName,
-			Type:         "claim",
-			Summary:      fmt.Sprintf("%s claim", claim.CategoryName),
-		})
-	}
-
-	// Limit to first 3 items for preview
-	previewItems := items
-	if len(items) > 3 {
-		previewItems = items[:3]
-	}
-
+	// Count by type
 	return &PendingApprovalsInfo{
-		Count: len(items),
-		Items: previewItems,
+		LeaveCount: len(leaveReqs),
+		ClaimCount: len(claimsResult.Claims),
 	}, nil
 }
 
@@ -326,6 +318,7 @@ func (s *Service) getWeekAttendance(ctx context.Context, orgID, employeeID uuid.
 	totalDays := 0
 
 	start, _ := time.Parse("2006-01-02", weekStart)
+
 	for i := 0; i < 5; i++ {
 		day := start.AddDate(0, 0, i)
 		dateStr := day.Format("2006-01-02")
@@ -393,6 +386,14 @@ func aggregateLeaveBalances(balances []leave.BalanceWithPolicy) *LeaveBalanceInf
 
 // getWeekRange returns the Monday-Friday range for the week containing the given date.
 func getWeekRange(now time.Time) (start, end string) {
+	return getWeekRangeWithOffset(now, 0)
+}
+
+// getWeekRangeWithOffset returns the Monday-Friday range with an optional week offset.
+// offset: 0 = current week, -1 = last week, -2 = two weeks ago, etc.
+func getWeekRangeWithOffset(now time.Time, offset int) (start, end string) {
+	// Apply week offset
+	now = now.AddDate(0, 0, offset*7)
 	// Find Monday of this week
 	weekday := int(now.Weekday())
 	if weekday == 0 { // Sunday

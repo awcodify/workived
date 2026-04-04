@@ -3,6 +3,7 @@ package mobile
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -12,7 +13,7 @@ import (
 
 // ServiceInterface is the subset of Service that the handler depends on.
 type ServiceInterface interface {
-	GetHomeDataForUser(ctx context.Context, orgID, userID uuid.UUID) (*HomeData, error)
+	GetHomeDataForUser(ctx context.Context, orgID, userID uuid.UUID, weekOffset int) (*HomeData, error)
 }
 
 // Handler provides mobile-specific API endpoints.
@@ -32,12 +33,23 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 }
 
 // GetHome returns aggregated data for the mobile home screen.
-// GET /api/v1/mobile/home
+// GET /api/v1/mobile/home?week_offset=0 (0=this week, -1=last week, etc.)
 func (h *Handler) GetHome(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	userID := middleware.UserIDFromCtx(c)
 
-	data, err := h.service.GetHomeDataForUser(c.Request.Context(), orgID, userID)
+	// Get week offset from query parameter (default: 0 = this week)
+	weekOffset := 0
+	if offsetStr := c.Query("week_offset"); offsetStr != "" {
+		if offset, err := strconv.Atoi(offsetStr); err == nil {
+			// Limit to -52 weeks (1 year back) to 0 (current week)
+			if offset >= -52 && offset <= 0 {
+				weekOffset = offset
+			}
+		}
+	}
+
+	data, err := h.service.GetHomeDataForUser(c.Request.Context(), orgID, userID, weekOffset)
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return

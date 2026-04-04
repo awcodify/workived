@@ -14,8 +14,8 @@ import (
 // RepositoryInterface is the data access interface the service depends on.
 type RepositoryInterface interface {
 	GetByEmployeeAndDate(ctx context.Context, orgID, employeeID uuid.UUID, date string) (*Record, error)
-	Create(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockInAt time.Time, isLate bool, note *string) (*Record, error)
-	UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, note *string) (*Record, error)
+	Create(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockInAt time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*Record, error)
+	UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, note *string, latitude, longitude *float64, photoURL *string) (*Record, error)
 	ListByDate(ctx context.Context, orgID uuid.UUID, date string) ([]Record, error)
 	ListByMonth(ctx context.Context, orgID uuid.UUID, year, month int) ([]Record, error)
 	ListByEmployeeMonth(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]Record, error)
@@ -117,7 +117,7 @@ func (s *Service) ClockIn(ctx context.Context, orgID uuid.UUID, req ClockInReque
 		isLate = s.checkLate(localNow, schedule)
 	}
 
-	rec, err := s.repo.Create(ctx, orgID, req.EmployeeID, today, now, isLate, req.Note)
+	rec, err := s.repo.Create(ctx, orgID, req.EmployeeID, today, now, isLate, req.Note, req.Latitude, req.Longitude, req.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +159,7 @@ func (s *Service) ClockOut(ctx context.Context, orgID uuid.UUID, req ClockOutReq
 		return nil, apperr.Conflict("already clocked out today")
 	}
 
-	rec, err := s.repo.UpdateClockOut(ctx, orgID, req.EmployeeID, today, now, req.Note)
+	rec, err := s.repo.UpdateClockOut(ctx, orgID, req.EmployeeID, today, now, req.Note, req.Latitude, req.Longitude, req.PhotoURL)
 	if err != nil {
 		return nil, err
 	}

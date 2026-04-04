@@ -11,6 +11,11 @@ export interface MobileHomeData {
     last_clock_in: string | null
     last_clock_out: string | null
     hours_worked_today: number | null
+    clock_in_latitude: number | null
+    clock_in_longitude: number | null
+    clock_out_latitude: number | null
+    clock_out_longitude: number | null
+    work_location_type: string | null
   }
   leave_balance: {
     annual: number
@@ -18,17 +23,14 @@ export interface MobileHomeData {
     unpaid: number
   }
   pending_approvals: {
-    count: number
-    items: Array<{
-      employee_name: string
-      type: string
-      summary: string
-    }>
+    leave_count: number
+    claim_count: number
   }
   week_attendance: {
     days: string[]
     percentage: number
   }
+  week_offset: number // 0 = this week, -1 = last week
 }
 
 export interface AttendanceRecord {

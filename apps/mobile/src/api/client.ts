@@ -70,8 +70,10 @@ class ApiClient {
   }
 
   // Mobile Home
-  async getMobileHome(): Promise<MobileHomeData> {
-    const response = await this.client.get<MobileHomeData>('/mobile/home')
+  async getMobileHome(weekOffset: number = 0): Promise<MobileHomeData> {
+    const response = await this.client.get<MobileHomeData>('/mobile/home', {
+      params: { week_offset: weekOffset },
+    })
     return response.data
   }
 
