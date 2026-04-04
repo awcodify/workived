@@ -11,6 +11,7 @@ import type { MobileHomeData } from '@/types/api'
 import type { MainTabParamList } from '@/navigation'
 import { useLocation } from '@/hooks/useLocation'
 import { CustomAlert } from '@/components/CustomAlert'
+import { CameraCapture } from '@/components/CameraCapture'
 
 export default function HomeScreen() {
   const queryClient = useQueryClient()
@@ -28,6 +29,10 @@ export default function HomeScreen() {
   const [clockOutAddress, setClockOutAddress] = useState<string | null>(null)
   const [selectedTask, setSelectedTask] = useState<any>(null) // For task detail modal
   const [isModalVisible, setIsModalVisible] = useState(false) // Control modal visibility
+  const [showClockInCamera, setShowClockInCamera] = useState(false)
+  const [showClockOutCamera, setShowClockOutCamera] = useState(false)
+  const [clockInPhoto, setClockInPhoto] = useState<string | null>(null)
+  const [clockOutPhoto, setClockOutPhoto] = useState<string | null>(null)
   const slideAnim = useRef(new Animated.Value(300)).current // Start 300px below
   
   const { 
@@ -256,7 +261,8 @@ export default function HomeScreen() {
       
       setClockOutLocationText(locationText)
       setPendingClockOutLocation(currentLocation ? { latitude: currentLocation.latitude, longitude: currentLocation.longitude } : null)
-      setShowClockOutAlert(true)
+      // Show camera first for clock-out
+      setShowClockOutCamera(true)
     } else {
       // Get current location for clock-in confirmation
       const locationText = location?.address 
@@ -267,18 +273,36 @@ export default function HomeScreen() {
       
       setClockInLocationText(locationText)
       setPendingClockInLocation(location ? { latitude: location.latitude, longitude: location.longitude } : null)
-      setShowClockInAlert(true)
+      // Show camera first for clock-in
+      setShowClockInCamera(true)
     }
+  }
+
+  const handleClockInPhotoCapture = (photoUri: string) => {
+    setClockInPhoto(photoUri)
+    // Don't close camera here - component closes itself after user confirms
+    // After photo is confirmed in component, show confirmation alert
+    setShowClockInAlert(true)
   }
 
   const handleConfirmClockIn = () => {
     const params = {
       latitude: pendingClockInLocation?.latitude,
       longitude: pendingClockInLocation?.longitude,
+      // TODO: Add photo when WOR-110 backend is implemented
+      // photo: clockInPhoto,
     }
     clockInMutation.mutate(params)
     setShowClockInAlert(false)
     setPendingClockInLocation(null)
+    setClockInPhoto(null)
+  }
+
+  const handleClockOutPhotoCapture = (photoUri: string) => {
+    setClockOutPhoto(photoUri)
+    // Don't close camera here - component closes itself after user confirms
+    // After photo is confirmed in component, show confirmation alert
+    setShowClockOutAlert(true)
   }
 
   const handleConfirmClockOut = () => {
@@ -286,10 +310,16 @@ export default function HomeScreen() {
       clockOutMutation.mutate({
         latitude: pendingClockOutLocation.latitude,
         longitude: pendingClockOutLocation.longitude,
+        // TODO: Add photo when WOR-110 backend is implemented
+        // photo: clockOutPhoto,
       })
     } else {
-      clockOutMutation.mutate({})
+      clockOutMutation.mutate({
+        // TODO: Add photo when WOR-110 backend is implemented
+        // photo: clockOutPhoto,
+      })
     }
+    setClockOutPhoto(null)
   }
 
   const getGreeting = () => {
@@ -668,9 +698,11 @@ export default function HomeScreen() {
       <CustomAlert
         visible={showClockInAlert}
         title="Clock In"
-        message={`Are you sure you want to clock in?\n\nLocation: ${clockInLocationText}`}
+        message="Are you sure you want to clock in?"
         icon="time"
         iconColor="#6357E8"
+        imageUri={clockInPhoto || undefined}
+        locationText={clockInLocationText}
         buttons={[
           {
             text: 'Cancel',
@@ -695,9 +727,11 @@ export default function HomeScreen() {
       <CustomAlert
         visible={showClockOutAlert}
         title="Clock Out"
-        message={`Are you sure you want to clock out?\n\nLocation: ${clockOutLocationText}`}
+        message="Are you sure you want to clock out?"
         icon="checkmark-circle"
         iconColor="#F59E0B"
+        imageUri={clockOutPhoto || undefined}
+        locationText={clockOutLocationText}
         buttons={[
           {
             text: 'Cancel',
@@ -717,6 +751,30 @@ export default function HomeScreen() {
           setShowClockOutAlert(false)
           setPendingClockOutLocation(null)
         }}
+      />
+
+      {/* Clock In Camera */}
+      <CameraCapture
+        visible={showClockInCamera}
+        onClose={() => {
+          setShowClockInCamera(false)
+          setPendingClockInLocation(null)
+        }}
+        onCapture={handleClockInPhotoCapture}
+        title="Clock In Photo"
+        locationText={clockInLocationText}
+      />
+
+      {/* Clock Out Camera */}
+      <CameraCapture
+        visible={showClockOutCamera}
+        onClose={() => {
+          setShowClockOutCamera(false)
+          setPendingClockOutLocation(null)
+        }}
+        onCapture={handleClockOutPhotoCapture}
+        title="Clock Out Photo"
+        locationText={clockOutLocationText}
       />
 
       {/* Task Detail Modal */}
