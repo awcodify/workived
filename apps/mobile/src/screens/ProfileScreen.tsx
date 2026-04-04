@@ -1,86 +1,236 @@
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/AuthContext'
+import { useQuery } from '@tanstack/react-query'
+import { apiClient } from '@/api/client'
+import { useState } from 'react'
+import { CustomAlert } from '@/components/CustomAlert'
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
+  const [showLogoutAlert, setShowLogoutAlert] = useState(false)
 
-  async function handleLogout() {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await logout()
-            } catch (error) {
-              Alert.alert('Error', 'Failed to logout. Please try again.')
-            }
-          },
-        },
-      ]
+  // Fetch employee profile data
+  const { data: profile, isLoading, error } = useQuery({
+    queryKey: ['employee-profile'],
+    queryFn: async () => {
+      const response = await apiClient.getMyProfile()
+      return response.data
+    },
+  })
+
+  const handleLogout = () => {
+    setShowLogoutAlert(true)
+  }
+
+  const confirmLogout = async () => {
+    try {
+      await logout()
+    } catch (error) {
+      // Error handling - could show another alert here
+      console.error('Logout failed:', error)
+    }
+  }
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2)
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    })
+  }
+
+  const getEmploymentTypeBadge = (type: string) => {
+    const badges = {
+      full_time: { label: 'Full-time', color: '#10B981' },
+      part_time: { label: 'Part-time', color: '#F59E0B' },
+      contract: { label: 'Contract', color: '#6366F1' },
+      intern: { label: 'Intern', color: '#8B5CF6' },
+    }
+    return badges[type as keyof typeof badges] || { label: type, color: '#6B7280' }
+  }
+
+  const getStatusBadge = (status: string) => {
+    const badges = {
+      active: { label: 'Active', color: '#10B981' },
+      on_leave: { label: 'On Leave', color: '#F59E0B' },
+      probation: { label: 'Probation', color: '#6366F1' },
+      inactive: { label: 'Inactive', color: '#6B7280' },
+    }
+    return badges[status as keyof typeof badges] || { label: status, color: '#6B7280' }
+  }
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6357E8" />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
     )
   }
 
+  if (error || !profile) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle-outline" size={48} color="#EF4444" />
+          <Text style={styles.errorText}>Failed to load profile</Text>
+          <Text style={styles.errorSubtext}>Please try again later</Text>
+        </View>
+      </SafeAreaView>
+    )
+  }
+
+  const employmentTypeBadge = getEmploymentTypeBadge(profile.employment_type)
+  const statusBadge = getStatusBadge(profile.status)
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.content}>
+      <ScrollView>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Profile</Text>
         </View>
 
-        {/* User Info Card */}
-        <View style={styles.userCard}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {user?.name?.charAt(0).toUpperCase() || 'U'}
+        {/* Avatar & Name */}
+        <View style={styles.avatarSection}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{getInitials(profile.full_name)}</Text>
+          </View>
+          <Text style={styles.nameText}>{profile.full_name}</Text>
+          {profile.email && <Text style={styles.emailText}>{profile.email}</Text>}
+        </View>
+
+        {/* Employment Info */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Employment Information</Text>
+
+          {profile.employee_code && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabel}>
+                <Ionicons name="barcode-outline" size={20} color="#6B7280" />
+                <Text style={styles.labelText}>Employee ID</Text>
+              </View>
+              <Text style={styles.valueText}>{profile.employee_code}</Text>
+            </View>
+          )}
+
+          {profile.job_title && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabel}>
+                <Ionicons name="briefcase-outline" size={20} color="#6B7280" />
+                <Text style={styles.labelText}>Job Title</Text>
+              </View>
+              <Text style={styles.valueText}>{profile.job_title}</Text>
+            </View>
+          )}
+
+          {profile.department_name && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabel}>
+                <Ionicons name="business-outline" size={20} color="#6B7280" />
+                <Text style={styles.labelText}>Department</Text>
+              </View>
+              <Text style={styles.valueText}>{profile.department_name}</Text>
+            </View>
+          )}
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoLabel}>
+              <Ionicons name="calendar-outline" size={20} color="#6B7280" />
+              <Text style={styles.labelText}>Start Date</Text>
+            </View>
+            <Text style={styles.valueText}>{formatDate(profile.start_date)}</Text>
+          </View>
+
+          {profile.manager_name && (
+            <View style={styles.infoRow}>
+              <View style={styles.infoLabel}>
+                <Ionicons name="person-outline" size={20} color="#6B7280" />
+                <Text style={styles.labelText}>Reports To</Text>
+              </View>
+              <Text style={styles.valueText}>{profile.manager_name}</Text>
+            </View>
+          )}
+
+          <View style={styles.badgeRow}>
+            <View style={styles.infoLabel}>
+              <Ionicons name="pricetag-outline" size={20} color="#6B7280" />
+              <Text style={styles.labelText}>Employment Type</Text>
+            </View>
+            <View style={[styles.badge, { backgroundColor: employmentTypeBadge.color + '20' }]}>
+              <Text style={[styles.badgeText, { color: employmentTypeBadge.color }]}>
+                {employmentTypeBadge.label}
               </Text>
             </View>
           </View>
-          <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          <Text style={styles.userEmail}>{user?.email || ''}</Text>
-          <View style={styles.roleBadge}>
-            <Text style={styles.roleText}>{user?.role || 'Employee'}</Text>
+
+          <View style={styles.badgeRow}>
+            <View style={styles.infoLabel}>
+              <Ionicons name="pulse-outline" size={20} color="#6B7280" />
+              <Text style={styles.labelText}>Status</Text>
+            </View>
+            <View style={[styles.badge, { backgroundColor: statusBadge.color + '20' }]}>
+              <Text style={[styles.badgeText, { color: statusBadge.color }]}>
+                {statusBadge.label}
+              </Text>
+            </View>
           </View>
         </View>
 
-        {/* Settings Section */}
+        {/* Account Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Settings</Text>
-          
-          {/* Placeholder menu items */}
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="person-outline" size={24} color="#6B7280" />
-            <Text style={styles.menuItemText}>Edit Profile</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
+          <Text style={styles.sectionTitle}>Account</Text>
 
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="notifications-outline" size={24} color="#6B7280" />
-            <Text style={styles.menuItemText}>Notifications</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="shield-checkmark-outline" size={24} color="#6B7280" />
-            <Text style={styles.menuItemText}>Privacy & Security</Text>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          <TouchableOpacity style={styles.actionButton} onPress={handleLogout}>
+            <View style={styles.actionButtonLeft}>
+              <Ionicons name="log-out-outline" size={24} color="#EF4444" />
+              <Text style={[styles.actionButtonText, { color: '#EF4444' }]}>Log Out</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#EF4444" />
           </TouchableOpacity>
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={24} color="#DC2626" />
-          <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
-      </View>
+        {/* App Version */}
+        <View style={styles.versionSection}>
+          <Text style={styles.versionText}>Workived Mobile v1.0.0</Text>
+        </View>
+      </ScrollView>
+
+      {/* Logout Confirmation Alert */}
+      <CustomAlert
+        visible={showLogoutAlert}
+        title="Log Out"
+        message="Are you sure you want to log out?"
+        icon="log-out-outline"
+        iconColor="#EF4444"
+        buttons={[
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => setShowLogoutAlert(false),
+          },
+          {
+            text: 'Log Out',
+            style: 'destructive',
+            onPress: confirmLogout,
+          },
+        ]}
+        onDismiss={() => setShowLogoutAlert(false)}
+      />
     </SafeAreaView>
   )
 }
@@ -90,108 +240,150 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F9FAFB',
   },
-  content: {
+  loadingContainer: {
     flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 32,
+  },
+  errorText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  errorSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
   },
   header: {
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 16,
-    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 24,
+    backgroundColor: '#FFF',
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: '#111827',
   },
-  userCard: {
-    backgroundColor: '#FFFFFF',
-    marginTop: 12,
-    paddingVertical: 32,
-    paddingHorizontal: 20,
+  avatarSection: {
     alignItems: 'center',
-  },
-  avatarContainer: {
+    paddingVertical: 32,
+    backgroundColor: '#FFF',
     marginBottom: 16,
   },
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     backgroundColor: '#6357E8',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   avatarText: {
-    fontSize: 32,
+    fontSize: 36,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#FFF',
   },
-  userName: {
+  nameText: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#111827',
     marginBottom: 4,
   },
-  userEmail: {
-    fontSize: 14,
+  emailText: {
+    fontSize: 16,
     color: '#6B7280',
-    marginBottom: 12,
-  },
-  roleBadge: {
-    backgroundColor: '#EEF2FF',
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  roleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6357E8',
-    textTransform: 'capitalize',
   },
   section: {
-    marginTop: 12,
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 8,
+    backgroundColor: '#FFF',
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '600',
     color: '#6B7280',
     textTransform: 'uppercase',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
     letterSpacing: 0.5,
+    marginBottom: 16,
   },
-  menuItem: {
+  infoRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
-  menuItemText: {
-    flex: 1,
-    fontSize: 16,
-    color: '#111827',
-    marginLeft: 16,
+  badgeRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
-  logoutButton: {
+  infoLabel: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginHorizontal: 20,
-    marginTop: 24,
-    paddingVertical: 16,
-    backgroundColor: '#FEE2E2',
+    gap: 12,
+  },
+  labelText: {
+    fontSize: 15,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  valueText: {
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '600',
+  },
+  badge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
   },
-  logoutText: {
+  badgeText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+  },
+  actionButtonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#DC2626',
-    marginLeft: 12,
+  },
+  versionSection: {
+    alignItems: 'center',
+    paddingVertical: 24,
+  },
+  versionText: {
+    fontSize: 12,
+    color: '#9CA3AF',
   },
 })

@@ -144,3 +144,28 @@ export interface ClaimWithDetails {
   employee_name: string
   category_name: string
 }
+
+export interface EmployeeProfile {
+  id: string
+  organisation_id: string
+  user_id: string | null
+  employee_code: string | null
+  full_name: string
+  email: string | null
+  phone: string | null
+  department_id: string | null
+  job_title: string | null
+  employment_type: 'full_time' | 'part_time' | 'contract' | 'intern'
+  status: 'active' | 'on_leave' | 'probation' | 'inactive'
+  reporting_to: string | null
+  start_date: string
+  end_date: string | null
+  is_active: boolean
+  created_at: string
+  updated_at: string
+  // Extended fields from EmployeeWithManager
+  manager_name: string | null
+  department_name: string | null
+  work_schedule_name: string | null
+  invitation_pending: boolean
+}

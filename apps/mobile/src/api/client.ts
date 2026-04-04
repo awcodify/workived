@@ -10,7 +10,8 @@ import type {
   LeaveRequest,
   LeaveRequestResponse,
   LeaveRequestWithDetails,
-  ClaimWithDetails
+  ClaimWithDetails,
+  EmployeeProfile
 } from '@/types/api'
 
 // TODO: Replace with your actual backend URL
@@ -143,6 +144,12 @@ class ApiClient {
 
   async rejectClaim(claimId: string, note?: string): Promise<ApiResponse<ClaimWithDetails>> {
     const response = await this.client.post<ApiResponse<ClaimWithDetails>>(`/claims/${claimId}/reject`, { review_note: note })
+    return response.data
+  }
+
+  // Employee Profile
+  async getMyProfile(): Promise<ApiResponse<EmployeeProfile>> {
+    const response = await this.client.get<ApiResponse<EmployeeProfile>>('/employees/me')
     return response.data
   }
 }
