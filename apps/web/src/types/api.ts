@@ -260,6 +260,9 @@ export interface EmploymentChange {
   reason?: string
   changed_by?: string
   created_at: string
+  // Resolved names for display (populated via JOINs)
+  old_department_name?: string
+  new_department_name?: string
 }
 
 // ── Audit Logs ───────────────────────────────────────────────

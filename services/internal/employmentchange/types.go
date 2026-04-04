@@ -32,6 +32,9 @@ type EmploymentChange struct {
 	Reason         *string    `json:"reason,omitempty"`
 	ChangedBy      *uuid.UUID `json:"changed_by,omitempty"`
 	CreatedAt      time.Time  `json:"created_at"`
+	// Resolved names for display (populated via JOINs)
+	OldDepartmentName *string `json:"old_department_name,omitempty"`
+	NewDepartmentName *string `json:"new_department_name,omitempty"`
 }
 
 // CreateChangeRequest represents the request to create an employment change record.

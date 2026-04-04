@@ -67,6 +67,12 @@ export function EmploymentHistoryTab({ employeeId }: EmploymentHistoryTabProps) 
         new: formatSalary(change.new_salary, change.currency_code),
       }
     }
+    if (change.change_type === 'department') {
+      return {
+        old: change.old_department_name || change.old_value || '—',
+        new: change.new_department_name || change.new_value || '—',
+      }
+    }
     return {
       old: change.old_value || '—',
       new: change.new_value || '—',
