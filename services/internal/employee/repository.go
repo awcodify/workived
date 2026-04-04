@@ -286,7 +286,9 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 			reporting_to     = COALESCE($9, reporting_to),
 			gender           = COALESCE($10, gender),
 			end_date         = COALESCE($11::date, end_date),
-			work_schedule_id = $12
+			work_schedule_id = $12,
+			base_salary      = COALESCE($13, base_salary),
+			salary_currency  = COALESCE($14, salary_currency)
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, user_id, employee_code,
 		          full_name, email, phone, department_id, job_title,
@@ -296,7 +298,7 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 	`, orgID, id,
 		req.FullName, req.Phone, req.DepartmentID, req.JobTitle,
 		req.EmploymentType, req.Status, req.ReportingTo, req.Gender, req.EndDate,
-		req.WorkScheduleID).
+		req.WorkScheduleID, req.BaseSalary, req.SalaryCurrency).
 		Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle,

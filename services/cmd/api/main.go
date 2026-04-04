@@ -21,6 +21,7 @@ import (
 	"github.com/workived/services/internal/claims"
 	"github.com/workived/services/internal/department"
 	"github.com/workived/services/internal/employee"
+	"github.com/workived/services/internal/employmentchange"
 	"github.com/workived/services/internal/leave"
 	"github.com/workived/services/internal/organisation"
 	"github.com/workived/services/internal/platform/config"
@@ -112,6 +113,7 @@ func main() {
 	tasksRepo := tasks.NewRepository(db, log)
 	adminRepo := admin.NewRepository(db)
 	auditRepo := audit.NewRepository(db)
+	employmentChangeRepo := employmentchange.NewRepository(db)
 	setupRepo := setup.NewRepository(db)
 	calendarRepo := calendar.NewRepository(db)
 
@@ -121,7 +123,7 @@ func main() {
 	// ── Services ─────────────────────────────────────────────────────────────
 	cachedOrgInfo := organisation.NewCachedOrgInfo(orgRepo, cacheStore)
 	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL, auth.WithEmailSender(emailSender), auth.WithAppURL(cfg.AppURL), auth.WithLogger(log))
-	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithLogger(log), employee.WithCache(cacheStore))
+	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithEmploymentChangeRepo(employmentChangeRepo), employee.WithLogger(log), employee.WithCache(cacheStore))
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log), department.WithCache(cacheStore))
 	attSvc := attendance.NewService(attRepo, cachedOrgInfo, empRepo, log, attendance.WithCache(cacheStore))
 	// Tasks service must be created before leave/claims to wire up approval task creation
@@ -178,6 +180,8 @@ func main() {
 
 	setupHandler := setup.NewHandler(setupSvc, log)
 	calendarHandler := calendar.NewHandler(calendarSvc, log)
+	auditHandler := audit.NewHandler(auditRepo)
+	employmentHistoryHandler := employmentchange.NewHandler(employmentChangeRepo)
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -248,6 +252,8 @@ func main() {
 	tasksHandler.RegisterRoutes(authed)
 	setupHandler.RegisterRoutes(authed)
 	calendarHandler.RegisterRoutes(authed)
+	auditHandler.RegisterRoutes(authed)
+	employmentHistoryHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)

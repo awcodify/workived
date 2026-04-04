@@ -2,10 +2,12 @@ package employee
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/audit"
+	"github.com/workived/services/internal/employmentchange"
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/paginate"
@@ -33,11 +35,12 @@ type OrgInfoProvider interface {
 }
 
 type Service struct {
-	repo     RepositoryInterface
-	orgRepo  OrgInfoProvider
-	cache    *cache.Store
-	auditLog audit.Logger
-	log      zerolog.Logger
+	repo           RepositoryInterface
+	orgRepo        OrgInfoProvider
+	cache          *cache.Store
+	auditLog       audit.Logger
+	employmentRepo employmentchange.Repository
+	log            zerolog.Logger
 }
 
 func NewService(repo RepositoryInterface, orgRepo OrgInfoProvider, opts ...ServiceOption) *Service {
@@ -62,6 +65,13 @@ func WithAuditLog(al audit.Logger) ServiceOption {
 func WithLogger(log zerolog.Logger) ServiceOption {
 	return func(s *Service) {
 		s.log = log
+	}
+}
+
+// WithEmploymentChangeRepo sets the employment change repository for the service.
+func WithEmploymentChangeRepo(repo employmentchange.Repository) ServiceOption {
+	return func(s *Service) {
+		s.employmentRepo = repo
 	}
 }
 
@@ -171,11 +181,12 @@ func (s *Service) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (*Em
 }
 
 func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error) {
-	// Get old employee data to detect reporting_to changes
-	oldEmp, err := s.repo.GetByID(ctx, orgID, id)
+	// Get old employee data to detect changes
+	oldEmpWithMgr, err := s.repo.GetByID(ctx, orgID, id)
 	if err != nil {
 		return nil, err
 	}
+	oldEmp := &oldEmpWithMgr.Employee
 
 	// Validate reporting_to if being updated
 	if req.ReportingTo != nil {
@@ -202,8 +213,25 @@ func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmp
 		_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, newManagerID)
 	}
 
+	// Log employment changes if repository is configured
+	if len(actorUserID) > 0 && s.employmentRepo != nil {
+		s.log.Info().
+			Str("old_title", ptrStr(oldEmp.JobTitle)).
+			Str("new_title", ptrStr(emp.JobTitle)).
+			Str("old_type", oldEmp.EmploymentType).
+			Str("new_type", emp.EmploymentType).
+			Msg("DEBUG: calling logEmploymentChanges")
+		s.logEmploymentChanges(ctx, orgID, oldEmp, emp, actorUserID[0])
+	} else {
+		s.log.Warn().
+			Bool("has_actor", len(actorUserID) > 0).
+			Bool("has_repo", s.employmentRepo != nil).
+			Msg("DEBUG: skipping employment changes (missing actor or repo)")
+	}
+
 	s.invalidateCache(ctx, orgID)
 
+	// Log to audit_logs
 	if len(actorUserID) > 0 {
 		s.logAudit(ctx, audit.LogEntry{
 			OrgID:        orgID,
@@ -211,6 +239,7 @@ func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmp
 			Action:       "employee.updated",
 			ResourceType: "employee",
 			ResourceID:   id,
+			BeforeState:  oldEmp,
 			AfterState:   emp,
 		})
 	}
@@ -380,4 +409,144 @@ func (s *Service) GetWorkload(ctx context.Context, orgID uuid.UUID) ([]EmployeeW
 		Msg("employee.workload.fetched")
 
 	return workloads, nil
+}
+
+// logEmploymentChanges detects and logs changes to employment_changes table.
+func (s *Service) logEmploymentChanges(ctx context.Context, orgID uuid.UUID, oldEmp, newEmp *Employee, changedBy uuid.UUID) {
+	now := time.Now()
+
+	// Check department change
+	if !uuidPtrEqual(oldEmp.DepartmentID, newEmp.DepartmentID) {
+		_, _ = s.employmentRepo.Create(ctx, orgID, employmentchange.CreateChangeRequest{
+			EmployeeID:    newEmp.ID,
+			ChangeType:    employmentchange.ChangeTypeDepartment,
+			OldValue:      uuidPtrToString(oldEmp.DepartmentID),
+			NewValue:      uuidPtrToString(newEmp.DepartmentID),
+			EffectiveDate: now,
+			ChangedBy:     &changedBy,
+		})
+	}
+
+	// Check job title change
+	if !stringPtrEqual(oldEmp.JobTitle, newEmp.JobTitle) {
+		s.log.Info().
+			Str("old", ptrStr(oldEmp.JobTitle)).
+			Str("new", ptrStr(newEmp.JobTitle)).
+			Msg("DEBUG: job title changed, creating employment change record")
+		change, err := s.employmentRepo.Create(ctx, orgID, employmentchange.CreateChangeRequest{
+			EmployeeID:    newEmp.ID,
+			ChangeType:    employmentchange.ChangeTypeTitle,
+			OldValue:      oldEmp.JobTitle,
+			NewValue:      newEmp.JobTitle,
+			EffectiveDate: now,
+			ChangedBy:     &changedBy,
+		})
+		if err != nil {
+			s.log.Error().Err(err).Msg("DEBUG: failed to create title change record")
+		} else {
+			s.log.Info().Str("change_id", change.ID.String()).Msg("DEBUG: title change recorded")
+		}
+	}
+
+	// Check salary change
+	if !salaryEqual(oldEmp.BaseSalary, oldEmp.SalaryCurrency, newEmp.BaseSalary, newEmp.SalaryCurrency) {
+		_, _ = s.employmentRepo.Create(ctx, orgID, employmentchange.CreateChangeRequest{
+			EmployeeID:    newEmp.ID,
+			ChangeType:    employmentchange.ChangeTypeSalary,
+			OldSalary:     oldEmp.BaseSalary,
+			NewSalary:     newEmp.BaseSalary,
+			CurrencyCode:  newEmp.SalaryCurrency,
+			EffectiveDate: now,
+			ChangedBy:     &changedBy,
+		})
+	}
+
+	// Check status change
+	if oldEmp.Status != newEmp.Status {
+		oldVal := oldEmp.Status
+		newVal := newEmp.Status
+		_, _ = s.employmentRepo.Create(ctx, orgID, employmentchange.CreateChangeRequest{
+			EmployeeID:    newEmp.ID,
+			ChangeType:    employmentchange.ChangeTypeStatus,
+			OldValue:      &oldVal,
+			NewValue:      &newVal,
+			EffectiveDate: now,
+			ChangedBy:     &changedBy,
+		})
+	}
+
+	// Check employment type change
+	if oldEmp.EmploymentType != newEmp.EmploymentType {
+		oldVal := oldEmp.EmploymentType
+		newVal := newEmp.EmploymentType
+		s.log.Info().
+			Str("old", oldVal).
+			Str("new", newVal).
+			Msg("DEBUG: employment type changed, creating employment change record")
+		change, err := s.employmentRepo.Create(ctx, orgID, employmentchange.CreateChangeRequest{
+			EmployeeID:    newEmp.ID,
+			ChangeType:    employmentchange.ChangeTypeEmploymentType,
+			OldValue:      &oldVal,
+			NewValue:      &newVal,
+			EffectiveDate: now,
+			ChangedBy:     &changedBy,
+		})
+		if err != nil {
+			s.log.Error().Err(err).Msg("DEBUG: failed to create employment type change record")
+		} else {
+			s.log.Info().Str("change_id", change.ID.String()).Msg("DEBUG: employment type change recorded")
+		}
+	}
+}
+
+// Helper function for logging
+func ptrStr(s *string) string {
+	if s == nil {
+		return "<nil>"
+	}
+	return *s
+}
+
+// Helper functions for change detection
+
+func uuidPtrEqual(a, b *uuid.UUID) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+func stringPtrEqual(a, b *string) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return *a == *b
+}
+
+func salaryEqual(oldSalary *int64, oldCurrency *string, newSalary *int64, newCurrency *string) bool {
+	if oldSalary == nil && newSalary == nil {
+		return true
+	}
+	if oldSalary == nil || newSalary == nil {
+		return false
+	}
+	if *oldSalary != *newSalary {
+		return false
+	}
+	// If salaries are the same, also check currency
+	return stringPtrEqual(oldCurrency, newCurrency)
+}
+
+func uuidPtrToString(id *uuid.UUID) *string {
+	if id == nil {
+		return nil
+	}
+	s := id.String()
+	return &s
 }

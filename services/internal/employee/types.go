@@ -21,8 +21,8 @@ type Employee struct {
 	JobTitle       *string         `json:"job_title,omitempty"`
 	EmploymentType string          `json:"employment_type"`
 	Status         string          `json:"status"`
-	ReportingTo    *uuid.UUID      `json:"reporting_to,omitempty"`    // Manager (self-ref FK)
-	Gender         *string         `json:"gender,omitempty"`          // "male", "female", or nil
+	ReportingTo    *uuid.UUID      `json:"reporting_to,omitempty"`     // Manager (self-ref FK)
+	Gender         *string         `json:"gender,omitempty"`           // "male", "female", or nil
 	WorkScheduleID *uuid.UUID      `json:"work_schedule_id,omitempty"` // Per-employee schedule override
 	StartDate      time.Time       `json:"start_date"`
 	EndDate        *time.Time      `json:"end_date,omitempty"`
@@ -37,9 +37,9 @@ type Employee struct {
 // EmployeeWithManager includes manager name for API responses.
 type EmployeeWithManager struct {
 	Employee
-	ManagerName       *string `json:"manager_name,omitempty"`        // Full name of reporting_to employee
-	WorkScheduleName  *string `json:"work_schedule_name,omitempty"`  // Resolved schedule name (own or org default)
-	InvitationPending bool    `json:"invitation_pending,omitempty"`  // True if employee has unaccepted invitation
+	ManagerName       *string `json:"manager_name,omitempty"`       // Full name of reporting_to employee
+	WorkScheduleName  *string `json:"work_schedule_name,omitempty"` // Resolved schedule name (own or org default)
+	InvitationPending bool    `json:"invitation_pending,omitempty"` // True if employee has unaccepted invitation
 }
 
 // OrgChartNode represents an employee in the organizational hierarchy with their direct reports.
@@ -82,6 +82,8 @@ type UpdateEmployeeRequest struct {
 	Status         *string    `json:"status"           validate:"omitempty,oneof=active on_leave probation inactive"`
 	EndDate        *string    `json:"end_date"         validate:"omitempty"`
 	WorkScheduleID *uuid.UUID `json:"work_schedule_id" validate:"omitempty"`
+	BaseSalary     *int64     `json:"base_salary"      validate:"omitempty,gte=0"`
+	SalaryCurrency *string    `json:"salary_currency"  validate:"omitempty,oneof=IDR AED MYR SGD"`
 }
 
 type ListFilters struct {

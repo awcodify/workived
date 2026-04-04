@@ -4,6 +4,7 @@ import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { Dropdown, type DropdownOption } from './Dropdown'
 import { EmployeeDropdown } from './EmployeeDropdown'
+import { EmploymentHistoryTab } from './EmploymentHistoryTab'
 import { moduleThemes, colors } from '@/design/tokens'
 import {
   X,
@@ -18,11 +19,16 @@ import {
   Edit,
   Save,
   XCircle,
+  FileText,
+  DollarSign,
+  History,
 } from 'lucide-react'
 import { Skeleton } from './Skeleton'
 import type { Employee } from '@/types/api'
 
 const t = moduleThemes.attendance
+
+type TabType = 'detail' | 'payroll' | 'history'
 
 interface EmployeeDetailModalProps {
   employeeId: string
@@ -49,6 +55,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
   const { data: workSchedules = [] } = useWorkSchedules()
   const updateEmployee = useUpdateEmployee(employeeId)
   
+  const [activeTab, setActiveTab] = useState<TabType>('detail')
   const [isEditMode, setIsEditMode] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
   const [formData, setFormData] = useState<FormData>({
@@ -271,12 +278,78 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
           </div>
         </div>
 
+        {/* Tabs */}
+        {!isEditMode && (
+          <div
+            className="sticky top-[73px] z-10 px-6 flex items-center gap-1 border-b"
+            style={{ background: t.surface, borderColor: t.border }}
+          >
+            <button
+              onClick={() => setActiveTab('detail')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors relative ${
+                activeTab === 'detail' ? '' : 'hover:bg-black/5'
+              }`}
+              style={{
+                color: activeTab === 'detail' ? t.accent : t.textMuted,
+              }}
+            >
+              <FileText size={16} />
+              Detail
+              {activeTab === 'detail' && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-0.5"
+                  style={{ background: t.accent }}
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('payroll')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors relative ${
+                activeTab === 'payroll' ? '' : 'hover:bg-black/5'
+              }`}
+              style={{
+                color: activeTab === 'payroll' ? t.accent : t.textMuted,
+              }}
+            >
+              <DollarSign size={16} />
+              Payroll
+              {activeTab === 'payroll' && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-0.5"
+                  style={{ background: t.accent }}
+                />
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors relative ${
+                activeTab === 'history' ? '' : 'hover:bg-black/5'
+              }`}
+              style={{
+                color: activeTab === 'history' ? t.accent : t.textMuted,
+              }}
+            >
+              <History size={16} />
+              History
+              {activeTab === 'history' && (
+                <div
+                  className="absolute bottom-0 left-0 right-0 h-0.5"
+                  style={{ background: t.accent }}
+                />
+              )}
+            </button>
+          </div>
+        )}
+
         {/* Content */}
         <div className="p-6 space-y-6">
           {isLoading ? (
             <EmployeeDetailSkeleton />
           ) : employee ? (
             <>
+              {/* Detail Tab */}
+              {(isEditMode || activeTab === 'detail') && (
+                <>
               {/* Employee Header - Always visible */}
               <div className="flex items-start gap-4">
                 <Avatar id={employee.id} name={employee.full_name} size={80} />
@@ -554,6 +627,23 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                     </div>
                   )}
                 </div>
+              )}
+            </>
+              )}
+
+              {/* Payroll Tab */}
+              {activeTab === 'payroll' && !isEditMode && (
+                <div className="text-center py-12">
+                  <DollarSign size={48} style={{ color: t.textMuted }} className="mx-auto mb-4 opacity-30" />
+                  <p style={{ color: t.textMuted }} className="text-sm">
+                    Payroll features coming soon
+                  </p>
+                </div>
+              )}
+
+              {/* History Tab */}
+              {activeTab === 'history' && !isEditMode && (
+                <EmploymentHistoryTab employeeId={employeeId} />
               )}
             </>
           ) : (

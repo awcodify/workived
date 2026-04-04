@@ -70,3 +70,92 @@ func marshalNullable(v interface{}) ([]byte, error) {
 	}
 	return json.Marshal(v)
 }
+
+// List retrieves audit logs for an organisation with filters.
+func (r *Repository) List(ctx context.Context, orgID uuid.UUID, filters ListFilters) ([]AuditLog, error) {
+	query := `
+		SELECT id, organisation_id, actor_user_id, action, resource_type, resource_id,
+		       before_state, after_state, ip_address, request_id, created_at
+		FROM audit_logs
+		WHERE organisation_id = $1
+	`
+	args := []interface{}{orgID}
+	argIdx := 2
+
+	if filters.ResourceType != nil {
+		query += fmt.Sprintf(" AND resource_type = $%d", argIdx)
+		args = append(args, *filters.ResourceType)
+		argIdx++
+	}
+
+	if filters.ResourceID != nil {
+		query += fmt.Sprintf(" AND resource_id = $%d", argIdx)
+		args = append(args, *filters.ResourceID)
+		argIdx++
+	}
+
+	if filters.ActorUserID != nil {
+		query += fmt.Sprintf(" AND actor_user_id = $%d", argIdx)
+		args = append(args, *filters.ActorUserID)
+		argIdx++
+	}
+
+	if filters.Action != nil {
+		query += fmt.Sprintf(" AND action = $%d", argIdx)
+		args = append(args, *filters.Action)
+		argIdx++
+	}
+
+	if filters.StartDate != nil {
+		query += fmt.Sprintf(" AND created_at >= $%d", argIdx)
+		args = append(args, *filters.StartDate)
+		argIdx++
+	}
+
+	if filters.EndDate != nil {
+		query += fmt.Sprintf(" AND created_at <= $%d", argIdx)
+		args = append(args, *filters.EndDate)
+		argIdx++
+	}
+
+	query += " ORDER BY created_at DESC"
+
+	if filters.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d", argIdx)
+		args = append(args, filters.Limit)
+		argIdx++
+	}
+
+	if filters.Offset > 0 {
+		query += fmt.Sprintf(" OFFSET $%d", argIdx)
+		args = append(args, filters.Offset)
+	}
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("query audit logs: %w", err)
+	}
+	defer rows.Close()
+
+	var logs []AuditLog
+	for rows.Next() {
+		var log AuditLog
+		err := rows.Scan(
+			&log.ID, &log.OrganisationID, &log.ActorUserID, &log.Action, &log.ResourceType, &log.ResourceID,
+			&log.BeforeState, &log.AfterState, &log.IPAddress, &log.RequestID, &log.CreatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scan audit log: %w", err)
+		}
+		logs = append(logs, log)
+	}
+
+	return logs, rows.Err()
+}
+
+// GetByResource retrieves audit logs for a specific resource.
+func (r *Repository) GetByResource(ctx context.Context, orgID uuid.UUID, resourceType string, resourceID uuid.UUID, filters ListFilters) ([]AuditLog, error) {
+	filters.ResourceType = &resourceType
+	filters.ResourceID = &resourceID
+	return r.List(ctx, orgID, filters)
+}

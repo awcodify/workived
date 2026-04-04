@@ -243,6 +243,23 @@ export interface EmployeeWorkload {
   leave: LeaveInfo
 }
 
+// ── Employment History ──────────────────────────────────────
+export interface EmploymentChange {
+  id: string
+  organisation_id: string
+  employee_id: string
+  change_type: 'department' | 'title' | 'salary' | 'status' | 'employment_type'
+  old_value?: string
+  new_value?: string
+  old_salary?: number
+  new_salary?: number
+  currency_code?: string
+  effective_date: string
+  reason?: string
+  changed_by?: string
+  created_at: string
+}
+
 // ── Departments ──────────────────────────────────────────────
 export interface Department {
   id: string
