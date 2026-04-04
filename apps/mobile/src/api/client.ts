@@ -4,7 +4,7 @@ import type { MobileHomeData, AttendanceRecord, ApiResponse, LoginRequest, Login
 
 // TODO: Replace with your actual backend URL
 const API_BASE_URL = __DEV__ 
-  ? 'http://localhost:8080/api/v1' 
+  ? 'http://192.168.1.109:8080/api/v1' 
   : 'https://api.workived.com/api/v1'
 
 class ApiClient {
@@ -48,8 +48,9 @@ class ApiClient {
 
   // Auth
   async login(data: LoginRequest): Promise<LoginResponse> {
-    const response = await this.client.post<LoginResponse>('/auth/login', data)
-    return response.data
+    const response = await this.client.post<{ data: LoginResponse }>('/auth/login', data)
+    // Backend wraps response in { data: ... }
+    return response.data.data
   }
 
   async logout(): Promise<void> {

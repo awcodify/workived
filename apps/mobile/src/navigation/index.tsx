@@ -2,7 +2,9 @@ import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { Ionicons } from '@expo/vector-icons'
+import { View, ActivityIndicator, StyleSheet } from 'react-native'
 
+import { useAuth } from '@/contexts/AuthContext'
 import HomeScreen from '@/screens/HomeScreen'
 import LeaveScreen from '@/screens/LeaveScreen'
 import ApprovalsScreen from '@/screens/ApprovalsScreen'
@@ -56,14 +58,25 @@ function MainTabs() {
   )
 }
 
+function LoadingScreen() {
+  return (
+    <View style={styles.loadingContainer}>
+      <ActivityIndicator size="large" color="#6357E8" />
+    </View>
+  )
+}
+
 export default function Navigation() {
-  // TODO: Check if user is logged in
-  const isLoggedIn = false
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <LoadingScreen />
+  }
 
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isLoggedIn ? (
+        {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
           <Stack.Screen name="Main" component={MainTabs} />
@@ -72,3 +85,12 @@ export default function Navigation() {
     </NavigationContainer>
   )
 }
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+})

@@ -65,7 +65,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   access_token: string
-  refresh_token: string
+  refresh_token?: string  // Optional - backend sends this via httpOnly cookie
   user: {
     id: string
     email: string
