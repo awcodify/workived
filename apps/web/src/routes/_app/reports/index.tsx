@@ -14,7 +14,7 @@ import {
   BarChart3,
 } from 'lucide-react'
 
-export const Route = createFileRoute('/_app/reports')({
+export const Route = createFileRoute('/_app/reports/')({
   loader: async () => {
     try {
       const { data } = await apiClient.get<{ data: Record<string, boolean> }>('/api/v1/features')

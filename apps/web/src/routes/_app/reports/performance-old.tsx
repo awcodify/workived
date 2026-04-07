@@ -1,0 +1,613 @@
+import { createFileRoute } from '@tanstack/react-router'
+import { DateTime } from '@/components/workived/shared/DateTime'
+import { NotificationBell } from '@/components/workived/shared/NotificationBell'
+import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
+import {
+  TrendingUp,
+  TrendingDown,
+  Minus,
+  Award,
+  Clock,
+  Calendar,
+  FileText,
+  Users,
+  ChevronRight,
+} from 'lucide-react'
+
+// Use reports theme colors (light text on dark background)
+const theme = moduleThemes.reports
+
+export const Route = createFileRoute('/_app/reports/performance-old')({
+  component: PerformanceDashboard,
+})
+
+// ── Types ───────────────────────────────────────────────────────
+
+interface EmployeeScore {
+  id: string
+  name: string
+  department: string
+  jobTitle: string
+  profileImage?: string
+  scores: {
+    taskCompletion: number
+    attendance: number
+    leavePlanning: number
+    overall: number
+  }
+  attendanceBreakdown: {
+    onTime: number
+    late: number
+    absent: number
+    total: number
+  }
+  taskBreakdown: {
+    completed: number
+    onTime: number
+    late: number
+    pending: number
+  }
+  trend: 'up' | 'down' | 'stable'
+  trendValue: number
+  lastActive: string
+  riskFlag?: 'high' | 'medium' | null
+}
+
+interface ScoreCard {
+  title: string
+  score: number
+  description: string
+  change: number
+  icon: React.ElementType
+  color: string
+  breakdown?: { label: string; value: number; color: string }[]
+}
+
+interface DepartmentScore {
+  department: string
+  avgScore: number
+  employeeCount: number
+  topPerformer: string
+  trend: 'up' | 'down' | 'stable'
+}
+
+interface InsightItem {
+  type: 'warning' | 'success' | 'info'
+  title: string
+  description: string
+  action?: string
+}
+
+interface TrendData {
+  month: string
+  value: number
+}
+
+// ── Dummy Data ──────────────────────────────────────────────────
+
+const EMPLOYEE_SCORES: EmployeeScore[] = [
+  {
+    id: '1',
+    name: 'Ahmad Rizki',
+    department: 'Engineering',
+    jobTitle: 'Senior Developer',
+    scores: { taskCompletion: 92, attendance: 96, leavePlanning: 92, overall: 94 },
+    trend: 'up',
+    trendValue: 3,
+  },
+  {
+    id: '2',
+    name: 'Sarah Putri',
+    department: 'Engineering',
+    jobTitle: 'Product Manager',
+    scores: { taskCompletion: 97, attendance: 98, leavePlanning: 95, overall: 97 },
+    trend: 'up',
+    trendValue: 5,
+  },
+  {
+    id: '3',
+    name: 'Budi Santoso',
+    department: 'Operations',
+    jobTitle: 'Operations Manager',
+    scores: { taskCompletion: 89, attendance: 94, leavePlanning: 88, overall: 91 },
+    trend: 'stable',
+    trendValue: 0,
+  },
+  {
+    id: '4',
+    name: 'Maya Dewi',
+    department: 'Marketing',
+    jobTitle: 'Marketing Specialist',
+    scores: { taskCompletion: 85, attendance: 89, leavePlanning: 82, overall: 86 },
+    trend: 'down',
+    trendValue: -2,
+  },
+  {
+    id: '5',
+    name: 'Adi Nugroho',
+    department: 'Finance',
+    jobTitle: 'Finance Manager',
+    scores: { taskCompletion: 98, attendance: 99, leavePlanning: 98, overall: 98 },
+    trend: 'up',
+    trendValue: 2,
+  },
+  {
+    id: '6',
+    name: 'Rina Wijaya',
+    department: 'Engineering',
+    jobTitle: 'Junior Developer',
+    scores: { taskCompletion: 88, attendance: 91, leavePlanning: 85, overall: 89 },
+    trend: 'up',
+    trendValue: 4,
+  },
+  {
+    id: '7',
+    name: 'Farhan Rahman',
+    department: 'Operations',
+    jobTitle: 'Operations Specialist',
+    scores: { taskCompletion: 81, attendance: 87, leavePlanning: 79, overall: 83 },
+    trend: 'down',
+    trendValue: -3,
+  },
+  {
+    id: '8',
+    name: 'Dina Permata',
+    department: 'HR',
+    jobTitle: 'HR Manager',
+    scores: { taskCompletion: 94, attendance: 95, leavePlanning: 94, overall: 94 },
+    trend: 'stable',
+    trendValue: 1,
+  },
+]
+
+const SCORE_CARDS: ScoreCard[] = [
+  {
+    title: 'Task Completion',
+    score: 91,
+    description: 'Tasks completed on time with quality delivery',
+    icon: FileText,
+    color: '#818CF8',
+  },
+  {
+    title: 'Attendance Reliability',
+    score: 93,
+    description: 'Average on-time check-in rate across all employees',
+    icon: Clock,
+    color: '#34D399',
+  },
+  {
+    title: 'Leave Planning',
+    score: 89,
+    description: 'Average advance notice and policy compliance',
+    icon: Calendar,
+    color: '#F59E0B',
+  },
+]
+
+const DEPARTMENT_SCORES: DepartmentScore[] = [
+  { department: 'Finance', avgScore: 98, employeeCount: 3, topPerformer: 'Adi Nugroho' },
+  { department: 'Engineering', avgScore: 93, employeeCount: 8, topPerformer: 'Sarah Putri' },
+  { department: 'HR', avgScore: 94, employeeCount: 2, topPerformer: 'Dina Permata' },
+  { department: 'Operations', avgScore: 88, employeeCount: 6, topPerformer: 'Budi Santoso' },
+  { department: 'Marketing', avgScore: 87, employeeCount: 5, topPerformer: 'Maya Dewi' },
+]
+
+// ── Helper Functions ────────────────────────────────────────────
+
+function getScoreColor(score: number): string {
+  if (score >= 90) return '#34D399' // green
+  if (score >= 75) return '#F59E0B' // yellow
+  return '#EF4444' // red
+}
+
+function getScoreBadge(score: number): string {
+  if (score >= 90) return 'Excellent'
+  if (score >= 75) return 'Good'
+  if (score >= 60) return 'Fair'
+  return 'Needs Improvement'
+}
+
+function getTrendIcon(trend: 'up' | 'down' | 'stable') {
+  if (trend === 'up') return TrendingUp
+  if (trend === 'down') return TrendingDown
+  return Minus
+}
+
+function getTrendColor(trend: 'up' | 'down' | 'stable'): string {
+  if (trend === 'up') return '#34D399'
+  if (trend === 'down') return '#EF4444'
+  return '#94A3B8'
+}
+
+// ── Components ──────────────────────────────────────────────────
+
+function ScoreCardComponent({ card }: { card: ScoreCard }) {
+  const Icon = card.icon
+  return (
+    <div
+      className="rounded-2xl p-5 shadow-sm"
+      style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}` }}
+    >
+      <div className="flex items-start justify-between mb-3">
+        <div
+          className="rounded-xl p-2.5"
+          style={{ backgroundColor: `${card.color}20` }}
+        >
+          <Icon size={20} style={{ color: card.color }} />
+        </div>
+        <div className="text-right">
+          <div
+            className="text-3xl font-bold"
+            style={{ color: card.color, fontFamily: typography.fontFamily }}
+          >
+            {card.score}
+          </div>
+          <div
+            className="text-xs"
+            style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+          >
+            /100
+          </div>
+        </div>
+      </div>
+      <div
+        className="font-semibold mb-1"
+        style={{ fontSize: '15px', color: theme.text, fontFamily: typography.fontFamily }}
+      >
+        {card.title}
+      </div>
+      <div
+        className="text-xs leading-relaxed"
+        style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+      >
+        {card.description}
+      </div>
+    </div>
+  )
+}
+
+function EmployeeScoreRow({ employee }: { employee: EmployeeScore }) {
+  const TrendIcon = getTrendIcon(employee.trend)
+  const trendColor = getTrendColor(employee.trend)
+  const overallColor = getScoreColor(employee.scores.overall)
+
+  return (
+    <div
+      className="rounded-xl p-4 mb-3 hover:shadow-md transition-shadow cursor-pointer"
+      style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}` }}
+    >
+      <div className="flex items-center justify-between">
+        {/* Left: Employee Info */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+            style={{
+              backgroundColor: `${overallColor}20`,
+              color: overallColor,
+              fontWeight: 600,
+              fontFamily: typography.fontFamily,
+            }}
+          >
+            {employee.name.charAt(0)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div
+              className="font-semibold truncate"
+              style={{ fontSize: '14px', color: theme.text, fontFamily: typography.fontFamily }}
+            >
+              {employee.name}
+            </div>
+            <div
+              className="text-xs truncate"
+              style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+            >
+              {employee.jobTitle} · {employee.department}
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Scores */}
+        <div className="flex items-center gap-4">
+          {/* Score Breakdown (hidden on mobile) */}
+          <div className="hidden md:flex items-center gap-3">
+            <div className="text-center">
+              <div
+                className="text-xs mb-0.5"
+                style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+              >
+                Tasks
+              </div>
+              <div
+                className="text-sm font-semibold"
+                style={{ color: theme.text, fontFamily: typography.fontMono }}
+              >
+                {employee.scores.taskCompletion}
+              </div>
+            </div>
+            <div className="text-center">
+              <div
+                className="text-xs mb-0.5"
+                style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+              >
+                Attendance
+              </div>
+              <div
+                className="text-sm font-semibold"
+                style={{ color: theme.text, fontFamily: typography.fontMono }}
+              >
+                {employee.scores.attendance}
+              </div>
+            </div>
+            <div className="text-center">
+              <div
+                className="text-xs mb-0.5"
+                style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+              >
+                Leave
+              </div>
+              <div
+                className="text-sm font-semibold"
+                style={{ color: theme.text, fontFamily: typography.fontMono }}
+              >
+                {employee.scores.leavePlanning}
+              </div>
+            </div>
+          </div>
+
+          {/* Overall Score */}
+          <div className="flex items-center gap-2">
+            <div className="text-center">
+              <div
+                className="text-2xl font-bold"
+                style={{ color: overallColor, fontFamily: typography.fontFamily }}
+              >
+                {employee.scores.overall}
+              </div>
+              <div
+                className="text-xs"
+                style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+              >
+                {getScoreBadge(employee.scores.overall)}
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              <TrendIcon size={16} style={{ color: trendColor }} />
+              {employee.trendValue !== 0 && (
+                <span
+                  className="text-xs font-semibold"
+                  style={{ color: trendColor, fontFamily: typography.fontMono }}
+                >
+                  {Math.abs(employee.trendValue)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DepartmentScoreCard({ dept }: { dept: DepartmentScore }) {
+  const scoreColor = getScoreColor(dept.avgScore)
+  return (
+    <div
+      className="rounded-xl p-4 shadow-sm"
+      style={{ backgroundColor: theme.surface, border: `1px solid ${theme.border}` }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <div
+            className="font-semibold mb-1"
+            style={{ fontSize: '14px', color: theme.text, fontFamily: typography.fontFamily }}
+          >
+            {dept.department}
+          </div>
+          <div
+            className="text-xs"
+            style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+          >
+            {dept.employeeCount} employees
+          </div>
+        </div>
+        <div className="text-right">
+          <div
+            className="text-2xl font-bold"
+            style={{ color: scoreColor, fontFamily: typography.fontFamily }}
+          >
+            {dept.avgScore}
+          </div>
+          <div
+            className="text-xs"
+            style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+          >
+            avg score
+          </div>
+        </div>
+      </div>
+      <div
+        className="text-xs pt-3"
+        style={{
+          borderTop: `1px solid ${theme.border}`,
+          color: theme.textMuted,
+          fontFamily: typography.fontFamily,
+        }}
+      >
+        Top: <span style={{ fontWeight: 600, color: theme.text }}>{dept.topPerformer}</span>
+      </div>
+    </div>
+  )
+}
+
+// ── Main Component ──────────────────────────────────────────────
+
+function PerformanceDashboard() {
+  // Sort employees by overall score (highest first)
+  const topPerformers = [...EMPLOYEE_SCORES].sort((a, b) => b.scores.overall - a.scores.overall).slice(0, 5)
+  const needsAttention = [...EMPLOYEE_SCORES].sort((a, b) => a.scores.overall - b.scores.overall).slice(0, 3)
+
+  return (
+    <div
+      className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      style={{ background: moduleBackgrounds.reports, paddingBottom: '160px' }}
+    >
+      {/* Header */}
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          <h1
+            className="text-2xl md:text-3xl mb-2"
+            style={{
+              fontWeight: 800,
+              color: theme.text,
+              fontFamily: typography.fontFamily,
+            }}
+          >
+            Performance Dashboard
+          </h1>
+          <p
+            className="text-sm md:text-base"
+            style={{
+              color: theme.textMuted,
+              fontFamily: typography.fontFamily,
+            }}
+          >
+            Track employee reliability and performance metrics
+          </p>
+        </div>
+        <div className="flex items-center gap-4">
+          <DateTime className="hidden md:block" />
+          <NotificationBell />
+        </div>
+      </div>
+
+      {/* Organization-wide Score Cards */}
+      <section className="mb-8">
+        <h2
+          className="text-lg font-semibold mb-4"
+          style={{ color: theme.text, fontFamily: typography.fontFamily }}
+        >
+          Organization Overview
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {SCORE_CARDS.map((card) => (
+            <ScoreCardComponent key={card.title} card={card} />
+          ))}
+        </div>
+      </section>
+
+      {/* Department Breakdown */}
+      <section className="mb-8">
+        <h2
+          className="text-lg font-semibold mb-4"
+          style={{ color: theme.text, fontFamily: typography.fontFamily }}
+        >
+          Department Performance
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {DEPARTMENT_SCORES.map((dept) => (
+            <DepartmentScoreCard key={dept.department} dept={dept} />
+          ))}
+        </div>
+      </section>
+
+      {/* Top Performers */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: theme.text, fontFamily: typography.fontFamily }}
+          >
+            <Award className="inline mr-2" size={20} style={{ color: theme.accent }} />
+            Top Performers
+          </h2>
+          <button
+            className="text-sm flex items-center gap-1 hover:underline"
+            style={{ color: theme.accent, fontFamily: typography.fontFamily }}
+          >
+            View All
+            <ChevronRight size={16} />
+          </button>
+        </div>
+        <div>
+          {topPerformers.map((employee) => (
+            <EmployeeScoreRow key={employee.id} employee={employee} />
+          ))}
+        </div>
+      </section>
+
+      {/* Needs Attention */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: theme.text, fontFamily: typography.fontFamily }}
+          >
+            Needs Attention
+          </h2>
+          <span
+            className="text-xs px-3 py-1 rounded-full"
+            style={{
+              backgroundColor: 'rgba(245,158,11,0.15)',
+              color: '#FCD34D',
+              fontFamily: typography.fontFamily,
+            }}
+          >
+            {needsAttention.length} employees
+          </span>
+        </div>
+        <div>
+          {needsAttention.map((employee) => (
+            <EmployeeScoreRow key={employee.id} employee={employee} />
+          ))}
+        </div>
+      </section>
+
+      {/* Info Banner */}
+      <div
+        className="rounded-xl p-5 mt-8"
+        style={{
+          backgroundColor: theme.surface,
+          border: `1px solid ${theme.border}`,
+        }}
+      >
+        <div className="flex items-start gap-3">
+          <div
+            className="rounded-lg p-2"
+            style={{ backgroundColor: 'rgba(99,87,232,0.15)' }}
+          >
+            <Users size={20} style={{ color: colors.accent }} />
+          </div>
+          <div className="flex-1">
+            <h3
+              className="font-semibold mb-1"
+              style={{ fontSize: '14px', color: theme.text, fontFamily: typography.fontFamily }}
+            >
+              About Performance Scores
+            </h3>
+            <p
+              className="text-xs leading-relaxed mb-2"
+              style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+            >
+              Scores are calculated based on:
+            </p>
+            <ul
+              className="text-xs space-y-1"
+              style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+            >
+              <li>• <strong>Task Completion (45%):</strong> Completed on time, quality delivery, met requirements</li>
+              <li>• <strong>Attendance (30%):</strong> On-time check-ins, consistency, absence rate</li>
+              <li>• <strong>Leave Planning (15%):</strong> Advance notice, policy compliance</li>
+              <li>• <strong>Collaboration (10%):</strong> Task comments, helping teammates, engagement</li>
+            </ul>
+            <p
+              className="text-xs mt-3"
+              style={{ color: theme.textMuted, fontFamily: typography.fontFamily }}
+            >
+              Scores update daily based on rolling 30-day averages.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
