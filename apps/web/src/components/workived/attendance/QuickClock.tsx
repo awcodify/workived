@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useMyEmployee } from '@/lib/hooks/useEmployees'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useDailyReport, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
+import { useDailyReport } from '@/lib/hooks/useAttendance'
 import { todayISO, formatDate } from '@/lib/utils/date'
-import { Clock, LogIn, LogOut, CheckCircle2, Timer } from 'lucide-react'
+import { Clock, LogIn, LogOut, CheckCircle2, Timer, Smartphone } from 'lucide-react'
 import { Skeleton } from '@/components/workived/shared/Skeleton'
 
 interface QuickClockProps {
@@ -37,10 +37,6 @@ export function QuickClock({
   const { data: myEmployee, isLoading: empLoading } = useMyEmployee()
   const { data: dailyEntries, isLoading: dailyLoading } = useDailyReport(today)
 
-  const clockIn = useClockIn()
-  const clockOut = useClockOut()
-
-  const [note, setNote] = useState('')
   const [workingTime, setWorkingTime] = useState('00:00:00')
 
   // Find the current user's entry in today's daily report
@@ -74,20 +70,6 @@ export function QuickClock({
     const interval = setInterval(updateTimer, 1000)
     return () => clearInterval(interval)
   }, [hasClockedIn, hasClockedOut, myEntry?.clock_in_at])
-
-  const handleClockIn = () => {
-    clockIn.mutate(
-      { note: note || undefined },
-      { onSuccess: () => setNote('') },
-    )
-  }
-
-  const handleClockOut = () => {
-    clockOut.mutate(
-      { note: note || undefined },
-      { onSuccess: () => setNote('') },
-    )
-  }
 
   // Show loading state
   if (empLoading || dailyLoading) {
@@ -145,23 +127,19 @@ export function QuickClock({
               </div>
             </div>
 
-            <button
-              onClick={handleClockIn}
-              disabled={clockIn.isPending}
-              className="group w-full relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
+            <div
+              className="flex items-center justify-center gap-2 px-4 py-3"
               style={{
-                background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+                background: variant === 'dark' ? 'rgba(255,255,255,0.05)' : '#F5F3FF',
                 borderRadius: 12,
-                boxShadow: '0 2px 8px rgba(139,92,246,0.25)',
+                border: `1px solid ${variant === 'dark' ? 'rgba(255,255,255,0.08)' : '#DDD6FE'}`,
               }}
             >
-              <div className="flex items-center justify-center gap-2.5 px-5 py-4">
-                <LogIn size={18} style={{ color: '#FFFFFF' }} />
-                <span className="font-bold text-sm" style={{ color: '#FFFFFF' }}>
-                  {clockIn.isPending ? 'Clocking in...' : 'Clock In'}
-                </span>
-              </div>
-            </button>
+              <Smartphone size={14} style={{ color: variant === 'dark' ? 'rgba(255,255,255,0.4)' : '#8B5CF6' }} />
+              <span className="text-xs font-medium" style={{ color: variant === 'dark' ? 'rgba(255,255,255,0.4)' : '#7C3AED' }}>
+                Clock in via mobile app
+              </span>
+            </div>
           </>
         ) : !hasClockedOut ? (
           <>
@@ -217,21 +195,15 @@ export function QuickClock({
               </div>
             </div>
             
-            {/* Clock out button */}
-            <button
-              onClick={handleClockOut}
-              disabled={clockOut.isPending}
-              className="w-full flex items-center justify-center gap-2.5 px-5 py-4 font-bold text-sm transition-all hover:opacity-90 disabled:opacity-50"
-              style={{
-                background: '#F3F4F6',
-                color: '#374151',
-                border: '1px solid #E5E7EB',
-                borderRadius: 12,
-              }}
+            <div
+              className="flex items-center justify-center gap-2 px-4 py-3"
+              style={{ background: '#F9FAFB', borderRadius: 12, border: '1px solid #E5E7EB' }}
             >
-              <LogOut size={18} style={{ color: '#6B7280' }} />
-              <span>{clockOut.isPending ? 'Clocking out...' : 'Clock Out'}</span>
-            </button>
+              <Smartphone size={14} style={{ color: '#9CA3AF' }} />
+              <span className="text-xs font-medium" style={{ color: '#6B7280' }}>
+                Clock out via mobile app
+              </span>
+            </div>
           </>
         ) : (
           <div 
@@ -315,35 +287,18 @@ export function QuickClock({
             Ready to start your day?
           </p>
           
-          <div className="flex gap-2 mt-6">
-            <input
-              type="text"
-              placeholder="Note (optional)"
-              aria-label="Clock in note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="flex-1 text-sm px-4 py-3 focus:outline-none"
-              style={{
-                background: colors.bg,
-                border: `1px solid ${colors.border}`,
-                borderRadius: 12,
-                color: colors.text,
-              }}
-            />
-            <button
-              onClick={handleClockIn}
-              disabled={clockIn.isPending}
-              className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-              style={{
-                background: 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-                color: '#FFFFFF',
-                borderRadius: 12,
-                fontSize: 15,
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {clockIn.isPending ? 'Clocking in...' : 'Clock In'}
-            </button>
+          <div
+            className="flex items-center gap-2 mt-6 px-4 py-3"
+            style={{
+              background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(139,92,246,0.06)',
+              borderRadius: 12,
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(139,92,246,0.2)'}`,
+            }}
+          >
+            <Smartphone size={15} style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#8B5CF6', flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: isDark ? 'rgba(255,255,255,0.5)' : '#7C3AED', fontWeight: 500 }}>
+              Clock in/out is only available on the mobile app
+            </span>
           </div>
         </div>
       ) : !hasClockedOut ? (
@@ -420,35 +375,18 @@ export function QuickClock({
             </p>
           </div>
           
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Note (optional)"
-              aria-label="Clock out note"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              className="flex-1 text-sm px-4 py-3 focus:outline-none"
-              style={{
-                background: colors.bg,
-                border: `1px solid ${colors.border}`,
-                borderRadius: 12,
-                color: colors.text,
-              }}
-            />
-            <button
-              onClick={handleClockOut}
-              disabled={clockOut.isPending}
-              className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-              style={{
-                background: colors.buttonBg,
-                color: isDark ? colors.text : '#FFFFFF',
-                borderRadius: 12,
-                fontSize: 15,
-                letterSpacing: '-0.01em',
-              }}
-            >
-              {clockOut.isPending ? 'Clocking out...' : 'Clock Out'}
-            </button>
+          <div
+            className="flex items-center gap-2 px-4 py-3"
+            style={{
+              background: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(16,185,129,0.06)',
+              borderRadius: 12,
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(16,185,129,0.2)'}`,
+            }}
+          >
+            <Smartphone size={15} style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#059669', flexShrink: 0 }} />
+            <span style={{ fontSize: 13, color: isDark ? 'rgba(255,255,255,0.5)' : '#059669', fontWeight: 500 }}>
+              Clock out via the mobile app
+            </span>
           </div>
         </div>
       ) : (
