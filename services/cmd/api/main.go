@@ -32,6 +32,7 @@ import (
 	"github.com/workived/services/internal/platform/storage"
 	"github.com/workived/services/internal/setup"
 	"github.com/workived/services/internal/tasks"
+	"github.com/workived/services/internal/upload"
 	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/email"
 	"github.com/workived/services/pkg/logger"
@@ -64,6 +65,7 @@ func main() {
 	// Storage client (S3/MinIO)
 	storageClient, err := storage.NewClient(ctx, storage.Config{
 		Endpoint:        cfg.S3Endpoint,
+		PublicEndpoint:  cfg.S3PublicEndpoint,
 		Region:          cfg.S3Region,
 		Bucket:          cfg.S3Bucket,
 		AccessKeyID:     cfg.AWSAccessKeyID,
@@ -183,6 +185,14 @@ func main() {
 		return emp.ID, nil
 	}, log)
 
+	uploadHandler := upload.NewHandler(storageClient, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
+		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		return emp.ID, nil
+	}, log)
+
 	setupHandler := setup.NewHandler(setupSvc, log)
 	calendarHandler := calendar.NewHandler(calendarSvc, log)
 	auditHandler := audit.NewHandler(auditRepo)
@@ -265,6 +275,7 @@ func main() {
 	auditHandler.RegisterRoutes(authed)
 	employmentHistoryHandler.RegisterRoutes(authed)
 	mobileHandler.RegisterRoutes(authed)
+	uploadHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)

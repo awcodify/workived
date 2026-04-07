@@ -123,13 +123,21 @@ func (s *Service) ClockIn(ctx context.Context, orgID uuid.UUID, req ClockInReque
 	}
 
 	// Log business event
-	s.log.Info().
+	evt := s.log.Info().
 		Str("org_id", orgID.String()).
 		Str("employee_id", req.EmployeeID.String()).
 		Str("date", today).
 		Time("clock_in_at", now).
 		Bool("is_late", isLate).
-		Msg("attendance.clock_in")
+		Bool("has_photo", req.PhotoURL != nil).
+		Bool("has_location", req.Latitude != nil && req.Longitude != nil)
+	if req.Latitude != nil {
+		evt = evt.Float64("latitude", *req.Latitude)
+	}
+	if req.Longitude != nil {
+		evt = evt.Float64("longitude", *req.Longitude)
+	}
+	evt.Msg("attendance.clock_in")
 
 	return rec, nil
 }
@@ -166,13 +174,21 @@ func (s *Service) ClockOut(ctx context.Context, orgID uuid.UUID, req ClockOutReq
 
 	// Log business event
 	duration := now.Sub(existing.ClockInAt)
-	s.log.Info().
+	evtOut := s.log.Info().
 		Str("org_id", orgID.String()).
 		Str("employee_id", req.EmployeeID.String()).
 		Str("date", today).
 		Time("clock_out_at", now).
 		Dur("duration", duration).
-		Msg("attendance.clock_out")
+		Bool("has_photo", req.PhotoURL != nil).
+		Bool("has_location", req.Latitude != nil && req.Longitude != nil)
+	if req.Latitude != nil {
+		evtOut = evtOut.Float64("latitude", *req.Latitude)
+	}
+	if req.Longitude != nil {
+		evtOut = evtOut.Float64("longitude", *req.Longitude)
+	}
+	evtOut.Msg("attendance.clock_out")
 
 	return rec, nil
 }

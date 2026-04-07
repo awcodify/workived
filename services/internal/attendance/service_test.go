@@ -17,8 +17,8 @@ import (
 
 type fakeRepo struct {
 	getByEmpDateFn            func(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error)
-	createFn                  func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string) (*attendance.Record, error)
-	updateClockOutFn          func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string) (*attendance.Record, error)
+	createFn                  func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error)
+	updateClockOutFn          func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error)
 	listByDateFn              func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error)
 	listByMonthFn             func(ctx context.Context, orgID uuid.UUID, year, month int) ([]attendance.Record, error)
 	listByEmpMonthFn          func(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error)
@@ -35,11 +35,11 @@ type fakeRepo struct {
 func (f *fakeRepo) GetByEmployeeAndDate(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error) {
 	return f.getByEmpDateFn(ctx, orgID, empID, date)
 }
-func (f *fakeRepo) Create(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string) (*attendance.Record, error) {
-	return f.createFn(ctx, orgID, empID, date, clockIn, isLate, note)
+func (f *fakeRepo) Create(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error) {
+	return f.createFn(ctx, orgID, empID, date, clockIn, isLate, note, latitude, longitude, photoURL)
 }
-func (f *fakeRepo) UpdateClockOut(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string) (*attendance.Record, error) {
-	return f.updateClockOutFn(ctx, orgID, empID, date, clockOut, note)
+func (f *fakeRepo) UpdateClockOut(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error) {
+	return f.updateClockOutFn(ctx, orgID, empID, date, clockOut, note, latitude, longitude, photoURL)
 }
 func (f *fakeRepo) ListByDate(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error) {
 	return f.listByDateFn(ctx, orgID, date)
@@ -183,7 +183,7 @@ func defaultFakeRepo() *fakeRepo {
 		getByEmpDateFn: func(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Record, error) {
 			return nil, apperr.NotFound("attendance record")
 		},
-		createFn: func(_ context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string) (*attendance.Record, error) {
+		createFn: func(_ context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string, _, _ *float64, _ *string) (*attendance.Record, error) {
 			return &attendance.Record{
 				ID:             uuid.New(),
 				OrganisationID: orgID,
@@ -194,7 +194,7 @@ func defaultFakeRepo() *fakeRepo {
 				Note:           note,
 			}, nil
 		},
-		updateClockOutFn: func(_ context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string) (*attendance.Record, error) {
+		updateClockOutFn: func(_ context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string, _, _ *float64, _ *string) (*attendance.Record, error) {
 			return &attendance.Record{
 				ID:             uuid.New(),
 				OrganisationID: orgID,
@@ -263,11 +263,11 @@ func TestService_ClockIn(t *testing.T) {
 				// keep default nowUTC: 08:30 UTC = 15:30 WIB → late
 				// Override create to verify isLate flag
 				origCreate := r.createFn
-				r.createFn = func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string) (*attendance.Record, error) {
+				r.createFn = func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string, lat, lng *float64, photo *string) (*attendance.Record, error) {
 					if !isLate {
 						t.Error("expected isLate=true")
 					}
-					return origCreate(ctx, orgID, empID, date, clockIn, isLate, note)
+					return origCreate(ctx, orgID, empID, date, clockIn, isLate, note, lat, lng, photo)
 				}
 			},
 		},

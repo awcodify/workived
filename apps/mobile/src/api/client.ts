@@ -1,10 +1,10 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
 import * as SecureStore from 'expo-secure-store'
-import type { 
-  MobileHomeData, 
-  AttendanceRecord, 
-  ApiResponse, 
-  LoginRequest, 
+import type {
+  MobileHomeData,
+  AttendanceRecord,
+  ApiResponse,
+  LoginRequest,
   LoginResponse,
   LeavePolicy,
   LeaveRequest,
@@ -16,11 +16,12 @@ import type {
   SubmitClaimRequest,
   ClaimResponse,
   ClaimBalanceWithCategory,
+  PresignResponse,
 } from '@/types/api'
 
 // TODO: Replace with your actual backend URL
 const API_BASE_URL = __DEV__ 
-  ? 'http://10.225.15.89:8080/api/v1' 
+  ? 'http://192.168.1.109:8080/api/v1' 
   : 'https://api.workived.com/api/v1'
 
 class ApiClient {
@@ -85,12 +86,22 @@ class ApiClient {
 
   // Attendance
   async clockIn(data: { note?: string; photo?: string; latitude?: number; longitude?: number }): Promise<ApiResponse<AttendanceRecord>> {
-    const response = await this.client.post<ApiResponse<AttendanceRecord>>('/attendance/clock-in', data)
+    const response = await this.client.post<ApiResponse<AttendanceRecord>>('/attendance/clock-in', {
+      note: data.note,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      photo_url: data.photo,
+    })
     return response.data
   }
 
   async clockOut(data: { note?: string; photo?: string; latitude?: number; longitude?: number }): Promise<ApiResponse<AttendanceRecord>> {
-    const response = await this.client.post<ApiResponse<AttendanceRecord>>('/attendance/clock-out', data)
+    const response = await this.client.post<ApiResponse<AttendanceRecord>>('/attendance/clock-out', {
+      note: data.note,
+      latitude: data.latitude,
+      longitude: data.longitude,
+      photo_url: data.photo,
+    })
     return response.data
   }
 
@@ -191,6 +202,43 @@ class ApiClient {
   async getMyProfile(): Promise<ApiResponse<EmployeeProfile>> {
     const response = await this.client.get<ApiResponse<EmployeeProfile>>('/employees/me')
     return response.data
+  }
+
+  // Uploads
+  async presignUpload(purpose: 'clock_in' | 'clock_out', contentType: 'image/jpeg' | 'image/png' = 'image/jpeg'): Promise<PresignResponse> {
+    const response = await this.client.post<{ data: PresignResponse }>('/uploads/presign', {
+      purpose,
+      content_type: contentType,
+    })
+    return response.data.data
+  }
+
+  /**
+   * Uploads a photo from a local URI to S3 via presigned URL.
+   * Returns the S3 key to be sent with the clock-in/out request.
+   *
+   * Uses XMLHttpRequest to read the local file:// URI as a blob —
+   * React Native's fetch() cannot read local file paths.
+   */
+  async uploadPhoto(localUri: string, purpose: 'clock_in' | 'clock_out'): Promise<string> {
+    const { upload_url, key } = await this.presignUpload(purpose)
+
+    const photoBlob = await new Promise<Blob>((resolve, reject) => {
+      const xhr = new XMLHttpRequest()
+      xhr.onload = () => resolve(xhr.response as Blob)
+      xhr.onerror = () => reject(new Error('Failed to read photo from local URI'))
+      xhr.responseType = 'blob'
+      xhr.open('GET', localUri)
+      xhr.send(null)
+    })
+
+    await fetch(upload_url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'image/jpeg' },
+      body: photoBlob,
+    })
+
+    return key
   }
 }
 

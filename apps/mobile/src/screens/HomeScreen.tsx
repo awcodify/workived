@@ -215,8 +215,8 @@ export default function HomeScreen() {
   }
 
   const clockInMutation = useMutation({
-    mutationFn: ({ note, latitude, longitude }: { note?: string; latitude?: number; longitude?: number }) => 
-      apiClient.clockIn({ note, latitude, longitude }),
+    mutationFn: ({ note, latitude, longitude, photo_url }: { note?: string; latitude?: number; longitude?: number; photo_url?: string }) =>
+      apiClient.clockIn({ note, latitude, longitude, photo: photo_url }),
     onSuccess: () => {
       // Save location to state so it persists after query refetch
       if (location) {
@@ -232,8 +232,8 @@ export default function HomeScreen() {
   })
 
   const clockOutMutation = useMutation({
-    mutationFn: ({ note, latitude, longitude }: { note?: string; latitude?: number; longitude?: number }) => 
-      apiClient.clockOut({ note, latitude, longitude }),
+    mutationFn: ({ note, latitude, longitude, photo_url }: { note?: string; latitude?: number; longitude?: number; photo_url?: string }) =>
+      apiClient.clockOut({ note, latitude, longitude, photo: photo_url }),
     onSuccess: async () => {
       // Invalidate and refetch immediately
       await queryClient.invalidateQueries({ queryKey: ['mobile', 'home'] })
@@ -280,45 +280,54 @@ export default function HomeScreen() {
 
   const handleClockInPhotoCapture = (photoUri: string) => {
     setClockInPhoto(photoUri)
-    // Don't close camera here - component closes itself after user confirms
-    // After photo is confirmed in component, show confirmation alert
+    setShowClockInCamera(false)  // Close camera; location is preserved for the confirmation dialog
     setShowClockInAlert(true)
   }
 
-  const handleConfirmClockIn = () => {
-    const params = {
+  const handleConfirmClockIn = async () => {
+    setShowClockInAlert(false)
+
+    let photoKey: string | undefined
+    if (clockInPhoto) {
+      try {
+        photoKey = await apiClient.uploadPhoto(clockInPhoto, 'clock_in')
+      } catch {
+        // Photo upload failure is non-blocking — clock in without photo
+      }
+    }
+
+    clockInMutation.mutate({
       latitude: pendingClockInLocation?.latitude,
       longitude: pendingClockInLocation?.longitude,
-      // TODO: Add photo when WOR-110 backend is implemented
-      // photo: clockInPhoto,
-    }
-    clockInMutation.mutate(params)
-    setShowClockInAlert(false)
+      photo_url: photoKey,
+    })
     setPendingClockInLocation(null)
     setClockInPhoto(null)
   }
 
   const handleClockOutPhotoCapture = (photoUri: string) => {
     setClockOutPhoto(photoUri)
-    // Don't close camera here - component closes itself after user confirms
-    // After photo is confirmed in component, show confirmation alert
+    setShowClockOutCamera(false)  // Close camera; location is preserved for the confirmation dialog
     setShowClockOutAlert(true)
   }
 
-  const handleConfirmClockOut = () => {
-    if (pendingClockOutLocation) {
-      clockOutMutation.mutate({
-        latitude: pendingClockOutLocation.latitude,
-        longitude: pendingClockOutLocation.longitude,
-        // TODO: Add photo when WOR-110 backend is implemented
-        // photo: clockOutPhoto,
-      })
-    } else {
-      clockOutMutation.mutate({
-        // TODO: Add photo when WOR-110 backend is implemented
-        // photo: clockOutPhoto,
-      })
+  const handleConfirmClockOut = async () => {
+    setShowClockOutAlert(false)
+
+    let photoKey: string | undefined
+    if (clockOutPhoto) {
+      try {
+        photoKey = await apiClient.uploadPhoto(clockOutPhoto, 'clock_out')
+      } catch {
+        // Photo upload failure is non-blocking — clock out without photo
+      }
     }
+
+    clockOutMutation.mutate({
+      latitude: pendingClockOutLocation?.latitude,
+      longitude: pendingClockOutLocation?.longitude,
+      photo_url: photoKey,
+    })
     setClockOutPhoto(null)
   }
 
@@ -710,6 +719,7 @@ export default function HomeScreen() {
             onPress: () => {
               setShowClockInAlert(false)
               setPendingClockInLocation(null)
+              setClockInPhoto(null)
             },
           },
           {
@@ -718,10 +728,6 @@ export default function HomeScreen() {
             onPress: handleConfirmClockIn,
           },
         ]}
-        onDismiss={() => {
-          setShowClockInAlert(false)
-          setPendingClockInLocation(null)
-        }}
       />
 
       <CustomAlert
@@ -739,6 +745,7 @@ export default function HomeScreen() {
             onPress: () => {
               setShowClockOutAlert(false)
               setPendingClockOutLocation(null)
+              setClockOutPhoto(null)
             },
           },
           {
@@ -747,10 +754,6 @@ export default function HomeScreen() {
             onPress: handleConfirmClockOut,
           },
         ]}
-        onDismiss={() => {
-          setShowClockOutAlert(false)
-          setPendingClockOutLocation(null)
-        }}
       />
 
       {/* Clock In Camera */}

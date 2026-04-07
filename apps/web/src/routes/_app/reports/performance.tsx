@@ -207,13 +207,13 @@ const PREDICTIONS = [
     color: '#F59E0B',
     title: 'Operations team may miss their sprint deadline',
     description:
-      '6 overdue tasks and slowing velocity. At current pace, 4 tasks won't be done by Friday.',
+      "6 overdue tasks and slowing velocity. At current pace, 4 tasks won't be done by Friday.",
     recommendation: 'Reassign 2 tasks to Engineering — they have bandwidth this week.',
   },
   {
     icon: TrendingDown,
     color: '#EF4444',
-    title: 'Farhan's score will drop below 80 within 2 weeks',
+    title: "Farhan's score will drop below 80 within 2 weeks",
     description:
       'His attendance and task patterns are trending down consistently. Below 80 = "Needs Improvement" territory.',
     recommendation: 'A 1-on-1 conversation this week can reverse this trend before it gets worse.',
@@ -224,7 +224,7 @@ const PREDICTIONS = [
     title: 'Engineering is on track for their best month ever',
     description:
       'At current pace, the team will hit 95+ average score — highest since we started tracking.',
-    recommendation: 'Maintain current workload. Don't pile on extra tasks and risk burnout.',
+    recommendation: "Maintain current workload. Don't pile on extra tasks and risk burnout.",
   },
 ]
 

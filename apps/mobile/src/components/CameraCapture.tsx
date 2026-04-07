@@ -69,9 +69,9 @@ export function CameraCapture({ visible, onClose, onCapture, title = 'Take Photo
       })
 
       if (photo) {
-        // Immediately pass photo to parent and close camera
         onCapture(photo.uri)
-        onClose()
+        // Do NOT call onClose() here — parent closes camera via visible prop.
+        // onClose() is reserved for user-initiated cancel (X button).
       }
     } catch (error) {
       console.error('Error taking picture:', error)

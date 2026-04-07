@@ -38,6 +38,7 @@ import { Route as AppCalendarIndexRouteImport } from './routes/_app/calendar/ind
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
 import { Route as AppReportsPerformanceV2RouteImport } from './routes/_app/reports/performance-v2'
 import { Route as AppReportsPerformanceOldRouteImport } from './routes/_app/reports/performance-old'
+import { Route as AppReportsPerformanceRouteImport } from './routes/_app/reports/performance'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppSettingsAuditLogsRouteRouteImport } from './routes/_app/settings/audit-logs/route'
@@ -191,6 +192,11 @@ const AppReportsPerformanceOldRoute =
     path: '/reports/performance-old',
     getParentRoute: () => AppRouteRoute,
   } as any)
+const AppReportsPerformanceRoute = AppReportsPerformanceRouteImport.update({
+  id: '/reports/performance',
+  path: '/reports/performance',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
   id: '/members',
   path: '/members',
@@ -259,6 +265,7 @@ export interface FileRoutesByFullPath {
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/reports/performance': typeof AppReportsPerformanceRoute
   '/reports/performance-old': typeof AppReportsPerformanceOldRoute
   '/reports/performance-v2': typeof AppReportsPerformanceV2Route
   '/attendance/': typeof AppAttendanceIndexRoute
@@ -291,6 +298,7 @@ export interface FileRoutesByTo {
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/reports/performance': typeof AppReportsPerformanceRoute
   '/reports/performance-old': typeof AppReportsPerformanceOldRoute
   '/reports/performance-v2': typeof AppReportsPerformanceV2Route
   '/attendance': typeof AppAttendanceIndexRoute
@@ -331,6 +339,7 @@ export interface FileRoutesById {
   '/_app/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
+  '/_app/reports/performance': typeof AppReportsPerformanceRoute
   '/_app/reports/performance-old': typeof AppReportsPerformanceOldRoute
   '/_app/reports/performance-v2': typeof AppReportsPerformanceV2Route
   '/_app/attendance/': typeof AppAttendanceIndexRoute
@@ -370,6 +379,7 @@ export interface FileRouteTypes {
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
+    | '/reports/performance'
     | '/reports/performance-old'
     | '/reports/performance-v2'
     | '/attendance/'
@@ -402,6 +412,7 @@ export interface FileRouteTypes {
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
+    | '/reports/performance'
     | '/reports/performance-old'
     | '/reports/performance-v2'
     | '/attendance'
@@ -441,6 +452,7 @@ export interface FileRouteTypes {
     | '/_app/settings/audit-logs'
     | '/_app/settings/company'
     | '/_app/settings/members'
+    | '/_app/reports/performance'
     | '/_app/reports/performance-old'
     | '/_app/reports/performance-v2'
     | '/_app/attendance/'
@@ -667,6 +679,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsPerformanceOldRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/reports/performance': {
+      id: '/_app/reports/performance'
+      path: '/reports/performance'
+      fullPath: '/reports/performance'
+      preLoaderRoute: typeof AppReportsPerformanceRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/settings/members': {
       id: '/_app/settings/members'
       path: '/members'
@@ -822,6 +841,7 @@ interface AppRouteRouteChildren {
   AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
   AppTasksRouteRoute: typeof AppTasksRouteRoute
   AppOrgChartRoute: typeof AppOrgChartRoute
+  AppReportsPerformanceRoute: typeof AppReportsPerformanceRoute
   AppReportsPerformanceOldRoute: typeof AppReportsPerformanceOldRoute
   AppReportsPerformanceV2Route: typeof AppReportsPerformanceV2Route
   AppProfileIndexRoute: typeof AppProfileIndexRoute
@@ -842,6 +862,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
   AppTasksRouteRoute: AppTasksRouteRoute,
   AppOrgChartRoute: AppOrgChartRoute,
+  AppReportsPerformanceRoute: AppReportsPerformanceRoute,
   AppReportsPerformanceOldRoute: AppReportsPerformanceOldRoute,
   AppReportsPerformanceV2Route: AppReportsPerformanceV2Route,
   AppProfileIndexRoute: AppProfileIndexRoute,

@@ -226,6 +226,11 @@ export interface ClaimResponse {
   updated_at: string
 }
 
+export interface PresignResponse {
+  upload_url: string
+  key: string
+}
+
 export interface ClaimBalanceWithCategory {
   id: string
   organisation_id: string
