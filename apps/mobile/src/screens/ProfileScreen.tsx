@@ -318,6 +318,13 @@ export default function ProfileScreen() {
                   )}
                 </View>
                 <View style={styles.modalDivider} />
+                {selectedReport.email && (
+                  <View style={styles.modalRow}>
+                    <Ionicons name="mail-outline" size={18} color="#6B7280" />
+                    <Text style={styles.modalRowLabel}>Email</Text>
+                    <Text style={[styles.modalRowValue, { color: '#6357E8' }]}>{selectedReport.email}</Text>
+                  </View>
+                )}
                 {selectedReport.department_name && (
                   <View style={styles.modalRow}>
                     <Ionicons name="business-outline" size={18} color="#6B7280" />

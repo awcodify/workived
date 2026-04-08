@@ -166,7 +166,7 @@ describe('ProfileScreen — org chart', () => {
 
 describe('ProfileScreen — direct report modal', () => {
   const reports = [
-    { id: 'emp-2', full_name: 'Citra Dewi', job_title: 'Engineer', department_name: 'Tech', employment_type: 'full_time', status: 'active' },
+    { id: 'emp-2', full_name: 'Citra Dewi', email: 'citra@workived.com', job_title: 'Engineer', department_name: 'Tech', employment_type: 'full_time', status: 'active' },
   ]
 
   it('opens modal when tapping a direct report', async () => {
@@ -179,6 +179,7 @@ describe('ProfileScreen — direct report modal', () => {
       expect(screen.getAllByText('Citra Dewi').length).toBeGreaterThan(1)
       expect(screen.getAllByText('Engineer').length).toBeGreaterThan(0)
       expect(screen.getAllByText('Tech').length).toBeGreaterThan(0)
+      expect(screen.getByText('citra@workived.com')).toBeTruthy()
     })
   })
 

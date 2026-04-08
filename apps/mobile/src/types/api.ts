@@ -184,6 +184,7 @@ export interface EmployeeProfile {
 export interface DirectReport {
   id: string
   full_name: string
+  email: string | null
   job_title: string | null
   department_name: string | null
   employment_type: string
