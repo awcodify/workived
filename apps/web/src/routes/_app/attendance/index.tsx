@@ -3,14 +3,15 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules } from '@/lib/hooks/useAttendance'
+import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules, useDailyReport } from '@/lib/hooks/useAttendance'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
+import { TeamMapView } from '@/components/workived/attendance/TeamMapView'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
-import { ChevronLeft, ChevronRight, Clock, Check, ChevronDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, Check, ChevronDown, Map, List } from 'lucide-react'
 import { Skeleton } from '@/components/workived/shared/Skeleton'
 import { WorkSchedulesPanel } from '@/components/workived/attendance/WorkSchedulesPanel'
 import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
@@ -57,7 +58,10 @@ function AttendancePage() {
   
   // Filter by clock-in status
   const [clockInFilter, setClockInFilter] = useState<'all' | 'clocked-in'>('all')
-  
+
+  // Map / list view toggle (admin only, desktop)
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
+
   // Week navigation state (0 = current week, -1 = previous week, etc.)
   const [weekOffset, setWeekOffset] = useState(0)
   const weekStart = useMemo(() => getMondayOfWeek(tz, weekOffset), [tz, weekOffset])
@@ -75,7 +79,8 @@ function AttendancePage() {
   
   // Daily report state
   const [date, setDate] = useState(() => todayISO('UTC'))
-  
+  const { data: dailyEntries = [] } = useDailyReport(date)
+
   // Month picker state
   const [showMonthPicker, setShowMonthPicker] = useState(false)
   
@@ -660,7 +665,50 @@ function AttendancePage() {
             </div>
           </div>
 
-          {/* Employee Attendance Table */}
+          {/* Map / List toggle (admin only, desktop only) */}
+          {role.canViewAll && (
+            <div className="hidden lg:flex items-center justify-end">
+              <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: t.border }}>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                  style={{
+                    background: viewMode === 'list' ? t.surface : 'transparent',
+                    color: viewMode === 'list' ? t.text : t.textMuted,
+                  }}
+                >
+                  <List size={13} />
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode('map')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                  style={{
+                    background: viewMode === 'map' ? t.surface : 'transparent',
+                    color: viewMode === 'map' ? t.text : t.textMuted,
+                  }}
+                >
+                  <Map size={13} />
+                  Map
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Map view */}
+          {viewMode === 'map' && role.canViewAll ? (
+            <div
+              className="hidden lg:block p-5"
+              style={{
+                background: t.surface,
+                borderRadius: 16,
+                border: `1px solid ${t.border}`,
+              }}
+            >
+              <TeamMapView entries={dailyEntries} date={date} timezone={tz} />
+            </div>
+          ) : (
+          /* Employee Attendance Table */
           <div
             className="overflow-hidden"
             style={{
@@ -670,7 +718,7 @@ function AttendancePage() {
             }}
           >
             {/* Table Header */}
-            <div 
+            <div
               className="px-6 py-4 border-b"
               style={{ borderColor: t.border }}
             >
@@ -712,6 +760,7 @@ function AttendancePage() {
               </div>
             )}
           </div>
+          )}
         </div>
       </div>
 

@@ -254,6 +254,10 @@ func (s *Service) DailyReport(ctx context.Context, orgID uuid.UUID, filters Dail
 			}
 			entry.ClockInAt = &rec.ClockInAt
 			entry.ClockOutAt = rec.ClockOutAt
+			entry.ClockInLatitude = rec.ClockInLatitude
+			entry.ClockInLongitude = rec.ClockInLongitude
+			entry.ClockInPhotoURL = rec.ClockInPhotoURL
+			entry.WorkLocationType = rec.WorkLocationType
 		} else {
 			entry.Status = "absent"
 		}
