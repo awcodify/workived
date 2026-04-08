@@ -160,7 +160,7 @@ func main() {
 			return uuid.Nil, err
 		}
 		return emp.ID, nil
-	}, log)
+	}, storageClient, log)
 	leaveHandler := leave.NewHandler(leaveSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
 		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
 		if err != nil {
