@@ -1,162 +1,221 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native'
-import { Alert } from 'react-native'
 import ProfileScreen from '../ProfileScreen'
 import { useAuth } from '@/contexts/AuthContext'
+import { useQuery } from '@tanstack/react-query'
 
-// Mock dependencies
 jest.mock('@/contexts/AuthContext')
+jest.mock('@tanstack/react-query')
+jest.mock('@/api/client')
+jest.mock('@/components/CustomAlert', () => ({
+  CustomAlert: ({ visible, buttons }: { visible: boolean; buttons: { text: string; onPress: () => void }[] }) => {
+    if (!visible) return null
+    const { View, Text, TouchableOpacity } = require('react-native')
+    return (
+      <View testID="custom-alert">
+        {buttons.map((b) => (
+          <TouchableOpacity key={b.text} onPress={b.onPress}>
+            <Text>{b.text}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    )
+  },
+}))
 
 const mockLogout = jest.fn()
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>
+const mockUseQuery = useQuery as jest.MockedFunction<typeof useQuery>
 
-describe('ProfileScreen', () => {
-  let alertSpy: jest.SpyInstance
+const baseProfile = {
+  id: 'emp-1',
+  full_name: 'Ahmad Rizki',
+  email: 'ahmad@workived.com',
+  job_title: 'CEO',
+  department_name: 'Executive',
+  employee_code: 'EMP-001',
+  employment_type: 'full_time',
+  status: 'active',
+  start_date: '2024-01-15',
+  manager_name: null,
+  work_schedule_name: null,
+  invitation_pending: false,
+  organisation_id: 'org-1',
+  user_id: 'user-1',
+  phone: null,
+  department_id: null,
+  reporting_to: null,
+  end_date: null,
+  is_active: true,
+  created_at: '2024-01-15T00:00:00Z',
+  updated_at: '2024-01-15T00:00:00Z',
+}
 
-  const mockUser = {
-    id: '123',
-    email: 'john.doe@example.com',
-    name: 'John Doe',
-    role: 'employee',
-  }
-
-  beforeEach(() => {
-    jest.clearAllMocks()
-    alertSpy = jest.spyOn(Alert, 'alert')
-    mockUseAuth.mockReturnValue({
-      login: jest.fn(),
-      logout: mockLogout,
-      isAuthenticated: true,
-      isLoading: false,
-      user: mockUser,
-    })
-  })
-
-  afterEach(() => {
-    alertSpy.mockRestore()
-  })
-
-  it('renders user profile correctly', () => {
-    render(<ProfileScreen />)
-
-    expect(screen.getByText('Profile')).toBeTruthy()
-    expect(screen.getByText('John Doe')).toBeTruthy()
-    expect(screen.getByText('john.doe@example.com')).toBeTruthy()
-    expect(screen.getByText('employee')).toBeTruthy()
-  })
-
-  it('displays user initials in avatar', () => {
-    render(<ProfileScreen />)
-
-    expect(screen.getByText('J')).toBeTruthy()
-  })
-
-  it('displays default values when user is null', () => {
-    mockUseAuth.mockReturnValue({
-      login: jest.fn(),
-      logout: mockLogout,
-      isAuthenticated: true,
-      isLoading: false,
-      user: null,
-    })
-
-    render(<ProfileScreen />)
-
-    expect(screen.getByText('User')).toBeTruthy()
-    expect(screen.getByText('U')).toBeTruthy() // Default avatar initial
-    expect(screen.getByText('Employee')).toBeTruthy() // Default role
-  })
-
-  it('renders menu items', () => {
-    render(<ProfileScreen />)
-
-    expect(screen.getByText('Edit Profile')).toBeTruthy()
-    expect(screen.getByText('Notifications')).toBeTruthy()
-    expect(screen.getByText('Privacy & Security')).toBeTruthy()
-  })
-
-  it('shows logout confirmation alert when logout button pressed', () => {
-    render(<ProfileScreen />)
-
-    const logoutButton = screen.getByText('Logout')
-    fireEvent.press(logoutButton)
-
-    expect(alertSpy).toHaveBeenCalledWith(
-      'Logout',
-      'Are you sure you want to logout?',
-      expect.arrayContaining([
-        expect.objectContaining({ text: 'Cancel', style: 'cancel' }),
-        expect.objectContaining({ text: 'Logout', style: 'destructive' }),
-      ])
-    )
-  })
-
-  it('calls logout when confirmed in alert', async () => {
-    mockLogout.mockResolvedValueOnce(undefined)
-
-    // Mock Alert.alert to immediately call the onPress of Logout button
-    alertSpy.mockImplementation((title, message, buttons) => {
-      // Find and call the logout button's onPress
-      const logoutButton = buttons?.find((b: any) => b.text === 'Logout')
-      if (logoutButton && logoutButton.onPress) {
-        logoutButton.onPress()
-      }
-      return 1
-    })
-
-    render(<ProfileScreen />)
-
-    const logoutButton = screen.getByText('Logout')
-    fireEvent.press(logoutButton)
-
-    await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalled()
-    })
-  })
-
-  it('shows error alert when logout fails', async () => {
-    mockLogout.mockRejectedValueOnce(new Error('Network error'))
-
-    let logoutCallback: (() => Promise<void>) | undefined
-
-    alertSpy.mockImplementation((title, message, buttons) => {
-      const logoutButton = buttons?.find((b: any) => b.text === 'Logout')
-      if (logoutButton && logoutButton.onPress) {
-        logoutCallback = logoutButton.onPress as () => Promise<void>
-      }
-      return 1
-    })
-
-    render(<ProfileScreen />)
-
-    const logoutButton = screen.getByText('Logout')
-    fireEvent.press(logoutButton)
-
-    // Execute the logout callback
-    if (logoutCallback) {
-      await logoutCallback()
+function setupQueries(profileOverrides = {}, directs: object[] = []) {
+  let callCount = 0
+  mockUseQuery.mockImplementation((opts: any) => {
+    callCount++
+    if (opts.queryKey?.[0] === 'employee-profile') {
+      return { data: { ...baseProfile, ...profileOverrides }, isLoading: false, error: null } as any
     }
+    // directs query
+    return { data: directs } as any
+  })
+}
+
+beforeEach(() => {
+  jest.clearAllMocks()
+  mockUseAuth.mockReturnValue({
+    login: jest.fn(),
+    logout: mockLogout,
+    isAuthenticated: true,
+    isLoading: false,
+    user: { id: 'user-1', email: 'ahmad@workived.com', name: 'Ahmad Rizki', role: 'owner' },
+  })
+})
+
+describe('ProfileScreen — loading & error states', () => {
+  it('shows loading spinner while fetching', () => {
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: true, error: null } as any)
+    render(<ProfileScreen />)
+    expect(screen.getByText('Loading profile...')).toBeTruthy()
+  })
+
+  it('shows error state when fetch fails', () => {
+    mockUseQuery.mockReturnValue({ data: undefined, isLoading: false, error: new Error('fail') } as any)
+    render(<ProfileScreen />)
+    expect(screen.getByText('Failed to load profile')).toBeTruthy()
+  })
+})
+
+describe('ProfileScreen — profile info', () => {
+  it('renders name, email and job title', () => {
+    setupQueries()
+    render(<ProfileScreen />)
+    expect(screen.getByText('Ahmad Rizki')).toBeTruthy()
+    expect(screen.getByText('ahmad@workived.com')).toBeTruthy()
+    expect(screen.getByText('CEO')).toBeTruthy()
+  })
+
+  it('renders employee code and department', () => {
+    setupQueries()
+    render(<ProfileScreen />)
+    expect(screen.getByText('EMP-001')).toBeTruthy()
+    expect(screen.getByText('Executive')).toBeTruthy()
+  })
+
+  it('shows Full-time employment type badge', () => {
+    setupQueries()
+    render(<ProfileScreen />)
+    expect(screen.getByText('Full-time')).toBeTruthy()
+  })
+
+  it('shows Active status badge', () => {
+    setupQueries()
+    render(<ProfileScreen />)
+    expect(screen.getByText('Active')).toBeTruthy()
+  })
+
+  it('renders avatar initials from full name', () => {
+    setupQueries()
+    render(<ProfileScreen />)
+    // AR initials in avatar
+    expect(screen.getAllByText('AR').length).toBeGreaterThan(0)
+  })
+})
+
+describe('ProfileScreen — org chart', () => {
+  it('hides Organisation section when no manager and no directs', () => {
+    setupQueries({ manager_name: null }, [])
+    render(<ProfileScreen />)
+    expect(screen.queryByText('Organisation')).toBeNull()
+  })
+
+  it('shows Organisation section with manager card', () => {
+    setupQueries({ manager_name: 'Budi Santoso' })
+    render(<ProfileScreen />)
+    expect(screen.getByText('Organisation')).toBeTruthy()
+    expect(screen.getAllByText('Budi Santoso').length).toBeGreaterThan(0)
+    expect(screen.getByText('Reports to')).toBeTruthy()
+  })
+
+  it('shows self node highlighted', () => {
+    setupQueries({ manager_name: 'Budi Santoso' })
+    render(<ProfileScreen />)
+    expect(screen.getByText('You')).toBeTruthy()
+  })
+
+  it('shows direct reports count and names', () => {
+    setupQueries({ manager_name: null }, [
+      { id: 'emp-2', full_name: 'Citra Dewi', job_title: 'Engineer', department_name: 'Tech', employment_type: 'full_time', status: 'active' },
+      { id: 'emp-3', full_name: 'Dodi Pratama', job_title: 'Designer', department_name: 'Tech', employment_type: 'full_time', status: 'active' },
+    ])
+    render(<ProfileScreen />)
+    expect(screen.getByText('2 direct reports')).toBeTruthy()
+    expect(screen.getByText('Citra Dewi')).toBeTruthy()
+    expect(screen.getByText('Dodi Pratama')).toBeTruthy()
+  })
+
+  it('shows singular "direct report" for one report', () => {
+    setupQueries({ manager_name: null }, [
+      { id: 'emp-2', full_name: 'Citra Dewi', job_title: 'Engineer', department_name: 'Tech', employment_type: 'full_time', status: 'active' },
+    ])
+    render(<ProfileScreen />)
+    expect(screen.getByText('1 direct report')).toBeTruthy()
+  })
+})
+
+describe('ProfileScreen — direct report modal', () => {
+  const reports = [
+    { id: 'emp-2', full_name: 'Citra Dewi', job_title: 'Engineer', department_name: 'Tech', employment_type: 'full_time', status: 'active' },
+  ]
+
+  it('opens modal when tapping a direct report', async () => {
+    setupQueries({ manager_name: null }, reports)
+    render(<ProfileScreen />)
+
+    fireEvent.press(screen.getByLabelText("View Citra Dewi's profile"))
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith(
-        'Error',
-        'Failed to logout. Please try again.'
-      )
+      expect(screen.getAllByText('Citra Dewi').length).toBeGreaterThan(1)
+      expect(screen.getAllByText('Engineer').length).toBeGreaterThan(0)
+      expect(screen.getAllByText('Tech').length).toBeGreaterThan(0)
     })
   })
 
-  it('capitalizes role text', () => {
-    mockUseAuth.mockReturnValue({
-      login: jest.fn(),
-      logout: mockLogout,
-      isAuthenticated: true,
-      isLoading: false,
-      user: { ...mockUser, role: 'manager' },
-    })
-
+  it('closes modal when Close is pressed', async () => {
+    setupQueries({ manager_name: null }, reports)
     render(<ProfileScreen />)
 
-    const roleElement = screen.getByText('manager')
-    expect(roleElement).toBeTruthy()
-    // Role badge has textTransform: 'capitalize' style
+    fireEvent.press(screen.getByLabelText("View Citra Dewi's profile"))
+    await waitFor(() => screen.getByText('Close'))
+
+    fireEvent.press(screen.getByText('Close'))
+
+    await waitFor(() => {
+      expect(screen.queryByText('Close')).toBeNull()
+    })
+  })
+})
+
+describe('ProfileScreen — logout', () => {
+  it('shows logout confirmation when Log Out pressed', () => {
+    setupQueries()
+    render(<ProfileScreen />)
+    fireEvent.press(screen.getByText('Log Out'))
+    expect(screen.getByTestId('custom-alert')).toBeTruthy()
+  })
+
+  it('calls logout when confirmed', async () => {
+    mockLogout.mockResolvedValueOnce(undefined)
+    setupQueries()
+    render(<ProfileScreen />)
+
+    // First press opens the alert
+    fireEvent.press(screen.getAllByText('Log Out')[0]!)
+    // Second press confirms in the alert
+    const logOutButtons = screen.getAllByText('Log Out')
+    fireEvent.press(logOutButtons[logOutButtons.length - 1]!)
+
+    await waitFor(() => expect(mockLogout).toHaveBeenCalled())
   })
 })

@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Modal, Pressable } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/AuthContext'
@@ -11,6 +11,7 @@ import type { DirectReport } from '@/types/api'
 export default function ProfileScreen() {
   const { logout } = useAuth()
   const [showLogoutAlert, setShowLogoutAlert] = useState(false)
+  const [selectedReport, setSelectedReport] = useState<DirectReport | null>(null)
 
   // Fetch employee profile data
   const { data: profile, isLoading, error } = useQuery({
@@ -247,7 +248,14 @@ export default function ProfileScreen() {
                   {directReports.length} direct report{directReports.length !== 1 ? 's' : ''}
                 </Text>
                 {directReports.map((report: DirectReport) => (
-                  <View key={report.id} style={[styles.orgNode, styles.orgDirectNode]}>
+                  <TouchableOpacity
+                    key={report.id}
+                    style={[styles.orgNode, styles.orgDirectNode]}
+                    onPress={() => setSelectedReport(report)}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`View ${report.full_name}'s profile`}
+                  >
                     <View style={styles.orgNodeAvatar}>
                       <Text style={styles.orgNodeAvatarText}>
                         {report.full_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
@@ -259,7 +267,8 @@ export default function ProfileScreen() {
                         <Text style={styles.orgNodeSub}>{report.job_title}</Text>
                       )}
                     </View>
-                  </View>
+                    <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
+                  </TouchableOpacity>
                 ))}
               </>
             )}
@@ -284,6 +293,63 @@ export default function ProfileScreen() {
           <Text style={styles.versionText}>Workived Mobile v1.0.0</Text>
         </View>
       </ScrollView>
+
+      {/* Direct Report Profile Modal */}
+      <Modal
+        visible={!!selectedReport}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setSelectedReport(null)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setSelectedReport(null)}>
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            {selectedReport && (
+              <>
+                <View style={styles.modalHandle} />
+                <View style={styles.modalHeader}>
+                  <View style={styles.modalAvatar}>
+                    <Text style={styles.modalAvatarText}>
+                      {selectedReport.full_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
+                    </Text>
+                  </View>
+                  <Text style={styles.modalName}>{selectedReport.full_name}</Text>
+                  {selectedReport.job_title && (
+                    <Text style={styles.modalSub}>{selectedReport.job_title}</Text>
+                  )}
+                </View>
+                <View style={styles.modalDivider} />
+                {selectedReport.department_name && (
+                  <View style={styles.modalRow}>
+                    <Ionicons name="business-outline" size={18} color="#6B7280" />
+                    <Text style={styles.modalRowLabel}>Department</Text>
+                    <Text style={styles.modalRowValue}>{selectedReport.department_name}</Text>
+                  </View>
+                )}
+                <View style={styles.modalRow}>
+                  <Ionicons name="pricetag-outline" size={18} color="#6B7280" />
+                  <Text style={styles.modalRowLabel}>Type</Text>
+                  <Text style={styles.modalRowValue}>
+                    {getEmploymentTypeBadge(selectedReport.employment_type).label}
+                  </Text>
+                </View>
+                <View style={styles.modalRow}>
+                  <Ionicons name="pulse-outline" size={18} color="#6B7280" />
+                  <Text style={styles.modalRowLabel}>Status</Text>
+                  <Text style={[styles.modalRowValue, { color: getStatusBadge(selectedReport.status).color }]}>
+                    {getStatusBadge(selectedReport.status).label}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.modalClose}
+                  onPress={() => setSelectedReport(null)}
+                >
+                  <Text style={styles.modalCloseText}>Close</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       {/* Logout Confirmation Alert */}
       <CustomAlert
@@ -546,5 +612,90 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginTop: 1,
+  },
+  // Direct report modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 36,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E7EB',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#6357E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  modalAvatarText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFF',
+  },
+  modalName: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  modalSub: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  modalDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginBottom: 16,
+  },
+  modalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalRowLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    flex: 1,
+  },
+  modalRowValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  modalClose: {
+    marginTop: 20,
+    paddingVertical: 14,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#374151',
   },
 })
