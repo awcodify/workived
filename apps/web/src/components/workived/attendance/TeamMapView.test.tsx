@@ -101,6 +101,6 @@ describe('TeamMapView', () => {
     )
     expect(screen.getByText('Office')).toBeTruthy()
     expect(screen.getByText('WFH')).toBeTruthy()
-    expect(screen.getByText('WFA')).toBeTruthy()
+    expect(screen.getByText('Remote')).toBeTruthy()
   })
 })

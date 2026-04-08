@@ -132,6 +132,7 @@ func (r *Repository) ListByDate(ctx context.Context, orgID uuid.UUID, date strin
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, employee_id, date::text,
 		       clock_in_at, clock_out_at, is_late, note,
+		       clock_in_latitude, clock_in_longitude, clock_in_photo_url, work_location_type,
 		       created_at, updated_at
 		FROM attendance_records
 		WHERE organisation_id = $1
@@ -149,6 +150,7 @@ func (r *Repository) ListByDate(ctx context.Context, orgID uuid.UUID, date strin
 		if err := rows.Scan(
 			&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
 			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.Note,
+			&rec.ClockInLatitude, &rec.ClockInLongitude, &rec.ClockInPhotoURL, &rec.WorkLocationType,
 			&rec.CreatedAt, &rec.UpdatedAt,
 		); err != nil {
 			return nil, err

@@ -20,35 +20,64 @@ interface TeamMapViewProps {
   timezone: string
 }
 
-function locationLabel(type?: string): string {
+function locationLabel(type?: string | null): string {
   switch (type) {
     case 'office': return 'Office'
     case 'wfh': return 'WFH'
-    case 'wfa': return 'WFA'
+    case 'wfa':
+    case 'remote': return 'Remote'
     default: return 'Unknown'
   }
 }
 
-function locationColor(type?: string): string {
+function locationColor(type?: string | null): string {
   switch (type) {
     case 'office': return colors.ok
     case 'wfh': return colors.accent
-    case 'wfa': return colors.warn
-    default: return '#888'
+    case 'wfa':
+    case 'remote': return colors.warn
+    default: return '#6B7280'
   }
 }
 
-function buildIcon(color: string): L.DivIcon {
+function buildIcon(color: string, initials: string): L.DivIcon {
   return L.divIcon({
     className: '',
-    html: `<div style="
-      width:14px;height:14px;border-radius:3px;
-      background:${color};border:2px solid #fff;
-      box-shadow:0 1px 4px rgba(0,0,0,0.4);
-    "></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7],
-    popupAnchor: [0, -10],
+    html: `
+      <div style="
+        position:relative;
+        width:36px;
+        height:44px;
+        display:flex;
+        flex-direction:column;
+        align-items:center;
+      ">
+        <!-- Circle with initials -->
+        <div style="
+          width:36px;height:36px;border-radius:50%;
+          background:${color};
+          border:3px solid #fff;
+          box-shadow:0 3px 10px rgba(0,0,0,0.35);
+          display:flex;align-items:center;justify-content:center;
+          font-family:system-ui,sans-serif;
+          font-size:13px;font-weight:700;
+          color:#fff;
+          letter-spacing:-0.5px;
+        ">${initials}</div>
+        <!-- Pointer tail -->
+        <div style="
+          width:0;height:0;
+          border-left:6px solid transparent;
+          border-right:6px solid transparent;
+          border-top:8px solid ${color};
+          margin-top:-1px;
+          filter:drop-shadow(0 2px 2px rgba(0,0,0,0.2));
+        "></div>
+      </div>
+    `,
+    iconSize: [36, 44],
+    iconAnchor: [18, 44],
+    popupAnchor: [0, -46],
   })
 }
 
@@ -85,6 +114,28 @@ export function TeamMapView({ entries, date, timezone }: TeamMapViewProps) {
         zoomControl: true,
       })
 
+      // Inject popup styles once
+      if (!document.getElementById('workived-map-styles')) {
+        const style = document.createElement('style')
+        style.id = 'workived-map-styles'
+        style.textContent = `
+          .workived-popup .leaflet-popup-content-wrapper {
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            padding: 0;
+            overflow: hidden;
+          }
+          .workived-popup .leaflet-popup-content {
+            margin: 12px;
+            min-width: 200px;
+          }
+          .workived-popup .leaflet-popup-tip-container {
+            margin-top: -1px;
+          }
+        `
+        document.head.appendChild(style)
+      }
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 19,
@@ -108,22 +159,65 @@ export function TeamMapView({ entries, date, timezone }: TeamMapViewProps) {
       const lat = entry.clock_in_latitude!
       const lng = entry.clock_in_longitude!
       const color = locationColor(entry.work_location_type)
-      const icon = buildIcon(color)
+      const initials = entry.employee_name
+        .split(' ')
+        .slice(0, 2)
+        .map((w) => w[0]?.toUpperCase() ?? '')
+        .join('')
+      const icon = buildIcon(color, initials)
 
       const photoHtml = entry.clock_in_photo_url
-        ? `<img src="${entry.clock_in_photo_url}" alt="Clock-in photo" style="width:100%;border-radius:4px;margin-top:6px;"/>`
+        ? `<img src="${entry.clock_in_photo_url}" alt="" style="
+            width:100%;height:120px;object-fit:cover;
+            border-radius:8px;margin-bottom:10px;display:block;
+          "/>`
         : ''
 
-      const popup = L.popup({ maxWidth: 200 }).setContent(`
-        <div style="font-family:system-ui,sans-serif;font-size:13px;line-height:1.4">
-          <div style="font-weight:700;margin-bottom:2px">${entry.employee_name}</div>
-          <div style="
-            display:inline-block;padding:1px 6px;border-radius:3px;font-size:11px;
-            background:${color}22;color:${color};font-weight:600;margin-bottom:4px;
-          ">${locationLabel(entry.work_location_type)}</div>
-          <div style="color:#555">Clocked in: ${formatTime(entry.clock_in_at, timezone)}</div>
-          ${entry.clock_out_at ? `<div style="color:#555">Clocked out: ${formatTime(entry.clock_out_at, timezone)}</div>` : ''}
+      const clockOut = entry.clock_out_at
+        ? `<div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#9CA3AF;flex-shrink:0;"></div>
+            <span style="color:#6B7280;font-size:11px;">Out</span>
+            <span style="color:#111;font-size:12px;font-weight:600;margin-left:auto;">${formatTime(entry.clock_out_at, timezone)}</span>
+          </div>`
+        : `<div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:6px;height:6px;border-radius:50%;background:#D1FAE5;flex-shrink:0;"></div>
+            <span style="color:#6B7280;font-size:11px;">Still working</span>
+          </div>`
+
+      const popup = L.popup({ maxWidth: 220, className: 'workived-popup' }).setContent(`
+        <div style="font-family:system-ui,-apple-system,sans-serif;padding:2px;">
           ${photoHtml}
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <div style="
+              width:32px;height:32px;border-radius:50%;flex-shrink:0;
+              background:${color};display:flex;align-items:center;justify-content:center;
+              font-size:12px;font-weight:700;color:#fff;
+            ">${initials}</div>
+            <div style="min-width:0;">
+              <div style="font-weight:700;font-size:13px;color:#111;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                ${entry.employee_name}
+              </div>
+              <div style="
+                display:inline-flex;align-items:center;gap:3px;
+                padding:1px 7px;border-radius:99px;font-size:10px;font-weight:700;
+                background:${color}1A;color:${color};margin-top:1px;
+              ">
+                <div style="width:5px;height:5px;border-radius:50%;background:${color};"></div>
+                ${locationLabel(entry.work_location_type)}
+              </div>
+            </div>
+          </div>
+          <div style="
+            background:#F9FAFB;border-radius:8px;padding:8px 10px;
+            display:flex;flex-direction:column;gap:5px;
+          ">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <div style="width:6px;height:6px;border-radius:50%;background:#10B981;flex-shrink:0;"></div>
+              <span style="color:#6B7280;font-size:11px;">In</span>
+              <span style="color:#111;font-size:12px;font-weight:600;margin-left:auto;">${formatTime(entry.clock_in_at, timezone)}</span>
+            </div>
+            ${clockOut}
+          </div>
         </div>
       `)
 
@@ -184,13 +278,13 @@ export function TeamMapView({ entries, date, timezone }: TeamMapViewProps) {
           color: '#555',
         }}
       >
-        {(['office', 'wfh', 'wfa'] as const).map((type) => (
-          <div key={type} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        {(['office', 'wfh', 'remote', undefined] as (string | undefined)[]).map((type) => (
+          <div key={type ?? 'unknown'} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <div
               style={{
-                width: 10,
-                height: 10,
-                borderRadius: 2,
+                width: 12,
+                height: 12,
+                borderRadius: '50%',
                 background: locationColor(type),
                 flexShrink: 0,
               }}

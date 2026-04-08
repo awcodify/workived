@@ -667,7 +667,7 @@ function AttendancePage() {
 
           {/* Map / List toggle (admin only, desktop only) */}
           {role.canViewAll && (
-            <div className="hidden lg:flex items-center justify-end">
+            <div className="flex items-center justify-end">
               <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: t.border }}>
                 <button
                   onClick={() => setViewMode('list')}
@@ -698,7 +698,7 @@ function AttendancePage() {
           {/* Map view */}
           {viewMode === 'map' && role.canViewAll ? (
             <div
-              className="hidden lg:block p-5"
+              className="p-5"
               style={{
                 background: t.surface,
                 borderRadius: 16,

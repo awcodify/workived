@@ -104,6 +104,12 @@ func newAttRouter(svc attendance.ServiceInterface) *gin.Engine {
 	return newAttRouterWithLookup(svc, defaultEmpLookup)
 }
 
+type noopPresigner struct{}
+
+func (noopPresigner) GetPresignedURL(_ context.Context, key string) (string, error) {
+	return "https://example.com/" + key, nil
+}
+
 func newAttRouterWithLookup(svc attendance.ServiceInterface, lookup attendance.EmployeeLookupFunc) *gin.Engine {
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
@@ -112,7 +118,7 @@ func newAttRouterWithLookup(svc attendance.ServiceInterface, lookup attendance.E
 		c.Set("role", middleware.RoleAdmin)
 		c.Next()
 	})
-	h := attendance.NewHandler(svc, lookup, zerolog.Nop())
+	h := attendance.NewHandler(svc, lookup, noopPresigner{}, zerolog.Nop())
 	h.RegisterRoutes(r.Group("/api/v1"))
 	return r
 }

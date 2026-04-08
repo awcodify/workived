@@ -34,14 +34,20 @@ type ServiceInterface interface {
 // It is a function type that satisfies itself — pass it directly when wiring.
 type EmployeeLookupFunc func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error)
 
+// StoragePresigner generates presigned download URLs for stored object keys.
+type StoragePresigner interface {
+	GetPresignedURL(ctx context.Context, key string) (string, error)
+}
+
 type Handler struct {
 	service   ServiceInterface
 	empLookup EmployeeLookupFunc
+	storage   StoragePresigner
 	log       zerolog.Logger
 }
 
-func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc, log zerolog.Logger) *Handler {
-	return &Handler{service: service, empLookup: empLookup, log: log}
+func NewHandler(service ServiceInterface, empLookup EmployeeLookupFunc, storage StoragePresigner, log zerolog.Logger) *Handler {
+	return &Handler{service: service, empLookup: empLookup, storage: storage, log: log}
 }
 
 // logAndRespondError logs the error with context and sends JSON response to client
@@ -181,6 +187,16 @@ func (h *Handler) DailyReport(c *gin.Context) {
 	if err != nil {
 		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 		return
+	}
+
+	// Resolve S3 keys to presigned URLs for clock-in photos
+	for i := range entries {
+		if entries[i].ClockInPhotoURL != nil {
+			url, presignErr := h.storage.GetPresignedURL(c.Request.Context(), *entries[i].ClockInPhotoURL)
+			if presignErr == nil {
+				entries[i].ClockInPhotoURL = &url
+			}
+		}
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": entries})
