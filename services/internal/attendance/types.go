@@ -52,11 +52,15 @@ type PublicHoliday struct {
 
 // DailyEntry represents one employee's attendance for a given day in reports.
 type DailyEntry struct {
-	EmployeeID   uuid.UUID  `json:"employee_id"`
-	EmployeeName string     `json:"employee_name"`
-	Status       string     `json:"status"` // present, late, absent
-	ClockInAt    *time.Time `json:"clock_in_at,omitempty"`
-	ClockOutAt   *time.Time `json:"clock_out_at,omitempty"`
+	EmployeeID       uuid.UUID  `json:"employee_id"`
+	EmployeeName     string     `json:"employee_name"`
+	Status           string     `json:"status"` // present, late, absent
+	ClockInAt        *time.Time `json:"clock_in_at,omitempty"`
+	ClockOutAt       *time.Time `json:"clock_out_at,omitempty"`
+	ClockInLatitude  *float64   `json:"clock_in_latitude,omitempty"`
+	ClockInLongitude *float64   `json:"clock_in_longitude,omitempty"`
+	ClockInPhotoURL  *string    `json:"clock_in_photo_url,omitempty"`
+	WorkLocationType *string    `json:"work_location_type,omitempty"`
 }
 
 // MonthlySummary aggregates attendance counters for a single employee.

@@ -333,6 +333,10 @@ export interface DailyEntry {
   clock_in_at?: string
   clock_out_at?: string
   note?: string
+  clock_in_latitude?: number
+  clock_in_longitude?: number
+  clock_in_photo_url?: string
+  work_location_type?: string
 }
 
 export interface MonthlySummary {
