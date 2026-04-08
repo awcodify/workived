@@ -438,7 +438,7 @@ func (r *Repository) GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail
 	d := &OrgDetail{}
 	err := r.db.QueryRow(ctx, `
 		SELECT o.id, o.name, o.slug, o.country_code, o.timezone, o.currency_code,
-		       o.work_days, o.plan, o.plan_employee_limit, o.logo_url, o.is_active, o.created_at,
+		       o.work_days, o.plan, o.plan_employee_limit, o.logo_url, o.allow_web_clock_in, o.is_active, o.created_at,
 		       COALESCE((SELECT COUNT(*) FROM employees WHERE organisation_id = o.id AND is_active = TRUE), 0) AS employee_count,
 		       COALESCE(u.full_name, '') AS owner_name
 		FROM organisations o
@@ -447,7 +447,7 @@ func (r *Repository) GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail
 		WHERE o.id = $1
 	`, orgID).Scan(
 		&d.ID, &d.Name, &d.Slug, &d.CountryCode, &d.Timezone, &d.CurrencyCode,
-		&d.WorkDays, &d.Plan, &d.PlanEmployeeLimit, &d.LogoURL, &d.IsActive, &d.CreatedAt,
+		&d.WorkDays, &d.Plan, &d.PlanEmployeeLimit, &d.LogoURL, &d.AllowWebClockIn, &d.IsActive, &d.CreatedAt,
 		&d.EmployeeCount, &d.OwnerName,
 	)
 	if err != nil {
