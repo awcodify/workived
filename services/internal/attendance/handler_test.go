@@ -86,6 +86,9 @@ func (m *mockAttService) DeactivateWorkSchedule(_ context.Context, _, _ uuid.UUI
 func (m *mockAttService) CountEmployeesBySchedule(_ context.Context, _, _ uuid.UUID) (int, error) {
 	return 0, nil
 }
+func (m *mockAttService) LocationAnalyticsReport(_ context.Context, _ uuid.UUID, _ attendance.LocationAnalyticsFilters) (*attendance.LocationAnalytics, error) {
+	return &attendance.LocationAnalytics{Total: 0, Breakdown: []attendance.LocationBreakdownItem{}}, nil
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

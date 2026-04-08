@@ -3,6 +3,7 @@ package attendance
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,6 +32,7 @@ type RepositoryInterface interface {
 	DeactivateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) error
 	IsDefaultSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (bool, error)
 	CountEmployeesBySchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (int, error)
+	GetLocationCounts(ctx context.Context, orgID uuid.UUID, startDate, endDate string) (map[string]int, error)
 }
 
 // OrgInfoProvider is the narrow interface for org data the attendance service needs.
@@ -265,6 +267,93 @@ func (s *Service) DailyReport(ctx context.Context, orgID uuid.UUID, filters Dail
 	}
 
 	return entries, nil
+}
+
+// LocationAnalyticsReport aggregates clock-in counts by work_location_type for a date range.
+func (s *Service) LocationAnalyticsReport(ctx context.Context, orgID uuid.UUID, filters LocationAnalyticsFilters) (*LocationAnalytics, error) {
+	tz, err := s.orgRepo.GetOrgTimezone(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		loc = time.UTC
+	}
+	now := s.now().In(loc)
+	today := now.Format("2006-01-02")
+
+	startDate := filters.StartDate
+	endDate := filters.EndDate
+
+	switch filters.Period {
+	case "this_week":
+		// Monday of current week
+		weekday := int(now.Weekday())
+		if weekday == 0 {
+			weekday = 7
+		}
+		monday := now.AddDate(0, 0, -(weekday - 1))
+		startDate = monday.Format("2006-01-02")
+		endDate = today
+	case "this_month":
+		startDate = fmt.Sprintf("%d-%02d-01", now.Year(), now.Month())
+		endDate = today
+	}
+
+	counts, err := s.repo.GetLocationCounts(ctx, orgID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+
+	// Order: office, wfh, remote, unknown
+	order := []string{"office", "wfh", "remote", "unknown"}
+	total := 0
+	for _, c := range counts {
+		total += c
+	}
+
+	breakdown := make([]LocationBreakdownItem, 0, len(order))
+	for _, t := range order {
+		c := counts[t]
+		if c == 0 {
+			continue
+		}
+		pct := 0.0
+		if total > 0 {
+			pct = float64(c) / float64(total) * 100
+		}
+		breakdown = append(breakdown, LocationBreakdownItem{
+			Type:       t,
+			Count:      c,
+			Percentage: math.Round(pct*10) / 10,
+		})
+	}
+	// Also include any types not in the predefined order
+	for t, c := range counts {
+		found := false
+		for _, o := range order {
+			if o == t {
+				found = true
+				break
+			}
+		}
+		if !found {
+			pct := float64(c) / float64(total) * 100
+			breakdown = append(breakdown, LocationBreakdownItem{
+				Type:       t,
+				Count:      c,
+				Percentage: math.Round(pct*10) / 10,
+			})
+		}
+	}
+
+	return &LocationAnalytics{
+		Total:     total,
+		Breakdown: breakdown,
+		StartDate: startDate,
+		EndDate:   endDate,
+	}, nil
 }
 
 // MonthlySummaryReport generates per-employee attendance summaries for a month.

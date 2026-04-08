@@ -98,6 +98,9 @@ func (f *fakeRepo) IsDefaultSchedule(ctx context.Context, orgID, scheduleID uuid
 func (f *fakeRepo) CountEmployeesBySchedule(_ context.Context, _, _ uuid.UUID) (int, error) {
 	return 0, nil
 }
+func (f *fakeRepo) GetLocationCounts(_ context.Context, _ uuid.UUID, _, _ string) (map[string]int, error) {
+	return map[string]int{}, nil
+}
 
 type fakeOrgInfo struct {
 	tz    string

@@ -160,6 +160,33 @@ func (r *Repository) ListByDate(ctx context.Context, orgID uuid.UUID, date strin
 	return records, rows.Err()
 }
 
+// GetLocationCounts returns per-location-type clock-in counts for a date range.
+func (r *Repository) GetLocationCounts(ctx context.Context, orgID uuid.UUID, startDate, endDate string) (map[string]int, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT COALESCE(work_location_type, 'unknown') AS loc, COUNT(*) AS cnt
+		FROM attendance_records
+		WHERE organisation_id = $1
+		  AND date >= $2::date
+		  AND date <= $3::date
+		GROUP BY loc
+	`, orgID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	counts := make(map[string]int)
+	for rows.Next() {
+		var loc string
+		var cnt int
+		if err := rows.Scan(&loc, &cnt); err != nil {
+			return nil, err
+		}
+		counts[loc] = cnt
+	}
+	return counts, rows.Err()
+}
+
 // ListByMonth returns all attendance records for an org in a given month.
 func (r *Repository) ListByMonth(ctx context.Context, orgID uuid.UUID, year, month int) ([]Record, error) {
 	rows, err := r.db.Query(ctx, `

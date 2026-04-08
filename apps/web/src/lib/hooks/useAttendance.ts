@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { useMemo } from 'react'
 import { attendanceApi } from '@/lib/api/attendance'
 import { useAttendanceRole } from './useAttendanceRole'
-import type { WeekCalendar, DailyEntry, AttendanceRecord } from '@/types/api'
+import type { WeekCalendar, DailyEntry, AttendanceRecord, LocationAnalytics } from '@/types/api'
 
 interface ApiErrorResponse {
   error?: { message?: string }
@@ -21,6 +21,7 @@ export const attendanceKeys = {
   teamWeek: (startDate: string) => [...attendanceKeys.all, 'team-week', startDate] as const,
   mySummary: (year: number, month: number) => [...attendanceKeys.all, 'my-summary', year, month] as const,
   teamSummary: (year: number, month: number) => [...attendanceKeys.all, 'team-summary', year, month] as const,
+  locationAnalytics: (period: string) => [...attendanceKeys.all, 'location-analytics', period] as const,
 }
 
 export function useAttendanceToday(employeeId: string) {
@@ -308,5 +309,14 @@ export function useDeactivateWorkSchedule() {
   return useMutation({
     mutationFn: (id: string) => attendanceApi.deactivateWorkSchedule(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: [...attendanceKeys.all, 'work-schedules'] }),
+  })
+}
+
+
+export function useLocationAnalytics(period: 'this_week' | 'this_month') {
+  return useQuery<LocationAnalytics>({
+    queryKey: attendanceKeys.locationAnalytics(period),
+    queryFn: () => attendanceApi.getLocationAnalytics(period).then((r) => r.data.data),
+    staleTime: 5 * 60 * 1000,
   })
 }

@@ -59,4 +59,7 @@ export const attendanceApi = {
 
   countEmployeesBySchedule: (id: string) =>
     apiClient.get<ApiResponse<{ count: number }>>(`/api/v1/attendance/work-schedules/${id}/employees-count`),
+
+  getLocationAnalytics: (period: 'this_week' | 'this_month') =>
+    apiClient.get<ApiResponse<import('@/types/api').LocationAnalytics>>('/api/v1/attendance/analytics/locations', { params: { period } }),
 }

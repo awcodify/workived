@@ -339,6 +339,19 @@ export interface DailyEntry {
   work_location_type?: string
 }
 
+export interface LocationBreakdownItem {
+  type: string
+  count: number
+  percentage: number
+}
+
+export interface LocationAnalytics {
+  total: number
+  breakdown: LocationBreakdownItem[]
+  start_date: string
+  end_date: string
+}
+
 export interface MonthlySummary {
   employee_id: string
   employee_name: string

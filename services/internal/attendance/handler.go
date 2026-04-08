@@ -18,6 +18,7 @@ type ServiceInterface interface {
 	ClockOut(ctx context.Context, orgID uuid.UUID, req ClockOutRequest) (*Record, error)
 	GetToday(ctx context.Context, orgID, employeeID uuid.UUID) (*Record, error)
 	DailyReport(ctx context.Context, orgID uuid.UUID, filters DailyReportFilters) ([]DailyEntry, error)
+	LocationAnalyticsReport(ctx context.Context, orgID uuid.UUID, filters LocationAnalyticsFilters) (*LocationAnalytics, error)
 	MonthlySummaryReport(ctx context.Context, orgID uuid.UUID, filters MonthlyReportFilters) ([]MonthlySummary, error)
 	EmployeeMonthlySummary(ctx context.Context, orgID, employeeID uuid.UUID, filters MonthlyReportFilters) (*MonthlySummary, error)
 	GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UUID, startDate string) (*WeekCalendar, error)
@@ -83,6 +84,9 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	att.PUT("/work-schedules/:schedule_id", middleware.Require(middleware.PermAttendanceRead), h.UpdateWorkSchedule)
 	att.PATCH("/work-schedules/:schedule_id/deactivate", middleware.Require(middleware.PermAttendanceRead), h.DeactivateWorkSchedule)
 	att.GET("/work-schedules/:schedule_id/employees-count", middleware.Require(middleware.PermAttendanceRead), h.CountEmployeesBySchedule)
+
+	// Analytics (admin only)
+	att.GET("/analytics/locations", middleware.Require(middleware.PermAttendanceRead), h.LocationAnalytics)
 }
 
 func (h *Handler) ClockIn(c *gin.Context) {
@@ -200,6 +204,26 @@ func (h *Handler) DailyReport(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": entries})
+}
+
+func (h *Handler) LocationAnalytics(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	period := c.Query("period") // "this_week" | "this_month"
+	if period == "" {
+		period = "this_week"
+	}
+	if period != "this_week" && period != "this_month" {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, `period must be "this_week" or "this_month"`, "period")))
+		return
+	}
+
+	result, err := h.service.LocationAnalyticsReport(c.Request.Context(), orgID, LocationAnalyticsFilters{Period: period})
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to get location analytics", map[string]string{"org_id": orgID.String()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
 func (h *Handler) MonthlySummaryReport(c *gin.Context) {

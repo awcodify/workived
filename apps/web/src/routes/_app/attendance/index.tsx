@@ -4,6 +4,7 @@ import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules, useDailyReport } from '@/lib/hooks/useAttendance'
+import { LocationAnalyticsWidget } from '@/components/workived/attendance/LocationAnalyticsWidget'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
 import { TeamMapView } from '@/components/workived/attendance/TeamMapView'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
@@ -568,6 +569,11 @@ function AttendancePage() {
               </div>
             )}
           </div>
+
+          {/* Location Analytics Widget — admin only */}
+          {role.canViewAll && (
+            <LocationAnalyticsWidget className="mt-6" />
+          )}
         </div>
 
         {/* RIGHT COLUMN: Week Calendar + Employee Table (Wider) */}

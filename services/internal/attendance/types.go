@@ -139,6 +139,28 @@ type DailyReportFilters struct {
 	EmployeeID *uuid.UUID // Optional: filter by employee (for non-admins)
 }
 
+// LocationBreakdownItem is a single location type count + percentage.
+type LocationBreakdownItem struct {
+	Type       string  `json:"type"`       // "office", "wfh", "remote", "unknown"
+	Count      int     `json:"count"`
+	Percentage float64 `json:"percentage"` // 0–100
+}
+
+// LocationAnalytics is the response for GET /attendance/analytics/locations.
+type LocationAnalytics struct {
+	Total     int                     `json:"total"`
+	Breakdown []LocationBreakdownItem `json:"breakdown"`
+	StartDate string                  `json:"start_date"` // YYYY-MM-DD
+	EndDate   string                  `json:"end_date"`
+}
+
+// LocationAnalyticsFilters controls the query window.
+type LocationAnalyticsFilters struct {
+	Period    string // "this_week" | "this_month"
+	StartDate string // YYYY-MM-DD (used when Period == "")
+	EndDate   string // YYYY-MM-DD
+}
+
 type MonthlyReportFilters struct {
 	Year  int
 	Month int // 1–12
