@@ -14,8 +14,8 @@ import (
 // RepositoryInterface is the data access interface the service depends on.
 type RepositoryInterface interface {
 	GetByEmployeeAndDate(ctx context.Context, orgID, employeeID uuid.UUID, date string) (*Record, error)
-	Create(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockInAt time.Time, isLate bool, note *string) (*Record, error)
-	UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, note *string) (*Record, error)
+	Create(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockInAt time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*Record, error)
+	UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, note *string, latitude, longitude *float64, photoURL *string) (*Record, error)
 	ListByDate(ctx context.Context, orgID uuid.UUID, date string) ([]Record, error)
 	ListByMonth(ctx context.Context, orgID uuid.UUID, year, month int) ([]Record, error)
 	ListByEmployeeMonth(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]Record, error)
@@ -117,19 +117,27 @@ func (s *Service) ClockIn(ctx context.Context, orgID uuid.UUID, req ClockInReque
 		isLate = s.checkLate(localNow, schedule)
 	}
 
-	rec, err := s.repo.Create(ctx, orgID, req.EmployeeID, today, now, isLate, req.Note)
+	rec, err := s.repo.Create(ctx, orgID, req.EmployeeID, today, now, isLate, req.Note, req.Latitude, req.Longitude, req.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
 
 	// Log business event
-	s.log.Info().
+	evt := s.log.Info().
 		Str("org_id", orgID.String()).
 		Str("employee_id", req.EmployeeID.String()).
 		Str("date", today).
 		Time("clock_in_at", now).
 		Bool("is_late", isLate).
-		Msg("attendance.clock_in")
+		Bool("has_photo", req.PhotoURL != nil).
+		Bool("has_location", req.Latitude != nil && req.Longitude != nil)
+	if req.Latitude != nil {
+		evt = evt.Float64("latitude", *req.Latitude)
+	}
+	if req.Longitude != nil {
+		evt = evt.Float64("longitude", *req.Longitude)
+	}
+	evt.Msg("attendance.clock_in")
 
 	return rec, nil
 }
@@ -159,20 +167,28 @@ func (s *Service) ClockOut(ctx context.Context, orgID uuid.UUID, req ClockOutReq
 		return nil, apperr.Conflict("already clocked out today")
 	}
 
-	rec, err := s.repo.UpdateClockOut(ctx, orgID, req.EmployeeID, today, now, req.Note)
+	rec, err := s.repo.UpdateClockOut(ctx, orgID, req.EmployeeID, today, now, req.Note, req.Latitude, req.Longitude, req.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
 
 	// Log business event
 	duration := now.Sub(existing.ClockInAt)
-	s.log.Info().
+	evtOut := s.log.Info().
 		Str("org_id", orgID.String()).
 		Str("employee_id", req.EmployeeID.String()).
 		Str("date", today).
 		Time("clock_out_at", now).
 		Dur("duration", duration).
-		Msg("attendance.clock_out")
+		Bool("has_photo", req.PhotoURL != nil).
+		Bool("has_location", req.Latitude != nil && req.Longitude != nil)
+	if req.Latitude != nil {
+		evtOut = evtOut.Float64("latitude", *req.Latitude)
+	}
+	if req.Longitude != nil {
+		evtOut = evtOut.Float64("longitude", *req.Longitude)
+	}
+	evtOut.Msg("attendance.clock_out")
 
 	return rec, nil
 }

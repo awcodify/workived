@@ -6,10 +6,10 @@ CREATE TABLE attendance_records (
     date             DATE NOT NULL,
     clock_in_at      TIMESTAMPTZ NOT NULL,
     clock_out_at     TIMESTAMPTZ,
-    clock_in_lat     NUMERIC(10,7),   -- Pro: GPS latitude
-    clock_in_lng     NUMERIC(10,7),   -- Pro: GPS longitude
-    clock_out_lat    NUMERIC(10,7),
-    clock_out_lng    NUMERIC(10,7),
+    clock_in_latitude     NUMERIC(10,7),   -- Pro: GPS latitude
+    clock_in_longitude     NUMERIC(10,7),   -- Pro: GPS longitude
+    clock_out_latitude    NUMERIC(10,7),
+    clock_out_longitude    NUMERIC(10,7),
     is_late          BOOLEAN NOT NULL DEFAULT FALSE,
     note             TEXT,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),

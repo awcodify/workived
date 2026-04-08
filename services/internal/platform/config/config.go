@@ -22,7 +22,8 @@ type Config struct {
 	JWTAccessTTL  time.Duration `mapstructure:"JWT_ACCESS_TTL"`
 	JWTRefreshTTL time.Duration `mapstructure:"JWT_REFRESH_TTL"`
 
-	S3Endpoint         string `mapstructure:"S3_ENDPOINT"` // MinIO: localhost:9000 (no protocol!), AWS: leave empty
+	S3Endpoint         string `mapstructure:"S3_ENDPOINT"`        // MinIO: localhost:9000 (no protocol!), AWS: leave empty
+	S3PublicEndpoint   string `mapstructure:"S3_PUBLIC_ENDPOINT"` // Override host in presigned URLs (e.g. 192.168.1.109:9000 for local dev)
 	S3Bucket           string `mapstructure:"S3_BUCKET"`
 	S3Region           string `mapstructure:"S3_REGION"`
 	S3UseSSL           bool   `mapstructure:"S3_USE_SSL"` // false for local MinIO, true for production
@@ -77,6 +78,7 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("JWT_ACCESS_TTL")
 	_ = v.BindEnv("JWT_REFRESH_TTL")
 	_ = v.BindEnv("S3_ENDPOINT")
+	_ = v.BindEnv("S3_PUBLIC_ENDPOINT")
 	_ = v.BindEnv("S3_BUCKET")
 	_ = v.BindEnv("S3_REGION")
 	_ = v.BindEnv("S3_USE_SSL")

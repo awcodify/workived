@@ -211,6 +211,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 			  -- Approval tasks: show only to assignee OR creator
 			  OR (t.approval_type IS NOT NULL AND ($3::uuid IS NULL OR t.assignee_id = $3::uuid OR t.created_by = $3::uuid))
 		  )
+		  AND ($9::boolean IS NULL OR $9 = false OR t.approval_type IS NULL)
 		  AND ($4::varchar IS NULL OR t.priority = $4)
 		  AND ($5::varchar IS NULL OR (
 			  CASE WHEN $5 = 'completed' THEN t.completed_at IS NOT NULL
@@ -243,6 +244,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 		nilIfEmpty(cursor.Value),
 		limit+1,
 		archiveDays,
+		filters.ExcludeApprovalTasks,
 	)
 	if err != nil {
 		return nil, err

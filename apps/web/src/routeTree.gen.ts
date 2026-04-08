@@ -19,7 +19,6 @@ import { Route as AuthLoginRouteRouteImport } from './routes/_auth/login/route'
 import { Route as AuthInviteRouteRouteImport } from './routes/_auth/invite/route'
 import { Route as AppTasksRouteRouteImport } from './routes/_app/tasks/route'
 import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
-import { Route as AppReportsRouteRouteImport } from './routes/_app/reports/route'
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
 import { Route as AppLeaveRouteRouteImport } from './routes/_app/leave/route'
@@ -30,12 +29,16 @@ import { Route as AppChangelogRouteRouteImport } from './routes/_app/changelog/r
 import { Route as AppCalendarRouteRouteImport } from './routes/_app/calendar/route'
 import { Route as AppAttendanceRouteRouteImport } from './routes/_app/attendance/route'
 import { Route as AppSetupIndexRouteImport } from './routes/_app/setup/index'
+import { Route as AppReportsIndexRouteImport } from './routes/_app/reports/index'
 import { Route as AppProfileIndexRouteImport } from './routes/_app/profile/index'
 import { Route as AppPeopleIndexRouteImport } from './routes/_app/people/index'
 import { Route as AppLeaveIndexRouteImport } from './routes/_app/leave/index'
 import { Route as AppClaimsIndexRouteImport } from './routes/_app/claims/index'
 import { Route as AppCalendarIndexRouteImport } from './routes/_app/calendar/index'
 import { Route as AppAttendanceIndexRouteImport } from './routes/_app/attendance/index'
+import { Route as AppReportsPerformanceV2RouteImport } from './routes/_app/reports/performance-v2'
+import { Route as AppReportsPerformanceOldRouteImport } from './routes/_app/reports/performance-old'
+import { Route as AppReportsPerformanceRouteImport } from './routes/_app/reports/performance'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppSettingsAuditLogsRouteRouteImport } from './routes/_app/settings/audit-logs/route'
@@ -93,11 +96,6 @@ const AppSettingsRouteRoute = AppSettingsRouteRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppReportsRouteRoute = AppReportsRouteRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AppRouteRoute,
-} as any)
 const AppPeopleRouteRoute = AppPeopleRouteRouteImport.update({
   id: '/people',
   path: '/people',
@@ -148,6 +146,11 @@ const AppSetupIndexRoute = AppSetupIndexRouteImport.update({
   path: '/setup/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppReportsIndexRoute = AppReportsIndexRouteImport.update({
+  id: '/reports/',
+  path: '/reports/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppProfileIndexRoute = AppProfileIndexRouteImport.update({
   id: '/profile/',
   path: '/profile/',
@@ -177,6 +180,22 @@ const AppAttendanceIndexRoute = AppAttendanceIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppAttendanceRouteRoute,
+} as any)
+const AppReportsPerformanceV2Route = AppReportsPerformanceV2RouteImport.update({
+  id: '/reports/performance-v2',
+  path: '/reports/performance-v2',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppReportsPerformanceOldRoute =
+  AppReportsPerformanceOldRouteImport.update({
+    id: '/reports/performance-old',
+    path: '/reports/performance-old',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
+const AppReportsPerformanceRoute = AppReportsPerformanceRouteImport.update({
+  id: '/reports/performance',
+  path: '/reports/performance',
+  getParentRoute: () => AppRouteRoute,
 } as any)
 const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
   id: '/members',
@@ -234,7 +253,6 @@ export interface FileRoutesByFullPath {
   '/leave': typeof AppLeaveRouteRouteWithChildren
   '/overview': typeof AppOverviewRouteRoute
   '/people': typeof AppPeopleRouteRouteWithChildren
-  '/reports': typeof AppReportsRouteRoute
   '/settings': typeof AppSettingsRouteRouteWithChildren
   '/tasks': typeof AppTasksRouteRoute
   '/invite': typeof AuthInviteRouteRoute
@@ -247,12 +265,16 @@ export interface FileRoutesByFullPath {
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/reports/performance': typeof AppReportsPerformanceRoute
+  '/reports/performance-old': typeof AppReportsPerformanceOldRoute
+  '/reports/performance-v2': typeof AppReportsPerformanceV2Route
   '/attendance/': typeof AppAttendanceIndexRoute
   '/calendar/': typeof AppCalendarIndexRoute
   '/claims/': typeof AppClaimsIndexRoute
   '/leave/': typeof AppLeaveIndexRoute
   '/people/': typeof AppPeopleIndexRoute
   '/profile/': typeof AppProfileIndexRoute
+  '/reports/': typeof AppReportsIndexRoute
   '/setup/': typeof AppSetupIndexRoute
   '/calendar/holidays/': typeof AppCalendarHolidaysIndexRoute
   '/claims/categories/': typeof AppClaimsCategoriesIndexRoute
@@ -264,7 +286,6 @@ export interface FileRoutesByTo {
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/known-issues': typeof AppKnownIssuesRouteRoute
   '/overview': typeof AppOverviewRouteRoute
-  '/reports': typeof AppReportsRouteRoute
   '/settings': typeof AppSettingsRouteRouteWithChildren
   '/tasks': typeof AppTasksRouteRoute
   '/invite': typeof AuthInviteRouteRoute
@@ -277,12 +298,16 @@ export interface FileRoutesByTo {
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/reports/performance': typeof AppReportsPerformanceRoute
+  '/reports/performance-old': typeof AppReportsPerformanceOldRoute
+  '/reports/performance-v2': typeof AppReportsPerformanceV2Route
   '/attendance': typeof AppAttendanceIndexRoute
   '/calendar': typeof AppCalendarIndexRoute
   '/claims': typeof AppClaimsIndexRoute
   '/leave': typeof AppLeaveIndexRoute
   '/people': typeof AppPeopleIndexRoute
   '/profile': typeof AppProfileIndexRoute
+  '/reports': typeof AppReportsIndexRoute
   '/setup': typeof AppSetupIndexRoute
   '/calendar/holidays': typeof AppCalendarHolidaysIndexRoute
   '/claims/categories': typeof AppClaimsCategoriesIndexRoute
@@ -302,7 +327,6 @@ export interface FileRoutesById {
   '/_app/leave': typeof AppLeaveRouteRouteWithChildren
   '/_app/overview': typeof AppOverviewRouteRoute
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
-  '/_app/reports': typeof AppReportsRouteRoute
   '/_app/settings': typeof AppSettingsRouteRouteWithChildren
   '/_app/tasks': typeof AppTasksRouteRoute
   '/_auth/invite': typeof AuthInviteRouteRoute
@@ -315,12 +339,16 @@ export interface FileRoutesById {
   '/_app/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
+  '/_app/reports/performance': typeof AppReportsPerformanceRoute
+  '/_app/reports/performance-old': typeof AppReportsPerformanceOldRoute
+  '/_app/reports/performance-v2': typeof AppReportsPerformanceV2Route
   '/_app/attendance/': typeof AppAttendanceIndexRoute
   '/_app/calendar/': typeof AppCalendarIndexRoute
   '/_app/claims/': typeof AppClaimsIndexRoute
   '/_app/leave/': typeof AppLeaveIndexRoute
   '/_app/people/': typeof AppPeopleIndexRoute
   '/_app/profile/': typeof AppProfileIndexRoute
+  '/_app/reports/': typeof AppReportsIndexRoute
   '/_app/setup/': typeof AppSetupIndexRoute
   '/_app/calendar/holidays/': typeof AppCalendarHolidaysIndexRoute
   '/_app/claims/categories/': typeof AppClaimsCategoriesIndexRoute
@@ -339,7 +367,6 @@ export interface FileRouteTypes {
     | '/leave'
     | '/overview'
     | '/people'
-    | '/reports'
     | '/settings'
     | '/tasks'
     | '/invite'
@@ -352,12 +379,16 @@ export interface FileRouteTypes {
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
+    | '/reports/performance'
+    | '/reports/performance-old'
+    | '/reports/performance-v2'
     | '/attendance/'
     | '/calendar/'
     | '/claims/'
     | '/leave/'
     | '/people/'
     | '/profile/'
+    | '/reports/'
     | '/setup/'
     | '/calendar/holidays/'
     | '/claims/categories/'
@@ -369,7 +400,6 @@ export interface FileRouteTypes {
     | '/feature-disabled'
     | '/known-issues'
     | '/overview'
-    | '/reports'
     | '/settings'
     | '/tasks'
     | '/invite'
@@ -382,12 +412,16 @@ export interface FileRouteTypes {
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
+    | '/reports/performance'
+    | '/reports/performance-old'
+    | '/reports/performance-v2'
     | '/attendance'
     | '/calendar'
     | '/claims'
     | '/leave'
     | '/people'
     | '/profile'
+    | '/reports'
     | '/setup'
     | '/calendar/holidays'
     | '/claims/categories'
@@ -406,7 +440,6 @@ export interface FileRouteTypes {
     | '/_app/leave'
     | '/_app/overview'
     | '/_app/people'
-    | '/_app/reports'
     | '/_app/settings'
     | '/_app/tasks'
     | '/_auth/invite'
@@ -419,12 +452,16 @@ export interface FileRouteTypes {
     | '/_app/settings/audit-logs'
     | '/_app/settings/company'
     | '/_app/settings/members'
+    | '/_app/reports/performance'
+    | '/_app/reports/performance-old'
+    | '/_app/reports/performance-v2'
     | '/_app/attendance/'
     | '/_app/calendar/'
     | '/_app/claims/'
     | '/_app/leave/'
     | '/_app/people/'
     | '/_app/profile/'
+    | '/_app/reports/'
     | '/_app/setup/'
     | '/_app/calendar/holidays/'
     | '/_app/claims/categories/'
@@ -509,13 +546,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
-    '/_app/reports': {
-      id: '/_app/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof AppReportsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
     '/_app/people': {
       id: '/_app/people'
       path: '/people'
@@ -586,6 +616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSetupIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/reports/': {
+      id: '/_app/reports/'
+      path: '/reports'
+      fullPath: '/reports/'
+      preLoaderRoute: typeof AppReportsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/profile/': {
       id: '/_app/profile/'
       path: '/profile'
@@ -627,6 +664,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/attendance/'
       preLoaderRoute: typeof AppAttendanceIndexRouteImport
       parentRoute: typeof AppAttendanceRouteRoute
+    }
+    '/_app/reports/performance-v2': {
+      id: '/_app/reports/performance-v2'
+      path: '/reports/performance-v2'
+      fullPath: '/reports/performance-v2'
+      preLoaderRoute: typeof AppReportsPerformanceV2RouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/reports/performance-old': {
+      id: '/_app/reports/performance-old'
+      path: '/reports/performance-old'
+      fullPath: '/reports/performance-old'
+      preLoaderRoute: typeof AppReportsPerformanceOldRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/reports/performance': {
+      id: '/_app/reports/performance'
+      path: '/reports/performance'
+      fullPath: '/reports/performance'
+      preLoaderRoute: typeof AppReportsPerformanceRouteImport
+      parentRoute: typeof AppRouteRoute
     }
     '/_app/settings/members': {
       id: '/_app/settings/members'
@@ -780,11 +838,14 @@ interface AppRouteRouteChildren {
   AppLeaveRouteRoute: typeof AppLeaveRouteRouteWithChildren
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
   AppPeopleRouteRoute: typeof AppPeopleRouteRouteWithChildren
-  AppReportsRouteRoute: typeof AppReportsRouteRoute
   AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
   AppTasksRouteRoute: typeof AppTasksRouteRoute
   AppOrgChartRoute: typeof AppOrgChartRoute
+  AppReportsPerformanceRoute: typeof AppReportsPerformanceRoute
+  AppReportsPerformanceOldRoute: typeof AppReportsPerformanceOldRoute
+  AppReportsPerformanceV2Route: typeof AppReportsPerformanceV2Route
   AppProfileIndexRoute: typeof AppProfileIndexRoute
+  AppReportsIndexRoute: typeof AppReportsIndexRoute
   AppSetupIndexRoute: typeof AppSetupIndexRoute
 }
 
@@ -798,11 +859,14 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppLeaveRouteRoute: AppLeaveRouteRouteWithChildren,
   AppOverviewRouteRoute: AppOverviewRouteRoute,
   AppPeopleRouteRoute: AppPeopleRouteRouteWithChildren,
-  AppReportsRouteRoute: AppReportsRouteRoute,
   AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
   AppTasksRouteRoute: AppTasksRouteRoute,
   AppOrgChartRoute: AppOrgChartRoute,
+  AppReportsPerformanceRoute: AppReportsPerformanceRoute,
+  AppReportsPerformanceOldRoute: AppReportsPerformanceOldRoute,
+  AppReportsPerformanceV2Route: AppReportsPerformanceV2Route,
   AppProfileIndexRoute: AppProfileIndexRoute,
+  AppReportsIndexRoute: AppReportsIndexRoute,
   AppSetupIndexRoute: AppSetupIndexRoute,
 }
 

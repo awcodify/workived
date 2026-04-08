@@ -38,6 +38,7 @@ export interface Organisation {
   work_days: number[]
   plan: 'free' | 'pro' | 'enterprise'
   plan_employee_limit?: number
+  allow_web_clock_in: boolean
   is_active: boolean
   created_at: string
 }
@@ -61,6 +62,7 @@ export interface UpdateOrgRequest {
   country_code?: string
   timezone?: string
   currency_code?: string
+  allow_web_clock_in?: boolean
 }
 
 export interface TransferOwnershipRequest {

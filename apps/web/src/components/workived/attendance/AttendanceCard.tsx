@@ -4,7 +4,7 @@ import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useMyWeek, useClockIn, useClockOut } from '@/lib/hooks/useAttendance'
 import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { colors, typography } from '@/design/tokens'
-import { Clock, LogIn, LogOut, Timer } from 'lucide-react'
+import { Clock, LogIn, LogOut, Timer, Smartphone } from 'lucide-react'
 import { Skeleton } from '@/components/workived/shared/Skeleton'
 
 interface AttendanceCardProps {
@@ -75,6 +75,7 @@ export function AttendanceCard({ variant = 'dark', className = '', style = {} }:
   const clockIn = useClockIn()
   const clockOut = useClockOut()
   const [note, setNote] = useState('')
+  const allowWebClockIn = org?.allow_web_clock_in ?? false
 
   const clock = useLiveClock(tz)
 
@@ -91,7 +92,7 @@ export function AttendanceCard({ variant = 'dark', className = '', style = {} }:
   const handleClockIn = () => {
     clockIn.mutate({ note: note || undefined }, { onSuccess: () => setNote('') })
   }
-  
+
   const handleClockOut = () => {
     clockOut.mutate({ note: note || undefined }, { onSuccess: () => setNote('') })
   }
@@ -313,36 +314,37 @@ export function AttendanceCard({ variant = 'dark', className = '', style = {} }:
                   </span>
                 </p>
               </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Note (optional)"
-                  aria-label="Clock out note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className="flex-1 text-sm px-4 py-3 focus:outline-none"
-                  style={{
-                    background: 'rgba(255,255,255,0.04)',
-                    border: '1px solid rgba(255,255,255,0.1)',
-                    borderRadius: 12,
-                    color: colors.ink0,
-                  }}
-                />
-                <button
-                  onClick={handleClockOut}
-                  disabled={clockOut.isPending}
-                  className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-                  style={{
-                    background: colors.warn,
-                    color: colors.ink0,
-                    borderRadius: 12,
-                    fontSize: 15,
-                    letterSpacing: '-0.01em',
-                  }}
+              {allowWebClockIn ? (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="Note (optional)"
+                    aria-label="Clock out note"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    className="flex-1 text-sm px-4 py-3 focus:outline-none"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, color: colors.ink0 }}
+                  />
+                  <button
+                    onClick={handleClockOut}
+                    disabled={clockOut.isPending}
+                    className="font-bold px-6 py-3 transition-all disabled:opacity-50"
+                    style={{ background: colors.warn, color: colors.ink0, borderRadius: 12, fontSize: 15, letterSpacing: '-0.01em' }}
+                  >
+                    {clockOut.isPending ? 'Clocking out...' : 'Clock Out'}
+                  </button>
+                </div>
+              ) : (
+                <div
+                  className="flex items-center gap-2 px-4 py-3"
+                  style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}
                 >
-                  {clockOut.isPending ? 'Clocking out...' : 'Clock Out'}
-                </button>
-              </div>
+                  <Smartphone size={15} style={{ color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+                    Clock out via the mobile app
+                  </span>
+                </div>
+              )}
             </>
           ) : (
             <>
@@ -394,36 +396,37 @@ export function AttendanceCard({ variant = 'dark', className = '', style = {} }:
                 <p style={{ fontSize: 16, color: 'rgba(255,255,255,0.5)', marginTop: 14, fontWeight: 500 }}>
                   Ready to start your day?
                 </p>
-                <div className="flex gap-2 mt-6">
-                  <input
-                    type="text"
-                    placeholder="Note (optional)"
-                    aria-label="Clock in note"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    className="flex-1 text-sm px-4 py-3 focus:outline-none"
-                    style={{
-                      background: 'rgba(255,255,255,0.06)',
-                      border: '1px solid rgba(255,255,255,0.12)',
-                      borderRadius: 12,
-                      color: colors.ink0,
-                    }}
-                  />
-                  <button
-                    onClick={handleClockIn}
-                    disabled={clockIn.isPending}
-                    className="font-bold px-6 py-3 transition-all disabled:opacity-50"
-                    style={{
-                      background: colors.ok,
-                      color: colors.ink0,
-                      borderRadius: 12,
-                      fontSize: 15,
-                      letterSpacing: '-0.01em',
-                    }}
+                {allowWebClockIn ? (
+                  <div className="flex gap-2 mt-6">
+                    <input
+                      type="text"
+                      placeholder="Note (optional)"
+                      aria-label="Clock in note"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      className="flex-1 text-sm px-4 py-3 focus:outline-none"
+                      style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, color: colors.ink0 }}
+                    />
+                    <button
+                      onClick={handleClockIn}
+                      disabled={clockIn.isPending}
+                      className="font-bold px-6 py-3 transition-all disabled:opacity-50"
+                      style={{ background: colors.ok, color: colors.ink0, borderRadius: 12, fontSize: 15, letterSpacing: '-0.01em' }}
+                    >
+                      {clockIn.isPending ? 'Clocking in...' : 'Clock In'}
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="flex items-center gap-2 mt-6 px-4 py-3"
+                    style={{ background: 'rgba(255,255,255,0.05)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)' }}
                   >
-                    {clockIn.isPending ? 'Clocking in...' : 'Clock In'}
-                  </button>
-                </div>
+                    <Smartphone size={15} style={{ color: 'rgba(255,255,255,0.4)', flexShrink: 0 }} />
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>
+                      Clock in/out is only available on the mobile app
+                    </span>
+                  </div>
+                )}
               </div>
             </>
           )}

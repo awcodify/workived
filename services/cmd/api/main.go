@@ -24,6 +24,7 @@ import (
 	"github.com/workived/services/internal/employmentchange"
 	"github.com/workived/services/internal/jobtitle"
 	"github.com/workived/services/internal/leave"
+	"github.com/workived/services/internal/mobile"
 	"github.com/workived/services/internal/organisation"
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
@@ -31,6 +32,7 @@ import (
 	"github.com/workived/services/internal/platform/storage"
 	"github.com/workived/services/internal/setup"
 	"github.com/workived/services/internal/tasks"
+	"github.com/workived/services/internal/upload"
 	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/email"
 	"github.com/workived/services/pkg/logger"
@@ -63,6 +65,7 @@ func main() {
 	// Storage client (S3/MinIO)
 	storageClient, err := storage.NewClient(ctx, storage.Config{
 		Endpoint:        cfg.S3Endpoint,
+		PublicEndpoint:  cfg.S3PublicEndpoint,
 		Region:          cfg.S3Region,
 		Bucket:          cfg.S3Bucket,
 		AccessKeyID:     cfg.AWSAccessKeyID,
@@ -182,10 +185,22 @@ func main() {
 		return emp.ID, nil
 	}, log)
 
+	uploadHandler := upload.NewHandler(storageClient, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
+		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		return emp.ID, nil
+	}, log)
+
 	setupHandler := setup.NewHandler(setupSvc, log)
 	calendarHandler := calendar.NewHandler(calendarSvc, log)
 	auditHandler := audit.NewHandler(auditRepo)
 	employmentHistoryHandler := employmentchange.NewHandler(employmentChangeRepo)
+
+	// Mobile service — aggregates data from multiple services
+	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, tasksRepo, cachedOrgInfo, log, cacheStore)
+	mobileHandler := mobile.NewHandler(mobileSvc)
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -259,6 +274,8 @@ func main() {
 	calendarHandler.RegisterRoutes(authed)
 	auditHandler.RegisterRoutes(authed)
 	employmentHistoryHandler.RegisterRoutes(authed)
+	mobileHandler.RegisterRoutes(authed)
+	uploadHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)

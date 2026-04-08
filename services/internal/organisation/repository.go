@@ -33,10 +33,10 @@ func (r *Repository) Create(ctx context.Context, req CreateOrgRequest, ownerID u
 		INSERT INTO organisations (name, slug, country_code, timezone, currency_code)
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, name, slug, country_code, timezone, currency_code,
-		          work_days, plan, plan_employee_limit, logo_url, is_active, created_at
+		          work_days, plan, plan_employee_limit, logo_url, allow_web_clock_in, is_active, created_at
 	`, req.Name, req.Slug, req.CountryCode, req.Timezone, req.CurrencyCode).
 		Scan(&org.ID, &org.Name, &org.Slug, &org.CountryCode, &org.Timezone, &org.CurrencyCode,
-			&org.WorkDays, &org.Plan, &org.PlanEmployeeLimit, &org.LogoURL, &org.IsActive, &org.CreatedAt)
+			&org.WorkDays, &org.Plan, &org.PlanEmployeeLimit, &org.LogoURL, &org.AllowWebClockIn, &org.IsActive, &org.CreatedAt)
 	if err != nil {
 		if isUniqueViolation(err) {
 			return nil, apperr.Conflict("an organisation with this slug already exists")
@@ -73,12 +73,12 @@ func (r *Repository) GetByID(ctx context.Context, orgID uuid.UUID) (*Organisatio
 	org := &Organisation{}
 	err := r.db.QueryRow(ctx, `
 		SELECT id, name, slug, country_code, timezone, currency_code,
-		       work_days, plan, plan_employee_limit, logo_url, is_active, created_at
+		       work_days, plan, plan_employee_limit, logo_url, allow_web_clock_in, is_active, created_at
 		FROM organisations
 		WHERE id = $1
 	`, orgID).Scan(
 		&org.ID, &org.Name, &org.Slug, &org.CountryCode, &org.Timezone, &org.CurrencyCode,
-		&org.WorkDays, &org.Plan, &org.PlanEmployeeLimit, &org.LogoURL, &org.IsActive, &org.CreatedAt,
+		&org.WorkDays, &org.Plan, &org.PlanEmployeeLimit, &org.LogoURL, &org.AllowWebClockIn, &org.IsActive, &org.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -438,7 +438,7 @@ func (r *Repository) GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail
 	d := &OrgDetail{}
 	err := r.db.QueryRow(ctx, `
 		SELECT o.id, o.name, o.slug, o.country_code, o.timezone, o.currency_code,
-		       o.work_days, o.plan, o.plan_employee_limit, o.logo_url, o.is_active, o.created_at,
+		       o.work_days, o.plan, o.plan_employee_limit, o.logo_url, o.allow_web_clock_in, o.is_active, o.created_at,
 		       COALESCE((SELECT COUNT(*) FROM employees WHERE organisation_id = o.id AND is_active = TRUE), 0) AS employee_count,
 		       COALESCE(u.full_name, '') AS owner_name
 		FROM organisations o
@@ -447,7 +447,7 @@ func (r *Repository) GetDetail(ctx context.Context, orgID uuid.UUID) (*OrgDetail
 		WHERE o.id = $1
 	`, orgID).Scan(
 		&d.ID, &d.Name, &d.Slug, &d.CountryCode, &d.Timezone, &d.CurrencyCode,
-		&d.WorkDays, &d.Plan, &d.PlanEmployeeLimit, &d.LogoURL, &d.IsActive, &d.CreatedAt,
+		&d.WorkDays, &d.Plan, &d.PlanEmployeeLimit, &d.LogoURL, &d.AllowWebClockIn, &d.IsActive, &d.CreatedAt,
 		&d.EmployeeCount, &d.OwnerName,
 	)
 	if err != nil {
@@ -464,18 +464,19 @@ func (r *Repository) Update(ctx context.Context, orgID uuid.UUID, req UpdateOrgR
 	org := &Organisation{}
 	err := r.db.QueryRow(ctx, `
 		UPDATE organisations
-		SET name          = COALESCE($2, name),
-		    slug          = COALESCE($3, slug),
-		    country_code  = COALESCE($4, country_code),
-		    timezone      = COALESCE($5, timezone),
-		    currency_code = COALESCE($6, currency_code),
-		    updated_at    = NOW()
+		SET name               = COALESCE($2, name),
+		    slug               = COALESCE($3, slug),
+		    country_code       = COALESCE($4, country_code),
+		    timezone           = COALESCE($5, timezone),
+		    currency_code      = COALESCE($6, currency_code),
+		    allow_web_clock_in = COALESCE($7, allow_web_clock_in),
+		    updated_at         = NOW()
 		WHERE id = $1
 		RETURNING id, name, slug, country_code, timezone, currency_code,
-		          work_days, plan, plan_employee_limit, logo_url, is_active, created_at
-	`, orgID, req.Name, req.Slug, req.CountryCode, req.Timezone, req.CurrencyCode).Scan(
+		          work_days, plan, plan_employee_limit, logo_url, allow_web_clock_in, is_active, created_at
+	`, orgID, req.Name, req.Slug, req.CountryCode, req.Timezone, req.CurrencyCode, req.AllowWebClockIn).Scan(
 		&org.ID, &org.Name, &org.Slug, &org.CountryCode, &org.Timezone, &org.CurrencyCode,
-		&org.WorkDays, &org.Plan, &org.PlanEmployeeLimit, &org.LogoURL, &org.IsActive, &org.CreatedAt,
+		&org.WorkDays, &org.Plan, &org.PlanEmployeeLimit, &org.LogoURL, &org.AllowWebClockIn, &org.IsActive, &org.CreatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

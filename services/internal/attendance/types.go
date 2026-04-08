@@ -9,16 +9,23 @@ import (
 // ── Domain types ──────────────────────────────────────────────────────────────
 
 type Record struct {
-	ID             uuid.UUID  `json:"id"`
-	OrganisationID uuid.UUID  `json:"organisation_id"`
-	EmployeeID     uuid.UUID  `json:"employee_id"`
-	Date           string     `json:"date"` // YYYY-MM-DD in org timezone
-	ClockInAt      time.Time  `json:"clock_in_at"`
-	ClockOutAt     *time.Time `json:"clock_out_at,omitempty"`
-	IsLate         bool       `json:"is_late"`
-	Note           *string    `json:"note,omitempty"`
-	CreatedAt      time.Time  `json:"created_at"`
-	UpdatedAt      time.Time  `json:"updated_at"`
+	ID                uuid.UUID  `json:"id"`
+	OrganisationID    uuid.UUID  `json:"organisation_id"`
+	EmployeeID        uuid.UUID  `json:"employee_id"`
+	Date              string     `json:"date"` // YYYY-MM-DD in org timezone
+	ClockInAt         time.Time  `json:"clock_in_at"`
+	ClockOutAt        *time.Time `json:"clock_out_at,omitempty"`
+	ClockInLatitude   *float64   `json:"clock_in_latitude,omitempty"`
+	ClockInLongitude  *float64   `json:"clock_in_longitude,omitempty"`
+	ClockInPhotoURL   *string    `json:"clock_in_photo_url,omitempty"`
+	ClockOutLatitude  *float64   `json:"clock_out_latitude,omitempty"`
+	ClockOutLongitude *float64   `json:"clock_out_longitude,omitempty"`
+	ClockOutPhotoURL  *string    `json:"clock_out_photo_url,omitempty"`
+	WorkLocationType  *string    `json:"work_location_type,omitempty"`
+	IsLate            bool       `json:"is_late"`
+	Note              *string    `json:"note,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 // WorkSchedule is the narrow view of a work_schedule row the service needs.
@@ -101,17 +108,26 @@ type ActiveEmployee struct {
 type ClockInRequest struct {
 	EmployeeID uuid.UUID `json:"employee_id" validate:"required"`
 	Note       *string   `json:"note"        validate:"omitempty,max=500"`
+	Latitude   *float64  `json:"latitude"    validate:"omitempty"`
+	Longitude  *float64  `json:"longitude"   validate:"omitempty"`
+	PhotoURL   *string   `json:"photo_url"   validate:"omitempty"`
 }
 
 // ClockOutRequest is the internal service request (includes resolved employee_id).
 type ClockOutRequest struct {
 	EmployeeID uuid.UUID `json:"employee_id" validate:"required"`
 	Note       *string   `json:"note"        validate:"omitempty,max=500"`
+	Latitude   *float64  `json:"latitude"    validate:"omitempty"`
+	Longitude  *float64  `json:"longitude"   validate:"omitempty"`
+	PhotoURL   *string   `json:"photo_url"   validate:"omitempty"`
 }
 
 // clockHTTPRequest is the public API request body — no employee_id, auto-resolved from JWT.
 type clockHTTPRequest struct {
-	Note *string `json:"note" validate:"omitempty,max=500"`
+	Note      *string  `json:"note"      validate:"omitempty,max=500"`
+	Latitude  *float64 `json:"latitude"  validate:"omitempty"`
+	Longitude *float64 `json:"longitude" validate:"omitempty"`
+	PhotoURL  *string  `json:"photo_url" validate:"omitempty"`
 }
 
 type DailyReportFilters struct {

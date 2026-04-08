@@ -72,6 +72,7 @@ function makeOrg(overrides: Partial<OrgDetail> = {}): OrgDetail {
     work_days: [1, 2, 3, 4, 5],
     plan: 'free',
     plan_employee_limit: 25,
+    allow_web_clock_in: false,
     is_active: true,
     created_at: '2024-01-01T00:00:00Z',
     employee_count: 0,

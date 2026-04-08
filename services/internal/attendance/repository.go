@@ -25,7 +25,10 @@ func (r *Repository) GetByEmployeeAndDate(ctx context.Context, orgID, employeeID
 	rec := &Record{}
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, employee_id, date::text,
-		       clock_in_at, clock_out_at, is_late, note,
+		       clock_in_at, clock_out_at,
+		       clock_in_latitude, clock_in_longitude, clock_in_photo_url,
+		       clock_out_latitude, clock_out_longitude, clock_out_photo_url,
+		       work_location_type, is_late, note,
 		       created_at, updated_at
 		FROM attendance_records
 		WHERE organisation_id = $1
@@ -33,7 +36,10 @@ func (r *Repository) GetByEmployeeAndDate(ctx context.Context, orgID, employeeID
 		  AND date = $3::date
 	`, orgID, employeeID, date).Scan(
 		&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
-		&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.Note,
+		&rec.ClockInAt, &rec.ClockOutAt,
+		&rec.ClockInLatitude, &rec.ClockInLongitude, &rec.ClockInPhotoURL,
+		&rec.ClockOutLatitude, &rec.ClockOutLongitude, &rec.ClockOutPhotoURL,
+		&rec.WorkLocationType, &rec.IsLate, &rec.Note,
 		&rec.CreatedAt, &rec.UpdatedAt,
 	)
 	if err != nil {
@@ -46,17 +52,34 @@ func (r *Repository) GetByEmployeeAndDate(ctx context.Context, orgID, employeeID
 }
 
 // Create inserts a new attendance record (clock-in).
-func (r *Repository) Create(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockInAt time.Time, isLate bool, note *string) (*Record, error) {
+func (r *Repository) Create(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockInAt time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*Record, error) {
 	rec := &Record{}
+
+	// Determine work location type based on coordinates
+	var workLocationType *string
+	if latitude != nil && longitude != nil {
+		locType := "remote" // Could be enhanced with geofencing logic
+		workLocationType = &locType
+	}
+
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO attendance_records (organisation_id, employee_id, date, clock_in_at, is_late, note)
-		VALUES ($1, $2, $3::date, $4, $5, $6)
+		INSERT INTO attendance_records (
+			organisation_id, employee_id, date, clock_in_at, is_late, note,
+			clock_in_latitude, clock_in_longitude, clock_in_photo_url, work_location_type
+		)
+		VALUES ($1, $2, $3::date, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, organisation_id, employee_id, date::text,
-		          clock_in_at, clock_out_at, is_late, note,
+		          clock_in_at, clock_out_at,
+		          clock_in_latitude, clock_in_longitude, clock_in_photo_url,
+		          clock_out_latitude, clock_out_longitude, clock_out_photo_url,
+		          work_location_type, is_late, note,
 		          created_at, updated_at
-	`, orgID, employeeID, date, clockInAt, isLate, note).Scan(
+	`, orgID, employeeID, date, clockInAt, isLate, note, latitude, longitude, photoURL, workLocationType).Scan(
 		&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
-		&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.Note,
+		&rec.ClockInAt, &rec.ClockOutAt,
+		&rec.ClockInLatitude, &rec.ClockInLongitude, &rec.ClockInPhotoURL,
+		&rec.ClockOutLatitude, &rec.ClockOutLongitude, &rec.ClockOutPhotoURL,
+		&rec.WorkLocationType, &rec.IsLate, &rec.Note,
 		&rec.CreatedAt, &rec.UpdatedAt,
 	)
 	if err != nil {
@@ -69,21 +92,30 @@ func (r *Repository) Create(ctx context.Context, orgID, employeeID uuid.UUID, da
 }
 
 // UpdateClockOut sets the clock_out_at on an existing attendance record.
-func (r *Repository) UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, note *string) (*Record, error) {
+func (r *Repository) UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, note *string, latitude, longitude *float64, photoURL *string) (*Record, error) {
 	rec := &Record{}
 	err := r.db.QueryRow(ctx, `
 		UPDATE attendance_records
 		SET clock_out_at = $4,
-		    note = COALESCE($5, note)
+		    note = COALESCE($5, note),
+		    clock_out_latitude = $6,
+		    clock_out_longitude = $7,
+		    clock_out_photo_url = $8
 		WHERE organisation_id = $1
 		  AND employee_id = $2
 		  AND date = $3::date
 		RETURNING id, organisation_id, employee_id, date::text,
-		          clock_in_at, clock_out_at, is_late, note,
+		          clock_in_at, clock_out_at,
+		          clock_in_latitude, clock_in_longitude, clock_in_photo_url,
+		          clock_out_latitude, clock_out_longitude, clock_out_photo_url,
+		          work_location_type, is_late, note,
 		          created_at, updated_at
-	`, orgID, employeeID, date, clockOutAt, note).Scan(
+	`, orgID, employeeID, date, clockOutAt, note, latitude, longitude, photoURL).Scan(
 		&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
-		&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.Note,
+		&rec.ClockInAt, &rec.ClockOutAt,
+		&rec.ClockInLatitude, &rec.ClockInLongitude, &rec.ClockInPhotoURL,
+		&rec.ClockOutLatitude, &rec.ClockOutLongitude, &rec.ClockOutPhotoURL,
+		&rec.WorkLocationType, &rec.IsLate, &rec.Note,
 		&rec.CreatedAt, &rec.UpdatedAt,
 	)
 	if err != nil {

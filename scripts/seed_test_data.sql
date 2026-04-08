@@ -318,7 +318,7 @@ BEGIN
     RAISE NOTICE '✓ Created 11 leave requests (7 approved, 2 pending, 2 rejected) across all employees';
 
     -- 13. Create attendance records (past 14 days with various patterns)
-    INSERT INTO attendance_records (organisation_id, employee_id, date, clock_in_at, clock_out_at, is_late, clock_in_lat, clock_in_lng)
+    INSERT INTO attendance_records (organisation_id, employee_id, date, clock_in_at, clock_out_at, is_late, clock_in_latitude, clock_in_longitude)
     VALUES 
         -- Ahmad (CEO): Regular attendance, mostly on-time
         (v_org_id, v_ahmad_emp_id, CURRENT_DATE - INTERVAL '13 days', (CURRENT_DATE - INTERVAL '13 days')::DATE + TIME '08:00:00', (CURRENT_DATE - INTERVAL '13 days')::DATE + TIME '17:00:00', false, -6.2088, 106.8456),
