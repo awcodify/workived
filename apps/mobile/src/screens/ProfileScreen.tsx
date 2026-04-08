@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { apiClient } from '@/api/client'
 import { useState } from 'react'
 import { CustomAlert } from '@/components/CustomAlert'
+import type { DirectReport } from '@/types/api'
 
 export default function ProfileScreen() {
   const { logout } = useAuth()
@@ -18,6 +19,16 @@ export default function ProfileScreen() {
       const response = await apiClient.getMyProfile()
       return response.data
     },
+  })
+
+  // Fetch direct reports once profile is loaded
+  const { data: directReports } = useQuery({
+    queryKey: ['employee-directs', profile?.id],
+    queryFn: async () => {
+      const response = await apiClient.getDirectReports(profile!.id)
+      return response.data ?? []
+    },
+    enabled: !!profile?.id,
   })
 
   const handleLogout = () => {
@@ -190,6 +201,70 @@ export default function ProfileScreen() {
             </View>
           </View>
         </View>
+
+        {/* Organisation Chart */}
+        {(profile.manager_name || (directReports && directReports.length > 0)) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Organisation</Text>
+
+            {/* Manager card */}
+            {profile.manager_name && (
+              <View style={styles.orgNode}>
+                <View style={styles.orgNodeAvatar}>
+                  <Text style={styles.orgNodeAvatarText}>
+                    {profile.manager_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
+                  </Text>
+                </View>
+                <View style={styles.orgNodeInfo}>
+                  <Text style={styles.orgNodeLabel}>Reports to</Text>
+                  <Text style={styles.orgNodeName}>{profile.manager_name}</Text>
+                </View>
+                <Ionicons name="arrow-up-circle-outline" size={20} color="#6B7280" />
+              </View>
+            )}
+
+            {/* Connector + self node */}
+            <View style={styles.orgSelfRow}>
+              <View style={styles.orgConnectorLine} />
+              <View style={styles.orgSelfNode}>
+                <View style={[styles.orgNodeAvatar, styles.orgSelfAvatar]}>
+                  <Text style={[styles.orgNodeAvatarText, { color: '#6357E8' }]}>
+                    {getInitials(profile.full_name)}
+                  </Text>
+                </View>
+                <View style={styles.orgNodeInfo}>
+                  <Text style={styles.orgNodeLabel}>You</Text>
+                  <Text style={styles.orgNodeName}>{profile.full_name}</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Direct reports */}
+            {directReports && directReports.length > 0 && (
+              <>
+                <View style={styles.orgConnectorLine} />
+                <Text style={styles.orgDirectsLabel}>
+                  {directReports.length} direct report{directReports.length !== 1 ? 's' : ''}
+                </Text>
+                {directReports.map((report: DirectReport) => (
+                  <View key={report.id} style={[styles.orgNode, styles.orgDirectNode]}>
+                    <View style={styles.orgNodeAvatar}>
+                      <Text style={styles.orgNodeAvatarText}>
+                        {report.full_name.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)}
+                      </Text>
+                    </View>
+                    <View style={styles.orgNodeInfo}>
+                      <Text style={styles.orgNodeName}>{report.full_name}</Text>
+                      {report.job_title && (
+                        <Text style={styles.orgNodeSub}>{report.job_title}</Text>
+                      )}
+                    </View>
+                  </View>
+                ))}
+              </>
+            )}
+          </View>
+        )}
 
         {/* Account Actions */}
         <View style={styles.section}>
@@ -385,5 +460,91 @@ const styles = StyleSheet.create({
   versionText: {
     fontSize: 12,
     color: '#9CA3AF',
+  },
+  // Org chart styles
+  orgNode: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    marginBottom: 4,
+  },
+  orgSelfRow: {
+    alignItems: 'center',
+  },
+  orgSelfNode: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#6357E8',
+    alignSelf: 'stretch',
+  },
+  orgDirectNode: {
+    marginLeft: 20,
+    backgroundColor: '#F9FAFB',
+    borderColor: '#E5E7EB',
+  },
+  orgConnectorLine: {
+    width: 2,
+    height: 12,
+    backgroundColor: '#D1D5DB',
+    alignSelf: 'center',
+  },
+  orgDirectsLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#9CA3AF',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 4,
+    marginLeft: 20,
+  },
+  orgNodeAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  orgSelfAvatar: {
+    backgroundColor: '#EEF2FF',
+  },
+  orgNodeAvatarText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#6B7280',
+  },
+  orgNodeInfo: {
+    flex: 1,
+  },
+  orgNodeLabel: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 1,
+  },
+  orgNodeName: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  orgNodeSub: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 1,
   },
 })

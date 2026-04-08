@@ -12,6 +12,7 @@ import type {
   LeaveRequestWithDetails,
   ClaimWithDetails,
   EmployeeProfile,
+  DirectReport,
   ClaimCategory,
   SubmitClaimRequest,
   ClaimResponse,
@@ -201,6 +202,11 @@ class ApiClient {
   // Employee Profile
   async getMyProfile(): Promise<ApiResponse<EmployeeProfile>> {
     const response = await this.client.get<ApiResponse<EmployeeProfile>>('/employees/me')
+    return response.data
+  }
+
+  async getDirectReports(employeeId: string): Promise<ApiResponse<DirectReport[]>> {
+    const response = await this.client.get<ApiResponse<DirectReport[]>>(`/employees/${employeeId}/directs`)
     return response.data
   }
 

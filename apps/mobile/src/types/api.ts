@@ -181,6 +181,15 @@ export interface EmployeeProfile {
   invitation_pending: boolean
 }
 
+export interface DirectReport {
+  id: string
+  full_name: string
+  job_title: string | null
+  department_name: string | null
+  employment_type: string
+  status: string
+}
+
 export interface ClaimCategory {
   id: string
   organisation_id: string
