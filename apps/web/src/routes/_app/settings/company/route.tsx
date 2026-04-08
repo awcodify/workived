@@ -76,6 +76,7 @@ const NAV_ITEMS = [
   { id: 'general', label: 'General' },
   { id: 'location', label: 'Location & currency' },
   { id: 'plan', label: 'Plan & usage' },
+  { id: 'attendance', label: 'Attendance' },
   { id: 'danger', label: 'Danger zone' },
 ]
 
@@ -422,6 +423,68 @@ function PlanSection() {
   )
 }
 
+// ── Attendance section ─────────────────────────────────────────────────────────
+
+function AttendanceSection() {
+  const { data: org } = useOrgDetail()
+  const updateOrg = useUpdateOrg()
+  const [saved, setSaved] = useState(false)
+
+  if (!org) return null
+
+  const handleToggle = () => {
+    updateOrg.mutate(
+      { allow_web_clock_in: !org.allow_web_clock_in },
+      {
+        onSuccess: () => {
+          setSaved(true)
+          setTimeout(() => setSaved(false), 2000)
+        },
+      }
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <SectionTitle id="attendance" description="Control how employees can clock in and out.">
+        Attendance
+      </SectionTitle>
+
+      {saved && <Banner variant="success" message="Attendance settings saved." />}
+
+      <FieldRow
+        label="Allow web clock in/out"
+        htmlFor="allow-web-clock-in"
+        description="When enabled, employees can clock in and out from the web app in addition to the mobile app."
+      >
+        <button
+          id="allow-web-clock-in"
+          role="switch"
+          aria-checked={org.allow_web_clock_in}
+          onClick={handleToggle}
+          disabled={updateOrg.isPending}
+          className="relative inline-flex items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-white/20 disabled:opacity-50"
+          style={{
+            width: 44,
+            height: 24,
+            background: org.allow_web_clock_in ? C.accent : 'rgba(255,255,255,0.15)',
+            flexShrink: 0,
+          }}
+        >
+          <span
+            className="inline-block rounded-full bg-white transition-transform"
+            style={{
+              width: 18,
+              height: 18,
+              transform: org.allow_web_clock_in ? 'translateX(22px)' : 'translateX(3px)',
+            }}
+          />
+        </button>
+      </FieldRow>
+    </div>
+  )
+}
+
 // ── Transfer ownership section ─────────────────────────────────────────────────
 
 function TransferOwnershipSection() {
@@ -703,6 +766,8 @@ function CompanyPage() {
                   <LocationSection />
                   <Divider />
                   <PlanSection />
+                  <Divider />
+                  <AttendanceSection />
                   <Divider />
                   <TransferOwnershipSection />
                 </>
