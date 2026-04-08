@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { vi, describe, it, expect, beforeEach } from 'vitest'
 import { LocationAnalyticsWidget } from './LocationAnalyticsWidget'
 
-vi.mock('../../../../design/tokens', () => ({
+vi.mock('@/design/tokens', () => ({
   moduleThemes: {
     attendance: {
       surface: '#fff',

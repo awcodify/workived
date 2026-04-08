@@ -241,6 +241,19 @@ export interface PresignResponse {
   key: string
 }
 
+export interface LocationBreakdownItem {
+  type: string
+  count: number
+  percentage: number
+}
+
+export interface LocationAnalytics {
+  total: number
+  breakdown: LocationBreakdownItem[]
+  start_date: string
+  end_date: string
+}
+
 export interface ClaimBalanceWithCategory {
   id: string
   organisation_id: string

@@ -12,9 +12,12 @@ import type { MainTabParamList } from '@/navigation'
 import { useLocation } from '@/hooks/useLocation'
 import { CustomAlert } from '@/components/CustomAlert'
 import { CameraCapture } from '@/components/CameraCapture'
+import { LocationAnalyticsCard } from '@/components/LocationAnalyticsCard'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function HomeScreen() {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [clockedInLocation, setClockedInLocation] = useState<{ latitude: number; longitude: number; address?: string; accuracy?: number | null } | null>(null)
@@ -702,6 +705,11 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+
+        {/* Location Analytics — admin/manager only */}
+        {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'manager') && (
+          <LocationAnalyticsCard />
+        )}
       </ScrollView>
 
       <CustomAlert

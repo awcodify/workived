@@ -136,6 +136,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, 
 
 	_ = s.repo.UpdateLastLogin(ctx, user.ID)
 
+	user.OrgRole = role
 	return &LoginResponse{AccessToken: accessToken, User: user}, rawRefresh, nil
 }
 

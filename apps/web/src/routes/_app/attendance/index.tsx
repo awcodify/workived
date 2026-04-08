@@ -568,12 +568,12 @@ function AttendancePage() {
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Location Analytics Widget — admin only */}
-          {role.canViewAll && (
-            <LocationAnalyticsWidget className="mt-6" />
-          )}
+            {/* Location Analytics Widget — admin only */}
+            {role.canViewAll && (
+              <LocationAnalyticsWidget className="mt-6" />
+            )}
+          </div>
         </div>
 
         {/* RIGHT COLUMN: Week Calendar + Employee Table (Wider) */}

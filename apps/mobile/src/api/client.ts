@@ -18,12 +18,13 @@ import type {
   ClaimResponse,
   ClaimBalanceWithCategory,
   PresignResponse,
+  LocationAnalytics,
 } from '@/types/api'
 
 // TODO: Replace with your actual backend URL
 const API_BASE_URL = __DEV__ 
-  ? 'http://192.168.1.109:8080/api/v1' 
-  : 'https://api.workived.com/api/v1'
+  ? 'http://10.11.1.60:8080/api/v1' 
+  : 'https://my.workived.com/api/v1'
 
 class ApiClient {
   private client: AxiosInstance
@@ -207,6 +208,14 @@ class ApiClient {
 
   async getDirectReports(employeeId: string): Promise<ApiResponse<DirectReport[]>> {
     const response = await this.client.get<ApiResponse<DirectReport[]>>(`/employees/${employeeId}/directs`)
+    return response.data
+  }
+
+  // Location Analytics
+  async getLocationAnalytics(period: 'this_week' | 'this_month'): Promise<ApiResponse<LocationAnalytics>> {
+    const response = await this.client.get<ApiResponse<LocationAnalytics>>('/attendance/analytics/locations', {
+      params: { period },
+    })
     return response.data
   }
 

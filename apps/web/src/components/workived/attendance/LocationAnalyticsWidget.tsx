@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { useLocationAnalytics } from '@/lib/hooks/useAttendance'
-import { moduleThemes, colors } from '../../../../design/tokens'
+import { moduleThemes, colors } from '@/design/tokens'
 import { Skeleton } from '@/components/workived/shared/Skeleton'
 import type { LocationBreakdownItem } from '@/types/api'
 

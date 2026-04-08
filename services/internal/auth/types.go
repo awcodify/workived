@@ -16,6 +16,7 @@ type User struct {
 	IsActive     bool       `json:"is_active"`
 	LastLoginAt  *time.Time `json:"last_login_at,omitempty"`
 	CreatedAt    time.Time  `json:"created_at"`
+	OrgRole      string     `json:"role,omitempty"`
 }
 
 type AuthToken struct {

@@ -3,6 +3,22 @@ import * as SecureStore from 'expo-secure-store'
 import { apiClient } from '@/api/client'
 import type { LoginRequest, LoginResponse } from '@/types/api'
 
+/** Decode the `role` claim from a JWT without verifying the signature. */
+function getRoleFromJWT(token: string): string {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return ''
+    // Base64url → base64 → JSON
+    const padded = payload.replace(/-/g, '+').replace(/_/g, '/').padEnd(
+      payload.length + (4 - (payload.length % 4)) % 4, '='
+    )
+    const decoded = JSON.parse(atob(padded))
+    return typeof decoded.role === 'string' ? decoded.role : ''
+  } catch {
+    return ''
+  }
+}
+
 interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
@@ -27,9 +43,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const token = await SecureStore.getItemAsync('access_token')
       const userJson = await SecureStore.getItemAsync('user')
-      
+
       if (token && userJson) {
-        setUser(JSON.parse(userJson))
+        const stored = JSON.parse(userJson)
+        // Populate role from JWT claims (works even for sessions before backend added role to response)
+        if (!stored.role) {
+          stored.role = getRoleFromJWT(token)
+        }
+        setUser(stored)
         setIsAuthenticated(true)
       }
     } catch (error) {
@@ -57,9 +78,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await SecureStore.setItemAsync('refresh_token', response.refresh_token)
       }
       
-      await SecureStore.setItemAsync('user', JSON.stringify(response.user))
-      
-      setUser(response.user)
+      // Ensure role is populated (from backend response or JWT fallback)
+      const userWithRole = {
+        ...response.user,
+        role: response.user.role || getRoleFromJWT(response.access_token),
+      }
+
+      await SecureStore.setItemAsync('user', JSON.stringify(userWithRole))
+
+      setUser(userWithRole)
       setIsAuthenticated(true)
     } catch (error) {
       console.error('Login failed:', error)
