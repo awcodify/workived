@@ -2665,6 +2665,119 @@ paths:
                       reports: true
                       tasks: false
 
+  # ── Reports ──────────────────────────────────────────────────────────────
+  /reports/config:
+    get:
+      operationId: getScorecardConfig
+      summary: Get scorecard configuration
+      description: Returns the org's scorecard config (weights, grade thresholds, flag thresholds). Falls back to defaults if none is set.
+      tags: [Reports]
+      responses:
+        "200":
+          description: Scorecard configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  config:
+                    $ref: "#/components/schemas/ScorecardConfig"
+    put:
+      operationId: updateScorecardConfig
+      summary: Update scorecard configuration
+      description: Upsert the org's scorecard config. Weights must sum to 100. Grade thresholds must be A > B > C > 0.
+      tags: [Reports]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfigUpdateInput"
+      responses:
+        "200":
+          description: Updated config
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  config:
+                    $ref: "#/components/schemas/ScorecardConfig"
+        "400":
+          description: Validation error (weights don't sum to 100, grade order invalid)
+
+  /reports/scorecard/me:
+    get:
+      operationId: getMyScorecard
+      summary: Get my performance scorecard
+      description: Returns the authenticated employee's scorecard for the given period.
+      tags: [Reports]
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [this_month, this_quarter, this_year]
+            default: this_month
+      responses:
+        "200":
+          description: Employee scorecard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scorecard:
+                    $ref: "#/components/schemas/Scorecard"
+
+  /reports/scorecard/team:
+    get:
+      operationId: getTeamScorecard
+      summary: Get team scorecard
+      description: Returns scorecards for all active employees in the org. Requires reports.read permission.
+      tags: [Reports]
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [this_month, this_quarter, this_year]
+            default: this_month
+      responses:
+        "200":
+          description: Team scorecard with all employees
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  team_scorecard:
+                    $ref: "#/components/schemas/TeamScorecard"
+
+  /reports/summary:
+    get:
+      operationId: getCompanySummary
+      summary: Get company performance summary
+      description: Returns high-level org metrics including attendance rate, punctuality, task completion, top performer, and department breakdown.
+      tags: [Reports]
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [this_month, this_quarter, this_year]
+            default: this_month
+      responses:
+        "200":
+          description: Company summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  summary:
+                    $ref: "#/components/schemas/CompanySummary"
+
 # ── Components ────────────────────────────────────────────────────────────────
 
 components:
@@ -4560,4 +4673,279 @@ components:
           type: string
           format: date-time
           nullable: true
+
+    # ── Reports ─────────────────────────────────────────────────────────────
+
+    ScorecardConfig:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        attendance_weight:
+          type: integer
+        punctuality_weight:
+          type: integer
+        leave_weight:
+          type: integer
+        tasks_weight:
+          type: integer
+        claims_weight:
+          type: integer
+        grade_a_min:
+          type: integer
+        grade_b_min:
+          type: integer
+        grade_c_min:
+          type: integer
+        late_flag_threshold:
+          type: integer
+        leave_warning_pct:
+          type: integer
+        task_concern_pct:
+          type: integer
+        score_drop_threshold:
+          type: integer
+        min_working_days:
+          type: integer
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    ConfigUpdateInput:
+      type: object
+      required:
+        - attendance_weight
+        - punctuality_weight
+        - leave_weight
+        - tasks_weight
+        - claims_weight
+        - grade_a_min
+        - grade_b_min
+        - grade_c_min
+        - late_flag_threshold
+        - leave_warning_pct
+        - task_concern_pct
+        - score_drop_threshold
+        - min_working_days
+      properties:
+        attendance_weight:
+          type: integer
+          minimum: 0
+          maximum: 100
+        punctuality_weight:
+          type: integer
+          minimum: 0
+          maximum: 100
+        leave_weight:
+          type: integer
+          minimum: 0
+          maximum: 100
+        tasks_weight:
+          type: integer
+          minimum: 0
+          maximum: 100
+        claims_weight:
+          type: integer
+          minimum: 0
+          maximum: 100
+        grade_a_min:
+          type: integer
+          minimum: 1
+          maximum: 100
+        grade_b_min:
+          type: integer
+          minimum: 1
+          maximum: 100
+        grade_c_min:
+          type: integer
+          minimum: 1
+          maximum: 100
+        late_flag_threshold:
+          type: integer
+          minimum: 1
+        leave_warning_pct:
+          type: integer
+          minimum: 1
+          maximum: 100
+        task_concern_pct:
+          type: integer
+          minimum: 1
+          maximum: 100
+        score_drop_threshold:
+          type: integer
+          minimum: 1
+        min_working_days:
+          type: integer
+          minimum: 1
+
+    Breakdown:
+      type: object
+      properties:
+        score:
+          type: integer
+        detail:
+          type: string
+
+    Flag:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [frequent_lateness, leave_exhaustion, task_delivery_concern, score_declining]
+        message:
+          type: string
+        severity:
+          type: string
+          enum: [warning, alert]
+
+    Scorecard:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        employee_name:
+          type: string
+        department:
+          type: string
+        period:
+          type: string
+        period_label:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        overall_score:
+          type: integer
+        grade:
+          type: string
+          enum: [A, B, C, D]
+        trend:
+          type: integer
+          description: Score change from previous period
+        breakdown:
+          type: object
+          additionalProperties:
+            $ref: "#/components/schemas/Breakdown"
+        flags:
+          type: array
+          items:
+            $ref: "#/components/schemas/Flag"
+        sufficient:
+          type: boolean
+          description: False if below min_working_days threshold
+
+    EmployeeScore:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        employee_name:
+          type: string
+        department:
+          type: string
+        overall_score:
+          type: integer
+        grade:
+          type: string
+        trend:
+          type: integer
+        attendance_score:
+          type: integer
+        punctuality_score:
+          type: integer
+        leave_score:
+          type: integer
+        tasks_score:
+          type: integer
+        claims_score:
+          type: integer
+
+    TeamScorecard:
+      type: object
+      properties:
+        period:
+          type: string
+        period_label:
+          type: string
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+        team_average:
+          type: integer
+        employees:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmployeeScore"
+
+    PerformerHighlight:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        score:
+          type: integer
+        trend:
+          type: integer
+
+    DepartmentBreakdown:
+      type: object
+      properties:
+        department:
+          type: string
+        avg_score:
+          type: integer
+        employee_count:
+          type: integer
+
+    CompanySummary:
+      type: object
+      properties:
+        period:
+          type: string
+        period_label:
+          type: string
+        attendance_rate:
+          type: number
+          format: float
+        punctuality_rate:
+          type: number
+          format: float
+        task_completion_rate:
+          type: number
+          format: float
+        leave_utilization:
+          type: number
+          format: float
+        avg_score:
+          type: integer
+        top_performer:
+          $ref: "#/components/schemas/PerformerHighlight"
+        most_improved:
+          $ref: "#/components/schemas/PerformerHighlight"
+        needs_attention_count:
+          type: integer
+        department_breakdown:
+          type: array
+          items:
+            $ref: "#/components/schemas/DepartmentBreakdown"
 

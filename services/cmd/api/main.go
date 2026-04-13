@@ -26,6 +26,7 @@ import (
 	"github.com/workived/services/internal/leave"
 	"github.com/workived/services/internal/mobile"
 	"github.com/workived/services/internal/organisation"
+	"github.com/workived/services/internal/reports"
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/platform/middleware"
@@ -121,6 +122,7 @@ func main() {
 	employmentChangeRepo := employmentchange.NewRepository(db)
 	setupRepo := setup.NewRepository(db)
 	calendarRepo := calendar.NewRepository(db)
+	reportsRepo := reports.NewRepository(db)
 
 	// ── Cache ────────────────────────────────────────────────────────────────
 	cacheStore := cache.New(rdb, log)
@@ -142,6 +144,7 @@ func main() {
 	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log), admin.WithCache(cacheStore))
 	setupSvc := setup.NewService(setupRepo, log)
 	calendarSvc := calendar.NewService(calendarRepo, orgRepo, log)
+	reportsSvc := reports.NewService(reportsRepo, log)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	authHandler := auth.NewHandler(authSvc)
@@ -197,6 +200,14 @@ func main() {
 	calendarHandler := calendar.NewHandler(calendarSvc, log)
 	auditHandler := audit.NewHandler(auditRepo)
 	employmentHistoryHandler := employmentchange.NewHandler(employmentChangeRepo)
+
+	reportsHandler := reports.NewHandler(reportsSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
+		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		return emp.ID, nil
+	}, log)
 
 	// Mobile service — aggregates data from multiple services
 	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, tasksRepo, cachedOrgInfo, log, cacheStore)
@@ -276,6 +287,7 @@ func main() {
 	employmentHistoryHandler.RegisterRoutes(authed)
 	mobileHandler.RegisterRoutes(authed)
 	uploadHandler.RegisterRoutes(authed)
+	reportsHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)
