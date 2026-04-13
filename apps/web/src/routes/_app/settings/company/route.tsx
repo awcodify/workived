@@ -135,6 +135,17 @@ function Divider() {
   return <div style={{ height: 1, background: S.divider }} />
 }
 
+function SettingCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div
+      className="rounded-2xl p-7 flex flex-col gap-6"
+      style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)' }}
+    >
+      {children}
+    </div>
+  )
+}
+
 function SectionTitle({ id, children, description }: { id?: string; children: React.ReactNode; description?: string }) {
   return (
     <div id={id} className="scroll-mt-8">
@@ -750,27 +761,24 @@ function ScorecardConfigSection() {
       </div>
 
       {/* Save + Reset */}
-      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8">
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={!canSave}
-            className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
-            style={{ background: C.accent, color: '#FFFFFF' }}
-          >
-            {updateConfig.isPending ? 'Saving…' : 'Save scorecard config'}
-          </button>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
-            style={{ background: 'rgba(255,255,255,0.06)', color: S.textMuted }}
-          >
-            Reset to defaults
-          </button>
-        </div>
-        <div />
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={!canSave}
+          className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+          style={{ background: C.accent, color: '#FFFFFF' }}
+        >
+          {updateConfig.isPending ? 'Saving…' : 'Save scorecard config'}
+        </button>
+        <button
+          type="button"
+          onClick={handleReset}
+          className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+          style={{ background: 'rgba(255,255,255,0.06)', color: S.textMuted }}
+        >
+          Reset to defaults
+        </button>
       </div>
     </div>
   )
@@ -1028,7 +1036,7 @@ function CompanyPage() {
         )}
 
         {/* Content */}
-        <main className="flex-1 flex flex-col gap-10">
+        <main className="flex-1 flex flex-col gap-5">
 
           {!hasOrg && <NoOrgView />}
 
@@ -1052,23 +1060,17 @@ function CompanyPage() {
 
               {canEdit ? (
                 <>
-                  <CompanyInfoSection />
-                  <Divider />
-                  <LocationSection />
-                  <Divider />
-                  <PlanSection />
-                  <Divider />
-                  <AttendanceSection />
-                  <Divider />
-                  <ScorecardConfigSection />
-                  <Divider />
-                  <TransferOwnershipSection />
+                  <SettingCard><CompanyInfoSection /></SettingCard>
+                  <SettingCard><LocationSection /></SettingCard>
+                  <SettingCard><PlanSection /></SettingCard>
+                  <SettingCard><AttendanceSection /></SettingCard>
+                  <SettingCard><ScorecardConfigSection /></SettingCard>
+                  <SettingCard><TransferOwnershipSection /></SettingCard>
                 </>
               ) : (
                 <>
-                  <ReadOnlyOrgInfo org={org} />
-                  <Divider />
-                  <PlanSection />
+                  <SettingCard><ReadOnlyOrgInfo org={org} /></SettingCard>
+                  <SettingCard><PlanSection /></SettingCard>
                 </>
               )}
             </>
