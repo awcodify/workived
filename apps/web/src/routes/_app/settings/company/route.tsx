@@ -498,6 +498,12 @@ const WEIGHT_SIGNALS = [
 
 type WeightKey = (typeof WEIGHT_SIGNALS)[number]['key']
 
+const SCORECARD_DEFAULTS = {
+  weights: { attendance_weight: 30, punctuality_weight: 20, leave_weight: 15, tasks_weight: 35 } as Record<WeightKey, number>,
+  grades: { a: 90, b: 75, c: 60 },
+  flags: { late: 3, leave: 90, task: 60, drop: 10, minDays: 5 },
+}
+
 function ScorecardConfigSection() {
   const { data: config, isLoading } = useScorecardConfig()
   const updateConfig = useUpdateScorecardConfig()
@@ -537,13 +543,21 @@ function ScorecardConfigSection() {
 
   const weightTotal = Object.values(weights).reduce((sum, v) => sum + v, 0)
   const weightValid = weightTotal === 100
+  const gradeValid = grades.a > grades.b && grades.b > grades.c && grades.c > 0
+  const canSave = weightValid && gradeValid && !updateConfig.isPending
 
   function handleWeightChange(key: WeightKey, value: number) {
     setWeights((prev) => prev ? { ...prev, [key]: value } : prev)
   }
 
+  function handleReset() {
+    setWeights({ ...SCORECARD_DEFAULTS.weights })
+    setGrades({ ...SCORECARD_DEFAULTS.grades })
+    setFlags({ ...SCORECARD_DEFAULTS.flags })
+  }
+
   function handleSave() {
-    if (!weightValid) return
+    if (!canSave) return
     const payload: ConfigUpdateInput = {
       ...weights,
       grade_a_min: grades.a,
@@ -570,12 +584,14 @@ function ScorecardConfigSection() {
       </SectionTitle>
 
       {successMessage && <Banner variant="success" message={successMessage} />}
+      {updateConfig.isError && <Banner variant="error" message="Failed to save scorecard config. Please try again." />}
 
       {/* Signal Weights */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
           <p style={{ fontSize: 14, fontWeight: 600, color: S.text }}>Signal weights</p>
           <span
+            aria-label={`Weight total: ${weightTotal} of 100`}
             className="text-xs font-bold px-2 py-0.5 rounded"
             style={{
               background: weightValid ? 'rgba(18,160,92,0.15)' : 'rgba(212,64,64,0.15)',
@@ -621,28 +637,40 @@ function ScorecardConfigSection() {
       {/* Grade Thresholds */}
       <div className="flex flex-col gap-4">
         <p style={{ fontSize: 14, fontWeight: 600, color: S.text }}>Grade thresholds</p>
-        <p className="text-xs" style={{ color: S.textDim }}>Minimum score to achieve each grade. D is everything below C threshold.</p>
+        <p className="text-xs" style={{ color: S.textDim }}>Minimum score to achieve each grade. Must satisfy A &gt; B &gt; C &gt; 0. D is everything below C.</p>
 
         <div className="grid grid-cols-3 gap-4 max-w-md">
-          {[
-            { label: 'A (min)', value: grades.a, onChange: (v: number) => setGrades((g) => g ? { ...g, a: v } : g) },
-            { label: 'B (min)', value: grades.b, onChange: (v: number) => setGrades((g) => g ? { ...g, b: v } : g) },
-            { label: 'C (min)', value: grades.c, onChange: (v: number) => setGrades((g) => g ? { ...g, c: v } : g) },
-          ].map((g) => (
-            <div key={g.label}>
-              <label className="text-xs font-medium block mb-1" style={{ color: S.textMuted }}>{g.label}</label>
+          {([
+            { label: 'A (min)', id: 'grade-a', value: grades.a, onChange: (v: number) => setGrades((g) => g ? { ...g, a: v } : g) },
+            { label: 'B (min)', id: 'grade-b', value: grades.b, onChange: (v: number) => setGrades((g) => g ? { ...g, b: v } : g) },
+            { label: 'C (min)', id: 'grade-c', value: grades.c, onChange: (v: number) => setGrades((g) => g ? { ...g, c: v } : g) },
+          ] as const).map((g) => (
+            <div key={g.id}>
+              <label htmlFor={g.id} className="text-xs font-medium block mb-1" style={{ color: S.textMuted }}>{g.label}</label>
               <input
+                id={g.id}
                 type="number"
                 min={0}
                 max={100}
                 value={g.value}
                 onChange={(e) => g.onChange(Number(e.target.value))}
                 className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
-                style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, fontFamily: typography.fontMono }}
+                style={{
+                  background: S.inputBg,
+                  border: `1px solid ${!gradeValid ? 'rgba(212,64,64,0.4)' : S.inputBorder}`,
+                  color: S.text,
+                  fontFamily: typography.fontMono,
+                }}
               />
             </div>
           ))}
         </div>
+
+        {!gradeValid && (
+          <p className="text-xs font-medium" style={{ color: '#F87171' }}>
+            Thresholds must satisfy A &gt; B &gt; C &gt; 0
+          </p>
+        )}
       </div>
 
       <Divider />
@@ -721,17 +749,25 @@ function ScorecardConfigSection() {
         </FieldRow>
       </div>
 
-      {/* Save */}
+      {/* Save + Reset */}
       <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8">
-        <div>
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={handleSave}
-            disabled={updateConfig.isPending || !weightValid}
+            disabled={!canSave}
             className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
             style={{ background: C.accent, color: '#FFFFFF' }}
           >
-            {updateConfig.isPending ? 'Saving...' : 'Save scorecard config'}
+            {updateConfig.isPending ? 'Saving…' : 'Save scorecard config'}
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
+            style={{ background: 'rgba(255,255,255,0.06)', color: S.textMuted }}
+          >
+            Reset to defaults
           </button>
         </div>
         <div />

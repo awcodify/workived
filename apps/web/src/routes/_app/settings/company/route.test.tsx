@@ -56,8 +56,16 @@ vi.mock('@/components/workived/layout/WorkivedLogo', () => ({
   WorkivedLogo: () => <div data-testid="workived-logo" />,
 }))
 
+const mockScorecardUpdateMutate = vi.fn()
+
+vi.mock('@/lib/hooks/useReports', () => ({
+  useScorecardConfig: vi.fn(),
+  useUpdateScorecardConfig: vi.fn(),
+}))
+
 import { useOrgDetail, useUpdateOrg, useTransferOwnership } from '@/lib/hooks/useOrganisation'
 import { useCanEditOrgSettings, useHasOrg } from '@/lib/hooks/useRole'
+import { useScorecardConfig, useUpdateScorecardConfig } from '@/lib/hooks/useReports'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -79,6 +87,37 @@ function makeOrg(overrides: Partial<OrgDetail> = {}): OrgDetail {
     owner_name: 'Ahmad',
     ...overrides,
   }
+}
+
+function makeScorecardConfig() {
+  return {
+    attendance_weight: 30,
+    punctuality_weight: 20,
+    leave_weight: 15,
+    tasks_weight: 35,
+    grade_a_min: 90,
+    grade_b_min: 75,
+    grade_c_min: 60,
+    late_flag_threshold: 3,
+    leave_warning_pct: 90,
+    task_concern_pct: 60,
+    score_drop_threshold: 10,
+    min_working_days: 5,
+  }
+}
+
+function makeDefaultScorecardMocks() {
+  vi.mocked(useScorecardConfig).mockReturnValue({
+    data: makeScorecardConfig(),
+    isLoading: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any)
+  vi.mocked(useUpdateScorecardConfig).mockReturnValue({
+    mutate: mockScorecardUpdateMutate,
+    isPending: false,
+    isError: false,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any)
 }
 
 function makeDefaultMutations() {
@@ -112,6 +151,7 @@ describe('CompanyPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     makeDefaultMutations()
+    makeDefaultScorecardMocks()
   })
 
   it('renders loading skeletons when data is loading', () => {
@@ -333,5 +373,125 @@ describe('CompanyPage', () => {
     })
 
     expect(mockTransferMutate).not.toHaveBeenCalled()
+  })
+})
+
+// ── Scorecard config tests ─────────────────────────────────────────────────────
+
+describe('ScorecardConfigSection', () => {
+  function setup() {
+    vi.mocked(useOrgDetail).mockReturnValue({
+      data: {
+        id: 'org-1', name: 'Acme', slug: 'acme', country_code: 'ID',
+        timezone: 'Asia/Jakarta', currency_code: 'IDR', work_days: [1,2,3,4,5],
+        plan: 'free', plan_employee_limit: 25, allow_web_clock_in: false,
+        is_active: true, created_at: '2024-01-01T00:00:00Z',
+        employee_count: 3, owner_name: 'Ahmad',
+      },
+      isLoading: false,
+      isError: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+    vi.mocked(useUpdateOrg).mockReturnValue({ mutate: mockUpdateMutate, isPending: false, error: null } as any)  // eslint-disable-line @typescript-eslint/no-explicit-any
+    vi.mocked(useTransferOwnership).mockReturnValue({ mutate: mockTransferMutate, isPending: false, error: null } as any)  // eslint-disable-line @typescript-eslint/no-explicit-any
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    setup()
+    makeDefaultScorecardMocks()
+  })
+
+  it('renders weight sliders with values from config', () => {
+    render(<CompanyPage />)
+    const attendanceSlider = screen.getByRole('slider', { name: /attendance/i })
+    expect(attendanceSlider).toHaveValue('30')
+  })
+
+  it('shows weight total badge', () => {
+    render(<CompanyPage />)
+    expect(screen.getByLabelText(/weight total: 100 of 100/i)).toBeTruthy()
+  })
+
+  it('save button disabled when weights do not sum to 100', () => {
+    vi.mocked(useScorecardConfig).mockReturnValue({
+      data: { ...makeScorecardConfig(), attendance_weight: 10 },
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    render(<CompanyPage />)
+    const saveBtn = screen.getByRole('button', { name: /save scorecard config/i })
+    expect(saveBtn).toBeDisabled()
+  })
+
+  it('shows invalid grade message when A <= B', () => {
+    vi.mocked(useScorecardConfig).mockReturnValue({
+      data: { ...makeScorecardConfig(), grade_a_min: 70, grade_b_min: 80 },
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    render(<CompanyPage />)
+    expect(screen.getByText(/thresholds must satisfy/i)).toBeTruthy()
+  })
+
+  it('calls mutate with correct payload on save', async () => {
+    render(<CompanyPage />)
+    fireEvent.click(screen.getByRole('button', { name: /save scorecard config/i }))
+
+    await waitFor(() => {
+      expect(mockScorecardUpdateMutate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          attendance_weight: 30,
+          punctuality_weight: 20,
+          leave_weight: 15,
+          tasks_weight: 35,
+          grade_a_min: 90,
+          grade_b_min: 75,
+          grade_c_min: 60,
+        }),
+        expect.any(Object),
+      )
+    })
+  })
+
+  it('reset to defaults restores default weight values', async () => {
+    vi.mocked(useScorecardConfig).mockReturnValue({
+      data: { ...makeScorecardConfig(), attendance_weight: 50, tasks_weight: 15 },
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    render(<CompanyPage />)
+    fireEvent.click(screen.getByRole('button', { name: /reset to defaults/i }))
+
+    await waitFor(() => {
+      const slider = screen.getByRole('slider', { name: /attendance/i })
+      expect(slider).toHaveValue('30')
+    })
+  })
+
+  it('shows error banner when save fails', () => {
+    vi.mocked(useUpdateScorecardConfig).mockReturnValue({
+      mutate: mockScorecardUpdateMutate,
+      isPending: false,
+      isError: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    render(<CompanyPage />)
+    expect(screen.getByText(/failed to save scorecard config/i)).toBeTruthy()
+  })
+
+  it('shows loading skeleton when config is loading', () => {
+    vi.mocked(useScorecardConfig).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    render(<CompanyPage />)
+    expect(screen.queryByRole('slider')).toBeNull()
   })
 })
