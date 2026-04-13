@@ -23,7 +23,7 @@ import type {
 
 // TODO: Replace with your actual backend URL
 const API_BASE_URL = __DEV__ 
-  ? 'http://10.11.1.60:8080/api/v1' 
+  ? 'http://10.102.199.89:8080/api/v1' 
   : 'https://my.workived.com/api/v1'
 
 class ApiClient {
