@@ -53,6 +53,9 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// My scorecard — any authenticated employee
 	rpt.GET("/scorecard/me", middleware.Require(middleware.PermSelfRead), h.GetMyScorecard)
 
+	// Individual employee scorecard — admin/hr/finance
+	rpt.GET("/scorecard/:employee_id", middleware.Require(middleware.PermReportsRead), h.GetEmployeeScorecardByID)
+
 	// Team scorecard — admin/hr/finance
 	rpt.GET("/scorecard/team", middleware.Require(middleware.PermReportsRead), h.GetTeamScorecard)
 
@@ -111,6 +114,31 @@ func (h *Handler) GetMyScorecard(c *gin.Context) {
 			"org_id":  orgID.String(),
 			"user_id": userID.String(),
 		})
+		return
+	}
+
+	period := c.DefaultQuery("period", "this_month")
+
+	sc, err := h.service.GetEmployeeScorecard(c.Request.Context(), orgID, employeeID, period)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to get employee scorecard", map[string]string{
+			"org_id":      orgID.String(),
+			"employee_id": employeeID.String(),
+			"period":      period,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"scorecard": sc})
+}
+
+// GET /reports/scorecard/:employee_id?period=this_month
+func (h *Handler) GetEmployeeScorecardByID(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	employeeID, err := uuid.Parse(c.Param("employee_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.New(apperr.CodeValidation, "invalid employee_id"))
 		return
 	}
 

@@ -201,6 +201,23 @@ export const statusConfig = {
 
 export type StatusKey = keyof typeof statusConfig
 
+// ── GRADE COLOURS (Performance Scorecard) ─────────────────────
+export const gradeColors = {
+  A: '#34D399',
+  B: '#60A5FA',
+  C: '#F59E0B',
+  D: '#EF4444',
+} as const
+
+export const gradeColorsDim = {
+  A: 'rgba(52,211,153,0.15)',
+  B: 'rgba(96,165,250,0.15)',
+  C: 'rgba(245,158,11,0.15)',
+  D: 'rgba(239,68,68,0.15)',
+} as const
+
+export type Grade = keyof typeof gradeColors
+
 // ── AVATAR COLOURS ────────────────────────────────────────────
 // Rotate through these for employee avatars
 export const avatarColors = [

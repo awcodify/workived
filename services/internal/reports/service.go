@@ -37,7 +37,7 @@ func (s *Service) GetConfig(ctx context.Context, orgID uuid.UUID) (*ScorecardCon
 
 // UpdateConfig validates and upserts the org's scorecard config.
 func (s *Service) UpdateConfig(ctx context.Context, orgID uuid.UUID, input ConfigUpdateInput) (*ScorecardConfig, error) {
-	weightSum := input.AttendanceWeight + input.PunctualityWeight + input.LeaveWeight + input.TasksWeight + input.ClaimsWeight
+	weightSum := input.AttendanceWeight + input.PunctualityWeight + input.LeaveWeight + input.TasksWeight
 	if weightSum != 100 {
 		return nil, apperr.NewWithDetails(apperr.CodeValidation,
 			fmt.Sprintf("weights must sum to 100, got %d", weightSum),
@@ -172,7 +172,6 @@ func (s *Service) GetTeamScorecard(ctx context.Context, orgID uuid.UUID, periodK
 			PunctualityScore: sc.Breakdown["punctuality"].Score,
 			LeaveScore:       sc.Breakdown["leave"].Score,
 			TasksScore:       sc.Breakdown["tasks"].Score,
-			ClaimsScore:      sc.Breakdown["claims"].Score,
 		})
 		totalScore += sc.OverallScore
 		counted++
@@ -352,11 +351,6 @@ func (s *Service) computeScorecard(ctx context.Context, orgID uuid.UUID, emp Emp
 		return nil, fmt.Errorf("reports.task_stats: %w", err)
 	}
 
-	claimStats, err := s.repo.GetClaimStats(ctx, orgID, emp.ID, period.StartDate, period.EndDate)
-	if err != nil {
-		return nil, fmt.Errorf("reports.claim_stats: %w", err)
-	}
-
 	// Check sufficiency
 	sufficient := attStats.WorkingDays >= cfg.MinWorkingDays
 
@@ -365,16 +359,36 @@ func (s *Service) computeScorecard(ctx context.Context, orgID uuid.UUID, emp Emp
 	punctScore := scorePunctuality(punctStats)
 	leaveScore := scoreLeave(leaveStats)
 	taskScore := scoreTasks(taskStats)
-	claimScore := scoreClaims(claimStats)
 
-	// Weighted overall
-	overall := int(math.Round(
-		float64(attScore*cfg.AttendanceWeight+
-			punctScore*cfg.PunctualityWeight+
-			leaveScore*cfg.LeaveWeight+
-			taskScore*cfg.TasksWeight+
-			claimScore*cfg.ClaimsWeight) / 100.0,
-	))
+	// Weighted overall — redistribute weight away from signals with no data.
+	// A signal is excluded when there's nothing to measure (no working days,
+	// never clocked in, no tasks assigned, no leave balance). Its weight is
+	// shared proportionally among the remaining active signals.
+	type scoredSignal struct {
+		score  int
+		weight int
+		active bool
+	}
+	scoredSignals := []scoredSignal{
+		{attScore, cfg.AttendanceWeight, attStats.WorkingDays > 0},
+		{punctScore, cfg.PunctualityWeight, punctStats.TotalPresent > 0},
+		{leaveScore, cfg.LeaveWeight, leaveStats.DaysEntitled > 0},
+		{taskScore, cfg.TasksWeight, taskStats.TotalAssigned > 0},
+	}
+
+	activeWeight := 0
+	weightedSum := 0
+	for _, sig := range scoredSignals {
+		if sig.active {
+			activeWeight += sig.weight
+			weightedSum += sig.score * sig.weight
+		}
+	}
+
+	var overall int
+	if activeWeight > 0 {
+		overall = int(math.Round(float64(weightedSum) / float64(activeWeight)))
+	}
 
 	grade := assignGrade(overall, cfg)
 	flags := generateFlags(cfg, punctStats, leaveStats, taskStats)
@@ -390,15 +404,11 @@ func (s *Service) computeScorecard(ctx context.Context, orgID uuid.UUID, emp Emp
 		},
 		"leave": {
 			Score:  leaveScore,
-			Detail: fmt.Sprintf("%.1f/%.1f days used", leaveStats.DaysTaken, leaveStats.DaysEntitled),
+			Detail: fmt.Sprintf("%.1f/%.1f days used, %d short-notice", leaveStats.DaysTaken, leaveStats.DaysEntitled, leaveStats.ShortNoticeCount),
 		},
 		"tasks": {
 			Score:  taskScore,
 			Detail: fmt.Sprintf("%d/%d completed (%d on-time)", taskStats.Completed, taskStats.TotalAssigned, taskStats.CompletedOnTime),
-		},
-		"claims": {
-			Score:  claimScore,
-			Detail: fmt.Sprintf("%d claims, %d missing receipts", claimStats.TotalClaims, claimStats.MissingReceiptCount),
 		},
 	}
 
@@ -423,7 +433,7 @@ func (s *Service) computeScorecard(ctx context.Context, orgID uuid.UUID, emp Emp
 // scoreAttendance: 100 * (days_present / working_days)
 func scoreAttendance(s *AttendanceStats) int {
 	if s.WorkingDays == 0 {
-		return 100 // no working days = not penalised
+		return 0 // no working days recorded — signal excluded from weighting
 	}
 	score := float64(s.DaysPresent) / float64(s.WorkingDays) * 100
 	return clampScore(score)
@@ -432,29 +442,27 @@ func scoreAttendance(s *AttendanceStats) int {
 // scorePunctuality: 100 * (on_time / total_present)
 func scorePunctuality(s *PunctualityStats) int {
 	if s.TotalPresent == 0 {
-		return 100
+		return 0 // never clocked in — signal excluded from weighting
 	}
 	score := float64(s.OnTimeCount) / float64(s.TotalPresent) * 100
 	return clampScore(score)
 }
 
-// scoreLeave: penalise over-utilisation and short-notice requests.
-// Base: 100 - (utilisation_pct * 0.4) - (short_notice_count * 5)
+// scoreLeave: penalise short-notice requests only.
+// Leave utilisation is not penalised — employees are entitled to their leave.
+// Base: 100 - (short_notice_count * 10)
 func scoreLeave(s *LeaveStats) int {
 	if s.DaysEntitled == 0 {
-		return 100
+		return 0 // no leave balance assigned — signal excluded from weighting
 	}
-	utilPct := s.DaysTaken / s.DaysEntitled * 100
-	penalty := utilPct * 0.4
-	shortNoticePenalty := float64(s.ShortNoticeCount) * 5
-	score := 100.0 - penalty - shortNoticePenalty
+	score := 100.0 - float64(s.ShortNoticeCount)*10
 	return clampScore(score)
 }
 
 // scoreTasks: weighted blend of completion rate (70%) and on-time rate (30%).
 func scoreTasks(s *TaskStats) int {
 	if s.TotalAssigned == 0 {
-		return 100
+		return 0 // no tasks assigned — signal excluded from weighting
 	}
 	completionRate := float64(s.Completed) / float64(s.TotalAssigned) * 100
 	onTimeRate := 0.0
@@ -462,17 +470,6 @@ func scoreTasks(s *TaskStats) int {
 		onTimeRate = float64(s.CompletedOnTime) / float64(s.Completed) * 100
 	}
 	score := completionRate*0.7 + onTimeRate*0.3
-	return clampScore(score)
-}
-
-// scoreClaims: penalise missing receipts.
-// 100 - (missing_receipt_count / total_claims * 50)
-func scoreClaims(s *ClaimStats) int {
-	if s.TotalClaims == 0 {
-		return 100
-	}
-	missingPct := float64(s.MissingReceiptCount) / float64(s.TotalClaims)
-	score := 100.0 - missingPct*50
 	return clampScore(score)
 }
 

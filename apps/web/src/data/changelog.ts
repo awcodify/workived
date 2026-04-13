@@ -20,6 +20,30 @@ export interface ChangelogEntry {
 
 export const changelog: ChangelogEntry[] = [
   {
+    id: 27,
+    date: '2026-04-14',
+    type: 'improvement',
+    title: 'Reports redesigned with light theme',
+    description: 'The Reports module now uses a clean light background matching the rest of the app. Easier to read at a glance and more consistent across modules.',
+    module: 'Reports',
+  },
+  {
+    id: 26,
+    date: '2026-04-14',
+    type: 'feature',
+    title: 'Grade distribution chart in Reports',
+    description: 'A new donut chart shows how your team is distributed across performance grades (A/B/C/D) with percentages. Quickly see if most of your team is performing well or needs attention.',
+    module: 'Reports',
+  },
+  {
+    id: 25,
+    date: '2026-04-14',
+    type: 'improvement',
+    title: 'Scorecard factor explanations',
+    description: 'Each performance factor (Attendance, Punctuality, Leave, Tasks) now shows a plain-English explanation of what is measured and how the score is calculated. No more guessing why someone got a certain score.',
+    module: 'Reports',
+  },
+  {
     id: 24,
     date: '2026-04-02',
     type: 'feature',

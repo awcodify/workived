@@ -893,6 +893,119 @@ export interface CompleteSetupResponse {
   invitation_ids: string[]
 }
 
+// ── Reports / Scorecard ─────────────────────────────────────
+
+export interface ScorecardConfig {
+  id: string
+  organisation_id: string
+  attendance_weight: number
+  punctuality_weight: number
+  leave_weight: number
+  tasks_weight: number
+  grade_a_min: number
+  grade_b_min: number
+  grade_c_min: number
+  late_flag_threshold: number
+  leave_warning_pct: number
+  task_concern_pct: number
+  score_drop_threshold: number
+  min_working_days: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ConfigUpdateInput {
+  attendance_weight: number
+  punctuality_weight: number
+  leave_weight: number
+  tasks_weight: number
+  grade_a_min: number
+  grade_b_min: number
+  grade_c_min: number
+  late_flag_threshold: number
+  leave_warning_pct: number
+  task_concern_pct: number
+  score_drop_threshold: number
+  min_working_days: number
+}
+
+export interface Breakdown {
+  score: number
+  detail: string
+}
+
+export interface ScorecardFlag {
+  type: string
+  message: string
+  severity: 'warning' | 'alert'
+}
+
+export interface Scorecard {
+  employee_id: string
+  employee_name: string
+  department: string
+  period: string
+  period_label: string
+  start_date: string
+  end_date: string
+  overall_score: number
+  grade: 'A' | 'B' | 'C' | 'D'
+  trend: number
+  breakdown: Record<string, Breakdown>
+  flags: ScorecardFlag[]
+  sufficient: boolean
+}
+
+export interface EmployeeScore {
+  employee_id: string
+  employee_name: string
+  department: string
+  overall_score: number
+  grade: 'A' | 'B' | 'C' | 'D'
+  trend: number
+  attendance_score: number
+  punctuality_score: number
+  leave_score: number
+  tasks_score: number
+}
+
+export interface TeamScorecard {
+  period: string
+  period_label: string
+  start_date: string
+  end_date: string
+  team_average: number
+  employees: EmployeeScore[]
+}
+
+export interface PerformerHighlight {
+  employee_id: string
+  name: string
+  score: number
+  trend?: number
+}
+
+export interface DepartmentBreakdown {
+  department: string
+  avg_score: number
+  employee_count: number
+}
+
+export interface CompanySummary {
+  period: string
+  period_label: string
+  attendance_rate: number
+  punctuality_rate: number
+  task_completion_rate: number
+  leave_utilization: number
+  avg_score: number
+  top_performer: PerformerHighlight | null
+  most_improved: PerformerHighlight | null
+  needs_attention_count: number
+  department_breakdown: DepartmentBreakdown[]
+}
+
 // ── API wrapper ──────────────────────────────────────────────
 // All API responses are wrapped in {"data": ...}
 export interface ApiResponse<T> {

@@ -18,7 +18,6 @@ type ScorecardConfig struct {
 	PunctualityWeight int `json:"punctuality_weight"`
 	LeaveWeight       int `json:"leave_weight"`
 	TasksWeight       int `json:"tasks_weight"`
-	ClaimsWeight      int `json:"claims_weight"`
 
 	// Grade thresholds
 	GradeAMin int `json:"grade_a_min"`
@@ -41,11 +40,10 @@ type ScorecardConfig struct {
 func DefaultConfig(orgID uuid.UUID) ScorecardConfig {
 	return ScorecardConfig{
 		OrganisationID:    orgID,
-		AttendanceWeight:  25,
+		AttendanceWeight:  30,
 		PunctualityWeight: 20,
 		LeaveWeight:       15,
-		TasksWeight:       25,
-		ClaimsWeight:      15,
+		TasksWeight:       35,
 		GradeAMin:         90,
 		GradeBMin:         75,
 		GradeCMin:         60,
@@ -64,7 +62,6 @@ type ConfigUpdateInput struct {
 	PunctualityWeight int `json:"punctuality_weight" validate:"min=0,max=100"`
 	LeaveWeight       int `json:"leave_weight" validate:"min=0,max=100"`
 	TasksWeight       int `json:"tasks_weight" validate:"min=0,max=100"`
-	ClaimsWeight      int `json:"claims_weight" validate:"min=0,max=100"`
 
 	GradeAMin int `json:"grade_a_min" validate:"min=1,max=100"`
 	GradeBMin int `json:"grade_b_min" validate:"min=1,max=100"`
@@ -100,12 +97,6 @@ type TaskStats struct {
 	TotalAssigned    int
 	Completed        int
 	CompletedOnTime  int
-}
-
-type ClaimStats struct {
-	TotalClaims        int
-	OverBudgetCount    int
-	MissingReceiptCount int
 }
 
 // ── Scorecard response types ────────────────────────────────────────────────
@@ -148,7 +139,6 @@ type EmployeeScore struct {
 	PunctualityScore int       `json:"punctuality_score"`
 	LeaveScore       int       `json:"leave_score"`
 	TasksScore       int       `json:"tasks_score"`
-	ClaimsScore      int       `json:"claims_score"`
 }
 
 type TeamScorecard struct {

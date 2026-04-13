@@ -48,7 +48,7 @@ export const moduleBackgrounds = {
   leave:       '#F3F2FB',  // soft violet
   claims:      '#F0FDF9',  // soft mint green
   tasks:       '#F5F5F0',  // warm paper beige (kanban board)
-  reports:     '#0F0F1A',  // deep indigo night
+  reports:     '#F3F2FB',  // soft violet (light)
   calendar:    '#FFF8F3',  // warm amber cream
   settings:    '#0F0F1A',  // deep indigo night (same as reports)
 } as const
@@ -87,7 +87,7 @@ export const dockThemes = {
   leave:      _dockLight,
   claims:     _dockLight,
   tasks:      _dockLight,  // Light dock for light background
-  reports:    _dock,
+  reports:    _dockLight,
   calendar:   _dockLight,
   settings:   _dock,  // Dark dock for dark background
 } as const
@@ -163,15 +163,15 @@ export const moduleThemes = {
     inputBorder:  'rgba(255,255,255,0.12)',
   },
   reports: {
-    text:         'rgba(255,255,255,0.92)',
-    textMuted:    'rgba(160,185,255,0.45)',
-    surface:      'rgba(255,255,255,0.05)',
-    surfaceHover: 'rgba(255,255,255,0.10)',
-    accent:       'rgba(255,255,255,0.12)',
+    text:         '#0F0E13',
+    textMuted:    '#72708A',
+    surface:      '#FFFFFF',
+    surfaceHover: '#F3F2FB',
+    accent:       '#6357E8',
     accentText:   '#FFFFFF',
-    border:       'rgba(255,255,255,0.10)',
-    input:        'rgba(255,255,255,0.07)',
-    inputBorder:  'rgba(255,255,255,0.12)',
+    border:       'rgba(99,87,232,0.10)',
+    input:        '#FFFFFF',
+    inputBorder:  'rgba(99,87,232,0.12)',
   },
   calendar: {
     text:         '#1A1207',
@@ -257,6 +257,23 @@ export const statusConfig = {
 } as const
 
 export type StatusKey = keyof typeof statusConfig
+
+// ── GRADE COLOURS (Performance Scorecard) ─────────────────────
+export const gradeColors = {
+  A: '#34D399',
+  B: '#60A5FA',
+  C: '#F59E0B',
+  D: '#EF4444',
+} as const
+
+export const gradeColorsDim = {
+  A: 'rgba(52,211,153,0.15)',
+  B: 'rgba(96,165,250,0.15)',
+  C: 'rgba(245,158,11,0.15)',
+  D: 'rgba(239,68,68,0.15)',
+} as const
+
+export type Grade = keyof typeof gradeColors
 
 // ── AVATAR COLOURS ────────────────────────────────────────────
 // Rotate through these for employee avatars

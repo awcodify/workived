@@ -20,7 +20,6 @@ type fakeRepo struct {
 	punctuality map[uuid.UUID]*reports.PunctualityStats
 	leave      map[uuid.UUID]*reports.LeaveStats
 	tasks      map[uuid.UUID]*reports.TaskStats
-	claims     map[uuid.UUID]*reports.ClaimStats
 	timezone   string
 }
 
@@ -30,7 +29,6 @@ func newFakeRepo() *fakeRepo {
 		punctuality: make(map[uuid.UUID]*reports.PunctualityStats),
 		leave:       make(map[uuid.UUID]*reports.LeaveStats),
 		tasks:       make(map[uuid.UUID]*reports.TaskStats),
-		claims:      make(map[uuid.UUID]*reports.ClaimStats),
 		timezone:    "Asia/Jakarta",
 	}
 }
@@ -53,7 +51,6 @@ func (f *fakeRepo) UpsertConfig(_ context.Context, orgID uuid.UUID, input report
 		PunctualityWeight: input.PunctualityWeight,
 		LeaveWeight:       input.LeaveWeight,
 		TasksWeight:       input.TasksWeight,
-		ClaimsWeight:      input.ClaimsWeight,
 		GradeAMin:         input.GradeAMin,
 		GradeBMin:         input.GradeBMin,
 		GradeCMin:         input.GradeCMin,
@@ -93,13 +90,6 @@ func (f *fakeRepo) GetTaskStats(_ context.Context, _, empID uuid.UUID, _, _ stri
 	return &reports.TaskStats{}, nil
 }
 
-func (f *fakeRepo) GetClaimStats(_ context.Context, _, empID uuid.UUID, _, _ string) (*reports.ClaimStats, error) {
-	if s, ok := f.claims[empID]; ok {
-		return s, nil
-	}
-	return &reports.ClaimStats{}, nil
-}
-
 func (f *fakeRepo) GetOrgTimezone(_ context.Context, _ uuid.UUID) (string, error) {
 	return f.timezone, nil
 }
@@ -126,8 +116,8 @@ func TestGetConfig_DefaultsWhenNoRow(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.AttendanceWeight != 25 {
-		t.Errorf("attendance_weight = %d, want 25", cfg.AttendanceWeight)
+	if cfg.AttendanceWeight != 30 {
+		t.Errorf("attendance_weight = %d, want 30", cfg.AttendanceWeight)
 	}
 	if cfg.PunctualityWeight != 20 {
 		t.Errorf("punctuality_weight = %d, want 20", cfg.PunctualityWeight)
@@ -138,11 +128,10 @@ func TestGetConfig_ReturnsStoredConfig(t *testing.T) {
 	repo := newFakeRepo()
 	repo.config = &reports.ScorecardConfig{
 		OrganisationID:    testOrgID,
-		AttendanceWeight:  30,
+		AttendanceWeight:  35,
 		PunctualityWeight: 20,
 		LeaveWeight:       10,
-		TasksWeight:       30,
-		ClaimsWeight:      10,
+		TasksWeight:       35,
 		GradeAMin:         90,
 		GradeBMin:         75,
 		GradeCMin:         60,
@@ -153,8 +142,8 @@ func TestGetConfig_ReturnsStoredConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.AttendanceWeight != 30 {
-		t.Errorf("attendance_weight = %d, want 30", cfg.AttendanceWeight)
+	if cfg.AttendanceWeight != 35 {
+		t.Errorf("attendance_weight = %d, want 35", cfg.AttendanceWeight)
 	}
 }
 
@@ -166,8 +155,7 @@ func TestUpdateConfig_WeightsSumValidation(t *testing.T) {
 		AttendanceWeight:  30,
 		PunctualityWeight: 30,
 		LeaveWeight:       30,
-		TasksWeight:       30,
-		ClaimsWeight:      30, // sum = 150
+		TasksWeight:       30, // sum = 120, not 100
 		GradeAMin:         90,
 		GradeBMin:         75,
 		GradeCMin:         60,
@@ -185,11 +173,10 @@ func TestUpdateConfig_GradeOrderValidation(t *testing.T) {
 	svc := newTestService(repo)
 
 	_, err := svc.UpdateConfig(context.Background(), testOrgID, reports.ConfigUpdateInput{
-		AttendanceWeight:   25,
+		AttendanceWeight:   30,
 		PunctualityWeight:  20,
 		LeaveWeight:        15,
-		TasksWeight:        25,
-		ClaimsWeight:       15,
+		TasksWeight:        35,
 		GradeAMin:          70,
 		GradeBMin:          80, // B > A — invalid
 		GradeCMin:          60,
@@ -211,9 +198,8 @@ func TestUpdateConfig_Success(t *testing.T) {
 	cfg, err := svc.UpdateConfig(context.Background(), testOrgID, reports.ConfigUpdateInput{
 		AttendanceWeight:   30,
 		PunctualityWeight:  20,
-		LeaveWeight:        10,
-		TasksWeight:        30,
-		ClaimsWeight:       10,
+		LeaveWeight:        15,
+		TasksWeight:        35,
 		GradeAMin:          90,
 		GradeBMin:          75,
 		GradeCMin:          60,
@@ -240,7 +226,7 @@ func TestGetEmployeeScorecard_PerfectAttendance(t *testing.T) {
 	repo.punctuality[empAlice] = &reports.PunctualityStats{OnTimeCount: 20, LateCount: 0, TotalPresent: 20}
 	repo.leave[empAlice] = &reports.LeaveStats{DaysTaken: 0, DaysEntitled: 12}
 	repo.tasks[empAlice] = &reports.TaskStats{TotalAssigned: 10, Completed: 10, CompletedOnTime: 10}
-	repo.claims[empAlice] = &reports.ClaimStats{TotalClaims: 0}
+
 
 	svc := newTestService(repo)
 	sc, err := svc.GetEmployeeScorecard(context.Background(), testOrgID, empAlice, "this_month")
@@ -267,7 +253,7 @@ func TestGetEmployeeScorecard_LowPerformance(t *testing.T) {
 	repo.punctuality[empAlice] = &reports.PunctualityStats{OnTimeCount: 5, LateCount: 5, TotalPresent: 10}
 	repo.leave[empAlice] = &reports.LeaveStats{DaysTaken: 11, DaysEntitled: 12}
 	repo.tasks[empAlice] = &reports.TaskStats{TotalAssigned: 10, Completed: 3, CompletedOnTime: 2}
-	repo.claims[empAlice] = &reports.ClaimStats{TotalClaims: 5, MissingReceiptCount: 3}
+
 
 	svc := newTestService(repo)
 	sc, err := svc.GetEmployeeScorecard(context.Background(), testOrgID, empAlice, "this_month")
@@ -317,14 +303,14 @@ func TestGetTeamScorecard(t *testing.T) {
 	repo.punctuality[empAlice] = &reports.PunctualityStats{OnTimeCount: 20, TotalPresent: 20}
 	repo.leave[empAlice] = &reports.LeaveStats{DaysEntitled: 12}
 	repo.tasks[empAlice] = &reports.TaskStats{TotalAssigned: 5, Completed: 5, CompletedOnTime: 5}
-	repo.claims[empAlice] = &reports.ClaimStats{}
+
 
 	// Bob: decent
 	repo.attendance[empBob] = &reports.AttendanceStats{DaysPresent: 18, WorkingDays: 20}
 	repo.punctuality[empBob] = &reports.PunctualityStats{OnTimeCount: 16, LateCount: 2, TotalPresent: 18}
 	repo.leave[empBob] = &reports.LeaveStats{DaysTaken: 2, DaysEntitled: 12}
 	repo.tasks[empBob] = &reports.TaskStats{TotalAssigned: 8, Completed: 7, CompletedOnTime: 6}
-	repo.claims[empBob] = &reports.ClaimStats{}
+
 
 	svc := newTestService(repo)
 	team, err := svc.GetTeamScorecard(context.Background(), testOrgID, "this_month")
@@ -349,7 +335,7 @@ func TestGetTeamScorecard_InsufficientDaysExcluded(t *testing.T) {
 	repo.punctuality[empAlice] = &reports.PunctualityStats{OnTimeCount: 2, TotalPresent: 2}
 	repo.leave[empAlice] = &reports.LeaveStats{DaysEntitled: 12}
 	repo.tasks[empAlice] = &reports.TaskStats{}
-	repo.claims[empAlice] = &reports.ClaimStats{}
+
 
 	svc := newTestService(repo)
 	team, err := svc.GetTeamScorecard(context.Background(), testOrgID, "this_month")
@@ -372,7 +358,7 @@ func TestGetCompanySummary(t *testing.T) {
 		repo.punctuality[id] = &reports.PunctualityStats{OnTimeCount: 18, LateCount: 2, TotalPresent: 20}
 		repo.leave[id] = &reports.LeaveStats{DaysTaken: 2, DaysEntitled: 12}
 		repo.tasks[id] = &reports.TaskStats{TotalAssigned: 10, Completed: 9, CompletedOnTime: 8}
-		repo.claims[id] = &reports.ClaimStats{TotalClaims: 3}
+
 	}
 
 	svc := newTestService(repo)
@@ -401,19 +387,26 @@ func TestScoring_ZeroData(t *testing.T) {
 	repo.punctuality[empAlice] = &reports.PunctualityStats{TotalPresent: 0}
 	repo.leave[empAlice] = &reports.LeaveStats{DaysEntitled: 0}
 	repo.tasks[empAlice] = &reports.TaskStats{TotalAssigned: 0}
-	repo.claims[empAlice] = &reports.ClaimStats{TotalClaims: 0}
+
 
 	svc := newTestService(repo)
 	sc, err := svc.GetEmployeeScorecard(context.Background(), testOrgID, empAlice, "this_month")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// Attendance = 0/20 = 0, others = 100 (no activity)
+	// Attendance = 0/20 = 0 (present 0 days out of 20 working days)
+	// Punctuality = 0 (no clock-ins → no data → excluded from weighting)
+	// Leave = 0 (DaysEntitled = 0 → excluded)
+	// Tasks = 0 (TotalAssigned = 0 → excluded)
+	// Overall = only attendance counted = 0
 	if sc.Breakdown["attendance"].Score != 0 {
 		t.Errorf("attendance score = %d, want 0", sc.Breakdown["attendance"].Score)
 	}
-	if sc.Breakdown["punctuality"].Score != 100 {
-		t.Errorf("punctuality score = %d, want 100", sc.Breakdown["punctuality"].Score)
+	if sc.Breakdown["punctuality"].Score != 0 {
+		t.Errorf("punctuality score = %d, want 0 (no data → excluded)", sc.Breakdown["punctuality"].Score)
+	}
+	if sc.OverallScore != 0 {
+		t.Errorf("overall_score = %d, want 0 (only attendance counted, 0 days present)", sc.OverallScore)
 	}
 }
 
@@ -426,7 +419,7 @@ func TestFlags_FrequentLateness(t *testing.T) {
 	repo.punctuality[empAlice] = &reports.PunctualityStats{OnTimeCount: 15, LateCount: 5, TotalPresent: 20}
 	repo.leave[empAlice] = &reports.LeaveStats{DaysEntitled: 12}
 	repo.tasks[empAlice] = &reports.TaskStats{TotalAssigned: 5, Completed: 5, CompletedOnTime: 5}
-	repo.claims[empAlice] = &reports.ClaimStats{}
+
 
 	svc := newTestService(repo)
 	sc, err := svc.GetEmployeeScorecard(context.Background(), testOrgID, empAlice, "this_month")
@@ -455,7 +448,7 @@ func TestFlags_LeaveExhaustion(t *testing.T) {
 	repo.punctuality[empAlice] = &reports.PunctualityStats{OnTimeCount: 20, TotalPresent: 20}
 	repo.leave[empAlice] = &reports.LeaveStats{DaysTaken: 11, DaysEntitled: 12} // ~92% used
 	repo.tasks[empAlice] = &reports.TaskStats{TotalAssigned: 5, Completed: 5, CompletedOnTime: 5}
-	repo.claims[empAlice] = &reports.ClaimStats{}
+
 
 	svc := newTestService(repo)
 	sc, err := svc.GetEmployeeScorecard(context.Background(), testOrgID, empAlice, "this_month")
@@ -472,5 +465,59 @@ func TestFlags_LeaveExhaustion(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected leave_exhaustion flag when utilisation >= 90%")
+	}
+}
+
+func TestScoring_WeightRedistribution_NoTasks(t *testing.T) {
+	// Employee with perfect attendance/punctuality but zero tasks assigned.
+	// Tasks signal should be excluded; overall score computed from remaining signals only.
+	repo := newFakeRepo()
+	repo.employees = []reports.EmployeeBasic{
+		{ID: empAlice, Name: "Alice", Department: "Engineering"},
+	}
+	repo.attendance[empAlice] = &reports.AttendanceStats{DaysPresent: 20, WorkingDays: 20}
+	repo.punctuality[empAlice] = &reports.PunctualityStats{OnTimeCount: 20, LateCount: 0, TotalPresent: 20}
+	repo.leave[empAlice] = &reports.LeaveStats{DaysTaken: 0, DaysEntitled: 12}
+	// tasks deliberately omitted (zero value: TotalAssigned = 0)
+
+	svc := newTestService(repo)
+	sc, err := svc.GetEmployeeScorecard(context.Background(), testOrgID, empAlice, "this_month")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if sc.Breakdown["tasks"].Score != 0 {
+		t.Errorf("tasks score = %d, want 0 when no tasks assigned", sc.Breakdown["tasks"].Score)
+	}
+	// Overall should be 100 because att/pun/leave are all perfect (tasks excluded)
+	if sc.OverallScore != 100 {
+		t.Errorf("overall_score = %d, want 100 (tasks excluded, other signals perfect)", sc.OverallScore)
+	}
+}
+
+func TestScoring_WeightRedistribution_NoPunctualityData(t *testing.T) {
+	// Employee present 50% of days, no clock-in records (no punctuality data).
+	// Punctuality signal excluded; overall = only att + leave + tasks.
+	repo := newFakeRepo()
+	repo.employees = []reports.EmployeeBasic{
+		{ID: empAlice, Name: "Alice", Department: "Engineering"},
+	}
+	repo.attendance[empAlice] = &reports.AttendanceStats{DaysPresent: 10, WorkingDays: 20}
+	// punctuality omitted: TotalPresent = 0 → excluded
+	repo.leave[empAlice] = &reports.LeaveStats{DaysTaken: 0, DaysEntitled: 12}
+	repo.tasks[empAlice] = &reports.TaskStats{TotalAssigned: 10, Completed: 10, CompletedOnTime: 10}
+
+	svc := newTestService(repo)
+	sc, err := svc.GetEmployeeScorecard(context.Background(), testOrgID, empAlice, "this_month")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if sc.Breakdown["punctuality"].Score != 0 {
+		t.Errorf("punctuality score = %d, want 0 (no data)", sc.Breakdown["punctuality"].Score)
+	}
+	// Overall must not be inflated by a fake 100 punctuality score
+	if sc.OverallScore >= 100 {
+		t.Errorf("overall_score = %d, should be < 100 with 50%% attendance", sc.OverallScore)
 	}
 }

@@ -24,7 +24,6 @@ type RepositoryInterface interface {
 	GetPunctualityStats(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (*PunctualityStats, error)
 	GetLeaveStats(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate, year string) (*LeaveStats, error)
 	GetTaskStats(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (*TaskStats, error)
-	GetClaimStats(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (*ClaimStats, error)
 
 	// Org timezone
 	GetOrgTimezone(ctx context.Context, orgID uuid.UUID) (string, error)
@@ -44,7 +43,7 @@ func (r *Repository) GetConfig(ctx context.Context, orgID uuid.UUID) (*Scorecard
 	cfg := &ScorecardConfig{}
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id,
-		       attendance_weight, punctuality_weight, leave_weight, tasks_weight, claims_weight,
+		       attendance_weight, punctuality_weight, leave_weight, tasks_weight,
 		       grade_a_min, grade_b_min, grade_c_min,
 		       late_flag_threshold, leave_warning_pct, task_concern_pct, score_drop_threshold,
 		       min_working_days, is_active, created_at, updated_at
@@ -52,7 +51,7 @@ func (r *Repository) GetConfig(ctx context.Context, orgID uuid.UUID) (*Scorecard
 		WHERE organisation_id = $1
 	`, orgID).Scan(
 		&cfg.ID, &cfg.OrganisationID,
-		&cfg.AttendanceWeight, &cfg.PunctualityWeight, &cfg.LeaveWeight, &cfg.TasksWeight, &cfg.ClaimsWeight,
+		&cfg.AttendanceWeight, &cfg.PunctualityWeight, &cfg.LeaveWeight, &cfg.TasksWeight,
 		&cfg.GradeAMin, &cfg.GradeBMin, &cfg.GradeCMin,
 		&cfg.LateFlagThreshold, &cfg.LeaveWarningPct, &cfg.TaskConcernPct, &cfg.ScoreDropThreshold,
 		&cfg.MinWorkingDays, &cfg.IsActive, &cfg.CreatedAt, &cfg.UpdatedAt,
@@ -71,17 +70,16 @@ func (r *Repository) UpsertConfig(ctx context.Context, orgID uuid.UUID, input Co
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO scorecard_config (
 			organisation_id,
-			attendance_weight, punctuality_weight, leave_weight, tasks_weight, claims_weight,
+			attendance_weight, punctuality_weight, leave_weight, tasks_weight,
 			grade_a_min, grade_b_min, grade_c_min,
 			late_flag_threshold, leave_warning_pct, task_concern_pct, score_drop_threshold,
 			min_working_days
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		ON CONFLICT (organisation_id) DO UPDATE SET
 			attendance_weight   = EXCLUDED.attendance_weight,
 			punctuality_weight  = EXCLUDED.punctuality_weight,
 			leave_weight        = EXCLUDED.leave_weight,
 			tasks_weight        = EXCLUDED.tasks_weight,
-			claims_weight       = EXCLUDED.claims_weight,
 			grade_a_min         = EXCLUDED.grade_a_min,
 			grade_b_min         = EXCLUDED.grade_b_min,
 			grade_c_min         = EXCLUDED.grade_c_min,
@@ -91,18 +89,18 @@ func (r *Repository) UpsertConfig(ctx context.Context, orgID uuid.UUID, input Co
 			score_drop_threshold = EXCLUDED.score_drop_threshold,
 			min_working_days     = EXCLUDED.min_working_days
 		RETURNING id, organisation_id,
-		          attendance_weight, punctuality_weight, leave_weight, tasks_weight, claims_weight,
+		          attendance_weight, punctuality_weight, leave_weight, tasks_weight,
 		          grade_a_min, grade_b_min, grade_c_min,
 		          late_flag_threshold, leave_warning_pct, task_concern_pct, score_drop_threshold,
 		          min_working_days, is_active, created_at, updated_at
 	`, orgID,
-		input.AttendanceWeight, input.PunctualityWeight, input.LeaveWeight, input.TasksWeight, input.ClaimsWeight,
+		input.AttendanceWeight, input.PunctualityWeight, input.LeaveWeight, input.TasksWeight,
 		input.GradeAMin, input.GradeBMin, input.GradeCMin,
 		input.LateFlagThreshold, input.LeaveWarningPct, input.TaskConcernPct, input.ScoreDropThreshold,
 		input.MinWorkingDays,
 	).Scan(
 		&cfg.ID, &cfg.OrganisationID,
-		&cfg.AttendanceWeight, &cfg.PunctualityWeight, &cfg.LeaveWeight, &cfg.TasksWeight, &cfg.ClaimsWeight,
+		&cfg.AttendanceWeight, &cfg.PunctualityWeight, &cfg.LeaveWeight, &cfg.TasksWeight,
 		&cfg.GradeAMin, &cfg.GradeBMin, &cfg.GradeCMin,
 		&cfg.LateFlagThreshold, &cfg.LeaveWarningPct, &cfg.TaskConcernPct, &cfg.ScoreDropThreshold,
 		&cfg.MinWorkingDays, &cfg.IsActive, &cfg.CreatedAt, &cfg.UpdatedAt,
@@ -234,28 +232,6 @@ func (r *Repository) GetTaskStats(ctx context.Context, orgID, employeeID uuid.UU
 		  AND created_at <= ($4::date + INTERVAL '1 day')::timestamptz
 	`, orgID, employeeID, startDate, endDate).Scan(
 		&stats.TotalAssigned, &stats.Completed, &stats.CompletedOnTime,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return stats, nil
-}
-
-func (r *Repository) GetClaimStats(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) (*ClaimStats, error) {
-	stats := &ClaimStats{}
-	err := r.db.QueryRow(ctx, `
-		SELECT
-			COUNT(*)::int AS total_claims,
-			0::int AS over_budget_count,
-			COUNT(*) FILTER (WHERE receipt_url IS NULL OR receipt_url = '')::int AS missing_receipt_count
-		FROM claims
-		WHERE organisation_id = $1
-		  AND employee_id = $2
-		  AND claim_date >= $3::date
-		  AND claim_date <= $4::date
-		  AND status IN ('pending', 'approved', 'paid')
-	`, orgID, employeeID, startDate, endDate).Scan(
-		&stats.TotalClaims, &stats.OverBudgetCount, &stats.MissingReceiptCount,
 	)
 	if err != nil {
 		return nil, err

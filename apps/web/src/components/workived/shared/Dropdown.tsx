@@ -3,13 +3,23 @@ import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
 import { moduleThemes, colors } from '@/design/tokens'
 
-const t = moduleThemes.attendance
+const defaultTheme = moduleThemes.attendance
 
 export interface DropdownOption {
   value: string
   label: string
   description?: string
   badge?: string
+}
+
+export interface DropdownTheme {
+  text: string
+  textMuted: string
+  input: string
+  inputBorder: string
+  surface: string
+  border: string
+  hoverBg?: string
 }
 
 interface DropdownProps {
@@ -23,6 +33,7 @@ interface DropdownProps {
   className?: string
   style?: React.CSSProperties
   labelStyle?: React.CSSProperties
+  theme?: DropdownTheme
 }
 
 export function Dropdown({
@@ -36,7 +47,9 @@ export function Dropdown({
   className = '',
   style,
   labelStyle,
+  theme: themeProp,
 }: DropdownProps) {
+  const t = themeProp ?? defaultTheme
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 })
@@ -218,7 +231,9 @@ export function Dropdown({
                     onChange(option.value)
                     setIsOpen(false)
                   }}
-                  className="w-full px-4 py-2.5 text-left hover:bg-black/5 transition-colors flex items-start justify-between gap-3"
+                  className="w-full px-4 py-2.5 text-left transition-colors flex items-start justify-between gap-3"
+                  onMouseEnter={(e) => { e.currentTarget.style.background = t.hoverBg ?? 'rgba(0,0,0,0.05)' }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">

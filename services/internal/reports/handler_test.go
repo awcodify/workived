@@ -144,11 +144,10 @@ func TestHandler_UpdateConfig_Success(t *testing.T) {
 	r := newRouter(svc)
 
 	body := reports.ConfigUpdateInput{
-		AttendanceWeight:   25,
+		AttendanceWeight:   30,
 		PunctualityWeight:  20,
 		LeaveWeight:        15,
-		TasksWeight:        25,
-		ClaimsWeight:       15,
+		TasksWeight:        35,
 		GradeAMin:          90,
 		GradeBMin:          75,
 		GradeCMin:          60,
@@ -189,11 +188,10 @@ func TestHandler_UpdateConfig_ValidationError(t *testing.T) {
 
 	// Valid JSON but service returns validation error
 	body := reports.ConfigUpdateInput{
-		AttendanceWeight:   25,
+		AttendanceWeight:   30,
 		PunctualityWeight:  20,
 		LeaveWeight:        15,
-		TasksWeight:        25,
-		ClaimsWeight:       15,
+		TasksWeight:        35,
 		GradeAMin:          90,
 		GradeBMin:          75,
 		GradeCMin:          60,
@@ -210,6 +208,55 @@ func TestHandler_UpdateConfig_ValidationError(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assertStatus(t, w, http.StatusBadRequest)
+}
+
+// ── GetEmployeeScorecardByID tests ────────────────────────────────────────
+
+func TestHandler_GetEmployeeScorecardByID(t *testing.T) {
+	svc := &mockService{
+		getEmpScorecardFn: func(_ context.Context, _, _ uuid.UUID, _ string) (*reports.Scorecard, error) {
+			return &reports.Scorecard{
+				EmployeeID:   hTestEmpID,
+				EmployeeName: "Alice",
+				OverallScore: 85,
+				Grade:        "B",
+				Breakdown:    map[string]reports.Breakdown{},
+			}, nil
+		},
+	}
+	r := newRouter(svc)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/reports/scorecard/"+hTestEmpID.String()+"?period=this_month", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
+}
+
+func TestHandler_GetEmployeeScorecardByID_InvalidUUID(t *testing.T) {
+	svc := &mockService{}
+	r := newRouter(svc)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/reports/scorecard/not-a-uuid", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusBadRequest)
+}
+
+func TestHandler_GetEmployeeScorecardByID_NotFound(t *testing.T) {
+	svc := &mockService{
+		getEmpScorecardFn: func(_ context.Context, _, _ uuid.UUID, _ string) (*reports.Scorecard, error) {
+			return nil, apperr.NotFound("employee")
+		},
+	}
+	r := newRouter(svc)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/reports/scorecard/"+hTestEmpID.String(), nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusNotFound)
 }
 
 // ── GetMyScorecard tests ───────────────────────────────────────────────────

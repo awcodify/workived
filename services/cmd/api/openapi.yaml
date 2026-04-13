@@ -2730,6 +2730,40 @@ paths:
                   scorecard:
                     $ref: "#/components/schemas/Scorecard"
 
+  /reports/scorecard/{employee_id}:
+    get:
+      operationId: getEmployeeScorecard
+      summary: Get employee scorecard
+      description: Returns full scorecard with breakdown detail for a specific employee. Requires reports.read permission.
+      tags: [Reports]
+      parameters:
+        - in: path
+          name: employee_id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [this_month, this_quarter, this_year]
+            default: this_month
+      responses:
+        "200":
+          description: Employee scorecard
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  scorecard:
+                    $ref: "#/components/schemas/Scorecard"
+        "400":
+          description: Invalid employee_id or period
+        "404":
+          description: Employee not found
+
   /reports/scorecard/team:
     get:
       operationId: getTeamScorecard
@@ -4693,8 +4727,6 @@ components:
           type: integer
         tasks_weight:
           type: integer
-        claims_weight:
-          type: integer
         grade_a_min:
           type: integer
         grade_b_min:
@@ -4727,7 +4759,6 @@ components:
         - punctuality_weight
         - leave_weight
         - tasks_weight
-        - claims_weight
         - grade_a_min
         - grade_b_min
         - grade_c_min
@@ -4750,10 +4781,6 @@ components:
           minimum: 0
           maximum: 100
         tasks_weight:
-          type: integer
-          minimum: 0
-          maximum: 100
-        claims_weight:
           type: integer
           minimum: 0
           maximum: 100
@@ -4870,8 +4897,6 @@ components:
         leave_score:
           type: integer
         tasks_score:
-          type: integer
-        claims_score:
           type: integer
 
     TeamScorecard:

@@ -7,13 +7,14 @@ import { useMutation } from '@tanstack/react-query'
 import { useOrgDetail, useUpdateOrg, useTransferOwnership } from '@/lib/hooks/useOrganisation'
 import { useCanEditOrgSettings, useHasOrg } from '@/lib/hooks/useRole'
 import { useMyInvitations } from '@/lib/hooks/useInvitations'
+import { useScorecardConfig, useUpdateScorecardConfig } from '@/lib/hooks/useReports'
 import { organisationsApi } from '@/lib/api/organisations'
 import { useAuthStore } from '@/lib/stores/auth'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
 import { extractApiError, extractApiErrorDetails } from '@/lib/utils/errors'
 import { extractInviteToken } from '@/lib/utils/url'
-import type { MyInvitation } from '@/types/api'
+import type { MyInvitation, ScorecardConfig, ConfigUpdateInput } from '@/types/api'
 
 export const Route = createFileRoute('/_app/settings/company')({
   component: CompanyPage,
@@ -77,6 +78,7 @@ const NAV_ITEMS = [
   { id: 'location', label: 'Location & currency' },
   { id: 'plan', label: 'Plan & usage' },
   { id: 'attendance', label: 'Attendance' },
+  { id: 'scorecard', label: 'Scorecard' },
   { id: 'danger', label: 'Danger zone' },
 ]
 
@@ -485,6 +487,259 @@ function AttendanceSection() {
   )
 }
 
+// ── Scorecard config section ──────────────────────────────────────────────────
+
+const WEIGHT_SIGNALS = [
+  { key: 'attendance_weight', label: 'Attendance' },
+  { key: 'punctuality_weight', label: 'Punctuality' },
+  { key: 'leave_weight', label: 'Leave' },
+  { key: 'tasks_weight', label: 'Tasks' },
+] as const
+
+type WeightKey = (typeof WEIGHT_SIGNALS)[number]['key']
+
+function ScorecardConfigSection() {
+  const { data: config, isLoading } = useScorecardConfig()
+  const updateConfig = useUpdateScorecardConfig()
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [weights, setWeights] = useState<Record<WeightKey, number> | null>(null)
+  const [grades, setGrades] = useState<{ a: number; b: number; c: number } | null>(null)
+  const [flags, setFlags] = useState<{ late: number; leave: number; task: number; drop: number; minDays: number } | null>(null)
+
+  // Sync from server on first load
+  const initialized = useRef(false)
+  if (config && !initialized.current) {
+    initialized.current = true
+    setWeights({
+      attendance_weight: config.attendance_weight,
+      punctuality_weight: config.punctuality_weight,
+      leave_weight: config.leave_weight,
+      tasks_weight: config.tasks_weight,
+    })
+    setGrades({ a: config.grade_a_min, b: config.grade_b_min, c: config.grade_c_min })
+    setFlags({
+      late: config.late_flag_threshold,
+      leave: config.leave_warning_pct,
+      task: config.task_concern_pct,
+      drop: config.score_drop_threshold,
+      minDays: config.min_working_days,
+    })
+  }
+
+  if (isLoading || !weights || !grades || !flags) {
+    return (
+      <div className="flex flex-col gap-6">
+        <SectionTitle id="scorecard">Scorecard</SectionTitle>
+        <div className="h-16 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+      </div>
+    )
+  }
+
+  const weightTotal = Object.values(weights).reduce((sum, v) => sum + v, 0)
+  const weightValid = weightTotal === 100
+
+  function handleWeightChange(key: WeightKey, value: number) {
+    setWeights((prev) => prev ? { ...prev, [key]: value } : prev)
+  }
+
+  function handleSave() {
+    if (!weightValid) return
+    const payload: ConfigUpdateInput = {
+      ...weights,
+      grade_a_min: grades.a,
+      grade_b_min: grades.b,
+      grade_c_min: grades.c,
+      late_flag_threshold: flags.late,
+      leave_warning_pct: flags.leave,
+      task_concern_pct: flags.task,
+      score_drop_threshold: flags.drop,
+      min_working_days: flags.minDays,
+    }
+    updateConfig.mutate(payload, {
+      onSuccess: () => {
+        setSuccessMessage('Scorecard configuration saved.')
+        setTimeout(() => setSuccessMessage(null), 3000)
+      },
+    })
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <SectionTitle id="scorecard" description="Configure how employee performance scores are calculated.">
+        Scorecard
+      </SectionTitle>
+
+      {successMessage && <Banner variant="success" message={successMessage} />}
+
+      {/* Signal Weights */}
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <p style={{ fontSize: 14, fontWeight: 600, color: S.text }}>Signal weights</p>
+          <span
+            className="text-xs font-bold px-2 py-0.5 rounded"
+            style={{
+              background: weightValid ? 'rgba(18,160,92,0.15)' : 'rgba(212,64,64,0.15)',
+              color: weightValid ? '#34D399' : '#F87171',
+              fontFamily: typography.fontMono,
+            }}
+          >
+            {weightTotal} / 100
+          </span>
+        </div>
+
+        {WEIGHT_SIGNALS.map((sig) => (
+          <div key={sig.key} className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8 items-center">
+            <label htmlFor={sig.key} style={{ fontSize: 14, fontWeight: 500, color: S.textMuted }}>{sig.label}</label>
+            <div className="flex items-center gap-3 max-w-md">
+              <input
+                id={sig.key}
+                type="range"
+                min={0}
+                max={100}
+                step={5}
+                value={weights[sig.key]}
+                onChange={(e) => handleWeightChange(sig.key, Number(e.target.value))}
+                className="flex-1 accent-[#6357E8]"
+                style={{ height: 4 }}
+              />
+              <span className="w-10 text-right text-sm font-bold" style={{ color: S.text, fontFamily: typography.fontMono }}>
+                {weights[sig.key]}
+              </span>
+            </div>
+          </div>
+        ))}
+
+        {!weightValid && (
+          <p className="text-xs font-medium" style={{ color: '#F87171' }}>
+            Weights must sum to 100 (currently {weightTotal})
+          </p>
+        )}
+      </div>
+
+      <Divider />
+
+      {/* Grade Thresholds */}
+      <div className="flex flex-col gap-4">
+        <p style={{ fontSize: 14, fontWeight: 600, color: S.text }}>Grade thresholds</p>
+        <p className="text-xs" style={{ color: S.textDim }}>Minimum score to achieve each grade. D is everything below C threshold.</p>
+
+        <div className="grid grid-cols-3 gap-4 max-w-md">
+          {[
+            { label: 'A (min)', value: grades.a, onChange: (v: number) => setGrades((g) => g ? { ...g, a: v } : g) },
+            { label: 'B (min)', value: grades.b, onChange: (v: number) => setGrades((g) => g ? { ...g, b: v } : g) },
+            { label: 'C (min)', value: grades.c, onChange: (v: number) => setGrades((g) => g ? { ...g, c: v } : g) },
+          ].map((g) => (
+            <div key={g.label}>
+              <label className="text-xs font-medium block mb-1" style={{ color: S.textMuted }}>{g.label}</label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={g.value}
+                onChange={(e) => g.onChange(Number(e.target.value))}
+                className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
+                style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, fontFamily: typography.fontMono }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <Divider />
+
+      {/* Flag Thresholds */}
+      <div className="flex flex-col gap-4">
+        <p style={{ fontSize: 14, fontWeight: 600, color: S.text }}>Flag thresholds</p>
+        <p className="text-xs" style={{ color: S.textDim }}>Configure when warnings and alerts appear on employee scorecards.</p>
+
+        <FieldRow label="Late arrivals" htmlFor="late-threshold" description="Number of late days to trigger flag">
+          <input
+            id="late-threshold"
+            type="number"
+            min={0}
+            value={flags.late}
+            onChange={(e) => setFlags((f) => f ? { ...f, late: Number(e.target.value) } : f)}
+            className="w-24 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
+            style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, fontFamily: typography.fontMono }}
+          />
+        </FieldRow>
+
+        <FieldRow label="Leave usage warning" htmlFor="leave-warning" description="% of leave balance to trigger warning">
+          <div className="flex items-center gap-2">
+            <input
+              id="leave-warning"
+              type="number"
+              min={0}
+              max={100}
+              value={flags.leave}
+              onChange={(e) => setFlags((f) => f ? { ...f, leave: Number(e.target.value) } : f)}
+              className="w-24 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
+              style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, fontFamily: typography.fontMono }}
+            />
+            <span className="text-sm" style={{ color: S.textDim }}>%</span>
+          </div>
+        </FieldRow>
+
+        <FieldRow label="Task concern" htmlFor="task-concern" description="% incomplete tasks to trigger flag">
+          <div className="flex items-center gap-2">
+            <input
+              id="task-concern"
+              type="number"
+              min={0}
+              max={100}
+              value={flags.task}
+              onChange={(e) => setFlags((f) => f ? { ...f, task: Number(e.target.value) } : f)}
+              className="w-24 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
+              style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, fontFamily: typography.fontMono }}
+            />
+            <span className="text-sm" style={{ color: S.textDim }}>%</span>
+          </div>
+        </FieldRow>
+
+        <FieldRow label="Score drop alert" htmlFor="score-drop" description="Point drop vs previous period to flag">
+          <input
+            id="score-drop"
+            type="number"
+            min={0}
+            value={flags.drop}
+            onChange={(e) => setFlags((f) => f ? { ...f, drop: Number(e.target.value) } : f)}
+            className="w-24 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
+            style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, fontFamily: typography.fontMono }}
+          />
+        </FieldRow>
+
+        <FieldRow label="Min working days" htmlFor="min-days" description="Minimum days before score is reliable">
+          <input
+            id="min-days"
+            type="number"
+            min={1}
+            value={flags.minDays}
+            onChange={(e) => setFlags((f) => f ? { ...f, minDays: Number(e.target.value) } : f)}
+            className="w-24 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
+            style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text, fontFamily: typography.fontMono }}
+          />
+        </FieldRow>
+      </div>
+
+      {/* Save */}
+      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8">
+        <div>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={updateConfig.isPending || !weightValid}
+            className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+            style={{ background: C.accent, color: '#FFFFFF' }}
+          >
+            {updateConfig.isPending ? 'Saving...' : 'Save scorecard config'}
+          </button>
+        </div>
+        <div />
+      </div>
+    </div>
+  )
+}
+
 // ── Transfer ownership section ─────────────────────────────────────────────────
 
 function TransferOwnershipSection() {
@@ -768,6 +1023,8 @@ function CompanyPage() {
                   <PlanSection />
                   <Divider />
                   <AttendanceSection />
+                  <Divider />
+                  <ScorecardConfigSection />
                   <Divider />
                   <TransferOwnershipSection />
                 </>
