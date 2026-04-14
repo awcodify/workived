@@ -137,6 +137,45 @@ paths:
         "404":
           $ref: "#/components/responses/NotFoundError"
 
+  /auth/forgot-password:
+    post:
+      operationId: forgotPassword
+      summary: Request a password reset email
+      description: Always returns 200 — never reveals whether the email is registered.
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /auth/reset-password:
+    post:
+      operationId: resetPassword
+      summary: Reset password using a token from the reset email
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+
   # ── Organisations ─────────────────────────────────────────────────────────
   /organisations:
     post:
@@ -3023,6 +3062,26 @@ components:
       properties:
         token:
           type: string
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 255
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, new_password]
+      properties:
+        token:
+          type: string
+        new_password:
+          type: string
+          minLength: 8
+          maxLength: 72
 
     # ── Organisation ──────────────────────────────────────────────────────
     Organisation:

@@ -14,9 +14,11 @@ import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppOrgChartRouteImport } from './routes/_app/org-chart'
 import { Route as AuthSetupOrgRouteRouteImport } from './routes/_auth/setup-org/route'
+import { Route as AuthResetPasswordRouteRouteImport } from './routes/_auth/reset-password/route'
 import { Route as AuthRegisterRouteRouteImport } from './routes/_auth/register/route'
 import { Route as AuthLoginRouteRouteImport } from './routes/_auth/login/route'
 import { Route as AuthInviteRouteRouteImport } from './routes/_auth/invite/route'
+import { Route as AuthForgotPasswordRouteRouteImport } from './routes/_auth/forgot-password/route'
 import { Route as AppTasksRouteRouteImport } from './routes/_app/tasks/route'
 import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
@@ -71,6 +73,11 @@ const AuthSetupOrgRouteRoute = AuthSetupOrgRouteRouteImport.update({
   path: '/setup-org',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AuthResetPasswordRouteRoute = AuthResetPasswordRouteRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
 const AuthRegisterRouteRoute = AuthRegisterRouteRouteImport.update({
   id: '/register',
   path: '/register',
@@ -84,6 +91,11 @@ const AuthLoginRouteRoute = AuthLoginRouteRouteImport.update({
 const AuthInviteRouteRoute = AuthInviteRouteRouteImport.update({
   id: '/invite',
   path: '/invite',
+  getParentRoute: () => AuthRouteRoute,
+} as any)
+const AuthForgotPasswordRouteRoute = AuthForgotPasswordRouteRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
   getParentRoute: () => AuthRouteRoute,
 } as any)
 const AppTasksRouteRoute = AppTasksRouteRouteImport.update({
@@ -255,9 +267,11 @@ export interface FileRoutesByFullPath {
   '/people': typeof AppPeopleRouteRouteWithChildren
   '/settings': typeof AppSettingsRouteRouteWithChildren
   '/tasks': typeof AppTasksRouteRoute
+  '/forgot-password': typeof AuthForgotPasswordRouteRoute
   '/invite': typeof AuthInviteRouteRoute
   '/login': typeof AuthLoginRouteRoute
   '/register': typeof AuthRegisterRouteRoute
+  '/reset-password': typeof AuthResetPasswordRouteRoute
   '/setup-org': typeof AuthSetupOrgRouteRoute
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
@@ -288,9 +302,11 @@ export interface FileRoutesByTo {
   '/overview': typeof AppOverviewRouteRoute
   '/settings': typeof AppSettingsRouteRouteWithChildren
   '/tasks': typeof AppTasksRouteRoute
+  '/forgot-password': typeof AuthForgotPasswordRouteRoute
   '/invite': typeof AuthInviteRouteRoute
   '/login': typeof AuthLoginRouteRoute
   '/register': typeof AuthRegisterRouteRoute
+  '/reset-password': typeof AuthResetPasswordRouteRoute
   '/setup-org': typeof AuthSetupOrgRouteRoute
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
@@ -329,9 +345,11 @@ export interface FileRoutesById {
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
   '/_app/settings': typeof AppSettingsRouteRouteWithChildren
   '/_app/tasks': typeof AppTasksRouteRoute
+  '/_auth/forgot-password': typeof AuthForgotPasswordRouteRoute
   '/_auth/invite': typeof AuthInviteRouteRoute
   '/_auth/login': typeof AuthLoginRouteRoute
   '/_auth/register': typeof AuthRegisterRouteRoute
+  '/_auth/reset-password': typeof AuthResetPasswordRouteRoute
   '/_auth/setup-org': typeof AuthSetupOrgRouteRoute
   '/_app/org-chart': typeof AppOrgChartRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
@@ -369,9 +387,11 @@ export interface FileRouteTypes {
     | '/people'
     | '/settings'
     | '/tasks'
+    | '/forgot-password'
     | '/invite'
     | '/login'
     | '/register'
+    | '/reset-password'
     | '/setup-org'
     | '/org-chart'
     | '/attendance/monthly'
@@ -402,9 +422,11 @@ export interface FileRouteTypes {
     | '/overview'
     | '/settings'
     | '/tasks'
+    | '/forgot-password'
     | '/invite'
     | '/login'
     | '/register'
+    | '/reset-password'
     | '/setup-org'
     | '/org-chart'
     | '/attendance/monthly'
@@ -442,9 +464,11 @@ export interface FileRouteTypes {
     | '/_app/people'
     | '/_app/settings'
     | '/_app/tasks'
+    | '/_auth/forgot-password'
     | '/_auth/invite'
     | '/_auth/login'
     | '/_auth/register'
+    | '/_auth/reset-password'
     | '/_auth/setup-org'
     | '/_app/org-chart'
     | '/_app/attendance/monthly'
@@ -511,6 +535,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSetupOrgRouteRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_auth/reset-password': {
+      id: '/_auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
     '/_auth/register': {
       id: '/_auth/register'
       path: '/register'
@@ -530,6 +561,13 @@ declare module '@tanstack/react-router' {
       path: '/invite'
       fullPath: '/invite'
       preLoaderRoute: typeof AuthInviteRouteRouteImport
+      parentRoute: typeof AuthRouteRoute
+    }
+    '/_auth/forgot-password': {
+      id: '/_auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteRouteImport
       parentRoute: typeof AuthRouteRoute
     }
     '/_app/tasks': {
@@ -875,16 +913,20 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 )
 
 interface AuthRouteRouteChildren {
+  AuthForgotPasswordRouteRoute: typeof AuthForgotPasswordRouteRoute
   AuthInviteRouteRoute: typeof AuthInviteRouteRoute
   AuthLoginRouteRoute: typeof AuthLoginRouteRoute
   AuthRegisterRouteRoute: typeof AuthRegisterRouteRoute
+  AuthResetPasswordRouteRoute: typeof AuthResetPasswordRouteRoute
   AuthSetupOrgRouteRoute: typeof AuthSetupOrgRouteRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
+  AuthForgotPasswordRouteRoute: AuthForgotPasswordRouteRoute,
   AuthInviteRouteRoute: AuthInviteRouteRoute,
   AuthLoginRouteRoute: AuthLoginRouteRoute,
   AuthRegisterRouteRoute: AuthRegisterRouteRoute,
+  AuthResetPasswordRouteRoute: AuthResetPasswordRouteRoute,
   AuthSetupOrgRouteRoute: AuthSetupOrgRouteRoute,
 }
 

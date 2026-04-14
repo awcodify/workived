@@ -19,6 +19,15 @@ export interface RefreshResponse {
   access_token: string
 }
 
+export interface ForgotPasswordRequest {
+  email: string
+}
+
+export interface ResetPasswordRequest {
+  token: string
+  new_password: string
+}
+
 export interface User {
   id: string
   email: string

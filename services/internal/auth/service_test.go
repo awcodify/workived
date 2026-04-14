@@ -21,10 +21,11 @@ type fakeAuthRepo struct {
 	tokens map[string]*auth.AuthToken // tokenHash → token
 
 	// Error injection hooks — set these to force specific errors
-	createTokenErr  error
-	getUserByIDErr  error
-	consumeTokenErr error
-	markVerifiedErr error
+	createTokenErr    error
+	getUserByIDErr    error
+	consumeTokenErr   error
+	markVerifiedErr   error
+	updatePasswordErr error
 }
 
 func newFakeAuthRepo() *fakeAuthRepo {
@@ -86,6 +87,19 @@ func (f *fakeAuthRepo) MarkEmailVerified(_ context.Context, userID uuid.UUID) er
 }
 
 func (f *fakeAuthRepo) UpdateLastLogin(_ context.Context, _ uuid.UUID) error { return nil }
+
+func (f *fakeAuthRepo) UpdatePassword(_ context.Context, userID uuid.UUID, passwordHash string) error {
+	if f.updatePasswordErr != nil {
+		return f.updatePasswordErr
+	}
+	for email, u := range f.users {
+		if u.ID == userID {
+			f.hashes[email] = passwordHash
+			return nil
+		}
+	}
+	return apperr.NotFound("user")
+}
 
 func (f *fakeAuthRepo) CreateToken(_ context.Context, userID uuid.UUID, tokenHash, tokenType string, expiresAt time.Time) error {
 	if f.createTokenErr != nil {
@@ -611,4 +625,158 @@ func TestAuthService_VerifyEmail_MarkVerifiedError(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when MarkEmailVerified fails, got nil")
 	}
+}
+
+// ── ForgotPassword / ResetPassword ───────────────────────────────────────────
+
+func TestAuthService_ForgotPassword(t *testing.T) {
+	t.Run("unknown email returns nil (no info leakage)", func(t *testing.T) {
+		svc, _ := newTestService(t)
+		err := svc.ForgotPassword(context.Background(), auth.ForgotPasswordRequest{
+			Email: "nobody@example.com",
+		})
+		if err != nil {
+			t.Fatalf("expected nil for unknown email, got %v", err)
+		}
+	})
+
+	t.Run("known email issues token", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+			Email: "fp@example.com", Password: "password123", FullName: "FP User",
+		})
+		if err := svc.ForgotPassword(context.Background(), auth.ForgotPasswordRequest{
+			Email: "fp@example.com",
+		}); err != nil {
+			t.Fatalf("forgot password: %v", err)
+		}
+		// Exactly one password_reset token should exist
+		count := 0
+		for _, tok := range repo.tokens {
+			if tok.TokenType == "password_reset" {
+				count++
+			}
+		}
+		if count != 1 {
+			t.Errorf("expected 1 password_reset token, got %d", count)
+		}
+	})
+
+	t.Run("create token error is propagated", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+			Email: "fp2@example.com", Password: "password123", FullName: "FP2",
+		})
+		repo.createTokenErr = errors.New("db error")
+		err := svc.ForgotPassword(context.Background(), auth.ForgotPasswordRequest{
+			Email: "fp2@example.com",
+		})
+		if err == nil {
+			t.Fatal("expected error when CreateToken fails, got nil")
+		}
+	})
+}
+
+func TestAuthService_ResetPassword(t *testing.T) {
+	t.Run("valid token updates password", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+			Email: "rp@example.com", Password: "oldpassword1", FullName: "RP User",
+		})
+
+		const raw = "reset-raw-token-abc"
+		repo.tokens[auth.HashTokenForTest(raw)] = &auth.AuthToken{
+			ID:        uuid.New(),
+			UserID:    repo.users["rp@example.com"].ID,
+			TokenHash: auth.HashTokenForTest(raw),
+			TokenType: "password_reset",
+			ExpiresAt: time.Now().Add(time.Hour),
+		}
+
+		err := svc.ResetPassword(context.Background(), auth.ResetPasswordRequest{
+			Token:       raw,
+			NewPassword: "newpassword1",
+		})
+		if err != nil {
+			t.Fatalf("reset password: %v", err)
+		}
+
+		// Old password should no longer work
+		_, _, err = svc.Login(context.Background(), auth.LoginRequest{
+			Email: "rp@example.com", Password: "oldpassword1",
+		})
+		if err == nil {
+			t.Fatal("old password should be rejected after reset")
+		}
+
+		// New password should work
+		_, _, err = svc.Login(context.Background(), auth.LoginRequest{
+			Email: "rp@example.com", Password: "newpassword1",
+		})
+		if err != nil {
+			t.Fatalf("new password should work: %v", err)
+		}
+	})
+
+	t.Run("invalid token rejected", func(t *testing.T) {
+		svc, _ := newTestService(t)
+		err := svc.ResetPassword(context.Background(), auth.ResetPasswordRequest{
+			Token:       "bogus-token",
+			NewPassword: "newpassword1",
+		})
+		if err == nil {
+			t.Fatal("expected error for invalid token, got nil")
+		}
+		if !apperr.IsCode(err, apperr.CodeUnauthorized) {
+			t.Errorf("expected UNAUTHORIZED, got %v", err)
+		}
+	})
+
+	t.Run("token reuse rejected", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+			Email: "rp2@example.com", Password: "oldpassword1", FullName: "RP2",
+		})
+
+		const raw = "reset-reuse-token"
+		repo.tokens[auth.HashTokenForTest(raw)] = &auth.AuthToken{
+			ID:        uuid.New(),
+			UserID:    repo.users["rp2@example.com"].ID,
+			TokenHash: auth.HashTokenForTest(raw),
+			TokenType: "password_reset",
+			ExpiresAt: time.Now().Add(time.Hour),
+		}
+
+		req := auth.ResetPasswordRequest{Token: raw, NewPassword: "newpassword1"}
+		if err := svc.ResetPassword(context.Background(), req); err != nil {
+			t.Fatalf("first reset: %v", err)
+		}
+		if err := svc.ResetPassword(context.Background(), req); err == nil {
+			t.Fatal("expected error on token reuse, got nil")
+		}
+	})
+
+	t.Run("expired token rejected", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+			Email: "rp3@example.com", Password: "oldpassword1", FullName: "RP3",
+		})
+
+		const raw = "expired-reset-token"
+		repo.tokens[auth.HashTokenForTest(raw)] = &auth.AuthToken{
+			ID:        uuid.New(),
+			UserID:    repo.users["rp3@example.com"].ID,
+			TokenHash: auth.HashTokenForTest(raw),
+			TokenType: "password_reset",
+			ExpiresAt: time.Now().Add(-time.Hour), // already expired
+		}
+
+		err := svc.ResetPassword(context.Background(), auth.ResetPasswordRequest{
+			Token:       raw,
+			NewPassword: "newpassword1",
+		})
+		if err == nil {
+			t.Fatal("expected error for expired token, got nil")
+		}
+	})
 }

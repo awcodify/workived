@@ -67,4 +67,30 @@ describe('authApi', () => {
       expect(result).toEqual(response)
     })
   })
+
+  describe('forgotPassword', () => {
+    test('calls POST /api/v1/auth/forgot-password with email', async () => {
+      const payload = { email: 'user@example.com' }
+      const response = { data: { data: { message: 'if that email is registered, a reset link has been sent' } } }
+      mockPost.mockResolvedValueOnce(response)
+
+      const result = await authApi.forgotPassword(payload)
+
+      expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/forgot-password', payload)
+      expect(result).toEqual(response)
+    })
+  })
+
+  describe('resetPassword', () => {
+    test('calls POST /api/v1/auth/reset-password with token and new_password', async () => {
+      const payload = { token: 'abc123token', new_password: 'newpassword1' }
+      const response = { data: { data: { message: 'password updated successfully' } } }
+      mockPost.mockResolvedValueOnce(response)
+
+      const result = await authApi.resetPassword(payload)
+
+      expect(mockPost).toHaveBeenCalledWith('/api/v1/auth/reset-password', payload)
+      expect(result).toEqual(response)
+    })
+  })
 })

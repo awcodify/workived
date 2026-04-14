@@ -272,6 +272,15 @@ function LoginPage() {
                 )}
               </div>
 
+              <div className="flex justify-end">
+                <Link
+                  to="/forgot-password"
+                  style={{ fontSize: 13, color: colors.accent, fontWeight: 500 }}
+                >
+                  Forgot password?
+                </Link>
+              </div>
+
               <button
                 type="submit"
                 disabled={login.isPending}

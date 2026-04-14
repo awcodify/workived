@@ -4,6 +4,8 @@ import type {
   LoginResponse,
   RegisterRequest,
   RefreshResponse,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
   ApiResponse,
   User,
 } from '@/types/api'
@@ -22,4 +24,10 @@ export const authApi = {
   // Logout — invalidates refresh token
   logout: () =>
     apiClient.post<ApiResponse<null>>('/api/v1/auth/logout'),
+
+  forgotPassword: (data: ForgotPasswordRequest) =>
+    apiClient.post<ApiResponse<{ message: string }>>('/api/v1/auth/forgot-password', data),
+
+  resetPassword: (data: ResetPasswordRequest) =>
+    apiClient.post<ApiResponse<{ message: string }>>('/api/v1/auth/reset-password', data),
 }

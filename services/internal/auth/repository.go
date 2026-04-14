@@ -84,6 +84,13 @@ func (r *Repository) MarkEmailVerified(ctx context.Context, userID uuid.UUID) er
 	return err
 }
 
+func (r *Repository) UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE users SET password_hash = $1 WHERE id = $2
+	`, passwordHash, userID)
+	return err
+}
+
 func (r *Repository) UpdateLastLogin(ctx context.Context, userID uuid.UUID) error {
 	now := time.Now().UTC()
 	_, err := r.db.Exec(ctx, `

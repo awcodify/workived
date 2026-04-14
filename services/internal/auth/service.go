@@ -25,6 +25,7 @@ type Repo interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
 	MarkEmailVerified(ctx context.Context, userID uuid.UUID) error
 	UpdateLastLogin(ctx context.Context, userID uuid.UUID) error
+	UpdatePassword(ctx context.Context, userID uuid.UUID, passwordHash string) error
 	CreateToken(ctx context.Context, userID uuid.UUID, tokenHash, tokenType string, expiresAt time.Time) error
 	GetValidToken(ctx context.Context, tokenHash, tokenType string) (*AuthToken, error)
 	ConsumeToken(ctx context.Context, tokenHash string) error
@@ -190,6 +191,52 @@ func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
 	return s.repo.MarkEmailVerified(ctx, stored.UserID)
 }
 
+func (s *Service) ForgotPassword(ctx context.Context, req ForgotPasswordRequest) error {
+	req.Email = strings.ToLower(req.Email)
+
+	user, _, err := s.repo.GetUserByEmail(ctx, req.Email)
+	if err != nil {
+		// Silent — never reveal whether email exists
+		return nil
+	}
+
+	rawToken, tokenHash := generateToken()
+	expiresAt := time.Now().UTC().Add(time.Hour)
+	if err := s.repo.CreateToken(ctx, user.ID, tokenHash, "password_reset", expiresAt); err != nil {
+		return fmt.Errorf("create password reset token: %w", err)
+	}
+
+	if s.email != nil {
+		go s.sendPasswordResetEmail(context.Background(), user.FullName, user.Email, rawToken)
+	}
+
+	return nil
+}
+
+func (s *Service) ResetPassword(ctx context.Context, req ResetPasswordRequest) error {
+	tokenHash := hashToken(req.Token)
+	stored, err := s.repo.GetValidToken(ctx, tokenHash, "password_reset")
+	if err != nil {
+		return err
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("hash password: %w", err)
+	}
+
+	if err := s.repo.UpdatePassword(ctx, stored.UserID, string(hash)); err != nil {
+		return fmt.Errorf("update password: %w", err)
+	}
+
+	if err := s.repo.ConsumeToken(ctx, tokenHash); err != nil {
+		return fmt.Errorf("consume token: %w", err)
+	}
+
+	s.log.Info().Str("user_id", stored.UserID.String()).Msg("auth.password_reset")
+	return nil
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 // IssueAccessToken creates a signed JWT with the given claims.
@@ -222,6 +269,34 @@ func generateToken() (raw, hash string) {
 func hashToken(raw string) string {
 	sum := sha256.Sum256([]byte(raw))
 	return hex.EncodeToString(sum[:])
+}
+
+func (s *Service) sendPasswordResetEmail(_ context.Context, fullName, userEmail, resetToken string) {
+	resetURL := fmt.Sprintf("%s/reset-password?token=%s", s.appURL, resetToken)
+
+	subject, body, _, err := email.PasswordResetTemplate.Render(struct {
+		UserName string
+		ResetURL string
+	}{
+		UserName: fullName,
+		ResetURL: resetURL,
+	})
+	if err != nil {
+		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to render password reset email")
+		return
+	}
+
+	if err := s.email.Send(email.Message{
+		To:      []string{userEmail},
+		Subject: subject,
+		Body:    body,
+		IsHTML:  true,
+	}); err != nil {
+		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to send password reset email")
+		return
+	}
+
+	s.log.Info().Str("email", userEmail).Msg("auth.password_reset_email_sent")
 }
 
 // sendWelcomeEmail renders and sends the welcome email with verification link.

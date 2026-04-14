@@ -21,11 +21,13 @@ func init() {
 // ── Mock service ──────────────────────────────────────────────────────────────
 
 type mockAuthService struct {
-	registerFn    func(ctx context.Context, req auth.RegisterRequest) (*auth.User, error)
-	loginFn       func(ctx context.Context, req auth.LoginRequest) (*auth.LoginResponse, string, error)
-	refreshFn     func(ctx context.Context, raw string) (*auth.RefreshResponse, string, error)
-	logoutFn      func(ctx context.Context, raw string) error
-	verifyEmailFn func(ctx context.Context, req auth.VerifyEmailRequest) error
+	registerFn      func(ctx context.Context, req auth.RegisterRequest) (*auth.User, error)
+	loginFn         func(ctx context.Context, req auth.LoginRequest) (*auth.LoginResponse, string, error)
+	refreshFn       func(ctx context.Context, raw string) (*auth.RefreshResponse, string, error)
+	logoutFn        func(ctx context.Context, raw string) error
+	verifyEmailFn   func(ctx context.Context, req auth.VerifyEmailRequest) error
+	forgotPasswordFn func(ctx context.Context, req auth.ForgotPasswordRequest) error
+	resetPasswordFn  func(ctx context.Context, req auth.ResetPasswordRequest) error
 }
 
 func (m *mockAuthService) Register(ctx context.Context, req auth.RegisterRequest) (*auth.User, error) {
@@ -42,6 +44,12 @@ func (m *mockAuthService) Logout(ctx context.Context, raw string) error {
 }
 func (m *mockAuthService) VerifyEmail(ctx context.Context, req auth.VerifyEmailRequest) error {
 	return m.verifyEmailFn(ctx, req)
+}
+func (m *mockAuthService) ForgotPassword(ctx context.Context, req auth.ForgotPasswordRequest) error {
+	return m.forgotPasswordFn(ctx, req)
+}
+func (m *mockAuthService) ResetPassword(ctx context.Context, req auth.ResetPasswordRequest) error {
+	return m.resetPasswordFn(ctx, req)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -338,6 +346,124 @@ func TestAuthHandler_VerifyEmail(t *testing.T) {
 				body = jsonBody(t, tt.body)
 			}
 			req, _ := http.NewRequest(http.MethodPost, "/api/v1/auth/verify-email", body)
+			req.Header.Set("Content-Type", "application/json")
+			newTestRouter(svc).ServeHTTP(w, req)
+			assertStatus(t, w, tt.wantStatus)
+		})
+	}
+}
+
+// ── ForgotPassword handler ────────────────────────────────────────────────────
+
+func TestAuthHandler_ForgotPassword(t *testing.T) {
+	tests := []struct {
+		name       string
+		body       any
+		serviceErr error
+		wantStatus int
+	}{
+		{
+			name:       "valid email returns 200",
+			body:       map[string]string{"email": "user@example.com"},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "unknown email still returns 200 (no info leakage)",
+			body:       map[string]string{"email": "nobody@example.com"},
+			serviceErr: nil,
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "invalid email rejected",
+			body:       map[string]string{"email": "not-an-email"},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "missing body rejected",
+			body:       "not json",
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &mockAuthService{
+				forgotPasswordFn: func(_ context.Context, _ auth.ForgotPasswordRequest) error {
+					return tt.serviceErr
+				},
+			}
+			w := httptest.NewRecorder()
+			var body *bytes.Buffer
+			if s, ok := tt.body.(string); ok {
+				body = bytes.NewBufferString(s)
+			} else {
+				body = jsonBody(t, tt.body)
+			}
+			req, _ := http.NewRequest(http.MethodPost, "/api/v1/auth/forgot-password", body)
+			req.Header.Set("Content-Type", "application/json")
+			newTestRouter(svc).ServeHTTP(w, req)
+			assertStatus(t, w, tt.wantStatus)
+		})
+	}
+}
+
+// ── ResetPassword handler ─────────────────────────────────────────────────────
+
+func TestAuthHandler_ResetPassword(t *testing.T) {
+	tests := []struct {
+		name       string
+		body       any
+		serviceErr error
+		wantStatus int
+	}{
+		{
+			name:       "valid request returns 200",
+			body:       map[string]string{"token": "abc123", "new_password": "newpassword1"},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "invalid token returns 401",
+			body:       map[string]string{"token": "bad", "new_password": "newpassword1"},
+			serviceErr: apperr.New(apperr.CodeUnauthorized, "token is invalid or expired"),
+			wantStatus: http.StatusUnauthorized,
+		},
+		{
+			name:       "missing token rejected",
+			body:       map[string]string{"new_password": "newpassword1"},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "missing password rejected",
+			body:       map[string]string{"token": "abc123"},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "password too short rejected",
+			body:       map[string]string{"token": "abc123", "new_password": "short"},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "invalid body rejected",
+			body:       "not json",
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := &mockAuthService{
+				resetPasswordFn: func(_ context.Context, _ auth.ResetPasswordRequest) error {
+					return tt.serviceErr
+				},
+			}
+			w := httptest.NewRecorder()
+			var body *bytes.Buffer
+			if s, ok := tt.body.(string); ok {
+				body = bytes.NewBufferString(s)
+			} else {
+				body = jsonBody(t, tt.body)
+			}
+			req, _ := http.NewRequest(http.MethodPost, "/api/v1/auth/reset-password", body)
 			req.Header.Set("Content-Type", "application/json")
 			newTestRouter(svc).ServeHTTP(w, req)
 			assertStatus(t, w, tt.wantStatus)

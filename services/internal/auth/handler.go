@@ -16,6 +16,8 @@ type ServiceInterface interface {
 	Refresh(ctx context.Context, rawToken string) (*RefreshResponse, string, error)
 	Logout(ctx context.Context, rawToken string) error
 	VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
+	ForgotPassword(ctx context.Context, req ForgotPasswordRequest) error
+	ResetPassword(ctx context.Context, req ResetPasswordRequest) error
 }
 
 type Handler struct {
@@ -33,6 +35,8 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	auth.POST("/refresh", h.Refresh)
 	auth.POST("/logout", h.Logout)
 	auth.POST("/verify-email", h.VerifyEmail)
+	auth.POST("/forgot-password", h.ForgotPassword)
+	auth.POST("/reset-password", h.ResetPassword)
 }
 
 func (h *Handler) Register(c *gin.Context) {
@@ -129,4 +133,43 @@ func (h *Handler) VerifyEmail(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "email verified"}})
+}
+
+func (h *Handler) ForgotPassword(c *gin.Context) {
+	var req ForgotPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+	if err := validate.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.ForgotPassword(c.Request.Context(), req); err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	// Always 200 — never reveal whether email exists
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "if that email is registered, a reset link has been sent"}})
+}
+
+func (h *Handler) ResetPassword(c *gin.Context) {
+	var req ResetPasswordRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+	if err := validate.Struct(req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.ResetPassword(c.Request.Context(), req); err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "password updated successfully"}})
 }
