@@ -85,6 +85,7 @@ type UpdateEmployeeRequest struct {
 	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`
 	Gender         *string    `json:"gender"           validate:"omitempty,oneof=male female"`
 	Status         *string    `json:"status"           validate:"omitempty,oneof=active on_leave probation inactive"`
+	StartDate      *string    `json:"start_date"       validate:"omitempty"`
 	EndDate        *string    `json:"end_date"         validate:"omitempty"`
 	WorkScheduleID *uuid.UUID `json:"work_schedule_id" validate:"omitempty"`
 	BaseSalary     *int64     `json:"base_salary"      validate:"omitempty,gte=0"`

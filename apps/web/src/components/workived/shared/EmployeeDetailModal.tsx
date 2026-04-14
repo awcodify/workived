@@ -137,6 +137,8 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
         department_id: formData.department_id || undefined,
         reporting_to: formData.reporting_to || undefined,
         work_schedule_id: formData.work_schedule_id || undefined,
+        start_date: formData.start_date || undefined,
+        end_date: formData.end_date || undefined,
       })
       setIsEditMode(false)
       setShowConfirmation(false)
