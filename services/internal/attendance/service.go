@@ -582,6 +582,7 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 			}
 			weekDay.ClockInAt = &rec.ClockInAt
 			weekDay.ClockOutAt = rec.ClockOutAt
+			weekDay.Note = rec.Note
 		} else if isHoliday {
 			// Public holiday with no attendance
 			weekDay.Status = "holiday"
@@ -747,6 +748,7 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 				}
 				weekDay.ClockInAt = &rec.ClockInAt
 				weekDay.ClockOutAt = rec.ClockOutAt
+				weekDay.Note = rec.Note
 			} else if isHoliday {
 				// Public holiday with no attendance
 				weekDay.Status = "holiday"
@@ -915,6 +917,7 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 				}
 				weekDay.ClockInAt = &rec.ClockInAt
 				weekDay.ClockOutAt = rec.ClockOutAt
+				weekDay.Note = rec.Note
 			} else if isHoliday {
 				// Public holiday with no attendance
 				weekDay.Status = "holiday"

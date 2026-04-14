@@ -377,6 +377,7 @@ export interface WeekDay {
   status: 'on-time' | 'late' | 'absent' | 'weekend' | 'holiday' | 'future' | 'on_leave' | 'overtime'
   clock_in_at?: string
   clock_out_at?: string
+  note?: string
   is_today: boolean
 }
 

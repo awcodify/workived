@@ -87,7 +87,7 @@ function TasksPage() {
   
   const { data: taskLists = [], isLoading: listsLoading } = useTaskLists()
   const { data: tasks = [], isLoading: tasksLoading } = useTasks()
-  const { data: employeesData } = useEmployees({ status: 'active' })
+  const { data: employeesData } = useEmployees({ status: 'active', limit: 100 })
   const employees = employeesData?.data || []
   const { data: workloadData = [] } = useEmployeeWorkload()
   

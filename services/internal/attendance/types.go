@@ -81,6 +81,7 @@ type WeekDay struct {
 	Status     string     `json:"status"`     // "on-time", "late", "absent", "weekend", "future", "overtime", "on_leave"
 	ClockInAt  *time.Time `json:"clock_in_at,omitempty"`
 	ClockOutAt *time.Time `json:"clock_out_at,omitempty"`
+	Note       *string    `json:"note,omitempty"`
 	IsToday    bool       `json:"is_today"`
 }
 
