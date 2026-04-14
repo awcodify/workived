@@ -581,8 +581,11 @@ func (r *Repository) UpdateBalanceMonthlyLimit(ctx context.Context, orgID, categ
 // Only returns balances for active categories.
 func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]ClaimBalanceWithCategory, error) {
 	rows, err := r.db.Query(ctx, `
-		WITH monthly AS (
-			-- Monthly categories: return the specific month's balance
+		WITH emp_type AS (
+			SELECT employment_type FROM employees WHERE id = $2 AND organisation_id = $1
+		),
+		monthly AS (
+			-- Monthly categories: only return balances the employee is eligible for
 			SELECT b.id, b.organisation_id, b.employee_id, b.category_id, b.year, b.month,
 			       b.total_spent, b.claim_count, b.currency_code, b.monthly_limit,
 			       b.created_at, b.updated_at, c.name, c.description, c.budget_period
@@ -591,6 +594,9 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 			WHERE b.organisation_id = $1 AND b.employee_id = $2
 			  AND b.year = $3 AND b.month = $4
 			  AND c.is_active = true AND c.budget_period = 'monthly'
+			  AND (c.eligible_employment_types IS NULL
+			       OR cardinality(c.eligible_employment_types) = 0
+			       OR (SELECT employment_type FROM emp_type) = ANY(c.eligible_employment_types))
 		),
 		yearly AS (
 			-- Yearly categories: aggregate all months in the year, use current month's row as base
@@ -609,6 +615,9 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 			WHERE b.organisation_id = $1 AND b.employee_id = $2
 			  AND b.year = $3 AND b.month = $4
 			  AND c.is_active = true AND c.budget_period = 'yearly'
+			  AND (c.eligible_employment_types IS NULL
+			       OR cardinality(c.eligible_employment_types) = 0
+			       OR (SELECT employment_type FROM emp_type) = ANY(c.eligible_employment_types))
 		)
 		SELECT * FROM monthly
 		UNION ALL
@@ -663,6 +672,9 @@ func (r *Repository) CreateBalancesForAllEmployees(ctx context.Context, orgID, c
 		CROSS JOIN claim_categories c
 		WHERE e.organisation_id = $1 AND e.is_active = true
 		  AND c.id = $2 AND c.is_active = true
+		  AND (c.eligible_employment_types IS NULL
+		       OR cardinality(c.eligible_employment_types) = 0
+		       OR e.employment_type = ANY(c.eligible_employment_types))
 		ON CONFLICT (organisation_id, employee_id, category_id, year, month) DO NOTHING
 	`, orgID, categoryID, year, month)
 	if err != nil {

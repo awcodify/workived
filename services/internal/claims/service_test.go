@@ -729,6 +729,66 @@ func TestService_ListBalances(t *testing.T) {
 			t.Fatal("expected error, got nil")
 		}
 	})
+
+	t.Run("contract employee skips full_time-only category in ensureBalances", func(t *testing.T) {
+		balanceCreateCalls := 0
+		repo := &fakeClaimsRepo{
+			listCategoriesFn: func(_ context.Context, _ uuid.UUID) ([]claims.Category, error) {
+				return []claims.Category{
+					{
+						ID: testCategoryID, Name: "Full-Time Travel", CurrencyCode: "AED", IsActive: true,
+						EligibleEmploymentTypes: []string{"full_time"},
+					},
+				}, nil
+			},
+			getOrCreateBalanceFn: func(_ context.Context, _, _, _ uuid.UUID, _, _ int) (*claims.ClaimBalance, error) {
+				balanceCreateCalls++
+				return &claims.ClaimBalance{ID: uuid.New()}, nil
+			},
+		}
+		empProvider := &fakeEmpProvider{name: "Contractor", empType: "contract"}
+		svc := claims.NewService(repo, &fakeOrgProvider{plan: "pro"}, empProvider, "http://localhost:3000",
+			claims.WithLogger(zerolog.Nop()),
+			claims.WithAuditLog(&noopAudit{}),
+		)
+		_, err := svc.ListBalances(context.Background(), testOrgID, testEmpID, 2026, 3)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if balanceCreateCalls != 0 {
+			t.Errorf("expected no balance rows created for ineligible contract employee, got %d", balanceCreateCalls)
+		}
+	})
+
+	t.Run("full_time employee creates balance for full_time-only category", func(t *testing.T) {
+		balanceCreateCalls := 0
+		repo := &fakeClaimsRepo{
+			listCategoriesFn: func(_ context.Context, _ uuid.UUID) ([]claims.Category, error) {
+				return []claims.Category{
+					{
+						ID: testCategoryID, Name: "Full-Time Travel", CurrencyCode: "AED", IsActive: true,
+						EligibleEmploymentTypes: []string{"full_time"},
+					},
+				}, nil
+			},
+			getOrCreateBalanceFn: func(_ context.Context, _, _, _ uuid.UUID, _, _ int) (*claims.ClaimBalance, error) {
+				balanceCreateCalls++
+				return &claims.ClaimBalance{ID: uuid.New()}, nil
+			},
+		}
+		empProvider := &fakeEmpProvider{name: "Full Timer", empType: "full_time"}
+		svc := claims.NewService(repo, &fakeOrgProvider{plan: "pro"}, empProvider, "http://localhost:3000",
+			claims.WithLogger(zerolog.Nop()),
+			claims.WithAuditLog(&noopAudit{}),
+		)
+		_, err := svc.ListBalances(context.Background(), testOrgID, testEmpID, 2026, 3)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if balanceCreateCalls != 1 {
+			t.Errorf("expected 1 balance row created for eligible full_time employee, got %d", balanceCreateCalls)
+		}
+	})
 }
 
 // ── Tests: GetMonthlySummary ──────────────────────────────────────────────────
