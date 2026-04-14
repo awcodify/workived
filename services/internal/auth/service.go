@@ -11,6 +11,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
@@ -29,6 +30,7 @@ type Repo interface {
 	CreateToken(ctx context.Context, userID uuid.UUID, tokenHash, tokenType string, expiresAt time.Time) error
 	GetValidToken(ctx context.Context, tokenHash, tokenType string) (*AuthToken, error)
 	ConsumeToken(ctx context.Context, tokenHash string) error
+	ConsumeAllPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 }
 
 // OrgRepo is the narrow interface the auth service needs from the organisation module.
@@ -45,6 +47,7 @@ type Service struct {
 	email      email.Sender
 	appURL     string
 	log        zerolog.Logger
+	rdb        *redis.Client
 }
 
 type ServiceOption func(*Service)
@@ -59,6 +62,10 @@ func WithAppURL(url string) ServiceOption {
 
 func WithLogger(log zerolog.Logger) ServiceOption {
 	return func(s *Service) { s.log = log }
+}
+
+func WithRedis(rdb *redis.Client) ServiceOption {
+	return func(s *Service) { s.rdb = rdb }
 }
 
 func NewService(repo Repo, orgRepo OrgRepo, jwtSecret string, accessTTL, refreshTTL time.Duration, opts ...ServiceOption) *Service {
@@ -191,13 +198,48 @@ func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
 	return s.repo.MarkEmailVerified(ctx, stored.UserID)
 }
 
+// forgotPasswordRateLimit returns an error when the per-email hourly limit is reached.
+// Fails open on Redis errors so a Redis outage never blocks legitimate users.
+func (s *Service) forgotPasswordRateLimit(ctx context.Context, email string) error {
+	if s.rdb == nil {
+		return nil
+	}
+	key := fmt.Sprintf("rate:forgot_pw:%s:%d", email, time.Now().UTC().Unix()/3600)
+	count, err := s.rdb.Incr(ctx, key).Result()
+	if err != nil {
+		// Fail open — Redis outage must not block password resets
+		s.log.Warn().Err(err).Str("email", email).Msg("rate limit redis error, failing open")
+		return nil
+	}
+	if count == 1 {
+		// Set TTL on first hit; use 2h so it covers the full bucket window
+		_ = s.rdb.Expire(ctx, key, 2*time.Hour)
+	}
+	const maxPerHour = 5
+	if count > maxPerHour {
+		return apperr.New(apperr.CodeRateLimit, "too many password reset requests, try again later")
+	}
+	return nil
+}
+
 func (s *Service) ForgotPassword(ctx context.Context, req ForgotPasswordRequest) error {
 	req.Email = strings.ToLower(req.Email)
+
+	// Rate limit before any DB lookup — no info leakage since we check regardless of email existence
+	if err := s.forgotPasswordRateLimit(ctx, req.Email); err != nil {
+		return err
+	}
 
 	user, _, err := s.repo.GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		// Silent — never reveal whether email exists
 		return nil
+	}
+
+	// Invalidate any existing password_reset tokens — only the latest link is valid
+	if err := s.repo.ConsumeAllPasswordResetTokens(ctx, user.ID); err != nil {
+		s.log.Warn().Err(err).Str("user_id", user.ID.String()).Msg("failed to expire old password reset tokens")
+		// Non-fatal — proceed to issue new token
 	}
 
 	rawToken, tokenHash := generateToken()

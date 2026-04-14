@@ -88,6 +88,16 @@ func (f *fakeAuthRepo) MarkEmailVerified(_ context.Context, userID uuid.UUID) er
 
 func (f *fakeAuthRepo) UpdateLastLogin(_ context.Context, _ uuid.UUID) error { return nil }
 
+func (f *fakeAuthRepo) ConsumeAllPasswordResetTokens(_ context.Context, userID uuid.UUID) error {
+	now := time.Now().UTC()
+	for _, tok := range f.tokens {
+		if tok.UserID == userID && tok.TokenType == "password_reset" && tok.UsedAt == nil && tok.ExpiresAt.After(time.Now()) {
+			tok.UsedAt = &now
+		}
+	}
+	return nil
+}
+
 func (f *fakeAuthRepo) UpdatePassword(_ context.Context, userID uuid.UUID, passwordHash string) error {
 	if f.updatePasswordErr != nil {
 		return f.updatePasswordErr
@@ -673,6 +683,52 @@ func TestAuthService_ForgotPassword(t *testing.T) {
 		})
 		if err == nil {
 			t.Fatal("expected error when CreateToken fails, got nil")
+		}
+	})
+
+	t.Run("previous password_reset tokens are invalidated on new request", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		_, _ = svc.Register(context.Background(), auth.RegisterRequest{
+			Email: "fp3@example.com", Password: "password123", FullName: "FP3",
+		})
+
+		// First request — creates token A
+		if err := svc.ForgotPassword(context.Background(), auth.ForgotPasswordRequest{
+			Email: "fp3@example.com",
+		}); err != nil {
+			t.Fatalf("first forgot password: %v", err)
+		}
+
+		// Capture the first token hash
+		var firstHash string
+		for h, tok := range repo.tokens {
+			if tok.TokenType == "password_reset" {
+				firstHash = h
+			}
+		}
+
+		// Second request — should invalidate token A and create token B
+		if err := svc.ForgotPassword(context.Background(), auth.ForgotPasswordRequest{
+			Email: "fp3@example.com",
+		}); err != nil {
+			t.Fatalf("second forgot password: %v", err)
+		}
+
+		// Token A must now be consumed
+		firstTok := repo.tokens[firstHash]
+		if firstTok == nil || firstTok.UsedAt == nil {
+			t.Error("old password_reset token should be invalidated after new request")
+		}
+
+		// Exactly one active password_reset token should remain
+		active := 0
+		for _, tok := range repo.tokens {
+			if tok.TokenType == "password_reset" && tok.UsedAt == nil {
+				active++
+			}
+		}
+		if active != 1 {
+			t.Errorf("expected 1 active password_reset token, got %d", active)
 		}
 	})
 }

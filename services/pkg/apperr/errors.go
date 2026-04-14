@@ -14,6 +14,7 @@ const (
 	CodeInsufficientBalance = "INSUFFICIENT_BALANCE"
 	CodeConflict            = "CONFLICT"
 	CodeInternal            = "INTERNAL_ERROR"
+	CodeRateLimit           = "RATE_LIMIT_EXCEEDED"
 )
 
 type AppError struct {
@@ -107,6 +108,8 @@ func HTTPStatus(err error) int {
 			return http.StatusUnprocessableEntity
 		case CodeConflict:
 			return http.StatusConflict
+		case CodeRateLimit:
+			return http.StatusTooManyRequests
 		}
 	}
 	return http.StatusInternalServerError

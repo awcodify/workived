@@ -131,6 +131,18 @@ func (r *Repository) GetValidToken(ctx context.Context, tokenHash, tokenType str
 	return t, nil
 }
 
+func (r *Repository) ConsumeAllPasswordResetTokens(ctx context.Context, userID uuid.UUID) error {
+	now := time.Now().UTC()
+	_, err := r.db.Exec(ctx, `
+		UPDATE auth_tokens SET used_at = $1
+		WHERE user_id = $2
+		  AND token_type = 'password_reset'
+		  AND used_at IS NULL
+		  AND expires_at > NOW()
+	`, now, userID)
+	return err
+}
+
 func (r *Repository) ConsumeToken(ctx context.Context, tokenHash string) error {
 	now := time.Now().UTC()
 	tag, err := r.db.Exec(ctx, `

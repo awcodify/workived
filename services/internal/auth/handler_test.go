@@ -379,6 +379,12 @@ func TestAuthHandler_ForgotPassword(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
+			name:       "rate limit exceeded returns 429",
+			body:       map[string]string{"email": "user@example.com"},
+			serviceErr: apperr.New(apperr.CodeRateLimit, "too many password reset requests, try again later"),
+			wantStatus: http.StatusTooManyRequests,
+		},
+		{
 			name:       "missing body rejected",
 			body:       "not json",
 			wantStatus: http.StatusBadRequest,

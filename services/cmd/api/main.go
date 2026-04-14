@@ -129,7 +129,7 @@ func main() {
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	cachedOrgInfo := organisation.NewCachedOrgInfo(orgRepo, cacheStore)
-	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL, auth.WithEmailSender(emailSender), auth.WithAppURL(cfg.AppURL), auth.WithLogger(log))
+	authSvc := auth.NewService(authRepo, orgRepo, cfg.JWTSecret, cfg.JWTAccessTTL, cfg.JWTRefreshTTL, auth.WithEmailSender(emailSender), auth.WithAppURL(cfg.AppURL), auth.WithLogger(log), auth.WithRedis(rdb))
 	empSvc := employee.NewService(empRepo, orgRepo, employee.WithAuditLog(auditRepo), employee.WithEmploymentChangeRepo(employmentChangeRepo), employee.WithLogger(log), employee.WithCache(cacheStore))
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log), department.WithCache(cacheStore))
 	jtSvc := jobtitle.NewService(jtRepo, jobtitle.WithLogger(log), jobtitle.WithCache(cacheStore))
