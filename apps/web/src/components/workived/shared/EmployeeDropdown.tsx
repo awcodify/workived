@@ -81,7 +81,7 @@ export function EmployeeDropdown({
   })
 
   // Flatten all pages into single array
-  const allEmployees = data?.pages.flatMap((page) => page.data) ?? []
+  const allEmployees = data?.pages.flatMap((page) => page.data ?? []) ?? []
   
   // Filter out excluded employee
   const employees = excludeEmployeeId
