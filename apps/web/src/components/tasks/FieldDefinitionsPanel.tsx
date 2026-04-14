@@ -286,15 +286,15 @@ function FieldForm({
       return
     }
 
-    const config = needsOptions && data.options?.length
-      ? { options: data.options.map((o) => ({ value: o.value, label: o.label, color: o.color || undefined })) }
+    const mappedOptions = needsOptions && data.options?.length
+      ? data.options.map((o) => ({ value: o.value, label: o.label, color: o.color || undefined }))
       : undefined
 
     if (editing) {
       const payload: UpdateFieldDefinitionInput = {
         name:        data.name,
         description: data.description || undefined,
-        config,
+        options:     mappedOptions,
       }
       updateMutation.mutate({ id: editing.id, data: payload }, { onSuccess: onClose })
     } else {
@@ -302,7 +302,7 @@ function FieldForm({
         name:        data.name,
         field_type:  data.field_type,
         description: data.description || undefined,
-        config,
+        options:     mappedOptions,
       }
       createMutation.mutate(payload, { onSuccess: onClose })
     }
