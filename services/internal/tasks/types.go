@@ -145,6 +145,62 @@ type TaskFilters struct {
 
 const DefaultArchiveDays = 7
 
+// ── Field Definitions ────────────────────────────────────────────────────────
+
+// ValidFieldTypes is the set of allowed field_type values.
+var ValidFieldTypes = map[string]bool{
+	"text": true, "number": true, "date": true, "boolean": true,
+	"select": true, "multi_select": true, "url": true, "employee": true, "rating": true,
+}
+
+// FieldOption is one entry in the options array for select/multi_select fields.
+type FieldOption struct {
+	Value string  `json:"value"`
+	Label string  `json:"label"`
+	Color *string `json:"color,omitempty"`
+}
+
+// FieldConfig holds type-specific constraints stored in the config JSONB column.
+type FieldConfig struct {
+	Min    *int64  `json:"min,omitempty"`    // number / rating lower bound
+	Max    *int64  `json:"max,omitempty"`    // number / rating upper bound
+	Format *string `json:"format,omitempty"` // date display format hint
+}
+
+// FieldDefinition is the domain model for a custom field schema.
+type FieldDefinition struct {
+	ID             uuid.UUID     `json:"id"`
+	OrganisationID uuid.UUID     `json:"organisation_id"`
+	Name           string        `json:"name"`
+	FieldType      string        `json:"field_type"`
+	Description    *string       `json:"description,omitempty"`
+	Options        []FieldOption `json:"options,omitempty"`
+	Config         *FieldConfig  `json:"config,omitempty"`
+	SortOrder      int           `json:"sort_order"`
+	IsActive       bool          `json:"is_active"`
+	CreatedAt      time.Time     `json:"created_at"`
+	UpdatedAt      time.Time     `json:"updated_at"`
+}
+
+// ── Field Definition Request DTOs ────────────────────────────────────────────
+
+type CreateFieldDefinitionRequest struct {
+	Name        string        `json:"name" binding:"required,max=100"`
+	FieldType   string        `json:"field_type" binding:"required"`
+	Description *string       `json:"description,omitempty" binding:"omitempty,max=500"`
+	Options     []FieldOption `json:"options,omitempty"`
+	Config      *FieldConfig  `json:"config,omitempty"`
+	SortOrder   int           `json:"sort_order,omitempty"`
+}
+
+type UpdateFieldDefinitionRequest struct {
+	Name        *string       `json:"name,omitempty" binding:"omitempty,max=100"`
+	Description *string       `json:"description,omitempty" binding:"omitempty,max=500"`
+	Options     []FieldOption `json:"options,omitempty"`
+	Config      *FieldConfig  `json:"config,omitempty"`
+	SortOrder   *int          `json:"sort_order,omitempty"`
+}
+
 // ── Repository Interface ─────────────────────────────────────────────────────
 
 type RepositoryInterface interface {
@@ -175,6 +231,13 @@ type RepositoryInterface interface {
 	// Reactions
 	ToggleReaction(ctx context.Context, orgID, commentID, employeeID uuid.UUID, emoji string) (added bool, err error)
 	ListReactions(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]CommentReactionSummary, error)
+
+	// Field Definitions
+	ListFieldDefinitions(ctx context.Context, orgID uuid.UUID) ([]FieldDefinition, error)
+	GetFieldDefinition(ctx context.Context, orgID, id uuid.UUID) (*FieldDefinition, error)
+	CreateFieldDefinition(ctx context.Context, orgID uuid.UUID, req CreateFieldDefinitionRequest) (*FieldDefinition, error)
+	UpdateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, req UpdateFieldDefinitionRequest) (*FieldDefinition, error)
+	DeactivateFieldDefinition(ctx context.Context, orgID, id uuid.UUID) error
 }
 
 // ── Service Interface ────────────────────────────────────────────────────────
@@ -204,6 +267,12 @@ type ServiceInterface interface {
 	// Reactions
 	ToggleReaction(ctx context.Context, orgID, commentID, employeeID uuid.UUID, emoji string, actorUserID ...uuid.UUID) (added bool, err error)
 	ListReactions(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]CommentReactionSummary, error)
+
+	// Field Definitions
+	ListFieldDefinitions(ctx context.Context, orgID uuid.UUID) ([]FieldDefinition, error)
+	CreateFieldDefinition(ctx context.Context, orgID uuid.UUID, req CreateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*FieldDefinition, error)
+	UpdateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, req UpdateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*FieldDefinition, error)
+	DeactivateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
 }
 
 // ── Error Constructors ───────────────────────────────────────────────────────
@@ -234,4 +303,20 @@ func ErrInvalidPriority(priority string) *apperr.AppError {
 
 func ErrCannotDeleteApprovalTask() *apperr.AppError {
 	return apperr.New(apperr.CodeConflict, "cannot delete pending approval task")
+}
+
+func ErrFieldDefinitionNotFound() *apperr.AppError {
+	return apperr.NotFound("field definition")
+}
+
+func ErrFieldDefinitionDuplicate(name string) *apperr.AppError {
+	return apperr.New(apperr.CodeConflict, fmt.Sprintf("field definition with name '%s' already exists", name))
+}
+
+func ErrInvalidFieldType(ft string) *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, fmt.Sprintf("invalid field_type '%s'", ft))
+}
+
+func ErrOptionsRequiredForType(ft string) *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, fmt.Sprintf("options are required for field_type '%s'", ft))
 }

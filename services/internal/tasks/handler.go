@@ -55,6 +55,12 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Reactions
 	tasks.POST("/:id/comments/:cid/reactions", middleware.Require(middleware.PermTasksRead), h.ToggleReaction)
 	tasks.GET("/:id/comments/:cid/reactions", middleware.Require(middleware.PermTasksRead), h.ListReactions)
+
+	// Field Definitions (org-level schema management — admin only)
+	tasks.GET("/fields", middleware.Require(middleware.PermTasksRead), h.ListFieldDefinitions)
+	tasks.POST("/fields", middleware.Require(middleware.PermTasksWrite), h.CreateFieldDefinition)
+	tasks.PUT("/fields/:fid", middleware.Require(middleware.PermTasksWrite), h.UpdateFieldDefinition)
+	tasks.DELETE("/fields/:fid", middleware.Require(middleware.PermTasksWrite), h.DeactivateFieldDefinition)
 }
 
 // logAndRespondError logs error with context and responds with proper HTTP status
@@ -541,4 +547,86 @@ func (h *Handler) ListReactions(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": reactions})
+}
+
+// ── Field Definitions ─────────────────────────────────────────────────────────
+
+func (h *Handler) ListFieldDefinitions(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	defs, err := h.service.ListFieldDefinitions(c.Request.Context(), orgID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to list field definitions", map[string]string{"org_id": orgID.String()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": defs})
+}
+
+func (h *Handler) CreateFieldDefinition(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	var req CreateFieldDefinitionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	fd, err := h.service.CreateFieldDefinition(c.Request.Context(), orgID, req, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to create field definition", map[string]string{"org_id": orgID.String()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"data": fd})
+}
+
+func (h *Handler) UpdateFieldDefinition(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	id, err := uuid.Parse(c.Param("fid"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	var req UpdateFieldDefinitionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	fd, err := h.service.UpdateFieldDefinition(c.Request.Context(), orgID, id, req, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to update field definition", map[string]string{
+			"org_id":   orgID.String(),
+			"field_id": id.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": fd})
+}
+
+func (h *Handler) DeactivateFieldDefinition(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	id, err := uuid.Parse(c.Param("fid"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.DeactivateFieldDefinition(c.Request.Context(), orgID, id, userID); err != nil {
+		h.logAndRespondError(c, err, "failed to deactivate field definition", map[string]string{
+			"org_id":   orgID.String(),
+			"field_id": id.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
 }

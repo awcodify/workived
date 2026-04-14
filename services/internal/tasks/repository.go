@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -709,4 +710,217 @@ func ptrToUUID(s *string) *uuid.UUID {
 		return nil
 	}
 	return &id
+}
+
+// ── Field Definitions ─────────────────────────────────────────────────────────
+
+// scanFieldDefinition scans a single row into a FieldDefinition, decoding JSONB columns.
+func scanFieldDefinition(row pgx.Row) (*FieldDefinition, error) {
+	var fd FieldDefinition
+	var optionsRaw, configRaw []byte
+	err := row.Scan(
+		&fd.ID, &fd.OrganisationID, &fd.Name, &fd.FieldType,
+		&fd.Description, &optionsRaw, &configRaw,
+		&fd.SortOrder, &fd.IsActive, &fd.CreatedAt, &fd.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrFieldDefinitionNotFound()
+		}
+		return nil, err
+	}
+	if len(optionsRaw) > 0 {
+		if err := json.Unmarshal(optionsRaw, &fd.Options); err != nil {
+			return nil, fmt.Errorf("decode options: %w", err)
+		}
+	}
+	if len(configRaw) > 0 {
+		if err := json.Unmarshal(configRaw, &fd.Config); err != nil {
+			return nil, fmt.Errorf("decode config: %w", err)
+		}
+	}
+	return &fd, nil
+}
+
+const fieldDefinitionColumns = `id, organisation_id, name, field_type, description, options, config, sort_order, is_active, created_at, updated_at`
+
+func (r *Repository) ListFieldDefinitions(ctx context.Context, orgID uuid.UUID) ([]FieldDefinition, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+fieldDefinitionColumns+`
+		FROM task_field_definitions
+		WHERE organisation_id = $1 AND is_active = TRUE
+		ORDER BY sort_order ASC, created_at ASC
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var defs []FieldDefinition
+	for rows.Next() {
+		var fd FieldDefinition
+		var optionsRaw, configRaw []byte
+		if err := rows.Scan(
+			&fd.ID, &fd.OrganisationID, &fd.Name, &fd.FieldType,
+			&fd.Description, &optionsRaw, &configRaw,
+			&fd.SortOrder, &fd.IsActive, &fd.CreatedAt, &fd.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		if len(optionsRaw) > 0 {
+			if err := json.Unmarshal(optionsRaw, &fd.Options); err != nil {
+				return nil, fmt.Errorf("decode options: %w", err)
+			}
+		}
+		if len(configRaw) > 0 {
+			if err := json.Unmarshal(configRaw, &fd.Config); err != nil {
+				return nil, fmt.Errorf("decode config: %w", err)
+			}
+		}
+		defs = append(defs, fd)
+	}
+	return defs, rows.Err()
+}
+
+func (r *Repository) GetFieldDefinition(ctx context.Context, orgID, id uuid.UUID) (*FieldDefinition, error) {
+	row := r.db.QueryRow(ctx, `
+		SELECT `+fieldDefinitionColumns+`
+		FROM task_field_definitions
+		WHERE organisation_id = $1 AND id = $2
+	`, orgID, id)
+	return scanFieldDefinition(row)
+}
+
+func (r *Repository) CreateFieldDefinition(ctx context.Context, orgID uuid.UUID, req CreateFieldDefinitionRequest) (*FieldDefinition, error) {
+	optionsJSON, err := marshalFieldOptions(req.Options)
+	if err != nil {
+		return nil, err
+	}
+	configJSON, err := marshalFieldConfig(req.Config)
+	if err != nil {
+		return nil, err
+	}
+
+	row := r.db.QueryRow(ctx, `
+		INSERT INTO task_field_definitions
+			(organisation_id, name, field_type, description, options, config, sort_order)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		RETURNING `+fieldDefinitionColumns,
+		orgID, req.Name, req.FieldType, req.Description, optionsJSON, configJSON, req.SortOrder,
+	)
+	fd, err := scanFieldDefinition(row)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrFieldDefinitionDuplicate(req.Name)
+		}
+		return nil, err
+	}
+	return fd, nil
+}
+
+func (r *Repository) UpdateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, req UpdateFieldDefinitionRequest) (*FieldDefinition, error) {
+	optionsJSON, err := marshalFieldOptions(req.Options)
+	if err != nil {
+		return nil, err
+	}
+
+	setClauses := []string{"updated_at = NOW()"}
+	args := []any{orgID, id}
+	argIdx := 3
+
+	if req.Name != nil {
+		setClauses = append(setClauses, fmt.Sprintf("name = $%d", argIdx))
+		args = append(args, *req.Name)
+		argIdx++
+	}
+	if req.Description != nil {
+		setClauses = append(setClauses, fmt.Sprintf("description = $%d", argIdx))
+		args = append(args, *req.Description)
+		argIdx++
+	}
+	if req.Options != nil {
+		setClauses = append(setClauses, fmt.Sprintf("options = $%d", argIdx))
+		args = append(args, optionsJSON)
+		argIdx++
+	}
+	if req.Config != nil {
+		configJSON, err := marshalFieldConfig(req.Config)
+		if err != nil {
+			return nil, err
+		}
+		setClauses = append(setClauses, fmt.Sprintf("config = $%d", argIdx))
+		args = append(args, configJSON)
+		argIdx++
+	}
+	if req.SortOrder != nil {
+		setClauses = append(setClauses, fmt.Sprintf("sort_order = $%d", argIdx))
+		args = append(args, *req.SortOrder)
+		argIdx++
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE task_field_definitions
+		SET %s
+		WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
+		RETURNING `+fieldDefinitionColumns,
+		strings.Join(setClauses, ", "),
+	)
+
+	row := r.db.QueryRow(ctx, query, args...)
+	fd, err := scanFieldDefinition(row)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, ErrFieldDefinitionDuplicate(*req.Name)
+		}
+		return nil, err
+	}
+	return fd, nil
+}
+
+func (r *Repository) DeactivateFieldDefinition(ctx context.Context, orgID, id uuid.UUID) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE task_field_definitions
+		SET is_active = FALSE, updated_at = NOW()
+		WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
+	`, orgID, id)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrFieldDefinitionNotFound()
+	}
+	return nil
+}
+
+// ── Field Definition helpers ──────────────────────────────────────────────────
+
+func marshalFieldOptions(opts []FieldOption) ([]byte, error) {
+	if len(opts) == 0 {
+		return nil, nil
+	}
+	b, err := json.Marshal(opts)
+	if err != nil {
+		return nil, fmt.Errorf("marshal options: %w", err)
+	}
+	return b, nil
+}
+
+func marshalFieldConfig(cfg *FieldConfig) ([]byte, error) {
+	if cfg == nil {
+		return nil, nil
+	}
+	b, err := json.Marshal(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("marshal config: %w", err)
+	}
+	return b, nil
+}
+
+// isUniqueViolation checks if an error is a PostgreSQL unique constraint violation (23505).
+// Defined here to avoid circular dependency; same logic used in employee repository.
+func isUniqueViolation(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "unique constraint")
 }

@@ -29,6 +29,7 @@ var (
 	testListID    = uuid.MustParse("00000000-0000-0000-0000-000000000004")
 	testTaskID    = uuid.MustParse("00000000-0000-0000-0000-000000000005")
 	testCommentID = uuid.MustParse("00000000-0000-0000-0000-000000000006")
+	testFieldID   = uuid.MustParse("00000000-0000-0000-0000-000000000007")
 )
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -105,6 +106,11 @@ type fakeService struct {
 	deleteCommentFn        func(ctx context.Context, orgID, commentID, authorID uuid.UUID, actorUserID ...uuid.UUID) error
 	toggleReactionFn       func(ctx context.Context, orgID, commentID, employeeID uuid.UUID, emoji string, actorUserID ...uuid.UUID) (bool, error)
 	listReactionsFn        func(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]tasks.CommentReactionSummary, error)
+
+	listFieldDefinitionsFn      func(ctx context.Context, orgID uuid.UUID) ([]tasks.FieldDefinition, error)
+	createFieldDefinitionFn     func(ctx context.Context, orgID uuid.UUID, req tasks.CreateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*tasks.FieldDefinition, error)
+	updateFieldDefinitionFn     func(ctx context.Context, orgID, id uuid.UUID, req tasks.UpdateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*tasks.FieldDefinition, error)
+	deactivateFieldDefinitionFn func(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
 }
 
 func (f *fakeService) ListTaskLists(ctx context.Context, orgID uuid.UUID) ([]tasks.TaskList, error) {
@@ -250,6 +256,34 @@ func (f *fakeService) ListReactions(ctx context.Context, orgID, commentID, curre
 		return f.listReactionsFn(ctx, orgID, commentID, currentEmployeeID)
 	}
 	return []tasks.CommentReactionSummary{}, nil
+}
+
+func (f *fakeService) ListFieldDefinitions(ctx context.Context, orgID uuid.UUID) ([]tasks.FieldDefinition, error) {
+	if f.listFieldDefinitionsFn != nil {
+		return f.listFieldDefinitionsFn(ctx, orgID)
+	}
+	return []tasks.FieldDefinition{}, nil
+}
+
+func (f *fakeService) CreateFieldDefinition(ctx context.Context, orgID uuid.UUID, req tasks.CreateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*tasks.FieldDefinition, error) {
+	if f.createFieldDefinitionFn != nil {
+		return f.createFieldDefinitionFn(ctx, orgID, req, actorUserID...)
+	}
+	return &tasks.FieldDefinition{ID: testFieldID, Name: req.Name, FieldType: req.FieldType}, nil
+}
+
+func (f *fakeService) UpdateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, req tasks.UpdateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*tasks.FieldDefinition, error) {
+	if f.updateFieldDefinitionFn != nil {
+		return f.updateFieldDefinitionFn(ctx, orgID, id, req, actorUserID...)
+	}
+	return &tasks.FieldDefinition{ID: id, Name: "Updated", FieldType: "text"}, nil
+}
+
+func (f *fakeService) DeactivateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error {
+	if f.deactivateFieldDefinitionFn != nil {
+		return f.deactivateFieldDefinitionFn(ctx, orgID, id, actorUserID...)
+	}
+	return nil
 }
 
 // ── Task Lists Tests ─────────────────────────────────────────────────────────
@@ -658,5 +692,175 @@ func TestListReactions(t *testing.T) {
 	}
 	if resp["data"][0].Count != 3 {
 		t.Errorf("expected first reaction count = 3, got %d", resp["data"][0].Count)
+	}
+}
+
+// ── Field Definition Tests ────────────────────────────────────────────────────
+
+func TestListFieldDefinitions(t *testing.T) {
+	svc := &fakeService{
+		listFieldDefinitionsFn: func(_ context.Context, orgID uuid.UUID) ([]tasks.FieldDefinition, error) {
+			return []tasks.FieldDefinition{
+				{ID: testFieldID, Name: "Sales Amount", FieldType: "number"},
+			}, nil
+		},
+	}
+	r := newRouter(svc)
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, httptest.NewRequest(http.MethodGet, "/api/v1/tasks/fields", nil))
+
+	assertStatus(t, w, http.StatusOK)
+	assertHasDataKey(t, w)
+}
+
+func TestCreateFieldDefinition(t *testing.T) {
+	tests := []struct {
+		name       string
+		body       any
+		fn         func(context.Context, uuid.UUID, tasks.CreateFieldDefinitionRequest, ...uuid.UUID) (*tasks.FieldDefinition, error)
+		wantStatus int
+	}{
+		{
+			name:       "valid text field",
+			body:       map[string]any{"name": "Notes", "field_type": "text"},
+			wantStatus: http.StatusCreated,
+		},
+		{
+			name:       "valid number field",
+			body:       map[string]any{"name": "Sales", "field_type": "number"},
+			wantStatus: http.StatusCreated,
+		},
+		{
+			name: "valid select field with options",
+			body: map[string]any{
+				"name":       "Status",
+				"field_type": "select",
+				"options":    []map[string]any{{"value": "open", "label": "Open"}},
+			},
+			wantStatus: http.StatusCreated,
+		},
+		{
+			name:       "missing name",
+			body:       map[string]any{"field_type": "text"},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "missing field_type",
+			body:       map[string]any{"name": "Notes"},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "invalid field_type rejected by service",
+			body:       map[string]any{"name": "X", "field_type": "invalid"},
+			fn: func(_ context.Context, _ uuid.UUID, req tasks.CreateFieldDefinitionRequest, _ ...uuid.UUID) (*tasks.FieldDefinition, error) {
+				return nil, tasks.ErrInvalidFieldType(req.FieldType)
+			},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "duplicate name rejected by service",
+			body:       map[string]any{"name": "Notes", "field_type": "text"},
+			fn: func(_ context.Context, _ uuid.UUID, req tasks.CreateFieldDefinitionRequest, _ ...uuid.UUID) (*tasks.FieldDefinition, error) {
+				return nil, tasks.ErrFieldDefinitionDuplicate(req.Name)
+			},
+			wantStatus: http.StatusConflict,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := &fakeService{createFieldDefinitionFn: tc.fn}
+			r := newRouter(svc)
+
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, httptest.NewRequest(http.MethodPost, "/api/v1/tasks/fields", jsonBody(t, tc.body)))
+
+			assertStatus(t, w, tc.wantStatus)
+		})
+	}
+}
+
+func TestUpdateFieldDefinition(t *testing.T) {
+	tests := []struct {
+		name       string
+		fieldID    string
+		body       any
+		fn         func(context.Context, uuid.UUID, uuid.UUID, tasks.UpdateFieldDefinitionRequest, ...uuid.UUID) (*tasks.FieldDefinition, error)
+		wantStatus int
+	}{
+		{
+			name:       "valid update",
+			fieldID:    testFieldID.String(),
+			body:       map[string]any{"name": "Renamed"},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "invalid uuid",
+			fieldID:    "not-a-uuid",
+			body:       map[string]any{"name": "X"},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "not found",
+			fieldID: testFieldID.String(),
+			body:    map[string]any{"name": "X"},
+			fn: func(_ context.Context, _, _ uuid.UUID, _ tasks.UpdateFieldDefinitionRequest, _ ...uuid.UUID) (*tasks.FieldDefinition, error) {
+				return nil, tasks.ErrFieldDefinitionNotFound()
+			},
+			wantStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := &fakeService{updateFieldDefinitionFn: tc.fn}
+			r := newRouter(svc)
+
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, httptest.NewRequest(http.MethodPut, "/api/v1/tasks/fields/"+tc.fieldID, jsonBody(t, tc.body)))
+
+			assertStatus(t, w, tc.wantStatus)
+		})
+	}
+}
+
+func TestDeactivateFieldDefinition(t *testing.T) {
+	tests := []struct {
+		name       string
+		fieldID    string
+		fn         func(context.Context, uuid.UUID, uuid.UUID, ...uuid.UUID) error
+		wantStatus int
+	}{
+		{
+			name:       "success",
+			fieldID:    testFieldID.String(),
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "invalid uuid",
+			fieldID:    "bad-id",
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "not found",
+			fieldID: testFieldID.String(),
+			fn: func(_ context.Context, _, _ uuid.UUID, _ ...uuid.UUID) error {
+				return tasks.ErrFieldDefinitionNotFound()
+			},
+			wantStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := &fakeService{deactivateFieldDefinitionFn: tc.fn}
+			r := newRouter(svc)
+
+			w := httptest.NewRecorder()
+			r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/tasks/fields/"+tc.fieldID, nil))
+
+			assertStatus(t, w, tc.wantStatus)
+		})
 	}
 }

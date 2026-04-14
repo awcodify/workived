@@ -2175,6 +2175,99 @@ paths:
                       emoji:
                         type: string
 
+  # ── Task Field Definitions ────────────────────────────────────────────────
+  /tasks/fields:
+    get:
+      operationId: listFieldDefinitions
+      summary: List custom field definitions
+      description: Returns all active custom field schemas for the organisation
+      tags: [Tasks]
+      responses:
+        "200":
+          description: List of field definitions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/FieldDefinition"
+
+    post:
+      operationId: createFieldDefinition
+      summary: Create a custom field definition
+      description: Defines a new custom field type for tasks. Requires admin/owner role.
+      tags: [Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateFieldDefinitionRequest"
+      responses:
+        "201":
+          description: Field definition created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FieldDefinition"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+  /tasks/fields/{fid}:
+    parameters:
+      - name: fid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Field definition ID
+
+    put:
+      operationId: updateFieldDefinition
+      summary: Update a custom field definition
+      description: Update name, description, options, or config. field_type cannot be changed after creation.
+      tags: [Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFieldDefinitionRequest"
+      responses:
+        "200":
+          description: Field definition updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FieldDefinition"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+        "409":
+          $ref: "#/components/responses/ConflictError"
+
+    delete:
+      operationId: deactivateFieldDefinition
+      summary: Deactivate a custom field definition
+      description: Soft-deletes the field. Existing values are preserved but the field no longer appears in task forms.
+      tags: [Tasks]
+      responses:
+        "204":
+          description: Field definition deactivated
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
   # ── Attendance ────────────────────────────────────────────────────────────
   /attendance/clock-in:
     post:
@@ -4288,6 +4381,124 @@ components:
           type: string
 
     # ── Tasks ─────────────────────────────────────────────────────────────
+    FieldOption:
+      type: object
+      required: [value, label]
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+        color:
+          type: string
+          nullable: true
+          description: Optional hex color for UI display
+
+    FieldConfig:
+      type: object
+      properties:
+        min:
+          type: integer
+          nullable: true
+          description: Minimum value for number/rating fields
+        max:
+          type: integer
+          nullable: true
+          description: Maximum value for number/rating fields
+        format:
+          type: string
+          nullable: true
+          description: Display format hint for date fields
+
+    FieldDefinition:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        field_type:
+          type: string
+          enum: [text, number, date, boolean, select, multi_select, url, employee, rating]
+        description:
+          type: string
+          nullable: true
+        options:
+          type: array
+          nullable: true
+          items:
+            $ref: "#/components/schemas/FieldOption"
+          description: Required for select and multi_select types
+        config:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/FieldConfig"
+        sort_order:
+          type: integer
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateFieldDefinitionRequest:
+      type: object
+      required: [name, field_type]
+      properties:
+        name:
+          type: string
+          maxLength: 100
+        field_type:
+          type: string
+          enum: [text, number, date, boolean, select, multi_select, url, employee, rating]
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldOption"
+          description: Required when field_type is select or multi_select
+        config:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/FieldConfig"
+        sort_order:
+          type: integer
+          default: 0
+
+    UpdateFieldDefinitionRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          nullable: true
+        description:
+          type: string
+          maxLength: 500
+          nullable: true
+        options:
+          type: array
+          items:
+            $ref: "#/components/schemas/FieldOption"
+          nullable: true
+        config:
+          nullable: true
+          allOf:
+            - $ref: "#/components/schemas/FieldConfig"
+        sort_order:
+          type: integer
+          nullable: true
+
     TaskList:
       type: object
       properties:

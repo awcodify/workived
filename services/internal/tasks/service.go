@@ -816,3 +816,89 @@ func (s *Service) ToggleReaction(ctx context.Context, orgID, commentID, employee
 func (s *Service) ListReactions(ctx context.Context, orgID, commentID, currentEmployeeID uuid.UUID) ([]CommentReactionSummary, error) {
 	return s.repo.ListReactions(ctx, orgID, commentID, currentEmployeeID)
 }
+
+// ── Field Definitions ─────────────────────────────────────────────────────────
+
+func (s *Service) ListFieldDefinitions(ctx context.Context, orgID uuid.UUID) ([]FieldDefinition, error) {
+	return s.repo.ListFieldDefinitions(ctx, orgID)
+}
+
+func (s *Service) CreateFieldDefinition(ctx context.Context, orgID uuid.UUID, req CreateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*FieldDefinition, error) {
+	if !ValidFieldTypes[req.FieldType] {
+		return nil, ErrInvalidFieldType(req.FieldType)
+	}
+	if (req.FieldType == "select" || req.FieldType == "multi_select") && len(req.Options) == 0 {
+		return nil, ErrOptionsRequiredForType(req.FieldType)
+	}
+
+	fd, err := s.repo.CreateFieldDefinition(ctx, orgID, req)
+	if err != nil {
+		return nil, err
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("field_id", fd.ID.String()).
+		Str("name", fd.Name).
+		Str("field_type", fd.FieldType).
+		Msg("task.field_definition.created")
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.field_definition.created",
+			ResourceType: "task_field_definition",
+			ResourceID:   fd.ID,
+		})
+	}
+
+	return fd, nil
+}
+
+func (s *Service) UpdateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, req UpdateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*FieldDefinition, error) {
+	fd, err := s.repo.UpdateFieldDefinition(ctx, orgID, id, req)
+	if err != nil {
+		return nil, err
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("field_id", id.String()).
+		Msg("task.field_definition.updated")
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.field_definition.updated",
+			ResourceType: "task_field_definition",
+			ResourceID:   id,
+		})
+	}
+
+	return fd, nil
+}
+
+func (s *Service) DeactivateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error {
+	if err := s.repo.DeactivateFieldDefinition(ctx, orgID, id); err != nil {
+		return err
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("field_id", id.String()).
+		Msg("task.field_definition.deactivated")
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.field_definition.deactivated",
+			ResourceType: "task_field_definition",
+			ResourceID:   id,
+		})
+	}
+
+	return nil
+}
