@@ -111,6 +111,9 @@ type fakeService struct {
 	createFieldDefinitionFn     func(ctx context.Context, orgID uuid.UUID, req tasks.CreateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*tasks.FieldDefinition, error)
 	updateFieldDefinitionFn     func(ctx context.Context, orgID, id uuid.UUID, req tasks.UpdateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*tasks.FieldDefinition, error)
 	deactivateFieldDefinitionFn func(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
+
+	setFieldValueFn   func(ctx context.Context, orgID, taskID, fieldID uuid.UUID, req tasks.SetFieldValueRequest, actorUserID ...uuid.UUID) (*tasks.FieldValueWithDefinition, error)
+	clearFieldValueFn func(ctx context.Context, orgID, taskID, fieldID uuid.UUID, actorUserID ...uuid.UUID) error
 }
 
 func (f *fakeService) ListTaskLists(ctx context.Context, orgID uuid.UUID) ([]tasks.TaskList, error) {
@@ -282,6 +285,20 @@ func (f *fakeService) UpdateFieldDefinition(ctx context.Context, orgID, id uuid.
 func (f *fakeService) DeactivateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error {
 	if f.deactivateFieldDefinitionFn != nil {
 		return f.deactivateFieldDefinitionFn(ctx, orgID, id, actorUserID...)
+	}
+	return nil
+}
+
+func (f *fakeService) SetFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, req tasks.SetFieldValueRequest, actorUserID ...uuid.UUID) (*tasks.FieldValueWithDefinition, error) {
+	if f.setFieldValueFn != nil {
+		return f.setFieldValueFn(ctx, orgID, taskID, fieldID, req, actorUserID...)
+	}
+	return &tasks.FieldValueWithDefinition{FieldID: fieldID, FieldName: "Test", FieldType: "text"}, nil
+}
+
+func (f *fakeService) ClearFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, actorUserID ...uuid.UUID) error {
+	if f.clearFieldValueFn != nil {
+		return f.clearFieldValueFn(ctx, orgID, taskID, fieldID, actorUserID...)
 	}
 	return nil
 }
@@ -859,6 +876,133 @@ func TestDeactivateFieldDefinition(t *testing.T) {
 
 			w := httptest.NewRecorder()
 			r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, "/api/v1/tasks/fields/"+tc.fieldID, nil))
+
+			assertStatus(t, w, tc.wantStatus)
+		})
+	}
+}
+
+// ── Field Value Tests ─────────────────────────────────────────────────────────
+
+func TestSetFieldValue(t *testing.T) {
+	tests := []struct {
+		name       string
+		taskID     string
+		fieldID    string
+		body       any
+		fn         func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, tasks.SetFieldValueRequest, ...uuid.UUID) (*tasks.FieldValueWithDefinition, error)
+		wantStatus int
+	}{
+		{
+			name:       "set text value",
+			taskID:     testTaskID.String(),
+			fieldID:    testFieldID.String(),
+			body:       map[string]any{"value": "some notes"},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "set number value",
+			taskID:     testTaskID.String(),
+			fieldID:    testFieldID.String(),
+			body:       map[string]any{"value": 42},
+			wantStatus: http.StatusOK,
+		},
+		{
+			name:       "missing value rejected",
+			taskID:     testTaskID.String(),
+			fieldID:    testFieldID.String(),
+			body:       map[string]any{},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "invalid field type returns validation error",
+			taskID:  testTaskID.String(),
+			fieldID: testFieldID.String(),
+			body:    map[string]any{"value": "x"},
+			fn: func(_ context.Context, _, _, _ uuid.UUID, _ tasks.SetFieldValueRequest, _ ...uuid.UUID) (*tasks.FieldValueWithDefinition, error) {
+				return nil, tasks.ErrFieldValueInvalidType("number")
+			},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "field not found",
+			taskID:  testTaskID.String(),
+			fieldID: testFieldID.String(),
+			body:    map[string]any{"value": "x"},
+			fn: func(_ context.Context, _, _, _ uuid.UUID, _ tasks.SetFieldValueRequest, _ ...uuid.UUID) (*tasks.FieldValueWithDefinition, error) {
+				return nil, tasks.ErrFieldDefinitionNotFound()
+			},
+			wantStatus: http.StatusNotFound,
+		},
+		{
+			name:       "invalid task uuid",
+			taskID:     "not-a-uuid",
+			fieldID:    testFieldID.String(),
+			body:       map[string]any{"value": "x"},
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:       "invalid field uuid",
+			taskID:     testTaskID.String(),
+			fieldID:    "not-a-uuid",
+			body:       map[string]any{"value": "x"},
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := &fakeService{setFieldValueFn: tc.fn}
+			r := newRouter(svc)
+
+			w := httptest.NewRecorder()
+			url := "/api/v1/tasks/" + tc.taskID + "/fields/" + tc.fieldID
+			r.ServeHTTP(w, httptest.NewRequest(http.MethodPut, url, jsonBody(t, tc.body)))
+
+			assertStatus(t, w, tc.wantStatus)
+		})
+	}
+}
+
+func TestClearFieldValue(t *testing.T) {
+	tests := []struct {
+		name       string
+		taskID     string
+		fieldID    string
+		fn         func(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, ...uuid.UUID) error
+		wantStatus int
+	}{
+		{
+			name:       "success",
+			taskID:     testTaskID.String(),
+			fieldID:    testFieldID.String(),
+			wantStatus: http.StatusNoContent,
+		},
+		{
+			name:       "invalid task uuid",
+			taskID:     "bad",
+			fieldID:    testFieldID.String(),
+			wantStatus: http.StatusBadRequest,
+		},
+		{
+			name:    "value not found",
+			taskID:  testTaskID.String(),
+			fieldID: testFieldID.String(),
+			fn: func(_ context.Context, _, _, _ uuid.UUID, _ ...uuid.UUID) error {
+				return tasks.ErrFieldValueNotFound()
+			},
+			wantStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := &fakeService{clearFieldValueFn: tc.fn}
+			r := newRouter(svc)
+
+			w := httptest.NewRecorder()
+			url := "/api/v1/tasks/" + tc.taskID + "/fields/" + tc.fieldID
+			r.ServeHTTP(w, httptest.NewRequest(http.MethodDelete, url, nil))
 
 			assertStatus(t, w, tc.wantStatus)
 		})

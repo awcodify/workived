@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -40,12 +41,13 @@ type Task struct {
 	UpdatedAt      time.Time  `json:"updated_at"`
 }
 
-// TaskWithDetails includes joined employee names
+// TaskWithDetails includes joined employee names and custom field values
 type TaskWithDetails struct {
 	Task
-	AssigneeName *string `json:"assignee_name,omitempty"`
-	CreatorName  string  `json:"creator_name"`
-	ListName     string  `json:"list_name"`
+	AssigneeName *string                  `json:"assignee_name,omitempty"`
+	CreatorName  string                   `json:"creator_name"`
+	ListName     string                   `json:"list_name"`
+	FieldValues  []FieldValueWithDefinition `json:"field_values,omitempty"`
 }
 
 type TaskComment struct {
@@ -182,6 +184,43 @@ type FieldDefinition struct {
 	UpdatedAt      time.Time     `json:"updated_at"`
 }
 
+// ── Field Values ─────────────────────────────────────────────────────────────
+
+// FieldValue is a raw stored value row from task_field_values.
+type FieldValue struct {
+	ID             uuid.UUID `json:"id"`
+	OrganisationID uuid.UUID `json:"organisation_id"`
+	TaskID         uuid.UUID `json:"task_id"`
+	FieldID        uuid.UUID `json:"field_id"`
+	// Only one of these is set depending on field_type:
+	ValueText    *string          `json:"value_text,omitempty"`
+	ValueNumber  *int64           `json:"value_number,omitempty"`
+	ValueDate    *string          `json:"value_date,omitempty"` // YYYY-MM-DD
+	ValueBoolean *bool            `json:"value_boolean,omitempty"`
+	ValueJSON    *json.RawMessage `json:"value_json,omitempty"` // select, multi_select, employee
+	CreatedAt    time.Time        `json:"created_at"`
+	UpdatedAt    time.Time        `json:"updated_at"`
+}
+
+// FieldValueWithDefinition embeds the field name and type for rendering without a second lookup.
+type FieldValueWithDefinition struct {
+	FieldID   uuid.UUID `json:"field_id"`
+	FieldName string    `json:"field_name"`
+	FieldType string    `json:"field_type"`
+	// Resolved display value — only the relevant field is set:
+	ValueText    *string          `json:"value_text,omitempty"`
+	ValueNumber  *int64           `json:"value_number,omitempty"`
+	ValueDate    *string          `json:"value_date,omitempty"`
+	ValueBoolean *bool            `json:"value_boolean,omitempty"`
+	ValueJSON    *json.RawMessage `json:"value_json,omitempty"`
+}
+
+// SetFieldValueRequest is the payload for upsert. Value is decoded based on field_type.
+type SetFieldValueRequest struct {
+	// Value is the raw JSON value — type validated against field definition at service layer.
+	Value json.RawMessage `json:"value" binding:"required"`
+}
+
 // ── Field Definition Request DTOs ────────────────────────────────────────────
 
 type CreateFieldDefinitionRequest struct {
@@ -238,6 +277,12 @@ type RepositoryInterface interface {
 	CreateFieldDefinition(ctx context.Context, orgID uuid.UUID, req CreateFieldDefinitionRequest) (*FieldDefinition, error)
 	UpdateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, req UpdateFieldDefinitionRequest) (*FieldDefinition, error)
 	DeactivateFieldDefinition(ctx context.Context, orgID, id uuid.UUID) error
+
+	// Field Values
+	SetFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, req SetFieldValueRequest, fieldType string) (*FieldValue, error)
+	ClearFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID) error
+	GetTaskFieldValues(ctx context.Context, orgID, taskID uuid.UUID) ([]FieldValueWithDefinition, error)
+	BatchGetFieldValues(ctx context.Context, orgID uuid.UUID, taskIDs []uuid.UUID) (map[uuid.UUID][]FieldValueWithDefinition, error)
 }
 
 // ── Service Interface ────────────────────────────────────────────────────────
@@ -273,6 +318,10 @@ type ServiceInterface interface {
 	CreateFieldDefinition(ctx context.Context, orgID uuid.UUID, req CreateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*FieldDefinition, error)
 	UpdateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, req UpdateFieldDefinitionRequest, actorUserID ...uuid.UUID) (*FieldDefinition, error)
 	DeactivateFieldDefinition(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
+
+	// Field Values
+	SetFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, req SetFieldValueRequest, actorUserID ...uuid.UUID) (*FieldValueWithDefinition, error)
+	ClearFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, actorUserID ...uuid.UUID) error
 }
 
 // ── Error Constructors ───────────────────────────────────────────────────────
@@ -319,4 +368,16 @@ func ErrInvalidFieldType(ft string) *apperr.AppError {
 
 func ErrOptionsRequiredForType(ft string) *apperr.AppError {
 	return apperr.New(apperr.CodeValidation, fmt.Sprintf("options are required for field_type '%s'", ft))
+}
+
+func ErrFieldValueInvalidType(ft string) *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, fmt.Sprintf("value does not match field_type '%s'", ft))
+}
+
+func ErrFieldValueNotFound() *apperr.AppError {
+	return apperr.NotFound("field value")
+}
+
+func ErrTaskFieldNotFound() *apperr.AppError {
+	return apperr.NotFound("task or field")
 }

@@ -61,6 +61,10 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	tasks.POST("/fields", middleware.Require(middleware.PermTasksWrite), h.CreateFieldDefinition)
 	tasks.PUT("/fields/:fid", middleware.Require(middleware.PermTasksWrite), h.UpdateFieldDefinition)
 	tasks.DELETE("/fields/:fid", middleware.Require(middleware.PermTasksWrite), h.DeactivateFieldDefinition)
+
+	// Field Values (per-task, any member can set)
+	tasks.PUT("/:id/fields/:fid", middleware.Require(middleware.PermTasksRead), h.SetFieldValue)
+	tasks.DELETE("/:id/fields/:fid", middleware.Require(middleware.PermTasksRead), h.ClearFieldValue)
 }
 
 // logAndRespondError logs error with context and responds with proper HTTP status
@@ -624,6 +628,69 @@ func (h *Handler) DeactivateFieldDefinition(c *gin.Context) {
 		h.logAndRespondError(c, err, "failed to deactivate field definition", map[string]string{
 			"org_id":   orgID.String(),
 			"field_id": id.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}
+
+// ── Field Values ──────────────────────────────────────────────────────────────
+
+func (h *Handler) SetFieldValue(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	taskID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+	fieldID, err := uuid.Parse(c.Param("fid"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	var req SetFieldValueRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	fv, err := h.service.SetFieldValue(c.Request.Context(), orgID, taskID, fieldID, req, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to set field value", map[string]string{
+			"org_id":   orgID.String(),
+			"task_id":  taskID.String(),
+			"field_id": fieldID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": fv})
+}
+
+func (h *Handler) ClearFieldValue(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	taskID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+	fieldID, err := uuid.Parse(c.Param("fid"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.ClearFieldValue(c.Request.Context(), orgID, taskID, fieldID, userID); err != nil {
+		h.logAndRespondError(c, err, "failed to clear field value", map[string]string{
+			"org_id":   orgID.String(),
+			"task_id":  taskID.String(),
+			"field_id": fieldID.String(),
 		})
 		return
 	}

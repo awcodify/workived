@@ -924,3 +924,207 @@ func isUniqueViolation(err error) bool {
 	}
 	return strings.Contains(err.Error(), "23505") || strings.Contains(err.Error(), "unique constraint")
 }
+
+// ── Field Values ──────────────────────────────────────────────────────────────
+
+const fieldValueJoinColumns = `
+	tfv.id, tfv.organisation_id, tfv.task_id, tfv.field_id,
+	tfv.value_text, tfv.value_number, tfv.value_date, tfv.value_boolean, tfv.value_json,
+	tfv.created_at, tfv.updated_at,
+	tfd.name AS field_name, tfd.field_type`
+
+func scanFieldValueWithDef(rows pgx.Rows) (FieldValueWithDefinition, error) {
+	var fv FieldValueWithDefinition
+	var valueDate *time.Time
+	var valueJSON []byte
+	if err := rows.Scan(
+		new(string), new(string), new(string), &fv.FieldID,
+		&fv.ValueText, &fv.ValueNumber, &valueDate, &fv.ValueBoolean, &valueJSON,
+		new(time.Time), new(time.Time),
+		&fv.FieldName, &fv.FieldType,
+	); err != nil {
+		return fv, err
+	}
+	if valueDate != nil {
+		s := valueDate.Format("2006-01-02")
+		fv.ValueDate = &s
+	}
+	if len(valueJSON) > 0 {
+		raw := json.RawMessage(valueJSON)
+		fv.ValueJSON = &raw
+	}
+	return fv, nil
+}
+
+func (r *Repository) GetTaskFieldValues(ctx context.Context, orgID, taskID uuid.UUID) ([]FieldValueWithDefinition, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+fieldValueJoinColumns+`
+		FROM task_field_values tfv
+		JOIN task_field_definitions tfd ON tfv.field_id = tfd.id
+		WHERE tfv.organisation_id = $1 AND tfv.task_id = $2
+		ORDER BY tfd.sort_order ASC, tfd.created_at ASC
+	`, orgID, taskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var vals []FieldValueWithDefinition
+	for rows.Next() {
+		fv, err := scanFieldValueWithDef(rows)
+		if err != nil {
+			return nil, err
+		}
+		vals = append(vals, fv)
+	}
+	return vals, rows.Err()
+}
+
+func (r *Repository) BatchGetFieldValues(ctx context.Context, orgID uuid.UUID, taskIDs []uuid.UUID) (map[uuid.UUID][]FieldValueWithDefinition, error) {
+	if len(taskIDs) == 0 {
+		return map[uuid.UUID][]FieldValueWithDefinition{}, nil
+	}
+
+	rows, err := r.db.Query(ctx, `
+		SELECT tfv.task_id, `+fieldValueJoinColumns+`
+		FROM task_field_values tfv
+		JOIN task_field_definitions tfd ON tfv.field_id = tfd.id
+		WHERE tfv.organisation_id = $1 AND tfv.task_id = ANY($2)
+		ORDER BY tfv.task_id, tfd.sort_order ASC, tfd.created_at ASC
+	`, orgID, taskIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID][]FieldValueWithDefinition)
+	for rows.Next() {
+		var taskID uuid.UUID
+		var fv FieldValueWithDefinition
+		var valueDate *time.Time
+		var valueJSON []byte
+		if err := rows.Scan(
+			&taskID,
+			new(uuid.UUID), new(uuid.UUID), new(uuid.UUID), &fv.FieldID,
+			&fv.ValueText, &fv.ValueNumber, &valueDate, &fv.ValueBoolean, &valueJSON,
+			new(time.Time), new(time.Time),
+			&fv.FieldName, &fv.FieldType,
+		); err != nil {
+			return nil, err
+		}
+		if valueDate != nil {
+			s := valueDate.Format("2006-01-02")
+			fv.ValueDate = &s
+		}
+		if len(valueJSON) > 0 {
+			raw := json.RawMessage(valueJSON)
+			fv.ValueJSON = &raw
+		}
+		result[taskID] = append(result[taskID], fv)
+	}
+	return result, rows.Err()
+}
+
+// SetFieldValue upserts a value into task_field_values.
+// fieldType drives which column is written; other columns are set to NULL.
+func (r *Repository) SetFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, req SetFieldValueRequest, fieldType string) (*FieldValue, error) {
+	// Decode the raw JSON value into the appropriate typed column
+	var (
+		valueText    *string
+		valueNumber  *int64
+		valueDate    *time.Time
+		valueBoolean *bool
+		valueJSON    []byte
+	)
+
+	switch fieldType {
+	case "text", "url":
+		var s string
+		if err := json.Unmarshal(req.Value, &s); err != nil {
+			return nil, ErrFieldValueInvalidType(fieldType)
+		}
+		valueText = &s
+	case "number", "rating":
+		var n int64
+		if err := json.Unmarshal(req.Value, &n); err != nil {
+			return nil, ErrFieldValueInvalidType(fieldType)
+		}
+		valueNumber = &n
+	case "date":
+		var s string
+		if err := json.Unmarshal(req.Value, &s); err != nil {
+			return nil, ErrFieldValueInvalidType(fieldType)
+		}
+		t, err := time.ParseInLocation("2006-01-02", s, time.UTC)
+		if err != nil {
+			return nil, ErrFieldValueInvalidType(fieldType)
+		}
+		valueDate = &t
+	case "boolean":
+		var b bool
+		if err := json.Unmarshal(req.Value, &b); err != nil {
+			return nil, ErrFieldValueInvalidType(fieldType)
+		}
+		valueBoolean = &b
+	case "select", "multi_select", "employee":
+		// Store as-is in value_json; caller validates select options at service layer
+		valueJSON = req.Value
+	default:
+		return nil, ErrInvalidFieldType(fieldType)
+	}
+
+	var fv FieldValue
+	var scannedDate *time.Time
+	var scannedJSON []byte
+
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO task_field_values
+			(organisation_id, task_id, field_id, value_text, value_number, value_date, value_boolean, value_json)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+		ON CONFLICT (task_id, field_id) DO UPDATE SET
+			value_text    = EXCLUDED.value_text,
+			value_number  = EXCLUDED.value_number,
+			value_date    = EXCLUDED.value_date,
+			value_boolean = EXCLUDED.value_boolean,
+			value_json    = EXCLUDED.value_json,
+			updated_at    = NOW()
+		RETURNING id, organisation_id, task_id, field_id,
+			value_text, value_number, value_date, value_boolean, value_json,
+			created_at, updated_at
+	`, orgID, taskID, fieldID, valueText, valueNumber, valueDate, valueBoolean, valueJSON,
+	).Scan(
+		&fv.ID, &fv.OrganisationID, &fv.TaskID, &fv.FieldID,
+		&fv.ValueText, &fv.ValueNumber, &scannedDate, &fv.ValueBoolean, &scannedJSON,
+		&fv.CreatedAt, &fv.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrTaskFieldNotFound()
+		}
+		return nil, err
+	}
+
+	if scannedDate != nil {
+		s := scannedDate.Format("2006-01-02")
+		fv.ValueDate = &s
+	}
+	if len(scannedJSON) > 0 {
+		raw := json.RawMessage(scannedJSON)
+		fv.ValueJSON = &raw
+	}
+	return &fv, nil
+}
+
+func (r *Repository) ClearFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID) error {
+	tag, err := r.db.Exec(ctx, `
+		DELETE FROM task_field_values
+		WHERE organisation_id = $1 AND task_id = $2 AND field_id = $3
+	`, orgID, taskID, fieldID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrFieldValueNotFound()
+	}
+	return nil
+}

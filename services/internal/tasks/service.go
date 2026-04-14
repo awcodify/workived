@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/audit"
+	"github.com/workived/services/pkg/apperr"
 )
 
 type Service struct {
@@ -209,11 +211,47 @@ func (s *Service) ListTasks(ctx context.Context, orgID uuid.UUID, filters TaskFi
 		s.log.Warn().Err(err).Str("org_id", orgID.String()).Msg("failed to ensure default lists")
 	}
 
-	return s.repo.ListTasks(ctx, orgID, filters)
+	tasks, err := s.repo.ListTasks(ctx, orgID, filters)
+	if err != nil {
+		return nil, err
+	}
+
+	// Batch-load field values — one query for all tasks, no N+1
+	if len(tasks) > 0 {
+		taskIDs := make([]uuid.UUID, len(tasks))
+		for i, t := range tasks {
+			taskIDs[i] = t.ID
+		}
+		fieldValsByTask, err := s.repo.BatchGetFieldValues(ctx, orgID, taskIDs)
+		if err != nil {
+			// Non-fatal: log and continue without field values
+			s.log.Warn().Err(err).Str("org_id", orgID.String()).Msg("failed to batch load field values")
+		} else {
+			for i, t := range tasks {
+				if vals, ok := fieldValsByTask[t.ID]; ok {
+					tasks[i].FieldValues = vals
+				}
+			}
+		}
+	}
+
+	return tasks, nil
 }
 
 func (s *Service) GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWithDetails, error) {
-	return s.repo.GetTask(ctx, orgID, id)
+	task, err := s.repo.GetTask(ctx, orgID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	vals, err := s.repo.GetTaskFieldValues(ctx, orgID, id)
+	if err != nil {
+		s.log.Warn().Err(err).Str("org_id", orgID.String()).Str("task_id", id.String()).Msg("failed to load field values")
+	} else {
+		task.FieldValues = vals
+	}
+
+	return task, nil
 }
 
 func (s *Service) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID, req CreateTaskRequest, actorUserID ...uuid.UUID) (*Task, error) {
@@ -900,5 +938,109 @@ func (s *Service) DeactivateFieldDefinition(ctx context.Context, orgID, id uuid.
 		})
 	}
 
+	return nil
+}
+
+// ── Field Values ──────────────────────────────────────────────────────────────
+
+func (s *Service) SetFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, req SetFieldValueRequest, actorUserID ...uuid.UUID) (*FieldValueWithDefinition, error) {
+	// Load field definition to get type and validate options for select types
+	fd, err := s.repo.GetFieldDefinition(ctx, orgID, fieldID)
+	if err != nil {
+		return nil, err
+	}
+
+	// For select/multi_select: validate value is one of the defined options
+	if fd.FieldType == "select" || fd.FieldType == "multi_select" {
+		if err := validateSelectValue(req.Value, fd.Options, fd.FieldType); err != nil {
+			return nil, err
+		}
+	}
+
+	fv, err := s.repo.SetFieldValue(ctx, orgID, taskID, fieldID, req, fd.FieldType)
+	if err != nil {
+		return nil, err
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("task_id", taskID.String()).
+		Str("field_id", fieldID.String()).
+		Str("field_type", fd.FieldType).
+		Msg("task.field_value.set")
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.field_value.set",
+			ResourceType: "task_field_value",
+			ResourceID:   taskID,
+		})
+	}
+
+	// Return as FieldValueWithDefinition
+	result := &FieldValueWithDefinition{
+		FieldID:      fieldID,
+		FieldName:    fd.Name,
+		FieldType:    fd.FieldType,
+		ValueText:    fv.ValueText,
+		ValueNumber:  fv.ValueNumber,
+		ValueDate:    fv.ValueDate,
+		ValueBoolean: fv.ValueBoolean,
+		ValueJSON:    fv.ValueJSON,
+	}
+	return result, nil
+}
+
+func (s *Service) ClearFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, actorUserID ...uuid.UUID) error {
+	if err := s.repo.ClearFieldValue(ctx, orgID, taskID, fieldID); err != nil {
+		return err
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("task_id", taskID.String()).
+		Str("field_id", fieldID.String()).
+		Msg("task.field_value.cleared")
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.field_value.cleared",
+			ResourceType: "task_field_value",
+			ResourceID:   taskID,
+		})
+	}
+	return nil
+}
+
+// validateSelectValue checks that the value is among the defined options.
+func validateSelectValue(raw json.RawMessage, options []FieldOption, fieldType string) error {
+	allowed := make(map[string]bool, len(options))
+	for _, o := range options {
+		allowed[o.Value] = true
+	}
+
+	if fieldType == "select" {
+		var v string
+		if err := json.Unmarshal(raw, &v); err != nil {
+			return ErrFieldValueInvalidType(fieldType)
+		}
+		if !allowed[v] {
+			return apperr.New(apperr.CodeValidation, fmt.Sprintf("'%s' is not a valid option", v))
+		}
+	} else {
+		var vals []string
+		if err := json.Unmarshal(raw, &vals); err != nil {
+			return ErrFieldValueInvalidType(fieldType)
+		}
+		for _, v := range vals {
+			if !allowed[v] {
+				return apperr.New(apperr.CodeValidation, fmt.Sprintf("'%s' is not a valid option", v))
+			}
+		}
+	}
 	return nil
 }

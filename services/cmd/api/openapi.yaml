@@ -2268,6 +2268,60 @@ paths:
         "404":
           $ref: "#/components/responses/NotFoundError"
 
+  /tasks/{id}/fields/{fid}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Task ID
+      - name: fid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Field definition ID
+
+    put:
+      operationId: setTaskFieldValue
+      summary: Set a custom field value on a task
+      description: Upserts the value for one field. Send multiple requests to set multiple fields on the same task.
+      tags: [Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetFieldValueRequest"
+      responses:
+        "200":
+          description: Field value set
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/FieldValueWithDefinition"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      operationId: clearTaskFieldValue
+      summary: Clear a custom field value from a task
+      description: Removes the stored value for one field. The field definition is not affected.
+      tags: [Tasks]
+      responses:
+        "204":
+          description: Field value cleared
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
   # ── Attendance ────────────────────────────────────────────────────────────
   /attendance/clock-in:
     post:
@@ -4498,6 +4552,54 @@ components:
         sort_order:
           type: integer
           nullable: true
+
+    FieldValueWithDefinition:
+      type: object
+      description: A stored custom field value with its definition name and type embedded for rendering.
+      properties:
+        field_id:
+          type: string
+          format: uuid
+        field_name:
+          type: string
+        field_type:
+          type: string
+          enum: [text, number, date, boolean, select, multi_select, url, employee, rating]
+        value_text:
+          type: string
+          nullable: true
+          description: Set for field_type text or url
+        value_number:
+          type: integer
+          nullable: true
+          description: Set for field_type number or rating
+        value_date:
+          type: string
+          format: date
+          nullable: true
+          description: Set for field_type date (YYYY-MM-DD)
+        value_boolean:
+          type: boolean
+          nullable: true
+          description: Set for field_type boolean
+        value_json:
+          nullable: true
+          description: Set for field_type select (string), multi_select (array), or employee (UUID string)
+
+    SetFieldValueRequest:
+      type: object
+      required: [value]
+      properties:
+        value:
+          description: |
+            The value to store. Type must match the field definition:
+            - text / url → string
+            - number / rating → integer
+            - date → string "YYYY-MM-DD"
+            - boolean → true/false
+            - select → string (must be one of options[].value)
+            - multi_select → array of strings (each must be in options[].value)
+            - employee → UUID string
 
     TaskList:
       type: object
