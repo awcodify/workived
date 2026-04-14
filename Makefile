@@ -45,6 +45,11 @@ seed: ## Seed test data (run after migrate-up)
 	@docker exec -i infra-postgres-1 psql -U workived -d workived < scripts/seed_test_data.sql
 	@echo "✓ Database seeded successfully"
 
+seed-reports: ## Seed comprehensive report data (90 days attendance, 6 months leave/claims)
+	@echo "📊 Seeding report data for ahmad@workived.com..."
+	@docker exec -i infra-postgres-1 psql -U workived -d workived < scripts/seed_report_data.sql
+	@echo "✓ Report data seeded successfully"
+
 reset-db: ## Reset database (WARNING: destroys all data and volumes)
 	@echo "⚠️  WARNING: This will delete all database data and volumes!"
 	@echo "Stopping containers and removing volumes..."
