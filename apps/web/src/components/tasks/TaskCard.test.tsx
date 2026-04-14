@@ -146,6 +146,83 @@ describe('TaskCard', () => {
     expect(onClick).not.toHaveBeenCalled()
   })
 
+  it('shows up to 2 custom field chips when field_values present', () => {
+    const taskWithFields: TaskWithDetails = {
+      ...mockTask,
+      field_values: [
+        { field_id: 'f1', field_name: 'Deal Value', field_type: 'number', value_number: 5000 },
+        { field_id: 'f2', field_name: 'Stage', field_type: 'select', value_text: 'Qualified' },
+        { field_id: 'f3', field_name: 'Notes', field_type: 'text', value_text: 'Extra note' },
+      ],
+    }
+    render(<TaskCard task={taskWithFields} employees={mockEmployees} />)
+    expect(screen.getByText('Deal Value:')).toBeInTheDocument()
+    expect(screen.getByText('5000')).toBeInTheDocument()
+    expect(screen.getByText('Stage:')).toBeInTheDocument()
+    expect(screen.getByText('Qualified')).toBeInTheDocument()
+    // Third field should not appear (max 2)
+    expect(screen.queryByText('Notes:')).not.toBeInTheDocument()
+  })
+
+  it('skips empty/null field values', () => {
+    const taskWithFields: TaskWithDetails = {
+      ...mockTask,
+      field_values: [
+        { field_id: 'f1', field_name: 'Empty Field', field_type: 'text' },
+        { field_id: 'f2', field_name: 'Stage', field_type: 'select', value_text: 'Qualified' },
+      ],
+    }
+    render(<TaskCard task={taskWithFields} employees={mockEmployees} />)
+    expect(screen.queryByText('Empty Field:')).not.toBeInTheDocument()
+    expect(screen.getByText('Stage:')).toBeInTheDocument()
+  })
+
+  it('formats boolean field as Yes/No', () => {
+    const taskWithFields: TaskWithDetails = {
+      ...mockTask,
+      field_values: [
+        { field_id: 'f1', field_name: 'Invoiced', field_type: 'boolean', value_boolean: true },
+      ],
+    }
+    render(<TaskCard task={taskWithFields} employees={mockEmployees} />)
+    expect(screen.getByText('Invoiced:')).toBeInTheDocument()
+    expect(screen.getByText('✓ Yes')).toBeInTheDocument()
+  })
+
+  it('formats date field as readable date', () => {
+    const taskWithFields: TaskWithDetails = {
+      ...mockTask,
+      field_values: [
+        { field_id: 'f1', field_name: 'Deadline', field_type: 'date', value_date: '2026-06-15T00:00:00Z' },
+      ],
+    }
+    render(<TaskCard task={taskWithFields} employees={mockEmployees} />)
+    expect(screen.getByText('Deadline:')).toBeInTheDocument()
+    expect(screen.getByText(/15 Jun 2026/)).toBeInTheDocument()
+  })
+
+  it('looks up employee name for employee field type', () => {
+    const taskWithFields: TaskWithDetails = {
+      ...mockTask,
+      field_values: [
+        { field_id: 'f1', field_name: 'Reviewer', field_type: 'employee', value_text: 'emp1' },
+      ],
+    }
+    render(<TaskCard task={taskWithFields} employees={mockEmployees} />)
+    expect(screen.getByText('Reviewer:')).toBeInTheDocument()
+    expect(screen.getByText('John Doe')).toBeInTheDocument()
+  })
+
+  it('renders nothing for field chips when field_values is empty', () => {
+    const taskWithFields: TaskWithDetails = {
+      ...mockTask,
+      field_values: [],
+    }
+    render(<TaskCard task={taskWithFields} employees={mockEmployees} />)
+    // No chip labels rendered
+    expect(screen.queryByText(/:/)).not.toBeInTheDocument()
+  })
+
   it('respects prefers-reduced-motion', () => {
     // Overdue tasks should not animate if user has reduced motion preference
     const overdueTask = {

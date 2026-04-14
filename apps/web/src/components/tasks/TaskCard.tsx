@@ -6,7 +6,54 @@
 import { useMemo } from 'react'
 import { typography } from '@/design/tokens'
 import { formatRelativeDueDate } from '@/lib/utils/date'
-import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload } from '@/types/api'
+import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload, FieldValueWithDefinition, FieldType } from '@/types/api'
+
+// ── Field value formatter ────────────────────────────────────────────────────
+
+function formatFieldValue(fv: FieldValueWithDefinition, employees: Employee[]): string | null {
+  const truncate = (s: string, n = 28) => (s.length > n ? s.slice(0, n) + '…' : s)
+
+  switch (fv.field_type as FieldType) {
+    case 'text':
+    case 'url':
+    case 'select':
+      return fv.value_text ? truncate(fv.value_text) : null
+
+    case 'number':
+      return fv.value_number != null ? String(fv.value_number) : null
+
+    case 'rating':
+      return fv.value_number != null
+        ? '★'.repeat(Math.min(Math.max(Math.round(fv.value_number), 1), 5))
+        : null
+
+    case 'date':
+      return fv.value_date
+        ? new Date(fv.value_date).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : null
+
+    case 'boolean':
+      return fv.value_boolean != null ? (fv.value_boolean ? '✓ Yes' : '✗ No') : null
+
+    case 'multi_select': {
+      const arr = Array.isArray(fv.value_json) ? (fv.value_json as string[]) : []
+      return arr.length > 0 ? truncate(arr.join(', ')) : null
+    }
+
+    case 'employee': {
+      if (!fv.value_text) return null
+      const emp = employees.find((e) => e.id === fv.value_text)
+      return emp ? truncate(emp.full_name) : null
+    }
+
+    default:
+      return null
+  }
+}
 
 interface TaskCardProps {
   task: TaskWithDetails
@@ -52,6 +99,20 @@ export function TaskCard({
     if (!task.due_date) return null
     return formatRelativeDueDate(task.due_date)
   }, [task.due_date])
+
+  // Top 2 non-empty custom field values for display on card
+  const fieldChips = useMemo(() => {
+    const values = task.field_values ?? []
+    const chips: { label: string; value: string }[] = []
+    for (const fv of values) {
+      const formatted = formatFieldValue(fv, employees)
+      if (formatted) {
+        chips.push({ label: fv.field_name, value: formatted })
+        if (chips.length === 2) break
+      }
+    }
+    return chips
+  }, [task.field_values, employees])
   
   // Vibrant sticky note colors
   const stickyColors: Record<TaskPriority, { bg: string; text: string; pin: string; tape: string }> = {
@@ -270,6 +331,29 @@ export function TaskCard({
             {task.title}
           </h3>
         </div>
+
+        {/* Custom field chips */}
+        {fieldChips.length > 0 && (
+          <div className="flex flex-col gap-0.5 mb-2">
+            {fieldChips.map((chip) => (
+              <div
+                key={chip.label}
+                className="flex items-center gap-1 text-xs"
+                style={{ fontFamily: typography.fontFamily }}
+              >
+                <span style={{ color: '#94A3B8', fontWeight: 500 }}>
+                  {chip.label}:
+                </span>
+                <span
+                  className="truncate"
+                  style={{ color: '#4B5563', fontWeight: 500 }}
+                >
+                  {chip.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Footer: Priority + Due date + Completed badge */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-2">
