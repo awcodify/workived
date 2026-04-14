@@ -91,6 +91,15 @@ function LeaveApprovalView({ task, approvalId, onClose }: LeaveApprovalViewProps
 
     try {
       await rejectMutation.mutateAsync({ id: approvalId, note: rejectNote })
+
+      const doneList = taskLists.find(list => list.is_final_state)
+      if (doneList) {
+        await moveMutation.mutateAsync({
+          id: task.id,
+          data: { task_list_id: doneList.id, position: 999999 },
+        })
+      }
+
       setShowRejectModal(false)
       onClose()
     } catch (error) {
@@ -285,6 +294,15 @@ function ClaimApprovalView({ task, approvalId, onClose }: ClaimApprovalViewProps
         id: approvalId,
         data: { review_note: rejectNote },
       })
+
+      const doneList = taskLists.find(list => list.is_final_state)
+      if (doneList) {
+        await moveMutation.mutateAsync({
+          id: task.id,
+          data: { task_list_id: doneList.id, position: 999999 },
+        })
+      }
+
       setShowRejectModal(false)
       onClose()
     } catch (error) {

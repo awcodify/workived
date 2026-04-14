@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import axios from 'axios'
 import { useEmployee, useUpdateEmployee } from '@/lib/hooks/useEmployees'
 import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useDepartments } from '@/lib/hooks/useDepartments'
@@ -70,6 +71,11 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
   const [activeTab, setActiveTab] = useState<TabType>('detail')
   const [isEditMode, setIsEditMode] = useState(false)
   const [showConfirmation, setShowConfirmation] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const updateFormData = (patch: Partial<typeof formData>) => {
+    setSaveError(null)
+    setFormData((prev) => ({ ...prev, ...patch }))
+  }
   const [formData, setFormData] = useState<FormData>({
     full_name: '',
     phone: '',
@@ -143,8 +149,13 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
       setIsEditMode(false)
       setShowConfirmation(false)
     } catch (error) {
-      console.error('Failed to update employee:', error)
       setShowConfirmation(false)
+      if (axios.isAxiosError(error)) {
+        const msg = error.response?.data?.error?.message
+        setSaveError(typeof msg === 'string' && msg.length > 0 ? msg : 'Failed to save changes. Please try again.')
+      } else {
+        setSaveError('Failed to save changes. Please try again.')
+      }
     }
   }
 
@@ -167,6 +178,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
     }
     setIsEditMode(false)
     setShowConfirmation(false)
+    setSaveError(null)
   }
 
   // Format date for display
@@ -310,6 +322,16 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
           </div>
         </div>
 
+        {/* Save error banner */}
+        {saveError && (
+          <div
+            className="px-6 py-2.5 text-sm font-medium"
+            style={{ background: `${colors.err}15`, color: colors.err, borderBottom: `1px solid ${colors.err}30` }}
+          >
+            {saveError}
+          </div>
+        )}
+
         {/* Tabs */}
         {!isEditMode && (
           <div
@@ -391,7 +413,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                       <input
                         type="text"
                         value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                        onChange={(e) => updateFormData({ full_name: e.target.value })}
                         className="text-xl font-bold px-2 py-1 rounded-lg focus:outline-none focus:ring-2 w-full"
                         style={{
                           background: t.input,
@@ -402,12 +424,12 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                       <div className="grid grid-cols-2 gap-2">
                         <Dropdown
                           value={formData.status}
-                          onChange={(value) => setFormData({ ...formData, status: value })}
+                          onChange={(value) => updateFormData({ status: value })}
                           options={statusOptions}
                         />
                         <Dropdown
                           value={formData.job_title}
-                          onChange={(value) => setFormData({ ...formData, job_title: value })}
+                          onChange={(value) => updateFormData({ job_title: value })}
                           options={jobTitleOptions}
                           placeholder="Select job title"
                         />
@@ -465,7 +487,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                           type="tel"
                           placeholder="Not provided"
                           value={formData.phone}
-                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          onChange={(e) => updateFormData({ phone: e.target.value })}
                           className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
                           style={{
                             background: t.input,
@@ -477,7 +499,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                       <Dropdown
                         label="Gender"
                         value={formData.gender}
-                        onChange={(value) => setFormData({ ...formData, gender: value })}
+                        onChange={(value) => updateFormData({ gender: value })}
                         options={genderOptions}
                         fullWidth
                       />
@@ -515,14 +537,14 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                       <Dropdown
                         label="Department"
                         value={formData.department_id}
-                        onChange={(value) => setFormData({ ...formData, department_id: value })}
+                        onChange={(value) => updateFormData({ department_id: value })}
                         options={departmentOptions}
                         fullWidth
                       />
                       <EmployeeDropdown
                         label="Reports to"
                         value={formData.reporting_to}
-                        onChange={(value) => setFormData({ ...formData, reporting_to: value })}
+                        onChange={(value) => updateFormData({ reporting_to: value })}
                         excludeEmployeeId={employeeId}
                         fullWidth
                       />
@@ -555,14 +577,14 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                       <Dropdown
                         label="Employment Type"
                         value={formData.employment_type}
-                        onChange={(value) => setFormData({ ...formData, employment_type: value })}
+                        onChange={(value) => updateFormData({ employment_type: value })}
                         options={employmentTypeOptions}
                         fullWidth
                       />
                       <Dropdown
                         label="Work Schedule"
                         value={formData.work_schedule_id}
-                        onChange={(value) => setFormData({ ...formData, work_schedule_id: value })}
+                        onChange={(value) => updateFormData({ work_schedule_id: value })}
                         options={scheduleOptions}
                         fullWidth
                       />
@@ -573,7 +595,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                         <input
                           type="date"
                           value={formData.start_date}
-                          onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                          onChange={(e) => updateFormData({ start_date: e.target.value })}
                           className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
                           style={{
                             background: t.input,
@@ -589,7 +611,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                         <input
                           type="date"
                           value={formData.end_date}
-                          onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                          onChange={(e) => updateFormData({ end_date: e.target.value })}
                           className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
                           style={{
                             background: t.input,
