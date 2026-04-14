@@ -7,7 +7,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check, Loader2 } from 'lucide-react'
 import { moduleThemes, colors } from '@/design/tokens'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useInfiniteQuery, keepPreviousData } from '@tanstack/react-query'
 import { employeesApi } from '@/lib/api/employees'
 import type { Employee } from '@/types/api'
 
@@ -44,12 +44,19 @@ export function EmployeeDropdown({
 }: EmployeeDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, width: 0 })
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+
+  // Debounce search: wait 300ms after user stops typing before firing API
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
 
   // Fetch employees with infinite scroll
   const {
@@ -59,16 +66,17 @@ export function EmployeeDropdown({
     isFetchingNextPage,
     isLoading,
   } = useInfiniteQuery({
-    queryKey: ['employees', 'dropdown', searchTerm],
+    queryKey: ['employees', 'dropdown', debouncedSearch],
     queryFn: ({ pageParam }) =>
       employeesApi.list({
         cursor: pageParam,
         limit: 50,
-        search: searchTerm || undefined,
+        search: debouncedSearch || undefined,
         status: 'active',
       }).then((r) => r.data),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.meta.has_more ? lastPage.meta.next_cursor : undefined,
+    placeholderData: keepPreviousData,
     enabled: isOpen,
   })
 
@@ -119,6 +127,7 @@ export function EmployeeDropdown({
       }, 50)
     } else {
       setSearchTerm('')
+      setDebouncedSearch('')
     }
   }, [isOpen])
 
