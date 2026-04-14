@@ -5,6 +5,7 @@ import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 import { ColumnTabNav } from '@/components/tasks/ColumnTabNav'
 import { TaskCard as EnhancedTaskCard } from '@/components/tasks/TaskCard'
+import { FieldDefinitionsPanel } from '@/components/tasks/FieldDefinitionsPanel'
 import { Dropdown, type DropdownOption } from '@/components/workived/shared/Dropdown'
 import {
   DndContext,
@@ -39,6 +40,7 @@ import {
 import { useEmployees, useEmployeeWorkload } from '@/lib/hooks/useEmployees'
 import { useApproveRequest, useRejectRequest } from '@/lib/hooks/useLeave'
 import { useApproveClaim, useRejectClaim } from '@/lib/hooks/useClaims'
+import { useCanEditOrgSettings } from '@/lib/hooks/useRole'
 import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload } from '@/types/api'
 
 // URL search params for filters
@@ -122,6 +124,8 @@ function TasksPage() {
   const approveLeaveRequest = useApproveRequest()
   const approveClaimMutation = useApproveClaim()
 
+  const canEditOrgSettings = useCanEditOrgSettings()
+
   const [activeTask, setActiveTask] = useState<TaskWithDetails | null>(null)
   const [activeTaskOriginalListId, setActiveTaskOriginalListId] = useState<string | null>(null)
   const [optimisticTasks, setOptimisticTasks] = useState<TaskWithDetails[]>([])
@@ -131,6 +135,7 @@ function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<TaskWithDetails | null>(null)
   const [createModalListId, setCreateModalListId] = useState<string | null>(null)
   const [expandedWorkloadStatus, setExpandedWorkloadStatus] = useState<string | null>(null)
+  const [showFieldsPanel, setShowFieldsPanel] = useState(false)
 
   // Apply filters to tasks
   const filteredTasks = useMemo(() => {
@@ -825,6 +830,22 @@ function TasksPage() {
             }}
           />
 
+          {canEditOrgSettings && (
+            <button
+              onClick={() => setShowFieldsPanel(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all hover:bg-black/5"
+              style={{
+                background: 'white',
+                color: '#64748B',
+                border: '1px solid #DFE1E6',
+                fontFamily: typography.fontFamily,
+              }}
+            >
+              <span>⊞</span>
+              Fields
+            </button>
+          )}
+
           <button
             onClick={() => updateSearchParam('showCompleted', !showCompleted)}
             className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-all"
@@ -1139,6 +1160,10 @@ function TasksPage() {
             setNewTaskAssignee('')
           }}
         />
+      )}
+
+      {showFieldsPanel && (
+        <FieldDefinitionsPanel onClose={() => setShowFieldsPanel(false)} />
       )}
     </div>
   )

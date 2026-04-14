@@ -8,6 +8,8 @@ import type {
   MoveTaskInput,
   CreateTaskCommentInput,
   TaskFilters,
+  CreateFieldDefinitionInput,
+  UpdateFieldDefinitionInput,
 } from '@/types/api'
 
 // ── Query Keys ───────────────────────────────────────────────
@@ -22,6 +24,8 @@ export const tasksKeys = {
 
   comments: (taskId: string) => [...tasksKeys.all, 'comments', taskId] as const,
   reactions: (commentId: string) => [...tasksKeys.all, 'reactions', commentId] as const,
+
+  fieldDefs: () => [...tasksKeys.all, 'field-definitions'] as const,
 }
 
 // ── Task List Hooks ──────────────────────────────────────────
@@ -190,5 +194,72 @@ export function useCommentReactions(taskId: string, commentId: string) {
     queryKey: tasksKeys.reactions(commentId),
     queryFn: () => tasksApi.listReactions(taskId, commentId).then((r) => r.data.data || []),
     staleTime: 10 * 1000, // 10 sec — reactions change frequently
+  })
+}
+
+// ── Field Definition Hooks ───────────────────────────────────
+export function useFieldDefinitions() {
+  return useQuery({
+    queryKey: tasksKeys.fieldDefs(),
+    queryFn: () =>
+      tasksApi.listFieldDefinitions().then((r) => r.data.data ?? []),
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useCreateFieldDefinition() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: CreateFieldDefinitionInput) =>
+      tasksApi.createFieldDefinition(data).then((r) => r.data.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: tasksKeys.fieldDefs() })
+    },
+  })
+}
+
+export function useUpdateFieldDefinition() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateFieldDefinitionInput }) =>
+      tasksApi.updateFieldDefinition(id, data).then((r) => r.data.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: tasksKeys.fieldDefs() })
+    },
+  })
+}
+
+export function useDeactivateFieldDefinition() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => tasksApi.deactivateFieldDefinition(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: tasksKeys.fieldDefs() })
+    },
+  })
+}
+
+// ── Field Value Hooks ────────────────────────────────────────
+export function useSetFieldValue() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ taskId, fieldId, value }: { taskId: string; fieldId: string; value: unknown }) =>
+      tasksApi.setFieldValue(taskId, fieldId, value).then((r) => r.data.data),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: tasksKeys.taskDetail(variables.taskId) })
+      qc.invalidateQueries({ queryKey: tasksKeys.tasks() })
+    },
+  })
+}
+
+export function useClearFieldValue() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ taskId, fieldId }: { taskId: string; fieldId: string }) =>
+      tasksApi.clearFieldValue(taskId, fieldId),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: tasksKeys.taskDetail(variables.taskId) })
+      qc.invalidateQueries({ queryKey: tasksKeys.tasks() })
+    },
   })
 }

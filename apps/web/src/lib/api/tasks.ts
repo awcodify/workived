@@ -6,6 +6,10 @@ import type {
   TaskComment,
   TaskCommentWithAuthor,
   CommentReactionSummary,
+  FieldDefinition,
+  CreateFieldDefinitionInput,
+  UpdateFieldDefinitionInput,
+  FieldValueWithDefinition,
   CreateTaskListInput,
   UpdateTaskListInput,
   CreateTaskInput,
@@ -94,4 +98,27 @@ export const tasksApi = {
     apiClient.get<ApiResponse<CommentReactionSummary[]>>(
       `/api/v1/tasks/${taskId}/comments/${commentId}/reactions`,
     ),
+
+  // ── Field Definitions ──────────────────────────────────────
+  listFieldDefinitions: () =>
+    apiClient.get<ApiResponse<FieldDefinition[]>>('/api/v1/tasks/fields'),
+
+  createFieldDefinition: (data: CreateFieldDefinitionInput) =>
+    apiClient.post<ApiResponse<FieldDefinition>>('/api/v1/tasks/fields', data),
+
+  updateFieldDefinition: (id: string, data: UpdateFieldDefinitionInput) =>
+    apiClient.put<ApiResponse<FieldDefinition>>(`/api/v1/tasks/fields/${id}`, data),
+
+  deactivateFieldDefinition: (id: string) =>
+    apiClient.delete(`/api/v1/tasks/fields/${id}`),
+
+  // ── Field Values ───────────────────────────────────────────
+  setFieldValue: (taskId: string, fieldId: string, value: unknown) =>
+    apiClient.put<ApiResponse<FieldValueWithDefinition>>(
+      `/api/v1/tasks/${taskId}/fields/${fieldId}`,
+      { value },
+    ),
+
+  clearFieldValue: (taskId: string, fieldId: string) =>
+    apiClient.delete(`/api/v1/tasks/${taskId}/fields/${fieldId}`),
 }

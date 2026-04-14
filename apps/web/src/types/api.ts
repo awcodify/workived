@@ -724,10 +724,69 @@ export interface Task {
   updated_at: string
 }
 
+export type FieldType =
+  | 'text' | 'number' | 'date' | 'boolean'
+  | 'select' | 'multi_select' | 'url' | 'employee' | 'rating'
+
+export interface FieldOption {
+  value: string
+  label: string
+  color?: string
+}
+
+export interface FieldConfig {
+  min?: number
+  max?: number
+  format?: string
+}
+
+export interface FieldDefinition {
+  id: string
+  organisation_id: string
+  name: string
+  field_type: FieldType
+  description?: string
+  options?: FieldOption[]
+  config?: FieldConfig
+  sort_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface FieldValueWithDefinition {
+  field_id: string
+  field_name: string
+  field_type: FieldType
+  value_text?: string
+  value_number?: number
+  value_date?: string
+  value_boolean?: boolean
+  value_json?: unknown
+}
+
+export interface CreateFieldDefinitionInput {
+  name: string
+  field_type: FieldType
+  description?: string
+  options?: FieldOption[]
+  config?: FieldConfig
+  sort_order?: number
+}
+
+export interface UpdateFieldDefinitionInput {
+  name?: string
+  description?: string
+  options?: FieldOption[]
+  config?: FieldConfig
+  sort_order?: number
+}
+
 export interface TaskWithDetails extends Task {
   assignee_name?: string
   creator_name: string
   list_name: string
+  field_values?: FieldValueWithDefinition[]
 }
 
 export interface TaskComment {
