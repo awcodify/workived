@@ -657,6 +657,9 @@
     .showcase-panel[data-module="people"] .feature-bullets li::before { background: #EC4899; }
     .showcase-panel[data-module="people"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(236,72,153,0.10), 0 0 0 1px rgba(236,72,153,0.08); }
     .showcase-panel[data-module="people"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(236,72,153,0.15), 0 0 0 1px rgba(236,72,153,0.12); }
+    .showcase-panel[data-module="reports"] .feature-bullets li::before { background: #F59E0B; }
+    .showcase-panel[data-module="reports"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(245,158,11,0.10), 0 0 0 1px rgba(245,158,11,0.08); }
+    .showcase-panel[data-module="reports"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(245,158,11,0.15), 0 0 0 1px rgba(245,158,11,0.12); }
 
     /* ── Mobile carousel ── */
     .feature-carousel {
@@ -904,6 +907,16 @@
     }
     .feature-block[data-module="people"] .screenshot-wrapper:hover {
       box-shadow: 0 32px 80px rgba(236,72,153,0.15), 0 0 0 1px rgba(236,72,153,0.12);
+    }
+
+    .feature-block[data-module="reports"] .feature-emoji { background: #FEF3E0; }
+    .feature-block[data-module="reports"] .feature-module-name { color: #F59E0B; }
+    .feature-block[data-module="reports"] .feature-bullets li::before { background: #F59E0B; }
+    .feature-block[data-module="reports"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(245,158,11,0.10), 0 0 0 1px rgba(245,158,11,0.08);
+    }
+    .feature-block[data-module="reports"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(245,158,11,0.15), 0 0 0 1px rgba(245,158,11,0.12);
     }
 
     /* ── Value Proposition bar ── */
@@ -2095,7 +2108,7 @@
 
     <div class="section-header reveal">
       <span class="section-label">Everything you need</span>
-      <h2>One workspace.<br><span class="muted">Seven modules.</span></h2>
+      <h2>One workspace.<br><span class="muted">All modules you need.</span></h2>
     </div>
 
     <!-- Desktop showcase -->
@@ -2108,6 +2121,7 @@
         <button class="showcase-tab" data-module="tasks"><span class="tab-emoji">✅</span> Tasks</button>
         <button class="showcase-tab" data-module="calendar"><span class="tab-emoji">📅</span> Calendar</button>
         <button class="showcase-tab" data-module="people"><span class="tab-emoji">👥</span> People</button>
+        <button class="showcase-tab" data-module="reports"><span class="tab-emoji">📊</span> Reports</button>
       </div>
 
       <div class="showcase-panel active" data-module="overview">
@@ -2305,6 +2319,34 @@
           </div>
         </div>
       </div>
+
+      <div class="showcase-panel" data-module="reports">
+        <div class="showcase-text">
+          <div class="feature-icon-row">
+            <div class="feature-emoji" style="background:#FEF3E0;">📊</div>
+            <span class="feature-module-name" style="color:#F59E0B;">Reports</span>
+          </div>
+          <h3>Performance insights, visualized</h3>
+          <p>Track team performance with real-time reports on attendance, task completion, leave usage, and employee rankings.</p>
+          <ul class="feature-bullets">
+            <li>Attendance trends & punctuality rates</li>
+            <li>Task completion by employee & period</li>
+            <li>Leave utilization analytics</li>
+            <li>Team ranking with grade distribution</li>
+          </ul>
+        </div>
+        <div class="showcase-img">
+          <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/reports</div>
+            </div>
+            <img src="images/reports.png" alt="Workived performance reports" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Mobile carousel -->
@@ -2401,6 +2443,19 @@
             <p>Profiles, reporting lines, departments, and status — searchable.</p>
           </div>
         </div>
+        <div class="carousel-card" data-module="reports">
+          <div class="carousel-card-img">
+            <img src="images/reports.png" alt="Performance reports" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#FEF3E0;">📊</div>
+              <span class="feature-module-name" style="color:#F59E0B;">Reports</span>
+            </div>
+            <h3>Performance insights</h3>
+            <p>Attendance, tasks, leave analytics with rankings and grade distribution.</p>
+          </div>
+        </div>
       </div>
       <div class="carousel-dots" id="carouselDots">
         <button class="carousel-dot active" data-index="0"></button>
@@ -2410,6 +2465,7 @@
         <button class="carousel-dot" data-index="4"></button>
         <button class="carousel-dot" data-index="5"></button>
         <button class="carousel-dot" data-index="6"></button>
+        <button class="carousel-dot" data-index="7"></button>
       </div>
     </div>
 
@@ -2570,6 +2626,29 @@
       <div class="feature-visual">
         <div class="screenshot-wrapper">
           <img src="images/people-and-team.jpeg" alt="Workived people directory with employee profiles, reporting lines and status filters" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Reports -->
+    <div class="feature-block reverse reveal" data-module="reports">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji">📊</div>
+          <span class="feature-module-name">Reports</span>
+        </div>
+        <h3>Performance insights, visualized</h3>
+        <p>Track team performance with real-time reports on attendance, task completion, leave usage, and employee rankings.</p>
+        <ul class="feature-bullets">
+          <li>Attendance trends & punctuality rates</li>
+          <li>Task completion by employee & period</li>
+          <li>Leave utilization analytics</li>
+          <li>Team ranking with grade distribution</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/reports.png" alt="Workived performance reports showing attendance, task completion, team rankings and analytics" loading="lazy" width="960" height="600">
         </div>
       </div>
     </div>
