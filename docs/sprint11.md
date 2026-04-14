@@ -526,7 +526,7 @@ export const claimRequestTheme: RequestListItemTheme = {
 - [ ] Video tutorial: "5-minute Workived setup"
 
 **Support:**
-- [ ] Create support email: `hello@workived.com`
+- [ ] Create support email: `my@workived.com`
 - [ ] Set up shared inbox (Gmail or Plane)
 - [ ] Response SLA: 24 hours for beta users
 - [ ] Bug report template (GitHub issues)

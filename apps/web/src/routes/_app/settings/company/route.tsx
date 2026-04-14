@@ -389,7 +389,7 @@ function PlanSection() {
             <span style={{ fontSize: 14, fontWeight: 700, color: S.text }}>{planLabel}</span>
             {isNearLimit && (
               <a
-                href="mailto:hello@workived.com?subject=Upgrade to Pro"
+                href="mailto:my@workived.com?subject=Upgrade to Pro"
                 className="px-3 py-1 rounded-md text-xs font-semibold"
                 style={{ background: C.accent, color: '#FFFFFF', textDecoration: 'none' }}
               >

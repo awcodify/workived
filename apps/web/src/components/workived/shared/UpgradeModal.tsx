@@ -73,7 +73,7 @@ export function UpgradeModal() {
 
           <button
             onClick={() => {
-              window.location.href = 'mailto:hello@workived.com?subject=Upgrade%20to%20Pro'
+              window.location.href = 'mailto:my@workived.com?subject=Upgrade%20to%20Pro'
               hide()
             }}
             className="w-full rounded-lg px-6 py-3 font-semibold text-white transition-colors hover:opacity-90"
