@@ -260,6 +260,7 @@ function FieldForm({
     handleSubmit,
     watch,
     control,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<FieldForm>({
     resolver: zodResolver(fieldSchema),
@@ -280,6 +281,11 @@ function FieldForm({
   const needsOptions = TYPES_NEEDING_OPTIONS.includes(selectedType)
 
   const onSubmit = (data: FieldForm) => {
+    if (needsOptions && (!data.options || data.options.length === 0)) {
+      setError('options', { type: 'manual', message: 'At least one option is required' })
+      return
+    }
+
     const config = needsOptions && data.options?.length
       ? { options: data.options.map((o) => ({ value: o.value, label: o.label, color: o.color || undefined })) }
       : undefined
@@ -458,6 +464,11 @@ function FieldForm({
               Add option
             </button>
           </div>
+          {(errors.options?.root?.message ?? errors.options?.message) && (
+            <p className="text-xs mt-1" style={{ color: '#EF4444' }}>
+              {errors.options?.root?.message ?? errors.options?.message}
+            </p>
+          )}
         </div>
       )}
 

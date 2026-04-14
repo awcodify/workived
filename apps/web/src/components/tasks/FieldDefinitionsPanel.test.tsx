@@ -314,6 +314,51 @@ describe('FieldDefinitionsPanel', () => {
     expect(screen.getByText('Saving…')).toBeInTheDocument()
   })
 
+  it('shows options required error when submitting select type with no options', async () => {
+    render(<FieldDefinitionsPanel onClose={onClose} />)
+    fireEvent.click(screen.getByText('Add Field'))
+
+    // Set name
+    fireEvent.change(screen.getByPlaceholderText('e.g. Story Points'), {
+      target: { value: 'My Select' },
+    })
+
+    // Pick select type
+    const typeSelect = screen.getByRole('combobox')
+    fireEvent.change(typeSelect, { target: { value: 'select' } })
+
+    await waitFor(() => screen.getByText('Options'))
+
+    // Submit without adding any options
+    fireEvent.click(screen.getByText('Create Field'))
+
+    await waitFor(() => {
+      expect(screen.getByText('At least one option is required')).toBeInTheDocument()
+    })
+    expect(mockCreateMutate).not.toHaveBeenCalled()
+  })
+
+  it('shows options required error for multi_select with no options', async () => {
+    render(<FieldDefinitionsPanel onClose={onClose} />)
+    fireEvent.click(screen.getByText('Add Field'))
+
+    fireEvent.change(screen.getByPlaceholderText('e.g. Story Points'), {
+      target: { value: 'Multi' },
+    })
+
+    const typeSelect = screen.getByRole('combobox')
+    fireEvent.change(typeSelect, { target: { value: 'multi_select' } })
+
+    await waitFor(() => screen.getByText('Options'))
+
+    fireEvent.click(screen.getByText('Create Field'))
+
+    await waitFor(() => {
+      expect(screen.getByText('At least one option is required')).toBeInTheDocument()
+    })
+    expect(mockCreateMutate).not.toHaveBeenCalled()
+  })
+
   it('can add and remove options in select form', async () => {
     render(<FieldDefinitionsPanel onClose={onClose} />)
     fireEvent.click(screen.getByText('Add Field'))
