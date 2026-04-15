@@ -15,7 +15,7 @@ const mockTask: TaskWithDetails = {
   task_list_id: 'list1',
   position: 1000,
   priority: 'medium',
-  due_date: new Date('2026-04-10').toISOString(),
+  due_date: new Date('2026-12-25').toISOString(),
   assignee_id: 'emp1',
   assignee_name: 'John Doe',
   completed_at: null,
@@ -58,7 +58,7 @@ describe('TaskCard', () => {
   it('displays due date badge with relative time', () => {
     render(<TaskCard task={mockTask} employees={mockEmployees} />)
     // Should show relative time and absolute date
-    expect(screen.getByText(/Due.*\(Apr 10\)/)).toBeInTheDocument()
+    expect(screen.getByText(/Due.*\(Dec 25\)/)).toBeInTheDocument()
   })
 
   it('shows overdue indicator when task is overdue', () => {

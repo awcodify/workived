@@ -51,50 +51,6 @@ function formatRelativeTime(dateString: string): string {
 
 const FIELDS_VISIBLE_DEFAULT = 2
 
-// Separate component so hooks run unconditionally (rating needs local state)
-function RatingInput({ current, save, clear }: {
-  current: FieldValueWithDefinition | undefined
-  save: (v: unknown) => void
-  clear: () => void
-}) {
-  const [localRating, setLocalRating] = useState(current?.value_number ?? 0)
-  const prevValue = useRef(current?.value_number)
-
-  // Sync from cache once mutation completes
-  useEffect(() => {
-    if (current?.value_number !== prevValue.current) {
-      setLocalRating(current?.value_number ?? 0)
-      prevValue.current = current?.value_number
-    }
-  }, [current?.value_number])
-
-  return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((n) => (
-        <button
-          key={n}
-          type="button"
-          onClick={() => { setLocalRating(n); save(n) }}
-          className="text-lg leading-none transition-colors"
-          style={{ color: localRating >= n ? '#F59E0B' : '#D1D5DB' }}
-        >
-          ★
-        </button>
-      ))}
-      {current !== undefined && (
-        <button
-          type="button"
-          onClick={() => { setLocalRating(0); clear() }}
-          className="text-xs ml-1 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
-          style={{ color: '#94A3B8' }}
-        >
-          ✕
-        </button>
-      )}
-    </div>
-  )
-}
-
 const lightDropdownTheme = {
   text:        '#2C3E50',
   textMuted:   '#64748B',
@@ -114,17 +70,84 @@ function FieldInput({
   current,
   taskId,
   employees,
+  // Create mode — if provided, skips mutations and writes to local state instead
+  createValue,
+  onCreateChange,
+  // Saving indicator callback
+  onSavingChange,
 }: {
   fd: FieldDefinition
   current: FieldValueWithDefinition | undefined
   taskId: string
   employees: Employee[]
+  createValue?: unknown
+  onCreateChange?: (value: unknown) => void
+  onSavingChange?: (saving: boolean) => void
 }) {
+  const isCreateMode = onCreateChange !== undefined
   const setMutation   = useSetFieldValue()
   const clearMutation = useClearFieldValue()
 
-  const save = (value: unknown) => setMutation.mutate({ taskId, fieldId: fd.id, value })
-  const clear = () => clearMutation.mutate({ taskId, fieldId: fd.id })
+  // Optimistic state: set immediately on user action, cleared when server value arrives
+  const [optimistic, setOptimistic] = useState<{ value: unknown } | null>(null)
+  const prevCurrent = useRef(current)
+  useEffect(() => {
+    // Cache updated → discard optimistic overlay
+    if (prevCurrent.current !== current) {
+      setOptimistic(null)
+      prevCurrent.current = current
+    }
+  }, [current])
+
+  const save = (value: unknown) => {
+    if (isCreateMode) { onCreateChange(value); return }
+    setOptimistic({ value })
+    onSavingChange?.(true)
+    setMutation.mutate({ taskId, fieldId: fd.id, value }, {
+      onError:   () => setOptimistic(null),
+      onSettled: () => onSavingChange?.(false),
+    })
+  }
+  const clear = () => {
+    if (isCreateMode) { onCreateChange(null); return }
+    setOptimistic({ value: '' })   // immediate visual reset
+    onSavingChange?.(true)
+    clearMutation.mutate({ taskId, fieldId: fd.id }, {
+      onError:   () => setOptimistic(null),
+      onSettled: () => onSavingChange?.(false),
+    })
+  }
+
+  // Resolved display values — create mode > optimistic > server
+  // Note: select/employee store in value_json (not value_text) on the backend
+  const serverText = current?.value_text ?? (typeof current?.value_json === 'string' ? current.value_json : '')
+  const dispText = isCreateMode
+    ? (createValue as string ?? '')
+    : (optimistic !== null ? (optimistic.value as string ?? '') : serverText)
+  const dispNumber = isCreateMode
+    ? (typeof createValue === 'number' ? createValue : 0)
+    : (optimistic !== null ? (typeof optimistic.value === 'number' ? optimistic.value : 0) : (current?.value_number ?? 0))
+  const dispBool = isCreateMode
+    ? (createValue === true)
+    : (optimistic !== null ? (optimistic.value as boolean ?? false) : (current?.value_boolean ?? false))
+  const dispJson = isCreateMode
+    ? (Array.isArray(createValue) ? createValue as string[] : [])
+    : (optimistic !== null
+      ? (Array.isArray(optimistic.value) ? optimistic.value as string[] : [])
+      : (Array.isArray(current?.value_json) ? current!.value_json as string[] : []))
+  const hasValue = isCreateMode
+    ? (createValue !== null && createValue !== undefined && createValue !== '' &&
+       !(Array.isArray(createValue) && (createValue as unknown[]).length === 0))
+    : (optimistic !== null
+      ? (optimistic.value !== null && optimistic.value !== undefined && optimistic.value !== '')
+      : (current !== undefined && (
+          current.value_text !== undefined ||
+          current.value_number !== undefined ||
+          current.value_date !== undefined ||
+          current.value_boolean !== undefined ||
+          (current.value_json !== undefined && current.value_json !== null &&
+           !(Array.isArray(current.value_json) && (current.value_json as unknown[]).length === 0))
+        )))
 
   const inputStyle: React.CSSProperties = {
     background: '#F9FAFB',
@@ -138,65 +161,83 @@ function FieldInput({
     outline: 'none',
   }
 
-  const hasClearBtn = current !== undefined
-
   const wrapper = (input: React.ReactNode) => (
     <div className="flex items-center gap-1.5">
       <div className="flex-1 min-w-0">{input}</div>
-      {hasClearBtn && (
-        <button
-          type="button"
-          onClick={clear}
-          title="Clear value"
+      {hasValue && (
+        <button type="button" onClick={clear} title="Clear value"
           className="flex-shrink-0 text-xs px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
           style={{ color: '#94A3B8' }}
-        >
-          ✕
-        </button>
+        >✕</button>
       )}
     </div>
   )
 
   switch (fd.field_type) {
     case 'text':
-    case 'url':
+    case 'url': {
+      const textKey = isCreateMode
+        ? `cm_${String(createValue ?? 'empty')}`
+        : (optimistic !== null ? `opt_${JSON.stringify(optimistic.value)}` : (current?.value_text ?? 'empty'))
       return wrapper(
         <input
+          key={textKey}
           type={fd.field_type === 'url' ? 'url' : 'text'}
-          defaultValue={current?.value_text ?? ''}
+          defaultValue={dispText}
           placeholder={fd.description || fd.name}
           style={inputStyle}
           onBlur={(e) => {
             const v = e.target.value.trim()
             if (v) save(v)
-            else if (current) clear()
+            else if (isCreateMode ? hasValue : current) clear()
           }}
         />
       )
+    }
 
-    case 'number':
+    case 'number': {
+      const numKey = isCreateMode
+        ? `cm_${String(createValue ?? 'empty')}`
+        : (optimistic !== null ? `opt_${JSON.stringify(optimistic.value)}` : (current?.value_number ?? 'empty'))
       return wrapper(
         <input
+          key={numKey}
           type="number"
-          defaultValue={current?.value_number ?? ''}
+          defaultValue={dispNumber || ''}
           placeholder="0"
           style={inputStyle}
           onBlur={(e) => {
             const v = e.target.value
             if (v !== '') save(parseFloat(v))
-            else if (current) clear()
+            else if (isCreateMode ? hasValue : current) clear()
           }}
         />
       )
+    }
 
     case 'rating':
-      return <RatingInput current={current} save={save} clear={clear} />
+      return (
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button key={n} type="button" onClick={() => save(n)}
+              className="text-lg leading-none transition-colors"
+              style={{ color: dispNumber >= n ? '#F59E0B' : '#D1D5DB' }}
+            >★</button>
+          ))}
+          {hasValue && (
+            <button type="button" onClick={clear}
+              className="text-xs ml-1 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+              style={{ color: '#94A3B8' }}
+            >✕</button>
+          )}
+        </div>
+      )
 
     case 'date':
       return wrapper(
         <input
           type="date"
-          defaultValue={current?.value_date ? current.value_date.split('T')[0] : ''}
+          value={optimistic !== null ? (optimistic.value as string ?? '') : (current?.value_date ? current.value_date.split('T')[0] : '')}
           style={{ ...inputStyle, colorScheme: 'light' }}
           onChange={(e) => {
             if (e.target.value) save(e.target.value)
@@ -210,12 +251,12 @@ function FieldInput({
         <label className="flex items-center gap-2 cursor-pointer">
           <input
             type="checkbox"
-            checked={current?.value_boolean ?? false}
+            checked={dispBool}
             onChange={(e) => save(e.target.checked)}
             className="w-4 h-4 rounded accent-amber-500"
           />
           <span className="text-xs" style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
-            {current?.value_boolean ? 'Yes' : 'No'}
+            {dispBool ? 'Yes' : 'No'}
           </span>
         </label>
       )
@@ -227,8 +268,8 @@ function FieldInput({
       ]
       return wrapper(
         <Dropdown
-          value={current?.value_text ?? ''}
-          onChange={(v) => { if (v) save(v); else if (current) clear() }}
+          value={dispText}
+          onChange={(v) => { if (v) save(v); else clear() }}
           options={opts}
           fullWidth
           theme={lightDropdownTheme}
@@ -239,7 +280,7 @@ function FieldInput({
 
     case 'multi_select': {
       const opts = fd.options ?? []
-      const selected: string[] = Array.isArray(current?.value_json) ? (current!.value_json as string[]) : []
+      const selected = dispJson
       const toggle = (val: string) => {
         const next = selected.includes(val)
           ? selected.filter((v) => v !== val)
@@ -251,6 +292,7 @@ function FieldInput({
         <div className="flex flex-wrap gap-1.5">
           {opts.map((o) => {
             const isActive = selected.includes(o.value)
+            const active = selected.includes(o.value)
             return (
               <button
                 key={o.value}
@@ -258,8 +300,8 @@ function FieldInput({
                 onClick={() => toggle(o.value)}
                 className="text-xs px-2 py-1 rounded-md font-medium transition-all"
                 style={{
-                  background: isActive ? '#C97B2A' : '#F3F4F6',
-                  color:      isActive ? '#FFFFFF' : '#64748B',
+                  background: active ? '#C97B2A' : '#F3F4F6',
+                  color:      active ? '#FFFFFF' : '#64748B',
                   fontFamily: typography.fontFamily,
                 }}
               >
@@ -267,15 +309,11 @@ function FieldInput({
               </button>
             )
           })}
-          {hasClearBtn && (
-            <button
-              type="button"
-              onClick={clear}
+          {hasValue && (
+            <button type="button" onClick={clear}
               className="text-xs px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
               style={{ color: '#94A3B8' }}
-            >
-              ✕
-            </button>
+            >✕</button>
           )}
         </div>
       )
@@ -288,8 +326,8 @@ function FieldInput({
       ]
       return wrapper(
         <Dropdown
-          value={current?.value_text ?? ''}
-          onChange={(v) => { if (v) save(v); else if (current) clear() }}
+          value={dispText}
+          onChange={(v) => { if (v) save(v); else clear() }}
           options={opts}
           fullWidth
           theme={lightDropdownTheme}
@@ -304,27 +342,38 @@ function FieldInput({
 }
 
 interface TaskFieldsSectionProps {
-  task: TaskWithDetails
+  task?: TaskWithDetails
   employees: Employee[]
+  // Create mode — pass pending values + change handler instead of task
+  pendingFieldValues?: Record<string, unknown>
+  onFieldChange?: (fieldId: string, value: unknown) => void
+  onSavingChange?: (saving: boolean) => void
 }
 
-function TaskFieldsSection({ task, employees }: TaskFieldsSectionProps) {
+function TaskFieldsSection({ task, employees, pendingFieldValues, onFieldChange, onSavingChange }: TaskFieldsSectionProps) {
   const { data: fieldDefs = [], isLoading } = useFieldDefinitions()
   const [expanded, setExpanded] = useState(false)
+  const isCreateMode = onFieldChange !== undefined
 
   const active = fieldDefs.filter((fd) => fd.is_active)
-  const fieldValues = task.field_values ?? []
+  const fieldValues = task?.field_values ?? []
 
   // Always show fields that have a value; fill remaining slots from top of list
   const visible = expanded
     ? active
     : (() => {
-        const withValue = active.filter((fd) => fieldValues.some((fv) => fv.field_id === fd.id))
+        const hasPendingOrSaved = (fd: FieldDefinition) => {
+          if (isCreateMode) {
+            const v = pendingFieldValues?.[fd.id]
+            return v !== null && v !== undefined && v !== '' && !(Array.isArray(v) && (v as unknown[]).length === 0)
+          }
+          return fieldValues.some((fv) => fv.field_id === fd.id)
+        }
+        const withValue    = active.filter(hasPendingOrSaved)
         const withValueIds = new Set(withValue.map((fd) => fd.id))
         const withoutValue = active.filter((fd) => !withValueIds.has(fd.id))
-        const extra = withoutValue.slice(0, Math.max(0, FIELDS_VISIBLE_DEFAULT - withValue.length))
-        // Re-sort to original order
-        const shown = new Set([...withValue.map((fd) => fd.id), ...extra.map((fd) => fd.id)])
+        const extra        = withoutValue.slice(0, Math.max(0, FIELDS_VISIBLE_DEFAULT - withValue.length))
+        const shown        = new Set([...withValue.map((fd) => fd.id), ...extra.map((fd) => fd.id)])
         return active.filter((fd) => shown.has(fd.id))
       })()
 
@@ -354,7 +403,7 @@ function TaskFieldsSection({ task, employees }: TaskFieldsSectionProps) {
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         {visible.map((fd) => {
-          const current = getCurrentValue(fd, task.field_values ?? [])
+          const current = isCreateMode ? undefined : getCurrentValue(fd, fieldValues)
           return (
             <div key={fd.id}>
               <label
@@ -366,8 +415,11 @@ function TaskFieldsSection({ task, employees }: TaskFieldsSectionProps) {
               <FieldInput
                 fd={fd}
                 current={current}
-                taskId={task.id}
+                taskId={task?.id ?? ''}
                 employees={employees}
+                createValue={isCreateMode ? pendingFieldValues?.[fd.id] : undefined}
+                onCreateChange={isCreateMode ? (v) => onFieldChange(fd.id, v as unknown) : undefined}
+                onSavingChange={onSavingChange}
               />
             </div>
           )
@@ -432,11 +484,13 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   const [commentText, setCommentText] = useState('')
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const [pendingFieldValues, setPendingFieldValues] = useState<Record<string, unknown>>({})
 
   const updateTaskMutation = useUpdateTask()
   const deleteTaskMutation = useDeleteTask()
   const moveMutation = useMoveTask()
   const createTaskMutation = useCreateTask()
+  const createFieldValueMutation = useSetFieldValue()
   const { data: commentsData } = useTaskComments(task?.id || '')
   const createCommentMutation = useCreateTaskComment()
   const deleteCommentMutation = useDeleteTaskComment()
@@ -648,13 +702,21 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
       {
         task_list_id: listId,
         title: title.trim(),
-       description: description.trim() || undefined,
+        description: description.trim() || undefined,
         assignee_id: assigneeId || undefined,
         priority: priority as 'low' | 'medium' | 'high' | 'urgent',
         due_date: dueDate || undefined,
       },
       {
-        onSuccess: () => {
+        onSuccess: (newTask) => {
+          // Fire field value mutations for any pending custom field values
+          const entries = Object.entries(pendingFieldValues)
+          entries.forEach(([fieldId, value]) => {
+            if (value !== null && value !== undefined && value !== '' &&
+                !(Array.isArray(value) && (value as unknown[]).length === 0)) {
+              createFieldValueMutation.mutate({ taskId: newTask.id, fieldId, value })
+            }
+          })
           onClose()
         },
       }
@@ -1174,9 +1236,23 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
             </div>
           </div>
 
-          {/* Custom Fields — edit mode only */}
-          {!isCreateMode && task && (
-            <TaskFieldsSection task={task} employees={employees} />
+          {/* Custom Fields */}
+          {isCreateMode ? (
+            <TaskFieldsSection
+              employees={employees}
+              pendingFieldValues={pendingFieldValues}
+              onFieldChange={(fieldId, value) =>
+                setPendingFieldValues((prev) => ({ ...prev, [fieldId]: value }))
+              }
+            />
+          ) : (
+            task && (
+              <TaskFieldsSection
+                task={task}
+                employees={employees}
+                onSavingChange={setIsSaving}
+              />
+            )
           )}
 
           {/* Actions */}
