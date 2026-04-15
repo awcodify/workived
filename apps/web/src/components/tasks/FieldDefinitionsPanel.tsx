@@ -253,7 +253,7 @@ function FieldForm({
   const createMutation    = useCreateFieldDefinition()
   const updateMutation    = useUpdateFieldDefinition()
 
-  const defaultOptions = editing?.config?.options ?? []
+  const defaultOptions = editing?.options ?? []
 
   const {
     register,

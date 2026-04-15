@@ -4,7 +4,7 @@ import { ApprovalTaskView } from './ApprovalTaskView'
 import { ReactionPicker } from './ReactionPicker'
 import { Dropdown, type DropdownOption } from './workived/shared/Dropdown'
 import { typography, colors } from '@/design/tokens'
-import type { TaskWithDetails, Employee, EmployeeWorkload, TaskPriority } from '@/types/api'
+import type { TaskWithDetails, Employee, EmployeeWorkload, TaskPriority, FieldDefinition, FieldValueWithDefinition } from '@/types/api'
 import {
   useUpdateTask,
   useDeleteTask,
@@ -15,6 +15,9 @@ import {
   useDeleteTaskComment,
   useCommentReactions,
   useToggleReaction,
+  useFieldDefinitions,
+  useSetFieldValue,
+  useClearFieldValue,
 } from '@/lib/hooks/useTasks'
 
 // ── Utility Functions ────────────────────────────────────────────────────────
@@ -42,6 +45,279 @@ function formatRelativeTime(dateString: string): string {
   
   const years = Math.floor(days / 365)
   return `${years} year${years !== 1 ? 's' : ''} ago`
+}
+
+// ── TaskFieldsSection ─────────────────────────────────────────────────────────
+
+function getCurrentValue(fd: FieldDefinition, fieldValues: FieldValueWithDefinition[]): FieldValueWithDefinition | undefined {
+  return fieldValues.find((fv) => fv.field_id === fd.id)
+}
+
+function FieldInput({
+  fd,
+  current,
+  taskId,
+  employees,
+}: {
+  fd: FieldDefinition
+  current: FieldValueWithDefinition | undefined
+  taskId: string
+  employees: Employee[]
+}) {
+  const setMutation   = useSetFieldValue()
+  const clearMutation = useClearFieldValue()
+
+  const save = (value: unknown) => {
+    setMutation.mutate({ taskId, fieldId: fd.id, value })
+  }
+  const clear = () => clearMutation.mutate({ taskId, fieldId: fd.id })
+
+  const inputStyle: React.CSSProperties = {
+    background: '#F9FAFB',
+    border: '1px solid #DFE1E6',
+    borderRadius: '6px',
+    color: '#2C3E50',
+    fontFamily: typography.fontFamily,
+    fontSize: '13px',
+    padding: '6px 10px',
+    width: '100%',
+    outline: 'none',
+  }
+
+  const hasClearBtn = current !== undefined
+
+  const wrapper = (input: React.ReactNode) => (
+    <div className="flex items-center gap-1.5">
+      <div className="flex-1">{input}</div>
+      {hasClearBtn && (
+        <button
+          type="button"
+          onClick={clear}
+          title="Clear value"
+          className="flex-shrink-0 text-xs px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+          style={{ color: '#94A3B8' }}
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  )
+
+  switch (fd.field_type) {
+    case 'text':
+    case 'url':
+      return wrapper(
+        <input
+          type={fd.field_type === 'url' ? 'url' : 'text'}
+          defaultValue={current?.value_text ?? ''}
+          placeholder={fd.description || fd.name}
+          style={inputStyle}
+          onBlur={(e) => {
+            const v = e.target.value.trim()
+            if (v) save(v)
+            else if (current) clear()
+          }}
+        />
+      )
+
+    case 'number':
+      return wrapper(
+        <input
+          type="number"
+          defaultValue={current?.value_number ?? ''}
+          placeholder="0"
+          style={inputStyle}
+          onBlur={(e) => {
+            const v = e.target.value
+            if (v !== '') save(parseFloat(v))
+            else if (current) clear()
+          }}
+        />
+      )
+
+    case 'rating':
+      return wrapper(
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => save(n)}
+              className="text-lg leading-none transition-colors"
+              style={{ color: (current?.value_number ?? 0) >= n ? '#F59E0B' : '#D1D5DB' }}
+            >
+              ★
+            </button>
+          ))}
+          {hasClearBtn && (
+            <button
+              type="button"
+              onClick={clear}
+              className="text-xs ml-1 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+              style={{ color: '#94A3B8' }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )
+
+    case 'date':
+      return wrapper(
+        <input
+          type="date"
+          defaultValue={current?.value_date ? current.value_date.split('T')[0] : ''}
+          style={{ ...inputStyle, colorScheme: 'light' }}
+          onChange={(e) => {
+            if (e.target.value) save(e.target.value)
+            else if (current) clear()
+          }}
+        />
+      )
+
+    case 'boolean':
+      return (
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={current?.value_boolean ?? false}
+            onChange={(e) => save(e.target.checked)}
+            className="w-4 h-4 rounded accent-amber-500"
+          />
+          <span className="text-xs" style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
+            {current?.value_boolean ? 'Yes' : 'No'}
+          </span>
+        </label>
+      )
+
+    case 'select': {
+      const opts = fd.options ?? []
+      return wrapper(
+        <select
+          value={current?.value_text ?? ''}
+          onChange={(e) => {
+            if (e.target.value) save(e.target.value)
+            else if (current) clear()
+          }}
+          style={{ ...inputStyle, cursor: 'pointer' }}
+        >
+          <option value="">— select —</option>
+          {opts.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+      )
+    }
+
+    case 'multi_select': {
+      const opts = fd.options ?? []
+      const selected: string[] = Array.isArray(current?.value_json) ? (current!.value_json as string[]) : []
+      const toggle = (val: string) => {
+        const next = selected.includes(val)
+          ? selected.filter((v) => v !== val)
+          : [...selected, val]
+        if (next.length > 0) save(next)
+        else clear()
+      }
+      return (
+        <div className="flex flex-wrap gap-1.5">
+          {opts.map((o) => {
+            const active = selected.includes(o.value)
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => toggle(o.value)}
+                className="text-xs px-2 py-1 rounded-md font-medium transition-all"
+                style={{
+                  background: active ? '#C97B2A' : '#F3F4F6',
+                  color: active ? '#FFFFFF' : '#64748B',
+                  fontFamily: typography.fontFamily,
+                }}
+              >
+                {o.label}
+              </button>
+            )
+          })}
+          {hasClearBtn && (
+            <button
+              type="button"
+              onClick={clear}
+              className="text-xs px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+              style={{ color: '#94A3B8' }}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )
+    }
+
+    case 'employee': {
+      return wrapper(
+        <select
+          value={current?.value_text ?? ''}
+          onChange={(e) => {
+            if (e.target.value) save(e.target.value)
+            else if (current) clear()
+          }}
+          style={{ ...inputStyle, cursor: 'pointer' }}
+        >
+          <option value="">— select employee —</option>
+          {employees.map((e) => (
+            <option key={e.id} value={e.id}>{e.full_name}</option>
+          ))}
+        </select>
+      )
+    }
+
+    default:
+      return null
+  }
+}
+
+interface TaskFieldsSectionProps {
+  task: TaskWithDetails
+  employees: Employee[]
+}
+
+function TaskFieldsSection({ task, employees }: TaskFieldsSectionProps) {
+  const { data: fieldDefs = [], isLoading } = useFieldDefinitions()
+  const active = fieldDefs.filter((fd) => fd.is_active)
+
+  if (isLoading || active.length === 0) return null
+
+  return (
+    <div className="mb-6">
+      <label
+        className="block text-sm font-bold mb-3"
+        style={{ color: '#64748B', fontFamily: typography.fontFamily }}
+      >
+        Custom Fields
+      </label>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+        {active.map((fd) => {
+          const current = getCurrentValue(fd, task.field_values ?? [])
+          return (
+            <div key={fd.id}>
+              <label
+                className="block text-xs font-semibold mb-1"
+                style={{ color: '#94A3B8', fontFamily: typography.fontFamily }}
+              >
+                {fd.name}
+              </label>
+              <FieldInput
+                fd={fd}
+                current={current}
+                taskId={task.id}
+                employees={employees}
+              />
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -840,6 +1116,11 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               />
             </div>
           </div>
+
+          {/* Custom Fields — edit mode only */}
+          {!isCreateMode && task && (
+            <TaskFieldsSection task={task} employees={employees} />
+          )}
 
           {/* Actions */}
           {isCreateMode ? (
