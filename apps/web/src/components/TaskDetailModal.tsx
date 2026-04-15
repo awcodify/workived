@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { RichTextEditor } from './RichTextEditor'
 import { ApprovalTaskView } from './ApprovalTaskView'
 import { ReactionPicker } from './ReactionPicker'
@@ -50,6 +50,50 @@ function formatRelativeTime(dateString: string): string {
 // ── TaskFieldsSection ─────────────────────────────────────────────────────────
 
 const FIELDS_VISIBLE_DEFAULT = 2
+
+// Separate component so hooks run unconditionally (rating needs local state)
+function RatingInput({ current, save, clear }: {
+  current: FieldValueWithDefinition | undefined
+  save: (v: unknown) => void
+  clear: () => void
+}) {
+  const [localRating, setLocalRating] = useState(current?.value_number ?? 0)
+  const prevValue = useRef(current?.value_number)
+
+  // Sync from cache once mutation completes
+  useEffect(() => {
+    if (current?.value_number !== prevValue.current) {
+      setLocalRating(current?.value_number ?? 0)
+      prevValue.current = current?.value_number
+    }
+  }, [current?.value_number])
+
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          onClick={() => { setLocalRating(n); save(n) }}
+          className="text-lg leading-none transition-colors"
+          style={{ color: localRating >= n ? '#F59E0B' : '#D1D5DB' }}
+        >
+          ★
+        </button>
+      ))}
+      {current !== undefined && (
+        <button
+          type="button"
+          onClick={() => { setLocalRating(0); clear() }}
+          className="text-xs ml-1 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+          style={{ color: '#94A3B8' }}
+        >
+          ✕
+        </button>
+      )}
+    </div>
+  )
+}
 
 const lightDropdownTheme = {
   text:        '#2C3E50',
@@ -146,31 +190,7 @@ function FieldInput({
       )
 
     case 'rating':
-      return (
-        <div className="flex items-center gap-1">
-          {[1, 2, 3, 4, 5].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => save(n)}
-              className="text-lg leading-none transition-colors"
-              style={{ color: (current?.value_number ?? 0) >= n ? '#F59E0B' : '#D1D5DB' }}
-            >
-              ★
-            </button>
-          ))}
-          {hasClearBtn && (
-            <button
-              type="button"
-              onClick={clear}
-              className="text-xs ml-1 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
-              style={{ color: '#94A3B8' }}
-            >
-              ✕
-            </button>
-          )}
-        </div>
-      )
+      return <RatingInput current={current} save={save} clear={clear} />
 
     case 'date':
       return wrapper(
@@ -293,8 +313,22 @@ function TaskFieldsSection({ task, employees }: TaskFieldsSectionProps) {
   const [expanded, setExpanded] = useState(false)
 
   const active = fieldDefs.filter((fd) => fd.is_active)
-  const visible = expanded ? active : active.slice(0, FIELDS_VISIBLE_DEFAULT)
-  const hiddenCount = active.length - FIELDS_VISIBLE_DEFAULT
+  const fieldValues = task.field_values ?? []
+
+  // Always show fields that have a value; fill remaining slots from top of list
+  const visible = expanded
+    ? active
+    : (() => {
+        const withValue = active.filter((fd) => fieldValues.some((fv) => fv.field_id === fd.id))
+        const withValueIds = new Set(withValue.map((fd) => fd.id))
+        const withoutValue = active.filter((fd) => !withValueIds.has(fd.id))
+        const extra = withoutValue.slice(0, Math.max(0, FIELDS_VISIBLE_DEFAULT - withValue.length))
+        // Re-sort to original order
+        const shown = new Set([...withValue.map((fd) => fd.id), ...extra.map((fd) => fd.id)])
+        return active.filter((fd) => shown.has(fd.id))
+      })()
+
+  const hiddenCount = active.length - visible.length
 
   if (isLoading || active.length === 0) return null
 
