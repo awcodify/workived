@@ -176,6 +176,11 @@ func (h *Handler) ListTasks(c *gin.Context) {
 		filters.Limit = paginate.DefaultLimit
 	}
 
+	// include_completed=true → disable the 7-day archive window so all tasks are visible
+	if filters.IncludeCompleted {
+		filters.ArchiveDays = 0
+	}
+
 	// Role-based approval task visibility:
 	// - owner/admin: see ALL tasks including all approval tasks org-wide ($3 = NULL)
 	// - other roles: see only their own approval tasks ($3 = employee_id)

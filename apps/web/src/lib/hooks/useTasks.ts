@@ -79,6 +79,20 @@ export function useTasks(filters?: TaskFilters) {
   })
 }
 
+// All Issues — includes completed tasks, supports search + date range filters
+export function useAllTasks(filters?: Omit<TaskFilters, 'include_completed'>) {
+  const merged = { ...filters, include_completed: true, limit: 50 }
+  return useQuery({
+    queryKey: [...tasksKeys.tasks(), 'all-issues', filters] as const,
+    queryFn: () =>
+      tasksApi.listTasks(merged).then((r) => ({
+        tasks: r.data.data || [],
+        meta:  r.data.meta,
+      })),
+    staleTime: 30 * 1000,
+  })
+}
+
 export function useTask(id: string) {
   return useQuery({
     queryKey: tasksKeys.taskDetail(id),

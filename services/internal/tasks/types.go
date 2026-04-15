@@ -138,8 +138,12 @@ type TaskFilters struct {
 	TaskListID           *string `form:"task_list_id"`
 	AssigneeID           *string `form:"assignee_id"`
 	Priority             *string `form:"priority"`
-	Status               *string `form:"status"` // completed, pending
-	ExcludeApprovalTasks *bool   `form:"-"`      // Exclude tasks linked to approvals (leave/claim)
+	Status               *string `form:"status"`           // completed, pending
+	IncludeCompleted     bool    `form:"include_completed"` // bypass 7-day archive filter
+	Search               *string `form:"search"`            // ILIKE title match
+	CompletedAfter       *string `form:"completed_after"`   // ISO 8601 date
+	CompletedBefore      *string `form:"completed_before"`  // ISO 8601 date
+	ExcludeApprovalTasks *bool   `form:"-"`                 // Exclude tasks linked to approvals
 	Cursor               string  `form:"cursor"`
 	Limit                int     `form:"limit"`
 	ArchiveDays          int     `form:"-"` // Days after completion before auto-archiving (default: 7, 0 = disabled)

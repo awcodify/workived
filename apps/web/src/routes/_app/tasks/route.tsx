@@ -6,6 +6,7 @@ import { TaskDetailModal } from '@/components/TaskDetailModal'
 import { ColumnTabNav } from '@/components/tasks/ColumnTabNav'
 import { TaskCard as EnhancedTaskCard } from '@/components/tasks/TaskCard'
 import { FieldDefinitionsPanel } from '@/components/tasks/FieldDefinitionsPanel'
+import { AllIssuesTable } from '@/components/tasks/AllIssuesTable'
 import { Dropdown, type DropdownOption } from '@/components/workived/shared/Dropdown'
 import {
   DndContext,
@@ -44,7 +45,7 @@ import { useCanEditOrgSettings } from '@/lib/hooks/useRole'
 import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload } from '@/types/api'
 
 // URL search params for filters
-type ViewMode = 'all' | 'tasks' | 'approvals'
+type ViewMode = 'all' | 'tasks' | 'approvals' | 'all-issues'
 
 type TasksSearch = {
   view?: ViewMode
@@ -59,7 +60,7 @@ export const Route = createFileRoute('/_app/tasks')({
   validateSearch: (search: Record<string, unknown>): TasksSearch => {
     const view = search.view
     return {
-      view: view === 'tasks' || view === 'approvals' ? view : undefined,
+      view: view === 'tasks' || view === 'approvals' || view === 'all-issues' ? view : undefined,
       search: typeof search.search === 'string' ? search.search : undefined,
       assignee: typeof search.assignee === 'string' ? search.assignee : undefined,
       priority: typeof search.priority === 'string' ? search.priority : undefined,
@@ -573,7 +574,7 @@ function TasksPage() {
         
         {/* Single unified filter row */}
         <div className="flex items-center gap-3 flex-wrap">
-          {/* View mode tabs on the left */}
+          {/* Board view tabs (All / Tasks / Approvals) */}
           <div className="flex items-center gap-1.5 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.05)' }}>
             {([['all', 'All'], ['tasks', 'Tasks'], ['approvals', 'Approvals']] as const).map(([mode, label]) => (
               <button
@@ -581,9 +582,9 @@ function TasksPage() {
                 onClick={() => updateSearchParam('view', mode === 'all' ? '' : mode)}
                 className="px-4 py-2 rounded-md text-xs font-bold transition-all"
                 style={{
-                  background: viewMode === mode ? 'white' : 'transparent',
-                  color: viewMode === mode ? '#2C3E50' : '#64748B',
-                  boxShadow: viewMode === mode ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                  background: (viewMode === mode || (mode === 'all' && viewMode !== 'tasks' && viewMode !== 'approvals' && viewMode !== 'all-issues')) ? 'white' : 'transparent',
+                  color: (viewMode === mode || (mode === 'all' && viewMode !== 'tasks' && viewMode !== 'approvals' && viewMode !== 'all-issues')) ? '#2C3E50' : '#64748B',
+                  boxShadow: (viewMode === mode || (mode === 'all' && viewMode !== 'tasks' && viewMode !== 'approvals' && viewMode !== 'all-issues')) ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
                   fontFamily: typography.fontFamily,
                 }}
               >
@@ -591,6 +592,26 @@ function TasksPage() {
               </button>
             ))}
           </div>
+
+          {/* Divider */}
+          <div className="w-px h-6 self-center" style={{ background: 'rgba(0,0,0,0.12)' }} />
+
+          {/* All Issues — separate view (table, not board) */}
+          <button
+            onClick={() => updateSearchParam('view', viewMode === 'all-issues' ? '' : 'all-issues')}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition-all"
+            style={{
+              background: viewMode === 'all-issues' ? '#2C3E50' : 'rgba(0,0,0,0.05)',
+              color: viewMode === 'all-issues' ? 'white' : '#64748B',
+              fontFamily: typography.fontFamily,
+            }}
+          >
+            <span style={{ fontSize: '11px' }}>≡</span>
+            All Issues
+          </button>
+
+          {/* Board-only filters — hidden in All Issues view */}
+          {viewMode !== 'all-issues' && <>
 
           {/* Search box - centered and prominent */}
           <div className="flex-1 min-w-[280px] max-w-[500px]">
@@ -859,6 +880,8 @@ function TasksPage() {
             {showCompleted ? '✓ Done' : 'Hide Done'}
           </button>
 
+          </> /* end board-only filters */}
+
           {/* Team Workload - Right side */}
           <div className="ml-auto">
             {workloadData.length > 0 && (() => {
@@ -1012,18 +1035,30 @@ function TasksPage() {
         </div>
       </div>
 
+      {/* All Issues — table/list view (non-board) */}
+      {viewMode === 'all-issues' && (
+        <div className="flex-1 min-h-0 px-1 pb-6">
+          <AllIssuesTable
+            employees={employees}
+            onTaskClick={(task) => setSelectedTask(task)}
+          />
+        </div>
+      )}
+
       {/* Mobile: Column Tab Navigation (<640px) */}
-      <div className="block sm:hidden">
-        <ColumnTabNav
-          columns={visibleLists}
-          activeColumnId={activeColumnId || visibleLists[0]?.id || ''}
-          taskCounts={taskCounts}
-          onColumnChange={handleColumnChange}
-        />
-      </div>
+      {viewMode !== 'all-issues' && (
+        <div className="block sm:hidden">
+          <ColumnTabNav
+            columns={visibleLists}
+            activeColumnId={activeColumnId || visibleLists[0]?.id || ''}
+            taskCounts={taskCounts}
+            onColumnChange={handleColumnChange}
+          />
+        </div>
+      )}
 
       {/* Unique Vertical Board */}
-      <DndContext
+      {viewMode !== 'all-issues' && <DndContext
         sensors={sensors}
         collisionDetection={collisionDetectionStrategy}
         onDragStart={handleDragStart}
@@ -1133,8 +1168,8 @@ function TasksPage() {
             />
           ) : null}
         </DragOverlay>
-      </DndContext>
-      
+      </DndContext>}
+
       {/* Task Detail Modal - Used for both create and edit */}
       {selectedTask && (
         <TaskDetailModal

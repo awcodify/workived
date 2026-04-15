@@ -220,13 +220,16 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 			       ELSE TRUE END
 		  ))
 		  AND (
-			  -- Auto-archive: hide completed tasks older than N days (unless explicitly filtering for completed)
+			  -- Auto-archive: hide completed tasks older than N days (0 = disabled)
 			  $5 = 'completed'
 			  OR t.completed_at IS NULL
 			  OR $8::int = 0
 			  OR t.completed_at > NOW() - ($8::int || ' days')::interval
 		  )
 		  AND ($6::timestamptz IS NULL OR t.created_at < $6::timestamptz)
+		  AND ($10::varchar IS NULL OR t.title ILIKE '%' || $10 || '%')
+		  AND ($11::timestamptz IS NULL OR t.completed_at >= $11::timestamptz)
+		  AND ($12::timestamptz IS NULL OR t.completed_at <= $12::timestamptz)
 		ORDER BY t.created_at DESC
 		LIMIT $7
 	`
@@ -237,15 +240,18 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 	}
 
 	rows, err := r.db.Query(ctx, query,
-		orgID,
-		ptrToUUID(filters.TaskListID),
-		ptrToUUID(filters.AssigneeID),
-		filters.Priority,
-		filters.Status,
-		nilIfEmpty(cursor.Value),
-		limit+1,
-		archiveDays,
-		filters.ExcludeApprovalTasks,
+		orgID,                               // $1
+		ptrToUUID(filters.TaskListID),       // $2
+		ptrToUUID(filters.AssigneeID),       // $3
+		filters.Priority,                    // $4
+		filters.Status,                      // $5
+		nilIfEmpty(cursor.Value),            // $6
+		limit+1,                             // $7
+		archiveDays,                         // $8
+		filters.ExcludeApprovalTasks,        // $9
+		filters.Search,         // $10 (*string, nil = no filter)
+		filters.CompletedAfter, // $11 (*string, nil = no filter)
+		filters.CompletedBefore, // $12 (*string, nil = no filter)
 	)
 	if err != nil {
 		return nil, err

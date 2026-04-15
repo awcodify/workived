@@ -854,6 +854,10 @@ export interface TaskFilters {
   assignee_id?: string
   priority?: TaskPriority
   status?: 'pending' | 'completed'
+  include_completed?: boolean
+  search?: string
+  completed_after?: string
+  completed_before?: string
   cursor?: string
   limit?: number
 }
