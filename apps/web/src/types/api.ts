@@ -1079,6 +1079,73 @@ export interface CompanySummary {
   department_breakdown: DepartmentBreakdown[]
 }
 
+// ── Dashboard / Analytics ────────────────────────────────────
+
+export type WidgetType = 'kpi' | 'table' | 'bar' | 'line'
+export type AggregateType = 'count' | 'count_distinct' | 'sum' | 'avg' | 'min' | 'max'
+export type FilterOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'is_null' | 'not_null'
+export type DateRangeAlias =
+  | 'today' | 'this_week' | 'this_month' | 'last_30_days'
+  | 'this_quarter' | 'this_year' | 'last_year'
+
+export interface QueryFilter {
+  field: string
+  op: FilterOp
+  value?: unknown
+}
+
+export interface QueryConfig {
+  source: string
+  aggregate?: AggregateType
+  field?: string        // "priority", "field:uuid"
+  group_by?: string
+  columns?: string[]    // table widget
+  filters?: QueryFilter[]
+  sort_by?: string
+  sort_dir?: 'asc' | 'desc'
+  limit?: number
+  date_range?: DateRangeAlias
+}
+
+export interface VizConfig {
+  color?: string
+  unit?: string
+  show_delta?: boolean
+  compare_with?: 'previous_period'
+}
+
+export interface Dashboard {
+  id: string
+  organisation_id: string
+  name: string
+  is_default: boolean
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Widget {
+  id: string
+  organisation_id: string
+  dashboard_id: string
+  title: string
+  widget_type: WidgetType
+  query_config: QueryConfig
+  viz_config: VizConfig
+  position_x: number
+  position_y: number
+  width: number
+  height: number
+  created_at: string
+  updated_at: string
+}
+
+export interface QueryResult {
+  columns: string[]
+  rows: Record<string, unknown>[]
+  value?: number // scalar for KPI widgets
+}
+
 // ── API wrapper ──────────────────────────────────────────────
 // All API responses are wrapped in {"data": ...}
 export interface ApiResponse<T> {
