@@ -49,6 +49,18 @@ function formatRelativeTime(dateString: string): string {
 
 // ── TaskFieldsSection ─────────────────────────────────────────────────────────
 
+const FIELDS_VISIBLE_DEFAULT = 2
+
+const lightDropdownTheme = {
+  text:        '#2C3E50',
+  textMuted:   '#64748B',
+  input:       '#F9FAFB',
+  inputBorder: '#DFE1E6',
+  surface:     '#FFFFFF',
+  border:      '#DFE1E6',
+  hoverBg:     '#F9FAFB',
+}
+
 function getCurrentValue(fd: FieldDefinition, fieldValues: FieldValueWithDefinition[]): FieldValueWithDefinition | undefined {
   return fieldValues.find((fv) => fv.field_id === fd.id)
 }
@@ -67,9 +79,7 @@ function FieldInput({
   const setMutation   = useSetFieldValue()
   const clearMutation = useClearFieldValue()
 
-  const save = (value: unknown) => {
-    setMutation.mutate({ taskId, fieldId: fd.id, value })
-  }
+  const save = (value: unknown) => setMutation.mutate({ taskId, fieldId: fd.id, value })
   const clear = () => clearMutation.mutate({ taskId, fieldId: fd.id })
 
   const inputStyle: React.CSSProperties = {
@@ -88,7 +98,7 @@ function FieldInput({
 
   const wrapper = (input: React.ReactNode) => (
     <div className="flex items-center gap-1.5">
-      <div className="flex-1">{input}</div>
+      <div className="flex-1 min-w-0">{input}</div>
       {hasClearBtn && (
         <button
           type="button"
@@ -136,7 +146,7 @@ function FieldInput({
       )
 
     case 'rating':
-      return wrapper(
+      return (
         <div className="flex items-center gap-1">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -191,21 +201,19 @@ function FieldInput({
       )
 
     case 'select': {
-      const opts = fd.options ?? []
+      const opts: DropdownOption[] = [
+        { value: '', label: '— select —' },
+        ...(fd.options ?? []).map((o) => ({ value: o.value, label: o.label })),
+      ]
       return wrapper(
-        <select
+        <Dropdown
           value={current?.value_text ?? ''}
-          onChange={(e) => {
-            if (e.target.value) save(e.target.value)
-            else if (current) clear()
-          }}
-          style={{ ...inputStyle, cursor: 'pointer' }}
-        >
-          <option value="">— select —</option>
-          {opts.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
+          onChange={(v) => { if (v) save(v); else if (current) clear() }}
+          options={opts}
+          fullWidth
+          theme={lightDropdownTheme}
+          style={{ fontSize: '13px', fontFamily: typography.fontFamily }}
+        />
       )
     }
 
@@ -222,7 +230,7 @@ function FieldInput({
       return (
         <div className="flex flex-wrap gap-1.5">
           {opts.map((o) => {
-            const active = selected.includes(o.value)
+            const isActive = selected.includes(o.value)
             return (
               <button
                 key={o.value}
@@ -230,8 +238,8 @@ function FieldInput({
                 onClick={() => toggle(o.value)}
                 className="text-xs px-2 py-1 rounded-md font-medium transition-all"
                 style={{
-                  background: active ? '#C97B2A' : '#F3F4F6',
-                  color: active ? '#FFFFFF' : '#64748B',
+                  background: isActive ? '#C97B2A' : '#F3F4F6',
+                  color:      isActive ? '#FFFFFF' : '#64748B',
                   fontFamily: typography.fontFamily,
                 }}
               >
@@ -254,20 +262,19 @@ function FieldInput({
     }
 
     case 'employee': {
+      const opts: DropdownOption[] = [
+        { value: '', label: '— select employee —' },
+        ...employees.map((e) => ({ value: e.id, label: e.full_name })),
+      ]
       return wrapper(
-        <select
+        <Dropdown
           value={current?.value_text ?? ''}
-          onChange={(e) => {
-            if (e.target.value) save(e.target.value)
-            else if (current) clear()
-          }}
-          style={{ ...inputStyle, cursor: 'pointer' }}
-        >
-          <option value="">— select employee —</option>
-          {employees.map((e) => (
-            <option key={e.id} value={e.id}>{e.full_name}</option>
-          ))}
-        </select>
+          onChange={(v) => { if (v) save(v); else if (current) clear() }}
+          options={opts}
+          fullWidth
+          theme={lightDropdownTheme}
+          style={{ fontSize: '13px', fontFamily: typography.fontFamily }}
+        />
       )
     }
 
@@ -283,20 +290,36 @@ interface TaskFieldsSectionProps {
 
 function TaskFieldsSection({ task, employees }: TaskFieldsSectionProps) {
   const { data: fieldDefs = [], isLoading } = useFieldDefinitions()
+  const [expanded, setExpanded] = useState(false)
+
   const active = fieldDefs.filter((fd) => fd.is_active)
+  const visible = expanded ? active : active.slice(0, FIELDS_VISIBLE_DEFAULT)
+  const hiddenCount = active.length - FIELDS_VISIBLE_DEFAULT
 
   if (isLoading || active.length === 0) return null
 
   return (
     <div className="mb-6">
-      <label
-        className="block text-sm font-bold mb-3"
-        style={{ color: '#64748B', fontFamily: typography.fontFamily }}
-      >
-        Custom Fields
-      </label>
+      <div className="flex items-center justify-between mb-3">
+        <label
+          className="block text-sm font-bold"
+          style={{ color: '#64748B', fontFamily: typography.fontFamily }}
+        >
+          Custom Fields
+        </label>
+        {hiddenCount > 0 && (
+          <button
+            type="button"
+            onClick={() => setExpanded((e) => !e)}
+            className="text-xs font-semibold transition-colors hover:opacity-80"
+            style={{ color: '#C97B2A', fontFamily: typography.fontFamily }}
+          >
+            {expanded ? 'Show less' : `+${hiddenCount} more`}
+          </button>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-        {active.map((fd) => {
+        {visible.map((fd) => {
           const current = getCurrentValue(fd, task.field_values ?? [])
           return (
             <div key={fd.id}>
