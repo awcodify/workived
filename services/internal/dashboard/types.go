@@ -71,16 +71,18 @@ type Widget struct {
 
 // QueryConfig is stored as JSONB and translated to SQL by the query engine.
 type QueryConfig struct {
-	Source    string   `json:"source"`              // "tasks"
-	Aggregate string   `json:"aggregate,omitempty"` // "count", "sum", "avg", etc.
-	Field     string   `json:"field,omitempty"`     // "title", "field:uuid", etc.
-	GroupBy   string   `json:"group_by,omitempty"`
-	Columns   []string `json:"columns,omitempty"`  // for table widget
-	Filters   []Filter `json:"filters,omitempty"`
-	SortBy    string   `json:"sort_by,omitempty"`
-	SortDir   string   `json:"sort_dir,omitempty"` // "asc" | "desc"
-	Limit     int      `json:"limit,omitempty"`
-	DateRange string   `json:"date_range,omitempty"` // alias like "this_month"
+	Source     string   `json:"source"`              // "tasks", "attendance", "leave", "claims", "employees"
+	Aggregate  string   `json:"aggregate,omitempty"` // "count", "sum", "avg", etc.
+	Field      string   `json:"field,omitempty"`     // "title", "field:uuid", etc.
+	GroupBy    string   `json:"group_by,omitempty"`  // date field override for line; categorical for bar
+	Facet      string   `json:"facet,omitempty"`     // categorical split for multi-series line
+	DateBucket string   `json:"date_bucket,omitempty"` // "day" | "week" | "month" — for line charts
+	Columns    []string `json:"columns,omitempty"`     // for table widget
+	Filters    []Filter `json:"filters,omitempty"`
+	SortBy     string   `json:"sort_by,omitempty"`
+	SortDir    string   `json:"sort_dir,omitempty"` // "asc" | "desc"
+	Limit      int      `json:"limit,omitempty"`
+	DateRange  string   `json:"date_range,omitempty"` // alias like "this_month"
 }
 
 type Filter struct {

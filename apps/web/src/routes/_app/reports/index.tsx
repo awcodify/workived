@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
+import { ReportsTabs } from '@/components/workived/reports/ReportsTabs'
 import { PieChart, Pie, Cell } from 'recharts'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
@@ -148,6 +149,7 @@ function ReportsPage() {
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       style={{ background: moduleBackgrounds.reports, paddingBottom: '160px' }}
     >
+      <ReportsTabs />
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">

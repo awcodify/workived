@@ -131,6 +131,13 @@ func (e *Engine) buildAggregateSelect(
 		if cfg.Field == "" {
 			return "", "", fmt.Errorf("%w: field required for %s aggregate", ErrValidation, cfg.Aggregate)
 		}
+		sf, err := resolveSourceField(cfg.Field, src, customFields)
+		if err != nil {
+			return "", "", err
+		}
+		if !sf.Aggregable {
+			return "", "", fmt.Errorf("%w: field %q (type %q) is not numeric and cannot be used with %s", ErrValidation, cfg.Field, sf.Type, cfg.Aggregate)
+		}
 		fieldExpr, err := resolveFieldExpr(cfg.Field, src, customFields)
 		if err != nil {
 			return "", "", err
@@ -138,6 +145,52 @@ func (e *Engine) buildAggregateSelect(
 		aggExpr = fmt.Sprintf("%s(%s)", strings.ToUpper(cfg.Aggregate), fieldExpr)
 	default:
 		return "", "", fmt.Errorf("%w: unknown aggregate %q", ErrValidation, cfg.Aggregate)
+	}
+
+	// Time-series line chart: date_trunc(<bucket>, <date_field>) AS bucket
+	if cfg.DateBucket != "" {
+		if err := validateDateBucket(cfg.DateBucket); err != nil {
+			return "", "", err
+		}
+		// GroupBy specifies the date field to bucket on; fall back to source default.
+		// Validate it is a date/timestamp field before using it.
+		dateFieldExpr := src.DateCol
+		if cfg.GroupBy != "" {
+			sf, err := resolveSourceField(cfg.GroupBy, src, customFields)
+			if err != nil {
+				return "", "", err
+			}
+			if sf.Type != "date" && sf.Type != "timestamp" {
+				return "", "", fmt.Errorf("%w: field %q (type %q) cannot be used as a date bucket — must be date or timestamp", ErrValidation, cfg.GroupBy, sf.Type)
+			}
+			expr, err := resolveFieldExpr(cfg.GroupBy, src, customFields)
+			if err != nil {
+				return "", "", err
+			}
+			dateFieldExpr = expr
+		}
+		// Cast to timestamptz so date_trunc works with both DATE and TIMESTAMP columns.
+		bucketExpr := fmt.Sprintf("date_trunc('%s', %s::timestamptz)", cfg.DateBucket, dateFieldExpr)
+
+		// Multi-series: facet splits the time series into one line per category.
+		if cfg.Facet != "" {
+			facetSF, err := resolveSourceField(cfg.Facet, src, customFields)
+			if err != nil {
+				return "", "", err
+			}
+			if !facetSF.Groupable {
+				return "", "", fmt.Errorf("%w: field %q is not groupable and cannot be used as a facet", ErrValidation, cfg.Facet)
+			}
+			facetExpr, err := resolveFieldExpr(cfg.Facet, src, customFields)
+			if err != nil {
+				return "", "", err
+			}
+			sel := fmt.Sprintf("%s AS bucket, %s AS series_key, %s AS value", bucketExpr, facetExpr, aggExpr)
+			return sel, "GROUP BY bucket, series_key", nil
+		}
+
+		sel := fmt.Sprintf("%s AS bucket, %s AS value", bucketExpr, aggExpr)
+		return sel, "GROUP BY bucket", nil
 	}
 
 	if cfg.GroupBy == "" {
@@ -159,6 +212,16 @@ func (e *Engine) buildAggregateSelect(
 	sel := fmt.Sprintf("%s AS group_key, %s AS value", groupExpr, aggExpr)
 	groupBy := fmt.Sprintf("GROUP BY %s", groupExpr)
 	return sel, groupBy, nil
+}
+
+// validateDateBucket ensures only allowed literals are used in date_trunc (SQL injection guard).
+func validateDateBucket(bucket string) error {
+	switch bucket {
+	case "day", "week", "month":
+		return nil
+	default:
+		return fmt.Errorf("%w: invalid date_bucket %q (must be day|week|month)", ErrValidation, bucket)
+	}
 }
 
 func (e *Engine) buildColumnsSelect(
@@ -189,16 +252,16 @@ func (e *Engine) buildWhere(
 ) (string, error) {
 	var parts []string
 
-	// Date range shortcut — applies to created_at or completed_at depending on config
+	// Source-level base filters (e.g. soft-delete guards)
+	parts = append(parts, src.BaseFilters...)
+
+	// Date range shortcut — applies to the source's default date column
 	if cfg.DateRange != "" {
 		start, end, err := resolveDateRange(cfg.DateRange, tz)
 		if err != nil {
 			return "", err
 		}
-		dateCol := "t.created_at"
-		if cfg.Source == "tasks" {
-			dateCol = "t.created_at"
-		}
+		dateCol := src.DateCol
 		parts = append(parts, fmt.Sprintf("%s >= %s AND %s < %s",
 			dateCol, nextParam(start),
 			dateCol, nextParam(end),
@@ -295,6 +358,10 @@ func (e *Engine) buildFilterClause(
 
 func (e *Engine) buildOrder(cfg QueryConfig, src Source, customFields map[string]resolvedField) string {
 	if cfg.SortBy == "" {
+		// Time-series queries always sort by bucket ascending
+		if cfg.DateBucket != "" {
+			return "ORDER BY bucket ASC"
+		}
 		return ""
 	}
 	expr, err := resolveFieldExpr(cfg.SortBy, src, customFields)

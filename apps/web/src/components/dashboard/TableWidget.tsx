@@ -1,35 +1,40 @@
 import React from 'react'
 import type { Widget } from '@/types/api'
 import { useExecuteQuery } from '@/lib/hooks/useDashboard'
-import { typography } from '@/design/tokens'
+import { moduleThemes, typography } from '@/design/tokens'
+
+const t = moduleThemes.reports
 
 interface Props {
   widget: Widget
   onEdit?: () => void
   onDelete?: () => void
+  dateRange?: string
 }
 
-export function TableWidget({ widget, onEdit, onDelete }: Props) {
-  const { data, isLoading, isError } = useExecuteQuery(widget.query_config)
+export function TableWidget({ widget, onEdit, onDelete, dateRange }: Props) {
+  const query = dateRange ? { ...widget.query_config, date_range: dateRange as typeof widget.query_config.date_range } : widget.query_config
+  const { data, isLoading, isError } = useExecuteQuery(query)
 
   const columns = data?.columns ?? []
   const rows = data?.rows ?? []
 
   return (
     <div
-      className="relative group rounded-2xl flex flex-col overflow-hidden"
-      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+      className="relative group h-full rounded-2xl flex flex-col overflow-hidden"
+      style={{ background: t.surface, border: `1px solid ${t.border}` }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
-        <p className="text-xs font-medium text-white/50 uppercase tracking-widest" style={typography.label}>
+      <div className="flex items-center justify-between px-5 py-4" style={{ borderBottom: `1px solid ${t.border}` }}>
+        <p className="text-xs font-medium uppercase tracking-widest" style={{ ...typography.label, color: t.textMuted }}>
           {widget.title}
         </p>
         <div className="hidden group-hover:flex gap-1">
           {onEdit && (
             <button
               onClick={onEdit}
-              className="p-1.5 rounded-lg text-xs text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-lg text-xs transition-colors hover:bg-black/5"
+              style={{ color: t.textMuted }}
             >
               ✎
             </button>
@@ -37,7 +42,8 @@ export function TableWidget({ widget, onEdit, onDelete }: Props) {
           {onDelete && (
             <button
               onClick={onDelete}
-              className="p-1.5 rounded-lg text-xs text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+              className="p-1.5 rounded-lg text-xs transition-colors hover:text-red-500 hover:bg-red-50"
+              style={{ color: t.textMuted }}
             >
               ✕
             </button>
@@ -50,21 +56,22 @@ export function TableWidget({ widget, onEdit, onDelete }: Props) {
         {isLoading ? (
           <div className="p-5 space-y-2">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-7 rounded-lg bg-white/5 animate-pulse" />
+              <div key={i} className="h-7 rounded-lg animate-pulse" style={{ background: 'rgba(0,0,0,0.06)' }} />
             ))}
           </div>
         ) : isError ? (
-          <div className="p-5 text-sm text-red-400">Failed to load data</div>
+          <div className="p-5 text-sm text-red-500">Failed to load data</div>
         ) : rows.length === 0 ? (
-          <div className="p-5 text-sm text-white/30">No results</div>
+          <div className="p-5 text-sm" style={{ color: t.textMuted }}>No results</div>
         ) : (
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-white/5">
+              <tr style={{ borderBottom: `1px solid ${t.border}` }}>
                 {columns.map((col) => (
                   <th
                     key={col}
-                    className="px-4 py-2.5 text-left text-xs font-medium text-white/40 uppercase tracking-wider"
+                    className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider"
+                    style={{ color: t.textMuted }}
                   >
                     {col.replace(/_/g, ' ')}
                   </th>
@@ -75,10 +82,13 @@ export function TableWidget({ widget, onEdit, onDelete }: Props) {
               {rows.map((row, i) => (
                 <tr
                   key={i}
-                  className="border-b border-white/[0.03] hover:bg-white/[0.03] transition-colors"
+                  className="transition-colors"
+                  style={{ borderBottom: `1px solid rgba(0,0,0,0.04)` }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = t.surfaceHover }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = '' }}
                 >
                   {columns.map((col) => (
-                    <td key={col} className="px-4 py-2.5 text-white/70 truncate max-w-[200px]">
+                    <td key={col} className="px-4 py-2.5 truncate max-w-[200px]" style={{ color: t.text }}>
                       {renderCell(row[col])}
                     </td>
                   ))}

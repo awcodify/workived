@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/rs/zerolog"
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/cache"
@@ -254,6 +255,13 @@ func toFloat64(v any) float64 {
 		return float64(x)
 	case int16:
 		return float64(x)
+	case pgtype.Numeric:
+		// SUM/AVG on BIGINT/NUMERIC columns come back as pgtype.Numeric
+		fv, err := x.Float64Value()
+		if err != nil || !fv.Valid {
+			return 0
+		}
+		return fv.Float64
 	}
 	return 0
 }

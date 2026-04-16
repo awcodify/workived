@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"errors"
 	"strings"
 	"testing"
 
@@ -314,5 +315,331 @@ func TestResolveDateRange_Unknown(t *testing.T) {
 	_, _, err := resolveDateRange("last_century", "UTC")
 	if err == nil {
 		t.Fatal("expected error for unknown date range")
+	}
+}
+
+// ── DateBucket ────────────────────────────────────────────────────────────────
+
+func TestEngine_Build_DateBucket_Day(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:     "tasks",
+		Aggregate:  AggCount,
+		DateBucket: "day",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "date_trunc('day'") {
+		t.Errorf("expected date_trunc('day') in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "AS bucket") {
+		t.Errorf("expected bucket alias in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "GROUP BY bucket") {
+		t.Errorf("expected GROUP BY bucket in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "ORDER BY bucket ASC") {
+		t.Errorf("expected ORDER BY bucket ASC in SQL, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_DateBucket_WithGroupByField(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:     "tasks",
+		Aggregate:  AggCount,
+		GroupBy:    "completed_at",
+		DateBucket: "month",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "date_trunc('month', t.completed_at::timestamptz)") {
+		t.Errorf("expected completed_at bucket, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_DateBucket_NonDateFieldRejected(t *testing.T) {
+	e := &Engine{}
+	_, err := e.Build(uuid.New(), QueryConfig{
+		Source:     "attendance",
+		Aggregate:  AggCount,
+		GroupBy:    "employee_name", // text field — must be rejected
+		DateBucket: "day",
+	}, nil, "UTC")
+	if err == nil {
+		t.Fatal("expected error for text field used as date bucket, got nil")
+	}
+	if !errors.Is(err, ErrValidation) {
+		t.Errorf("expected ErrValidation, got: %v", err)
+	}
+}
+
+func TestEngine_Build_DateBucket_InvalidBucket(t *testing.T) {
+	e := &Engine{}
+	_, err := e.Build(uuid.New(), QueryConfig{
+		Source:     "tasks",
+		Aggregate:  AggCount,
+		DateBucket: "year",
+	}, nil, "UTC")
+	if err == nil {
+		t.Fatal("expected error for invalid date_bucket value")
+	}
+}
+
+// ── HR sources ────────────────────────────────────────────────────────────────
+
+func TestEngine_Build_AttendanceSource(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:    "attendance",
+		Aggregate: AggCount,
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "attendance_records ar") {
+		t.Errorf("expected attendance_records in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "ar.organisation_id = $1") {
+		t.Errorf("expected org_id filter on ar, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_AttendanceHoursWorked(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:    "attendance",
+		Aggregate: AggAvg,
+		Field:     "hours_worked",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "EXTRACT(EPOCH") {
+		t.Errorf("expected EXTRACT in SQL, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_AttendanceDateBucket(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:     "attendance",
+		Aggregate:  AggCount,
+		DateBucket: "week",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// Should bucket on ar.date (source default)
+	if !strings.Contains(built.SQL, "date_trunc('week', ar.date::timestamptz)") {
+		t.Errorf("expected date_trunc on ar.date, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_AttendanceDateRange(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:    "attendance",
+		Aggregate: AggCount,
+		DateRange: "this_month",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	// date range must use ar.date, not t.created_at
+	if !strings.Contains(built.SQL, "ar.date >= ") {
+		t.Errorf("expected ar.date in date range filter, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_LeaveSource(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:    "leave",
+		Aggregate: AggSum,
+		Field:     "total_days",
+		GroupBy:   "leave_type",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "leave_requests lr") {
+		t.Errorf("expected leave_requests in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "SUM(lr.total_days)") {
+		t.Errorf("expected SUM(lr.total_days) in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "GROUP BY") {
+		t.Errorf("expected GROUP BY in SQL, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_ClaimsSource(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:    "claims",
+		Aggregate: AggSum,
+		Field:     "amount",
+		GroupBy:   "category_name",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "claims c") {
+		t.Errorf("expected claims table in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "SUM(c.amount)") {
+		t.Errorf("expected SUM(c.amount) in SQL, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_ClaimsTable(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:  "claims",
+		Columns: []string{"employee_name", "category_name", "amount", "status"},
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "e.full_name") {
+		t.Errorf("expected employee name expr, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "c.amount") {
+		t.Errorf("expected c.amount in SQL, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_NonAggregableFieldRejected(t *testing.T) {
+	e := &Engine{}
+	for _, agg := range []string{AggSum, AggAvg, AggMin, AggMax} {
+		_, err := e.Build(uuid.New(), QueryConfig{
+			Source:    "tasks",
+			Aggregate: agg,
+			Field:     "title", // text field, not aggregable
+		}, nil, "UTC")
+		if err == nil {
+			t.Errorf("aggregate %s with text field: expected error, got nil", agg)
+			continue
+		}
+		if !errors.Is(err, ErrValidation) {
+			t.Errorf("aggregate %s: expected ErrValidation, got %v", agg, err)
+		}
+	}
+}
+
+func TestEngine_Build_AvgNumericField(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:    "attendance",
+		Aggregate: AggAvg,
+		Field:     "hours_worked",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "AVG(") {
+		t.Errorf("expected AVG( in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "EPOCH FROM") {
+		t.Errorf("expected hours_worked expr in SQL, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_MultiSeriesLine(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:     "tasks",
+		Aggregate:  AggCount,
+		DateBucket: "day",
+		Facet:      "priority",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "series_key") {
+		t.Errorf("expected series_key in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "GROUP BY bucket, series_key") {
+		t.Errorf("expected GROUP BY bucket, series_key, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "t.priority") {
+		t.Errorf("expected priority expr in SQL, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_FacetNonGroupableRejected(t *testing.T) {
+	e := &Engine{}
+	_, err := e.Build(uuid.New(), QueryConfig{
+		Source:     "tasks",
+		Aggregate:  AggCount,
+		DateBucket: "day",
+		Facet:      "due_date", // date field, not groupable
+	}, nil, "UTC")
+	if err == nil {
+		t.Fatal("expected error for non-groupable facet, got nil")
+	}
+	if !errors.Is(err, ErrValidation) {
+		t.Errorf("expected ErrValidation, got %v", err)
+	}
+}
+
+func TestEngine_Build_EmployeesSource_Count(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:    "employees",
+		Aggregate: AggCount,
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "employees e") {
+		t.Errorf("expected employees table in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "e.is_active = TRUE") {
+		t.Errorf("expected is_active filter in SQL, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_EmployeesSource_GroupByDepartment(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:    "employees",
+		Aggregate: AggCount,
+		GroupBy:   "department_name",
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "d.name") {
+		t.Errorf("expected department_name expr in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "GROUP BY") {
+		t.Errorf("expected GROUP BY in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "e.is_active = TRUE") {
+		t.Errorf("expected is_active filter in SQL, got: %s", built.SQL)
+	}
+}
+
+func TestEngine_Build_EmployeesSource_Columns(t *testing.T) {
+	e := &Engine{}
+	built, err := e.Build(uuid.New(), QueryConfig{
+		Source:  "employees",
+		Columns: []string{"full_name", "department_name", "job_title"},
+	}, nil, "UTC")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(built.SQL, "e.full_name") {
+		t.Errorf("expected full_name in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "d.name") {
+		t.Errorf("expected department_name expr in SQL, got: %s", built.SQL)
+	}
+	if !strings.Contains(built.SQL, "e.is_active = TRUE") {
+		t.Errorf("expected is_active filter in SQL, got: %s", built.SQL)
 	}
 }

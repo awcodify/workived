@@ -1098,7 +1098,9 @@ export interface QueryConfig {
   source: string
   aggregate?: AggregateType
   field?: string        // "priority", "field:uuid"
-  group_by?: string
+  group_by?: string     // date field override for line; categorical for bar
+  facet?: string        // categorical split for multi-series line
+  date_bucket?: 'day' | 'week' | 'month'
   columns?: string[]    // table widget
   filters?: QueryFilter[]
   sort_by?: string

@@ -3,15 +3,82 @@ import type { QueryConfig, VizConfig, WidgetType, AggregateType, FilterOp, Query
 import { useExecuteQuery } from '@/lib/hooks/useDashboard'
 import { useFieldDefinitions } from '@/lib/hooks/useTasks'
 
-const TASK_FIELDS = [
-  { key: 'title', label: 'Title' },
-  { key: 'status', label: 'Status' },
-  { key: 'assignee_name', label: 'Assignee' },
-  { key: 'priority', label: 'Priority' },
-  { key: 'due_date', label: 'Due Date' },
-  { key: 'created_at', label: 'Created At' },
-  { key: 'completed_at', label: 'Completed At' },
-  { key: 'is_completed', label: 'Is Completed' },
+// ── Source field definitions ───────────────────────────────────────────────────
+
+const SOURCE_FIELDS: Record<string, { key: string; label: string; aggregable?: boolean }[]> = {
+  tasks: [
+    { key: 'title', label: 'Title' },
+    { key: 'status', label: 'Status' },
+    { key: 'assignee_name', label: 'Assignee' },
+    { key: 'priority', label: 'Priority' },
+    { key: 'due_date', label: 'Due Date' },
+    { key: 'created_at', label: 'Created At' },
+    { key: 'completed_at', label: 'Completed At' },
+    { key: 'is_completed', label: 'Is Completed' },
+    { key: 'list_name', label: 'List Name' },
+  ],
+  attendance: [
+    { key: 'employee_name', label: 'Employee' },
+    { key: 'date', label: 'Date' },
+    { key: 'clock_in_at', label: 'Clock In' },
+    { key: 'clock_out_at', label: 'Clock Out' },
+    { key: 'is_late', label: 'Is Late' },
+    { key: 'work_location_type', label: 'Location Type' },
+    { key: 'department_name', label: 'Department' },
+    { key: 'hours_worked', label: 'Hours Worked', aggregable: true },
+    { key: 'status', label: 'Status' },
+  ],
+  leave: [
+    { key: 'employee_name', label: 'Employee' },
+    { key: 'leave_type', label: 'Leave Type' },
+    { key: 'start_date', label: 'Start Date' },
+    { key: 'end_date', label: 'End Date' },
+    { key: 'total_days', label: 'Total Days', aggregable: true },
+    { key: 'status', label: 'Status' },
+    { key: 'department_id', label: 'Department' },
+    { key: 'created_at', label: 'Submitted At' },
+  ],
+  claims: [
+    { key: 'employee_name', label: 'Employee' },
+    { key: 'category_name', label: 'Category' },
+    { key: 'amount', label: 'Amount', aggregable: true },
+    { key: 'currency_code', label: 'Currency' },
+    { key: 'status', label: 'Status' },
+    { key: 'submitted_at', label: 'Submitted At' },
+    { key: 'claim_date', label: 'Claim Date' },
+    { key: 'department_id', label: 'Department' },
+  ],
+}
+
+// Only date/timestamp fields — shown in LINE chart "Date Field" picker.
+// Using these as date_bucket target is safe (castable to timestamptz).
+const SOURCE_DATE_FIELDS: Record<string, { key: string; label: string }[]> = {
+  tasks: [
+    { key: 'due_date', label: 'Due Date' },
+    { key: 'created_at', label: 'Created At' },
+    { key: 'completed_at', label: 'Completed At' },
+  ],
+  attendance: [
+    { key: 'date', label: 'Date' },
+    { key: 'clock_in_at', label: 'Clock In' },
+    { key: 'clock_out_at', label: 'Clock Out' },
+  ],
+  leave: [
+    { key: 'start_date', label: 'Start Date' },
+    { key: 'end_date', label: 'End Date' },
+    { key: 'created_at', label: 'Submitted At' },
+  ],
+  claims: [
+    { key: 'submitted_at', label: 'Submitted At' },
+    { key: 'claim_date', label: 'Claim Date' },
+  ],
+}
+
+const SOURCES = [
+  { value: 'tasks', label: 'Tasks' },
+  { value: 'attendance', label: 'Attendance' },
+  { value: 'leave', label: 'Leave' },
+  { value: 'claims', label: 'Claims' },
 ]
 
 const AGGREGATES: { value: AggregateType; label: string }[] = [
@@ -35,13 +102,10 @@ const FILTER_OPS: { value: FilterOp; label: string }[] = [
   { value: 'not_null', label: 'is not empty' },
 ]
 
-const DATE_RANGES = [
-  { value: 'today', label: 'Today' },
-  { value: 'this_week', label: 'This Week' },
-  { value: 'this_month', label: 'This Month' },
-  { value: 'last_30_days', label: 'Last 30 Days' },
-  { value: 'this_quarter', label: 'This Quarter' },
-  { value: 'this_year', label: 'This Year' },
+const DATE_BUCKETS = [
+  { value: 'day', label: 'Day' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
 ]
 
 interface Props {
@@ -71,12 +135,19 @@ export function WidgetConfigPanel({
 
   const { data: fieldDefs } = useFieldDefinitions()
 
-  const allFields = [
-    ...TASK_FIELDS,
-    ...(fieldDefs ?? [])
-      .filter((f) => f.is_active)
-      .map((f) => ({ key: `field:${f.id}`, label: f.name })),
-  ]
+  // Fields for selected source, plus custom fields when source=tasks
+  const builtinFields = SOURCE_FIELDS[query.source] ?? SOURCE_FIELDS['tasks']
+  const customFields =
+    query.source === 'tasks'
+      ? (fieldDefs ?? [])
+          .filter((f) => f.is_active)
+          .map((f) => ({ key: `field:${f.id}`, label: f.name, aggregable: f.field_type === 'number' || f.field_type === 'rating' }))
+      : []
+  const allFields = [...builtinFields, ...customFields]
+  // sum/avg/min/max only work on numeric fields
+  const needsNumericField = query.aggregate === 'sum' || query.aggregate === 'avg' || query.aggregate === 'min' || query.aggregate === 'max'
+  const fieldOptions = needsNumericField ? allFields.filter((f) => f.aggregable) : allFields
+  const dateFields = SOURCE_DATE_FIELDS[query.source] ?? SOURCE_DATE_FIELDS['tasks']
 
   const { data: previewResult, isLoading: previewLoading, isError: previewError } = useExecuteQuery(
     { ...query, limit: 5 },
@@ -85,8 +156,39 @@ export function WidgetConfigPanel({
 
   const patchQuery = (patch: Partial<QueryConfig>) => setQuery((q) => ({ ...q, ...patch }))
 
+  const handleSourceChange = (newSource: string) => {
+    // Reset field-dependent config when source changes
+    patchQuery({
+      source: newSource,
+      field: undefined,
+      group_by: undefined,
+      columns: undefined,
+      filters: undefined,
+    })
+  }
+
+  const handleTypeChange = (t: WidgetType) => {
+    setWidgetType(t)
+    // Ensure aggregate is set for non-table types
+    if (t !== 'table' && !query.aggregate) {
+      patchQuery({ aggregate: 'count' })
+    }
+    if (t === 'line') {
+      // Default to day bucket when switching to line
+      if (!query.date_bucket) patchQuery({ date_bucket: 'day', group_by: undefined, facet: undefined })
+    } else {
+      // Clear line-specific fields when leaving line
+      patchQuery({ date_bucket: undefined, facet: undefined })
+    }
+    // Clear group_by when switching to bar (it will pick its own)
+    if (t === 'bar') {
+      patchQuery({ group_by: undefined })
+    }
+  }
+
   const addFilter = () => {
-    patchQuery({ filters: [...(query.filters ?? []), { field: 'priority', op: 'eq', value: '' }] })
+    const defaultField = allFields[0]?.key ?? 'status'
+    patchQuery({ filters: [...(query.filters ?? []), { field: defaultField, op: 'eq', value: '' }] })
   }
 
   const updateFilter = (i: number, patch: Partial<QueryFilter>) => {
@@ -104,6 +206,8 @@ export function WidgetConfigPanel({
     onSave(title, widgetType, query, viz)
   }
 
+  const isLine = widgetType === 'line'
+
   return (
     <div className="flex flex-col gap-5 p-6 text-white">
       {/* Title */}
@@ -111,7 +215,7 @@ export function WidgetConfigPanel({
         <label className="text-xs text-white/50 uppercase tracking-wider">Widget Title</label>
         <input
           className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30"
-          placeholder="e.g. Total Tasks This Month"
+          placeholder="e.g. Tasks Completed This Month"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
@@ -120,11 +224,11 @@ export function WidgetConfigPanel({
       {/* Widget type */}
       <div className="flex flex-col gap-1.5">
         <label className="text-xs text-white/50 uppercase tracking-wider">Type</label>
-        <div className="flex gap-2">
-          {(['kpi', 'table'] as WidgetType[]).map((t) => (
+        <div className="flex gap-2 flex-wrap">
+          {(['kpi', 'bar', 'line', 'table'] as WidgetType[]).map((t) => (
             <button
               key={t}
-              onClick={() => setWidgetType(t)}
+              onClick={() => handleTypeChange(t)}
               className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 widgetType === t
                   ? 'bg-[#6357E8] text-white'
@@ -137,8 +241,22 @@ export function WidgetConfigPanel({
         </div>
       </div>
 
-      {/* KPI config */}
-      {widgetType === 'kpi' && (
+      {/* Source */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-xs text-white/50 uppercase tracking-wider">Data Source</label>
+        <select
+          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+          value={query.source}
+          onChange={(e) => handleSourceChange(e.target.value)}
+        >
+          {SOURCES.map((s) => (
+            <option key={s.value} value={s.value} className="bg-[#1a1a2e]">{s.label}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* KPI / Bar / Line aggregate config */}
+      {widgetType !== 'table' && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-white/50 uppercase tracking-wider">Aggregate</label>
@@ -153,13 +271,14 @@ export function WidgetConfigPanel({
             </select>
           </div>
 
-          {query.aggregate !== 'count' && (
+          {/* count_distinct: field = any field */}
+          {query.aggregate === 'count_distinct' && (
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-white/50 uppercase tracking-wider">Field</label>
               <select
                 className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
                 value={query.field ?? ''}
-                onChange={(e) => patchQuery({ field: e.target.value })}
+                onChange={(e) => patchQuery({ field: e.target.value || undefined })}
               >
                 <option value="" className="bg-[#1a1a2e]">Select field…</option>
                 {allFields.map((f) => (
@@ -169,19 +288,110 @@ export function WidgetConfigPanel({
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-white/50 uppercase tracking-wider">Group By (optional)</label>
-            <select
-              className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
-              value={query.group_by ?? ''}
-              onChange={(e) => patchQuery({ group_by: e.target.value || undefined })}
-            >
-              <option value="" className="bg-[#1a1a2e]">No grouping</option>
-              {allFields.map((f) => (
-                <option key={f.key} value={f.key} className="bg-[#1a1a2e]">{f.label}</option>
-              ))}
-            </select>
-          </div>
+          {/* sum/avg/min/max: numeric fields only */}
+          {(query.aggregate === 'sum' || query.aggregate === 'avg' || query.aggregate === 'min' || query.aggregate === 'max') && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Field</label>
+              {fieldOptions.length === 0 ? (
+                <p className="text-xs text-red-400/80 py-2">No numeric fields available for this source</p>
+              ) : (
+                <select
+                  className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                  value={query.field ?? ''}
+                  onChange={(e) => patchQuery({ field: e.target.value || undefined })}
+                >
+                  <option value="" className="bg-[#1a1a2e]">Select field…</option>
+                  {fieldOptions.map((f) => (
+                    <option key={f.key} value={f.key} className="bg-[#1a1a2e]">{f.label}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+
+          {/* KPI: optional count-by breakdown */}
+          {widgetType === 'kpi' && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Count by (optional)</label>
+              <select
+                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                value={query.group_by ?? ''}
+                onChange={(e) => patchQuery({ group_by: e.target.value || undefined })}
+              >
+                <option value="" className="bg-[#1a1a2e]">Single number</option>
+                {allFields.filter((f) => !f.aggregable).map((f) => (
+                  <option key={f.key} value={f.key} className="bg-[#1a1a2e]">{f.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Bar: categorical group by */}
+          {widgetType === 'bar' && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-white/50 uppercase tracking-wider">Group By</label>
+              <select
+                className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                value={query.group_by ?? ''}
+                onChange={(e) => patchQuery({ group_by: e.target.value || undefined })}
+              >
+                <option value="" className="bg-[#1a1a2e]">Select field…</option>
+                {allFields.map((f) => (
+                  <option key={f.key} value={f.key} className="bg-[#1a1a2e]">{f.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Line: date field + bucket + optional facet */}
+          {isLine && (
+            <>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-white/50 uppercase tracking-wider">Date Field</label>
+                <select
+                  className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                  value={query.group_by ?? ''}
+                  onChange={(e) => patchQuery({ group_by: e.target.value || undefined })}
+                >
+                  <option value="" className="bg-[#1a1a2e]">Source default</option>
+                  {dateFields.map((f) => (
+                    <option key={f.key} value={f.key} className="bg-[#1a1a2e]">{f.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-white/50 uppercase tracking-wider">Bucket By</label>
+                <div className="flex gap-2">
+                  {DATE_BUCKETS.map((b) => (
+                    <button
+                      key={b.value}
+                      onClick={() => patchQuery({ date_bucket: b.value as 'day' | 'week' | 'month' })}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                        query.date_bucket === b.value
+                          ? 'bg-[#6357E8] text-white'
+                          : 'bg-white/5 text-white/50 hover:bg-white/10'
+                      }`}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-white/50 uppercase tracking-wider">Split by (optional)</label>
+                <select
+                  className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
+                  value={query.facet ?? ''}
+                  onChange={(e) => patchQuery({ facet: e.target.value || undefined })}
+                >
+                  <option value="" className="bg-[#1a1a2e]">No split — single line</option>
+                  {allFields.filter((f) => !f.aggregable).map((f) => (
+                    <option key={f.key} value={f.key} className="bg-[#1a1a2e]">{f.label}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -214,21 +424,6 @@ export function WidgetConfigPanel({
           </div>
         </div>
       )}
-
-      {/* Date range */}
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs text-white/50 uppercase tracking-wider">Date Range</label>
-        <select
-          className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
-          value={query.date_range ?? ''}
-          onChange={(e) => patchQuery({ date_range: (e.target.value || undefined) as typeof query.date_range })}
-        >
-          <option value="" className="bg-[#1a1a2e]">All time</option>
-          {DATE_RANGES.map((d) => (
-            <option key={d.value} value={d.value} className="bg-[#1a1a2e]">{d.label}</option>
-          ))}
-        </select>
-      </div>
 
       {/* Filters */}
       <div className="flex flex-col gap-2">
@@ -292,7 +487,7 @@ export function WidgetConfigPanel({
           {previewLoading ? (
             <div className="text-white/30 animate-pulse">Loading…</div>
           ) : previewError ? (
-            <div className="text-red-400">Query error — check your config</div>
+            <div className="text-red-400">Query error — check config</div>
           ) : previewResult?.value !== undefined ? (
             <div className="text-3xl font-bold text-white">{previewResult.value}</div>
           ) : (
