@@ -4,9 +4,17 @@ import { render, screen, fireEvent } from '@testing-library/react'
 
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
+// Mutable search state — update before render to simulate URL params
+const mockSearch: { dashboardId: string | undefined } = { dashboardId: undefined }
+const mockNavigate = vi.fn()
+
 vi.mock('@tanstack/react-router', () => ({
-  createFileRoute: () => (opts: { component: React.ComponentType }) => ({ options: opts }),
+  createFileRoute: () => (opts: { component: React.ComponentType }) => ({
+    options: opts,
+    useSearch: () => ({ dashboardId: mockSearch.dashboardId }),
+  }),
   useMatches: vi.fn(() => [{ pathname: '/reports/dashboards' }]),
+  useNavigate: vi.fn(() => mockNavigate),
   Link: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => <a {...props}>{children}</a>,
 }))
 
@@ -100,6 +108,7 @@ describe('DashboardsPage', () => {
     setupHooks()
     vi.clearAllMocks()
     setupHooks()
+    mockSearch.dashboardId = undefined // reset URL state
   })
 
   it('shows loading state', () => {
@@ -152,37 +161,48 @@ describe('DashboardsPage', () => {
     expect(screen.getByTestId('template-selector')).toBeInTheDocument()
   })
 
-  it('clicking dashboard card enters dashboard view', () => {
+  it('clicking dashboard card calls navigate with dashboardId', () => {
     vi.mocked(useDashboards).mockReturnValue({ data: [makeDash()], isLoading: false } as ReturnType<typeof useDashboards>)
     render(<DashboardsPage />)
     fireEvent.click(screen.getByText('My Dashboard'))
-    expect(screen.getByText('Dashboards')).toBeInTheDocument() // back button
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({ search: { dashboardId: 'd-1' } })
+    )
+  })
+
+  it('shows dashboard view when dashboardId set in URL', () => {
+    mockSearch.dashboardId = 'd-1'
+    vi.mocked(useDashboards).mockReturnValue({ data: [makeDash()], isLoading: false } as ReturnType<typeof useDashboards>)
+    render(<DashboardsPage />)
     expect(screen.getByText('No widgets yet')).toBeInTheDocument()
   })
 
   it('renders grid layout when widgets present', () => {
+    mockSearch.dashboardId = 'd-1'
     vi.mocked(useDashboards).mockReturnValue({ data: [makeDash()], isLoading: false } as ReturnType<typeof useDashboards>)
     vi.mocked(useWidgets).mockReturnValue({ data: [makeWidget()], isLoading: false } as ReturnType<typeof useWidgets>)
     render(<DashboardsPage />)
-    fireEvent.click(screen.getByText('My Dashboard'))
     expect(screen.getByTestId('grid-layout')).toBeInTheDocument()
     expect(screen.getByText('Total Tasks')).toBeInTheDocument()
   })
 
   it('Add Widget button opens config panel', () => {
+    mockSearch.dashboardId = 'd-1'
     vi.mocked(useDashboards).mockReturnValue({ data: [makeDash()], isLoading: false } as ReturnType<typeof useDashboards>)
     render(<DashboardsPage />)
-    fireEvent.click(screen.getByText('My Dashboard'))
     fireEvent.click(screen.getByText('Add Widget'))
     expect(screen.getByText('New Widget')).toBeInTheDocument()
   })
 
-  it('back button returns to list view', () => {
+  it('back button navigates to list view', () => {
+    mockSearch.dashboardId = 'd-1'
     vi.mocked(useDashboards).mockReturnValue({ data: [makeDash()], isLoading: false } as ReturnType<typeof useDashboards>)
     render(<DashboardsPage />)
-    fireEvent.click(screen.getByText('My Dashboard'))
-    fireEvent.click(screen.getByText('Dashboards')) // back button
-    expect(screen.getByText('My Dashboard')).toBeInTheDocument() // back in list view
-    expect(screen.getByText('New Dashboard')).toBeInTheDocument()
+    // "Dashboards" text appears as back button in dashboard view
+    const backBtn = screen.getAllByText('Dashboards').find(el => el.tagName === 'BUTTON' || el.closest('button'))
+    fireEvent.click(backBtn!.closest('button') ?? backBtn!)
+    expect(mockNavigate).toHaveBeenCalledWith(
+      expect.objectContaining({ search: {} })
+    )
   })
 })

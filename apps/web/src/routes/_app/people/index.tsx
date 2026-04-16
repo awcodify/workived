@@ -12,6 +12,7 @@ import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
 import { ManagementPanel } from '@/components/workived/people/ManagementPanel'
 import { Dropdown } from '@/components/workived/shared/Dropdown'
+import { PeopleTabs } from '@/components/workived/people/PeopleTabs'
 
 export const Route = createFileRoute('/_app/people/')({
   component: PeoplePage,
@@ -87,6 +88,7 @@ function PeoplePage() {
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       style={{ background: bg, paddingBottom: '160px' }}
     >
+      <PeopleTabs />
       {/* Header */}
       <div className="mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

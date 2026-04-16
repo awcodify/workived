@@ -1,5 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { ResponsiveGridLayout, useContainerWidth, type Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import { LayoutDashboard, Plus, X, BarChart2, LineChart, Table2, Hash, ChevronLeft, Users } from 'lucide-react'
@@ -19,10 +19,12 @@ import { TableWidget } from '@/components/dashboard/TableWidget'
 import { BarWidget } from '@/components/dashboard/BarWidget'
 import { LineWidget } from '@/components/dashboard/LineWidget'
 import { WidgetConfigPanel } from '@/components/dashboard/WidgetConfigPanel'
-import { ReportsTabs } from '@/components/workived/reports/ReportsTabs'
 import type { Widget, QueryConfig, VizConfig, WidgetType } from '@/types/api'
 
 export const Route = createFileRoute('/_app/reports/dashboards')({
+  validateSearch: (search: Record<string, unknown>) => ({
+    dashboardId: typeof search.dashboardId === 'string' ? search.dashboardId : undefined,
+  }),
   component: DashboardsPage,
 })
 
@@ -329,8 +331,11 @@ function DashboardsPage() {
   const { data: dashboards = [], isLoading: dashLoading } = useDashboards()
   const createDashboard = useCreateDashboard()
   const deleteDashboard = useDeleteDashboard()
+  const navigate = useNavigate()
+  const { dashboardId: activeDashId } = Route.useSearch()
 
-  const [activeDashId, setActiveDashId] = useState<string | null>(null)
+  const setActiveDashId = (id: string | null) =>
+    navigate({ to: '/reports/dashboards', search: id ? { dashboardId: id } : {} })
   const [draftTemplate, setDraftTemplate] = useState<DashboardTemplate | null>(null)
   const [showNewDashModal, setShowNewDashModal] = useState(false)
   const [modalStep, setModalStep] = useState<'choose' | 'blank-name'>('choose')
@@ -355,6 +360,7 @@ function DashboardsPage() {
   }, [draftTemplate])
 
   const activeDash = activeDashId ? (dashboards.find((d) => d.id === activeDashId) ?? null) : null
+  // Also set activeDashId after template creation completes (handleUseTemplate sets it via setActiveDashId)
   const { data: widgets = [], isLoading: widgetsLoading } = useWidgets(activeDash?.id ?? '')
   const createWidget = useCreateWidget()
   const updateWidget = useUpdateWidget()
@@ -843,10 +849,7 @@ function DashboardsPage() {
            DASHBOARD LIST VIEW
            ══════════════════════════════════════════════════════ */
         <>
-          <div className="px-8 pt-8 pb-0">
-            <ReportsTabs />
-          </div>
-          <div className="px-8 pt-2 pb-6">
+          <div className="px-8 pt-8 pb-6">
             <h1 className="text-2xl font-extrabold tracking-tight" style={typography.h1}>Dashboards</h1>
             <p className="text-sm mt-1" style={{ color: t.textMuted }}>Custom analytics for your org</p>
           </div>

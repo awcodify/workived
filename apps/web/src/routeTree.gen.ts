@@ -42,6 +42,7 @@ import { Route as AppReportsPerformanceV2RouteImport } from './routes/_app/repor
 import { Route as AppReportsPerformanceOldRouteImport } from './routes/_app/reports/performance-old'
 import { Route as AppReportsPerformanceRouteImport } from './routes/_app/reports/performance'
 import { Route as AppReportsDashboardsRouteImport } from './routes/_app/reports/dashboards'
+import { Route as AppPeoplePerformanceRouteImport } from './routes/_app/people/performance'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppSettingsAuditLogsRouteRouteImport } from './routes/_app/settings/audit-logs/route'
@@ -215,6 +216,11 @@ const AppReportsDashboardsRoute = AppReportsDashboardsRouteImport.update({
   path: '/reports/dashboards',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppPeoplePerformanceRoute = AppPeoplePerformanceRouteImport.update({
+  id: '/performance',
+  path: '/performance',
+  getParentRoute: () => AppPeopleRouteRoute,
+} as any)
 const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
   id: '/members',
   path: '/members',
@@ -285,6 +291,7 @@ export interface FileRoutesByFullPath {
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/people/performance': typeof AppPeoplePerformanceRoute
   '/reports/dashboards': typeof AppReportsDashboardsRoute
   '/reports/performance': typeof AppReportsPerformanceRoute
   '/reports/performance-old': typeof AppReportsPerformanceOldRoute
@@ -321,6 +328,7 @@ export interface FileRoutesByTo {
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/people/performance': typeof AppPeoplePerformanceRoute
   '/reports/dashboards': typeof AppReportsDashboardsRoute
   '/reports/performance': typeof AppReportsPerformanceRoute
   '/reports/performance-old': typeof AppReportsPerformanceOldRoute
@@ -365,6 +373,7 @@ export interface FileRoutesById {
   '/_app/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
+  '/_app/people/performance': typeof AppPeoplePerformanceRoute
   '/_app/reports/dashboards': typeof AppReportsDashboardsRoute
   '/_app/reports/performance': typeof AppReportsPerformanceRoute
   '/_app/reports/performance-old': typeof AppReportsPerformanceOldRoute
@@ -408,6 +417,7 @@ export interface FileRouteTypes {
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
+    | '/people/performance'
     | '/reports/dashboards'
     | '/reports/performance'
     | '/reports/performance-old'
@@ -444,6 +454,7 @@ export interface FileRouteTypes {
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
+    | '/people/performance'
     | '/reports/dashboards'
     | '/reports/performance'
     | '/reports/performance-old'
@@ -487,6 +498,7 @@ export interface FileRouteTypes {
     | '/_app/settings/audit-logs'
     | '/_app/settings/company'
     | '/_app/settings/members'
+    | '/_app/people/performance'
     | '/_app/reports/dashboards'
     | '/_app/reports/performance'
     | '/_app/reports/performance-old'
@@ -743,6 +755,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsDashboardsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/_app/people/performance': {
+      id: '/_app/people/performance'
+      path: '/performance'
+      fullPath: '/people/performance'
+      preLoaderRoute: typeof AppPeoplePerformanceRouteImport
+      parentRoute: typeof AppPeopleRouteRoute
+    }
     '/_app/settings/members': {
       id: '/_app/settings/members'
       path: '/members'
@@ -858,11 +877,13 @@ const AppLeaveRouteRouteWithChildren = AppLeaveRouteRoute._addFileChildren(
 
 interface AppPeopleRouteRouteChildren {
   AppPeopleNewRouteRoute: typeof AppPeopleNewRouteRoute
+  AppPeoplePerformanceRoute: typeof AppPeoplePerformanceRoute
   AppPeopleIndexRoute: typeof AppPeopleIndexRoute
 }
 
 const AppPeopleRouteRouteChildren: AppPeopleRouteRouteChildren = {
   AppPeopleNewRouteRoute: AppPeopleNewRouteRoute,
+  AppPeoplePerformanceRoute: AppPeoplePerformanceRoute,
   AppPeopleIndexRoute: AppPeopleIndexRoute,
 }
 
