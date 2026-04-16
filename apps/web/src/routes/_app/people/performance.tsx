@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react'
-import { createFileRoute, redirect } from '@tanstack/react-router'
-import { PeopleTabs } from '@/components/workived/people/PeopleTabs'
+import { createFileRoute, redirect, Link } from '@tanstack/react-router'
 import { PieChart, Pie, Cell } from 'recharts'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
@@ -19,6 +18,7 @@ import {
   Minus,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
   ChevronsDown,
   ChevronsUp,
   Award,
@@ -149,11 +149,20 @@ function PerformancePage() {
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       style={{ background: moduleBackgrounds.people, paddingBottom: '160px' }}
     >
-      <PeopleTabs />
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
+            <Link
+              to="/people"
+              className="inline-flex items-center gap-1 text-sm font-medium mb-3 transition-colors"
+              style={{ color: S.textMuted }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = S.text }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = S.textMuted }}
+            >
+              <ChevronLeft size={14} />
+              People
+            </Link>
             <h1
               className="font-extrabold"
               style={{ fontSize: typography.display.size, letterSpacing: typography.display.tracking, color: S.text, lineHeight: typography.display.lineHeight }}

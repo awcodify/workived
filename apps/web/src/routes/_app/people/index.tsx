@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Search, Plus, Network, Users, Clock, Settings } from 'lucide-react'
+import { Search, Plus, Network, Users, Clock, Settings, BarChart3 } from 'lucide-react'
 import { useEmployees } from '@/lib/hooks/useEmployees'
 import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
@@ -12,7 +12,6 @@ import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
 import { ManagementPanel } from '@/components/workived/people/ManagementPanel'
 import { Dropdown } from '@/components/workived/shared/Dropdown'
-import { PeopleTabs } from '@/components/workived/people/PeopleTabs'
 
 export const Route = createFileRoute('/_app/people/')({
   component: PeoplePage,
@@ -88,7 +87,6 @@ function PeoplePage() {
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       style={{ background: bg, paddingBottom: '160px' }}
     >
-      <PeopleTabs />
       {/* Header */}
       <div className="mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -104,8 +102,21 @@ function PeoplePage() {
           </p>
         </div>
         
-        <div className="flex items-center gap-4">
-          <DateTime 
+        <div className="flex items-center gap-3">
+          <Link
+            to="/people/performance"
+            className="flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 transition-colors hover:opacity-90 whitespace-nowrap"
+            style={{
+              background: t.surface,
+              color: t.text,
+              borderRadius: 12,
+              border: `1px solid ${t.border}`,
+            }}
+          >
+            <BarChart3 size={14} />
+            Performance
+          </Link>
+          <DateTime
             textColor={t.text}
             textMutedColor={t.textMuted}
             borderColor={t.border}

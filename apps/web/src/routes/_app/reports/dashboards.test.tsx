@@ -18,6 +18,9 @@ vi.mock('@tanstack/react-router', () => ({
   Link: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => <a {...props}>{children}</a>,
 }))
 
+vi.mock('@/components/workived/shared/DateTime', () => ({ DateTime: () => null }))
+vi.mock('@/components/workived/shared/NotificationBell', () => ({ NotificationBell: () => null }))
+
 vi.mock('@/lib/hooks/useDashboard', () => ({
   useDashboards: vi.fn(),
   useCreateDashboard: vi.fn(),
@@ -56,7 +59,8 @@ vi.mock('react-grid-layout', async () => {
 vi.mock('@/design/tokens', () => ({
   moduleBackgrounds: { dark: '#0C0C0F', reports: '#F3F2FB' },
   moduleThemes: { reports: { text: '#0F0E13', textMuted: '#72708A', surface: '#FFFFFF', surfaceHover: '#F3F2FB', accent: '#6357E8', accentText: '#FFFFFF', border: 'rgba(99,87,232,0.10)', input: '#FFFFFF', inputBorder: 'rgba(99,87,232,0.12)' } },
-  typography: { h1: {}, label: {} },
+  typography: { h1: {}, label: {}, display: { size: '44px', tracking: '-0.05em', lineHeight: '1.0' } },
+  colors: { accent: '#6357E8' },
 }))
 
 // ── Import after mocks ────────────────────────────────────────────────────────
@@ -117,14 +121,21 @@ describe('DashboardsPage', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 
-  it('auto-opens modal when no dashboards', () => {
+  it('shows empty state when no dashboards', () => {
     render(<DashboardsPage />)
+    expect(screen.getByText('Build your first dashboard')).toBeInTheDocument()
+    expect(screen.getByText('Create Dashboard')).toBeInTheDocument()
+  })
+
+  it('empty state button opens template selector', () => {
+    render(<DashboardsPage />)
+    fireEvent.click(screen.getByText('Create Dashboard'))
     expect(screen.getByTestId('template-selector')).toBeInTheDocument()
   })
 
   it('template selector shows all 3 templates', () => {
     render(<DashboardsPage />)
-    // modal auto-opens on empty state
+    fireEvent.click(screen.getByText('Create Dashboard'))
     expect(screen.getByText('HR Overview')).toBeInTheDocument()
     expect(screen.getByText('Task Tracker')).toBeInTheDocument()
     expect(screen.getByText('Claims Monitor')).toBeInTheDocument()
@@ -132,18 +143,21 @@ describe('DashboardsPage', () => {
 
   it('template selector shows widget type counts for HR Overview', () => {
     render(<DashboardsPage />)
+    fireEvent.click(screen.getByText('Create Dashboard'))
     const hrButton = screen.getByText('HR Overview').closest('button')!
     expect(hrButton.textContent).toContain('5 KPIs')
     expect(hrButton.textContent).toContain('4 charts')
   })
 
-  it('shows blank dashboard card', () => {
+  it('shows blank dashboard card in template selector', () => {
     render(<DashboardsPage />)
+    fireEvent.click(screen.getByText('Create Dashboard'))
     expect(screen.getByText('Blank')).toBeInTheDocument()
   })
 
   it('blank card opens new dashboard name input', () => {
     render(<DashboardsPage />)
+    fireEvent.click(screen.getByText('Create Dashboard'))
     fireEvent.click(screen.getByText('Blank').closest('button')!)
     expect(screen.getByPlaceholderText('Dashboard name…')).toBeInTheDocument()
   })

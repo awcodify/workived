@@ -4,7 +4,9 @@ import { ResponsiveGridLayout, useContainerWidth, type Layout } from 'react-grid
 import 'react-grid-layout/css/styles.css'
 import { LayoutDashboard, Plus, X, BarChart2, LineChart, Table2, Hash, ChevronLeft, Users } from 'lucide-react'
 import { Dropdown } from '@/components/workived/shared/Dropdown'
-import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
+import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
+import { DateTime } from '@/components/workived/shared/DateTime'
+import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import {
   useDashboards,
   useCreateDashboard,
@@ -345,11 +347,6 @@ function DashboardsPage() {
   const [creatingTemplate, setCreatingTemplate] = useState(false)
   const [dashDateRange, setDashDateRange] = useState<string>('')
   const [confirmDiscard, setConfirmDiscard] = useState(false)
-
-  // Auto-open modal when there are no dashboards yet (first-time empty state)
-  useEffect(() => {
-    if (!dashLoading && dashboards.length === 0) setShowNewDashModal(true)
-  }, [dashLoading, dashboards.length])
 
   // Guard browser tab close / refresh when a draft is open
   useEffect(() => {
@@ -849,51 +846,92 @@ function DashboardsPage() {
            DASHBOARD LIST VIEW
            ══════════════════════════════════════════════════════ */
         <>
+          {/* Header — matches other module pages */}
           <div className="px-8 pt-8 pb-6">
-            <h1 className="text-2xl font-extrabold tracking-tight" style={typography.h1}>Dashboards</h1>
-            <p className="text-sm mt-1" style={{ color: t.textMuted }}>Custom analytics for your org</p>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1
+                  className="font-extrabold"
+                  style={{ fontSize: typography.display.size, letterSpacing: typography.display.tracking, color: t.text, lineHeight: typography.display.lineHeight }}
+                >
+                  Dashboards
+                </h1>
+                <p className="text-sm mt-2" style={{ color: t.textMuted }}>
+                  {dashboards.length} dashboard{dashboards.length !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <DateTime textColor={t.text} textMutedColor={t.textMuted} borderColor={t.border} />
+                <NotificationBell
+                  surfaceColor={t.surface}
+                  borderColor={t.border}
+                  accentColor={colors.accent}
+                  textColor={t.text}
+                  textMutedColor={t.textMuted}
+                />
+              </div>
+            </div>
           </div>
 
           {dashLoading ? (
             <div className="px-8 flex items-center justify-center h-48" style={{ color: t.textMuted }}>Loading…</div>
+          ) : dashboards.length === 0 ? (
+            /* Empty state */
+            <div className="flex flex-col items-center justify-center py-20 text-center px-8">
+              <div className="flex items-end gap-2 mb-8" style={{ height: 72 }}>
+                {[38, 56, 44, 72, 52, 36, 60, 48].map((h, i) => (
+                  <div
+                    key={i}
+                    className="rounded-sm"
+                    style={{
+                      width: 12,
+                      height: h,
+                      background: i % 3 === 0 ? t.accent : i % 3 === 1 ? '#34D399' : '#F59E0B',
+                      opacity: 0.25 + (i % 3) * 0.15,
+                    }}
+                  />
+                ))}
+              </div>
+              <h2 className="font-bold" style={{ fontSize: 22, letterSpacing: '-0.03em', color: t.text }}>
+                Build your first dashboard
+              </h2>
+              <p className="text-sm mt-2 max-w-xs" style={{ color: t.textMuted }}>
+                Connect your HR data to custom charts, KPIs, and tables — all in one place.
+              </p>
+              <button
+                onClick={() => setShowNewDashModal(true)}
+                className="mt-6 flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors hover:opacity-90"
+                style={{ background: t.accent, color: t.accentText }}
+              >
+                <Plus size={14} />
+                Create Dashboard
+              </button>
+            </div>
           ) : (
             <div className="px-8 pb-16">
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {dashboards.map((d) => (
-                  <div
+                  <DashboardCard
                     key={d.id}
-                    className="group relative cursor-pointer rounded-2xl p-5 transition-all hover:shadow-md"
-                    style={{ background: t.surface, border: `1px solid ${t.border}` }}
+                    dashboard={d}
+                    theme={t}
                     onClick={() => setActiveDashId(d.id)}
-                  >
-                    <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: `${t.accent}15` }}>
-                      <LayoutDashboard size={18} style={{ color: t.accent }} />
-                    </div>
-                    <p className="font-semibold text-sm pr-6" style={{ color: t.text }}>{d.name}</p>
-                    <p className="text-[11px] mt-1" style={{ color: t.textMuted }}>
-                      {new Date(d.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </p>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteDashboard.mutate(d.id) }}
-                      className="absolute top-3 right-3 hidden group-hover:flex w-6 h-6 items-center justify-center rounded-lg transition-colors hover:bg-red-50 hover:text-red-500"
-                      style={{ color: t.textMuted }}
-                      title="Delete"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
+                    onDelete={() => deleteDashboard.mutate(d.id)}
+                  />
                 ))}
 
-                {/* "+" card */}
+                {/* Minimal + card */}
                 <button
                   onClick={() => setShowNewDashModal(true)}
-                  className="flex flex-col items-center justify-center rounded-2xl p-5 transition-all border-2 border-dashed hover:border-[#6357E8] hover:bg-[#6357E8]/5 group"
-                  style={{ borderColor: t.border, minHeight: 120 }}
+                  className="flex flex-col items-center justify-center rounded-2xl transition-all border-2 border-dashed hover:border-[#6357E8] hover:bg-[#6357E8]/5 group"
+                  style={{ borderColor: 'rgba(99,87,232,0.2)', minHeight: 148 }}
                 >
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2 transition-colors group-hover:bg-[#6357E8]/15" style={{ background: 'rgba(0,0,0,0.04)' }}>
-                    <Plus size={18} style={{ color: t.textMuted }} />
+                  <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors group-hover:bg-[#6357E8]/15"
+                    style={{ background: 'rgba(99,87,232,0.06)' }}
+                  >
+                    <Plus size={16} style={{ color: t.textMuted }} />
                   </div>
-                  <p className="text-xs font-medium" style={{ color: t.textMuted }}>New Dashboard</p>
                 </button>
               </div>
             </div>
@@ -904,7 +942,65 @@ function DashboardsPage() {
   )
 }
 
-// ── Helper ────────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const mins = Math.floor(diff / 60000)
+  if (mins < 1) return 'just now'
+  if (mins < 60) return `${mins}m ago`
+  const hours = Math.floor(mins / 60)
+  if (hours < 24) return `${hours}h ago`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days}d ago`
+  return new Date(dateStr).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+function DashboardCard({
+  dashboard: d,
+  theme: t,
+  onClick,
+  onDelete,
+}: {
+  dashboard: { id: string; name: string; updated_at?: string; created_at: string }
+  theme: typeof import('@/design/tokens').moduleThemes.reports
+  onClick: () => void
+  onDelete: () => void
+}) {
+  const { data: widgets = [] } = useWidgets(d.id)
+
+  const kpi = widgets.filter((w) => w.widget_type === 'kpi').length
+  const chart = widgets.filter((w) => w.widget_type === 'bar' || w.widget_type === 'line').length
+  const table = widgets.filter((w) => w.widget_type === 'table').length
+  const parts: string[] = []
+  if (kpi > 0) parts.push(`${kpi} KPI${kpi > 1 ? 's' : ''}`)
+  if (chart > 0) parts.push(`${chart} chart${chart > 1 ? 's' : ''}`)
+  if (table > 0) parts.push(`${table} table${table > 1 ? 's' : ''}`)
+  const summary = parts.length > 0 ? parts.join(' · ') : 'No widgets yet'
+
+  return (
+    <div
+      className="group relative cursor-pointer rounded-2xl p-4 transition-all hover:shadow-lg"
+      style={{ background: t.surface, border: `1px solid ${t.border}`, boxShadow: '0 1px 4px rgba(99,87,232,0.06)' }}
+      onClick={onClick}
+    >
+      <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style={{ background: `${t.accent}15` }}>
+        <LayoutDashboard size={18} style={{ color: t.accent }} />
+      </div>
+      <p className="font-semibold text-sm pr-6 leading-snug" style={{ color: t.text }}>{d.name}</p>
+      <p className="text-[11px] mt-1.5" style={{ color: t.accent, fontWeight: 500 }}>{summary}</p>
+      <p className="text-[10px] mt-1" style={{ color: t.textMuted }}>Updated {timeAgo((d.updated_at ?? '') || d.created_at)}</p>
+      <button
+        onClick={(e) => { e.stopPropagation(); onDelete() }}
+        className="absolute top-3 right-3 hidden group-hover:flex w-6 h-6 items-center justify-center rounded-lg transition-colors hover:bg-red-50 hover:text-red-500"
+        style={{ color: t.textMuted }}
+        title="Delete"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  )
+}
 
 function defaultWidgetSize(type: WidgetType): { width: number; height: number } {
   switch (type) {
