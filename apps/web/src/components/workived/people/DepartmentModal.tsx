@@ -68,11 +68,13 @@ export function DepartmentModal({ department, onClose, onSuccess }: DepartmentMo
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      data-testid="department-modal-backdrop"
       style={{ background: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >
       <div
         className="w-full max-w-md"
+        data-testid="department-modal"
         style={{
           background: t.surface,
           borderRadius: 16,
@@ -94,6 +96,7 @@ export function DepartmentModal({ department, onClose, onSuccess }: DepartmentMo
           <button
             onClick={onClose}
             className="p-1 rounded-lg hover:opacity-70 transition-opacity"
+            data-testid="department-modal-close-btn"
             style={{ color: t.textMuted }}
           >
             <X size={20} />
@@ -101,7 +104,7 @@ export function DepartmentModal({ department, onClose, onSuccess }: DepartmentMo
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} data-testid="department-modal-form">
           <div className="px-6 py-4 space-y-4">
             {/* Name Field */}
             <div>
@@ -117,6 +120,7 @@ export function DepartmentModal({ department, onClose, onSuccess }: DepartmentMo
                   required: 'Department name is required',
                   maxLength: { value: 150, message: 'Name must be less than 150 characters' },
                 })}
+                data-testid="department-name-input"
                 className="w-full px-3 py-2 text-sm focus:outline-none focus:ring-2"
                 style={{
                   background: t.input,
@@ -142,6 +146,7 @@ export function DepartmentModal({ department, onClose, onSuccess }: DepartmentMo
             <button
               type="button"
               onClick={onClose}
+              data-testid="department-cancel-btn"
               className="px-4 py-2 text-sm font-semibold rounded-lg transition-opacity hover:opacity-70"
               style={{
                 background: t.surface,
@@ -154,6 +159,7 @@ export function DepartmentModal({ department, onClose, onSuccess }: DepartmentMo
             <button
               type="submit"
               disabled={mutation.isPending}
+              data-testid="department-submit-btn"
               className="px-4 py-2 text-sm font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{
                 background: t.accent,

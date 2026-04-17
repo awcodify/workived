@@ -67,7 +67,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
   }
 
   return (
-    <div className="relative" ref={menuRef} data-tour="dock-settings">
+    <div className="relative" ref={menuRef} data-tour="dock-settings" data-testid="settings-menu-container">
       {/* Settings Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -75,6 +75,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
         aria-expanded={isOpen}
         aria-haspopup="true"
         className="relative group"
+        data-testid="settings-menu-btn"
       >
         <div
           className={cn(
@@ -123,6 +124,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
         <div
           role="menu"
           className="absolute bottom-full mb-3 right-0 rounded-2xl overflow-hidden border backdrop-blur-3xl"
+          data-testid="settings-menu-dropdown"
           style={{
             minWidth: 200,
             background: menuBg,
@@ -135,6 +137,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           {user && (
             <div
               className="px-3 py-3 border-b"
+              data-testid="settings-menu-user-info"
               style={{ 
                 borderColor: theme.border
               }}
@@ -174,6 +177,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/profile' }) }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            data-testid="settings-menu-profile-link"
             style={{ color: menuColors.text }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = menuColors.hoverBg
@@ -187,6 +191,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/company' }) }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            data-testid="settings-menu-company-link"
             style={{ color: menuColors.text }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = menuColors.hoverBg
@@ -201,6 +206,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/members' }) }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            data-testid="settings-menu-members-link"
             style={{ color: menuColors.text }}
             onMouseEnter={(e) => { 
               e.currentTarget.style.background = menuColors.hoverBg
@@ -216,6 +222,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/settings/audit-logs' }) }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            data-testid="settings-menu-audit-logs-link"
             style={{ color: menuColors.text }}
             onMouseEnter={(e) => { 
               e.currentTarget.style.background = menuColors.hoverBg
@@ -235,6 +242,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { toggleTheme() }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            data-testid="settings-menu-theme-toggle"
             style={{ color: menuColors.text }}
             onMouseEnter={(e) => { 
               e.currentTarget.style.background = menuColors.hoverBg
@@ -259,6 +267,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/changelog' }) }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            data-testid="settings-menu-changelog-link"
             style={{ color: menuColors.text }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = menuColors.hoverBg
@@ -287,6 +296,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={() => { setIsOpen(false); navigate({ to: '/known-issues' }) }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            data-testid="settings-menu-known-issues-link"
             style={{ color: menuColors.text }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = menuColors.hoverBg
@@ -307,6 +317,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
               setTimeout(() => useTourStore.getState().startTour(), 500)
             }}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            data-testid="settings-menu-tour-link"
             style={{ color: menuColors.text }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = menuColors.hoverBg
@@ -325,6 +336,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             role="menuitem"
             onClick={handleLogout}
             className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
+            data-testid="settings-menu-logout-btn"
             style={{ color: menuColors.text }}
             onMouseEnter={(e) => { 
               e.currentTarget.style.background = menuColors.hoverBg

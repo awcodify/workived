@@ -68,11 +68,13 @@ export function JobTitleModal({ jobTitle, onClose, onSuccess }: JobTitleModalPro
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      data-testid="jobtitle-modal-backdrop"
       style={{ background: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >
       <div
         className="w-full max-w-md"
+        data-testid="jobtitle-modal"
         style={{
           background: t.surface,
           borderRadius: 16,
@@ -94,6 +96,7 @@ export function JobTitleModal({ jobTitle, onClose, onSuccess }: JobTitleModalPro
           <button
             onClick={onClose}
             className="p-1 rounded-lg hover:opacity-70 transition-opacity"
+            data-testid="jobtitle-modal-close-btn"
             style={{ color: t.textMuted }}
           >
             <X size={20} />
@@ -101,7 +104,7 @@ export function JobTitleModal({ jobTitle, onClose, onSuccess }: JobTitleModalPro
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)}>
+        <form onSubmit={handleSubmit(onSubmit)} data-testid="jobtitle-modal-form">
           <div className="px-6 py-4 space-y-4">
             {/* Name Field */}
             <div>
@@ -117,6 +120,7 @@ export function JobTitleModal({ jobTitle, onClose, onSuccess }: JobTitleModalPro
                   required: 'Job title is required',
                   maxLength: { value: 150, message: 'Title must be less than 150 characters' },
                 })}
+                data-testid="jobtitle-name-input"
                 className="w-full px-3 py-2 text-sm focus:outline-none focus:ring-2"
                 style={{
                   background: t.input,
@@ -142,6 +146,7 @@ export function JobTitleModal({ jobTitle, onClose, onSuccess }: JobTitleModalPro
             <button
               type="button"
               onClick={onClose}
+              data-testid="jobtitle-cancel-btn"
               className="px-4 py-2 text-sm font-semibold rounded-lg transition-opacity hover:opacity-70"
               style={{
                 background: t.surface,
@@ -154,6 +159,7 @@ export function JobTitleModal({ jobTitle, onClose, onSuccess }: JobTitleModalPro
             <button
               type="submit"
               disabled={mutation.isPending}
+              data-testid="jobtitle-submit-btn"
               className="px-4 py-2 text-sm font-semibold rounded-lg transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{
                 background: t.accent,

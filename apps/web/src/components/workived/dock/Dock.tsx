@@ -83,12 +83,14 @@ export function Dock() {
     <nav
       className="fixed bottom-3 md:bottom-6 left-1/2 -translate-x-1/2 z-50"
       data-tour="dock"
+      data-testid="dock-nav"
       style={{
         transition: 'all 0.3s ease',
       }}
     >
       <div
         className="flex items-center gap-1 md:gap-0.5 px-1.5 py-1.5 md:px-1.5 md:py-1.5 rounded-xl md:rounded-2xl border backdrop-blur-3xl"
+        data-testid="dock-container"
         style={{
           background: theme.bg,
           borderColor: theme.border,
@@ -108,6 +110,7 @@ export function Dock() {
               to={item.to}
               className={cn("group relative", item.hideOnMobile && "hidden md:flex")}
               data-tour={`dock-${item.module}`}
+              data-testid={`dock-${item.module}-link`}
               onClick={() => setLoadingPath(item.to)}
             >
               <div
@@ -137,6 +140,7 @@ export function Dock() {
                   {isLoading ? (
                     <Loader2
                       className="animate-spin w-[22px] h-[22px] md:w-5 md:h-5"
+                      data-testid={`dock-${item.module}-loading`}
                       style={{ 
                         color: theme.active.icon,
                         strokeWidth: 2.5,
@@ -145,6 +149,7 @@ export function Dock() {
                   ) : (
                     <Icon
                       className="md:group-hover:rotate-6 transition-transform duration-300 w-[22px] h-[22px] md:w-5 md:h-5"
+                      data-testid={`dock-${item.module}-icon`}
                       style={{ 
                         color: isActive ? theme.active.icon : theme.icon,
                         strokeWidth: isActive ? 2.5 : 2,
@@ -169,6 +174,7 @@ export function Dock() {
                   {notificationCount > 0 && (
                     <div
                       className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-bold animate-pulse group-hover:scale-125 transition-transform"
+                      data-testid={`dock-${item.module}-badge`}
                       style={{
                         background: '#D44040',
                         color: '#FFFFFF',
@@ -186,6 +192,7 @@ export function Dock() {
                     "hidden md:block text-[9px] font-bold tracking-wider uppercase transition-all duration-300",
                     !isActive && "group-hover:scale-105 group-hover:tracking-widest"
                   )}
+                  data-testid={`dock-${item.module}-label`}
                   style={{ 
                     color: isActive ? theme.active.label : theme.label,
                     transition: 'color 0.2s ease',
@@ -211,6 +218,7 @@ export function Dock() {
         {/* Divider */}
         <div
           className="h-8 md:h-12 w-px mx-0.5 md:mx-1"
+          data-testid="dock-divider"
           style={{ background: theme.border, opacity: 0.5 }}
         />
 

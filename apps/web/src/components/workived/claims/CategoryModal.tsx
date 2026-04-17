@@ -140,11 +140,13 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      data-testid="category-modal-backdrop"
       style={{ background: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >
       <div
         className="w-full max-w-lg"
+        data-testid="category-modal"
         style={{
           background: t.surface,
           borderRadius: 16,
@@ -170,6 +172,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+            data-testid="category-modal-close-btn"
             style={{ color: t.textMuted }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = t.surfaceHover
@@ -183,7 +186,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4" data-testid="category-modal-form">
           {/* Name */}
           <div>
             <label
@@ -219,6 +222,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
               {...register('name', { required: 'Category name is required' })}
               placeholder="e.g. Travel, Meals, Equipment"
               required
+              data-testid="category-name-input"
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -271,6 +275,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
               {...register('description')}
               placeholder="Describe what expenses this category covers (optional)"
               rows={2}
+              data-testid="category-description-input"
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none"
               style={{
                 background: t.input,
@@ -320,6 +325,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
                     key={period}
                     type="button"
                     onClick={() => setValue('budget_period', period)}
+                    data-testid={`category-period-${period}-btn`}
                     className="flex-1 text-sm font-medium py-2 transition-colors capitalize"
                     style={{
                       borderRadius: 8,
@@ -370,6 +376,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
             <div className="flex gap-2">
               <select
                 {...register('currency_code')}
+                data-testid="category-currency-select"
                 className="px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
                 style={{
                   background: t.input,
@@ -389,6 +396,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
                 value={displayLimit}
                 onChange={handleLimitChange}
                 placeholder="0"
+                data-testid="category-limit-input"
                 className="flex-1 px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
                 style={{
                   background: t.input,
@@ -407,6 +415,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
               id="requires-receipt"
               type="checkbox"
               {...register('requires_receipt')}
+              data-testid="category-receipt-checkbox"
               className="w-5 h-5 rounded transition-colors cursor-pointer"
               style={{
                 accentColor: t.accent,
@@ -489,6 +498,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
                     key={option.value}
                     type="button"
                     onClick={() => toggleEmploymentType(option.value)}
+                    data-testid={`category-type-${option.value}-btn`}
                     className="px-4 py-2 text-sm font-semibold transition-all"
                     style={{
                       background: isSelected ? t.accent : t.input,
@@ -508,6 +518,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
           {mutation.isError && (
             <div
               className="px-4 py-3 rounded-lg"
+              data-testid="category-error"
               style={{
                 background: '#FEE2E2',
                 border: '1px solid #FECACA',
@@ -527,6 +538,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
             <button
               type="button"
               onClick={onClose}
+              data-testid="category-cancel-btn"
               className="flex-1 px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-70"
               style={{
                 background: t.surfaceHover,
@@ -539,6 +551,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
             <button
               type="submit"
               disabled={mutation.isPending}
+              data-testid="category-submit-btn"
               className="flex-1 px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{
                 background: t.accent,

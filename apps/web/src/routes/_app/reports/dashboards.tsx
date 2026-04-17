@@ -588,11 +588,12 @@ function DashboardsPage() {
   return (
     <div
       className="min-h-screen"
+      data-testid="dashboards-page"
       style={{ background: bg, color: t.text, fontFamily: 'Plus Jakarta Sans, sans-serif' }}
     >
       {/* ── New Dashboard modal ──────────────────────────────── */}
       {showNewDashModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="new-dashboard-modal">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setShowNewDashModal(false); setModalStep('choose'); setNewDashName('') }} />
           <div
             className="relative w-full max-w-2xl rounded-3xl p-8 shadow-2xl"
@@ -601,6 +602,7 @@ function DashboardsPage() {
             <button
               onClick={() => { setShowNewDashModal(false); setModalStep('choose'); setNewDashName('') }}
               className="absolute top-5 right-5 p-1.5 rounded-lg transition-colors hover:bg-black/5"
+              data-testid="new-dashboard-modal-close-btn"
               style={{ color: t.textMuted }}
             >
               <X size={16} />
@@ -619,6 +621,7 @@ function DashboardsPage() {
                   <input
                     autoFocus
                     className="flex-1 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#6357E8]/30"
+                    data-testid="new-dashboard-name-input"
                     style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
                     placeholder="Dashboard name…"
                     value={newDashName}
@@ -631,6 +634,7 @@ function DashboardsPage() {
                   <button
                     onClick={handleCreateDashboard}
                     disabled={!newDashName.trim() || createDashboard.isPending}
+                    data-testid="new-dashboard-create-btn"
                     className="px-4 py-2 rounded-xl bg-[#6357E8] text-white text-sm disabled:opacity-40 hover:bg-purple-500 transition-colors"
                   >
                     Create
@@ -722,6 +726,7 @@ function DashboardsPage() {
               <button
                 onClick={() => setActiveDashId(null)}
                 className="flex items-center gap-1.5 text-sm font-medium transition-colors rounded-xl px-3 py-2 -ml-3"
+                data-testid="dashboard-back-btn"
                 style={{ color: t.textMuted }}
                 onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; e.currentTarget.style.color = t.text }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = ''; e.currentTarget.style.color = t.textMuted }}
@@ -753,6 +758,7 @@ function DashboardsPage() {
               <button
                 onClick={() => { setEditingWidget(null); setShowWidgetPanel(true) }}
                 className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-colors border"
+                data-testid="dashboard-add-widget-btn"
                 style={{ background: t.surface, borderColor: t.border, color: t.accent }}
               >
                 <Plus size={13} />
@@ -764,13 +770,13 @@ function DashboardsPage() {
           {/* Widget grid */}
           <div className="pb-16">
             {widgetsLoading ? (
-              <div className="px-8 grid grid-cols-3 gap-3">
+              <div className="px-8 grid grid-cols-3 gap-3" data-testid="dashboard-skeleton">
                 {[...Array(3)].map((_, i) => (
                   <div key={i} className="h-40 rounded-2xl animate-pulse" style={{ background: 'rgba(0,0,0,0.06)' }} />
                 ))}
               </div>
             ) : widgets.length === 0 ? (
-              <div className="px-8 flex flex-col items-center justify-center h-56 gap-3 rounded-2xl border border-dashed" style={{ borderColor: t.border }}>
+              <div className="px-8 flex flex-col items-center justify-center h-56 gap-3 rounded-2xl border border-dashed" data-testid="dashboard-empty" style={{ borderColor: t.border }}>
                 <LayoutDashboard size={32} style={{ color: t.border }} />
                 <p className="text-sm" style={{ color: t.textMuted }}>No widgets yet</p>
                 <button
@@ -815,7 +821,7 @@ function DashboardsPage() {
 
           {/* Widget config slide-over */}
           {showWidgetPanel && (
-            <div className="fixed inset-0 z-50 flex">
+            <div className="fixed inset-0 z-50 flex" data-testid="widget-config-panel">
               <div
                 className="flex-1 bg-black/50 backdrop-blur-sm"
                 onClick={() => { setShowWidgetPanel(false); setEditingWidget(null) }}
@@ -857,18 +863,20 @@ function DashboardsPage() {
            ══════════════════════════════════════════════════════ */
         <>
           {/* Unsaved banner */}
-          <div className="px-8 py-2.5 flex items-center justify-between text-sm" style={{ background: '#FEF3C7', borderBottom: '1px solid #FDE68A' }}>
+          <div className="px-8 py-2.5 flex items-center justify-between text-sm" data-testid="draft-banner" style={{ background: '#FEF3C7', borderBottom: '1px solid #FDE68A' }}>
             <span className="font-medium text-amber-800">This dashboard hasn't been saved yet</span>
             <div className="flex gap-2">
               <button
                 onClick={handleDiscardDraft}
                 className="px-3 py-1 rounded-lg text-xs font-medium transition-colors hover:bg-amber-100 text-amber-700"
+                data-testid="draft-discard-btn"
               >
                 Discard
               </button>
               <button
                 onClick={handleSaveDraft}
                 disabled={creatingTemplate}
+                data-testid="draft-save-btn"
                 className="px-3 py-1 rounded-lg text-xs font-medium bg-amber-800 text-white hover:bg-amber-900 transition-colors disabled:opacity-50"
               >
                 {creatingTemplate ? 'Saving…' : 'Save Dashboard'}

@@ -103,11 +103,13 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
   return (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      data-testid="policy-modal-backdrop"
       style={{ background: 'rgba(0, 0, 0, 0.5)' }}
       onClick={onClose}
     >
       <div
         className="w-full max-w-3xl max-h-[90vh] overflow-y-auto relative"
+        data-testid="policy-modal"
         style={{
           background: t.surface,
           borderRadius: 16,
@@ -137,6 +139,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
           <button
             onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-lg transition-colors"
+            data-testid="policy-modal-close-btn"
             style={{ color: t.textMuted }}
             onMouseEnter={(e) => {
               e.currentTarget.style.background = t.surfaceHover
@@ -150,7 +153,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="px-6 py-5 space-y-4" data-testid="policy-modal-form">
           {/* Policy Name */}
           <div>
             <label
@@ -186,6 +189,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
               {...register('name')}
               placeholder="e.g. Annual Leave, Sick Leave"
               required
+              data-testid="policy-name-input"
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -238,6 +242,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
               {...register('description')}
               placeholder="Describe when and how this leave can be used (optional)"
               rows={2}
+              data-testid="policy-description-input"
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none"
               style={{
                 background: t.input,
@@ -260,6 +265,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
               id="is-unlimited"
               type="checkbox"
               {...register('is_unlimited')}
+              data-testid="policy-unlimited-checkbox"
               className="w-5 h-5 rounded transition-colors cursor-pointer"
               style={{ accentColor: t.accent }}
               onChange={(e) => {
@@ -342,6 +348,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                 }))}
                 min="1"
                 disabled={isUnlimited}
+                data-testid="policy-days-input"
                 className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 text-center"
                 style={{
                   background: isUnlimited ? t.surfaceHover : t.input,
@@ -395,6 +402,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                   type="number"
                   {...register('carry_over_days', { valueAsNumber: true })}
                   min="0"
+                  data-testid="policy-carryover-input"
                   className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
                   style={{
                     background: t.input,
@@ -448,6 +456,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                   type="number"
                   {...register('min_tenure_days', { valueAsNumber: true })}
                   min="0"
+                  data-testid="policy-tenure-input"
                   className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
                   style={{
                     background: t.input,
@@ -471,6 +480,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
               id="requires-approval"
               type="checkbox"
               {...register('requires_approval')}
+              data-testid="policy-approval-checkbox"
               className="w-5 h-5 rounded transition-colors cursor-pointer"
               style={{ accentColor: t.accent }}
             />
@@ -548,6 +558,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                   key={option.label}
                   type="button"
                   onClick={() => setValue('gender_eligibility', option.value)}
+                  data-testid={`policy-gender-${option.value ?? 'all'}-btn`}
                   className="px-4 py-2 text-sm font-semibold transition-all"
                   style={{
                     background: genderEligibility === option.value ? t.accent : t.input,
@@ -607,6 +618,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                     key={option.value}
                     type="button"
                     onClick={() => toggleEmploymentType(option.value)}
+                    data-testid={`policy-type-${option.value}-btn`}
                     className="px-4 py-2 text-sm font-semibold transition-all"
                     style={{
                       background: isSelected ? t.accent : t.input,
@@ -632,6 +644,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                 onChange={(e) => {
                   setValue('max_lifetime_uses', e.target.checked ? 1 : null)
                 }}
+                data-testid="policy-lifetime-checkbox"
                 className="w-5 h-5 rounded transition-colors cursor-pointer"
                 style={{ accentColor: t.accent }}
               />
@@ -683,6 +696,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
                   type="number"
                   {...register('max_lifetime_uses', { valueAsNumber: true })}
                   min="1"
+                  data-testid="policy-lifetime-input"
                   className="w-32 px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
                   style={{
                     background: t.input,
@@ -705,6 +719,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
           {mutation.isError && (
             <div
               className="px-4 py-3 rounded-lg"
+              data-testid="policy-error"
               style={{
                 background: '#FEE2E2',
                 border: '1px solid #FECACA',
@@ -724,6 +739,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
             <button
               type="button"
               onClick={onClose}
+              data-testid="policy-cancel-btn"
               className="flex-1 px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-70"
               style={{
                 background: t.surfaceHover,
@@ -736,6 +752,7 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
             <button
               type="submit"
               disabled={mutation.isPending}
+              data-testid="policy-submit-btn"
               className="flex-1 px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{
                 background: t.accent,
