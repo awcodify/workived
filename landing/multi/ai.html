@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: light;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Assistant — Workived</title>
+  <meta name="description" content="Workived AI: ask anything about your team in natural language. Submit leave, query attendance, get insights — all through conversation.">
+  <meta name="color-scheme" content="light only">
+  <meta name="theme-color" content="#F3F2FB">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='30' fill='%236357E8'/><text x='90' y='112' text-anchor='middle' dominant-baseline='middle' style='font-family:Plus Jakarta Sans,sans-serif;font-size:108px;font-weight:800;fill:white'>W</text><rect x='55' y='150' width='70' height='10' rx='5' fill='white' opacity='0.7'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      color-scheme:light only;
+      --accent:#6357E8;--accent-dim:#EFEDFD;--accent-mid:#8F86F0;--accent-text:#4A3FBF;
+      --ink-900:#0F0E13;--ink-700:#1F1D2B;--ink-500:#72708A;--ink-300:#B0AEBE;
+      --ink-150:#DDDBE8;--ink-100:#EDECF4;--ink-50:#F3F2FB;--ink-0:#FFFFFF;
+    }
+    html{scroll-behavior:smooth;}
+    body{
+      font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+      background:linear-gradient(180deg,var(--ink-50) 0%,#EFEDFD 50%,var(--ink-50) 100%);
+      color:var(--ink-900);-webkit-font-smoothing:antialiased;overflow-x:hidden;
+      min-height:100vh;
+    }
+
+    /* NAV */
+    .nav{position:sticky;top:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(243,242,251,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.04);}
+    .nav-left{display:flex;align-items:center;gap:14px;text-decoration:none;}
+    .nav-wordmark{font-size:22px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;}
+    .nav-links{display:flex;align-items:center;gap:32px;}
+    .nav-links a{font-size:14px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;}
+    .nav-links a:hover{color:var(--accent);}
+    .nav-links a.active{color:var(--accent);}
+    .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;border:none;}
+    .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.3);}
+
+    /* HERO */
+    .page-hero{
+      padding:100px 24px 40px;text-align:center;
+      position:relative;overflow:hidden;
+    }
+    .page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 20%,rgba(99,87,232,0.08),transparent 50%),radial-gradient(ellipse at 70% 80%,rgba(129,140,248,0.06),transparent 50%);pointer-events:none;}
+    .ai-badge{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 20px;border-radius:100px;
+      background:linear-gradient(135deg,rgba(143,134,240,0.12),rgba(99,87,232,0.12));
+      border:1px solid rgba(99,87,232,0.12);
+      font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+      color:var(--accent-text);margin-bottom:24px;position:relative;
+    }
+    .page-hero h1{
+      font-size:clamp(36px,6vw,60px);font-weight:800;
+      letter-spacing:-0.04em;line-height:1.1;margin-bottom:20px;position:relative;
+    }
+    .page-hero h1 .muted{color:var(--ink-300);}
+    .page-hero p{font-size:18px;color:var(--ink-500);line-height:1.7;max-width:560px;margin:0 auto;position:relative;}
+
+    /* AI CHAT DEMO */
+    .ai-demo{
+      max-width:700px;margin:0 auto;padding:60px 24px 40px;
+      position:relative;
+    }
+    /* Floating prompt bubbles */
+    .ai-float{
+      position:absolute;display:inline-flex;align-items:center;gap:0;
+      padding:11px 20px 11px 16px;border-radius:14px;
+      background:#fff;border:none;
+      box-shadow:0 1px 2px rgba(0,0,0,0.04),0 6px 20px rgba(99,87,232,0.10);
+      font-size:14px;color:var(--ink-700);font-weight:500;font-style:italic;
+      white-space:nowrap;pointer-events:none;
+      opacity:0;transform:translateY(10px) scale(0.95);
+      transition:opacity 0.5s cubic-bezier(0.4,0,0.2,1),transform 0.5s cubic-bezier(0.4,0,0.2,1);
+      z-index:0;
+    }
+    .ai-float::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-right:10px;}
+    .ai-float.visible{opacity:1;transform:translateY(0) scale(1);}
+    .ai-float:nth-child(1){top:20px;left:-180px;}.ai-float:nth-child(1)::before{background:var(--accent);}
+    .ai-float:nth-child(2){top:10%;right:-160px;}.ai-float:nth-child(2)::before{background:#8B5CF6;}
+    .ai-float:nth-child(3){top:38%;left:-200px;}.ai-float:nth-child(3)::before{background:#10B981;}
+    .ai-float:nth-child(4){top:52%;right:-180px;}.ai-float:nth-child(4)::before{background:#818CF8;}
+    .ai-float:nth-child(5){bottom:25%;left:-160px;}.ai-float:nth-child(5)::before{background:#EC4899;}
+    .ai-float:nth-child(6){bottom:15%;right:-170px;}.ai-float:nth-child(6)::before{background:#D97706;}
+    .ai-float:nth-child(7){top:-10px;right:-80px;}.ai-float:nth-child(7)::before{background:var(--accent-mid);}
+    .ai-float:nth-child(8){bottom:-10px;left:-100px;}.ai-float:nth-child(8)::before{background:#059669;}
+
+    .ai-chat-window{
+      position:relative;z-index:1;
+      background:#fff;border-radius:24px;
+      box-shadow:0 0 0 1px rgba(99,87,232,0.08),0 24px 80px rgba(99,87,232,0.12),0 8px 32px rgba(0,0,0,0.06);
+      overflow:hidden;
+    }
+    .ai-chat-bar{
+      display:flex;align-items:center;gap:10px;
+      padding:16px 24px;background:var(--ink-50);border-bottom:1px solid var(--ink-100);
+    }
+    .ai-chat-bar-dot{width:10px;height:10px;border-radius:50%;background:var(--accent);animation:pulse-dot 2s ease infinite;}
+    @keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.5;transform:scale(0.8);}}
+    .ai-chat-bar-title{font-size:14px;font-weight:700;color:var(--ink-700);}
+    .ai-chat-bar-badge{margin-left:auto;padding:3px 10px;border-radius:100px;background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;}
+    .ai-chat-messages{padding:28px 24px;display:flex;flex-direction:column;gap:20px;}
+    .ai-msg{display:flex;gap:12px;align-items:flex-start;}
+    .ai-msg.user{flex-direction:row-reverse;}
+    .ai-msg-avatar{width:32px;height:32px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+    .ai-msg.user .ai-msg-avatar{background:var(--ink-100);color:var(--ink-500);font-weight:700;}
+    .ai-msg.bot .ai-msg-avatar{background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;}
+    .ai-msg-bubble{padding:12px 18px;border-radius:16px;font-size:14px;line-height:1.6;max-width:420px;}
+    .ai-msg.user .ai-msg-bubble{background:var(--ink-50);color:var(--ink-700);border-bottom-right-radius:4px;font-weight:500;}
+    .ai-msg.bot .ai-msg-bubble{background:var(--accent-dim);color:var(--ink-700);border-bottom-left-radius:4px;}
+    .ai-msg-bubble strong{font-weight:700;color:var(--ink-900);}
+    .ai-chat-input{display:flex;align-items:center;gap:12px;padding:16px 24px;border-top:1px solid var(--ink-100);}
+    .ai-chat-input-field{flex:1;padding:10px 16px;border-radius:12px;border:1.5px solid var(--ink-100);font-family:inherit;font-size:13px;color:var(--ink-300);background:var(--ink-50);outline:none;}
+    .ai-chat-send{width:36px;height:36px;border-radius:10px;background:var(--accent);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+
+    /* CAPABILITIES */
+    .capabilities{max-width:1000px;margin:0 auto;padding:80px 24px 120px;}
+    .section-header{text-align:center;margin-bottom:60px;}
+    .section-label{display:inline-block;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;}
+    .section-header h2{font-size:clamp(28px,4.5vw,44px);font-weight:800;letter-spacing:-0.04em;line-height:1.15;}
+    .section-header h2 .muted{color:var(--ink-300);}
+    .cap-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+    .cap-card{
+      background:#fff;border-radius:20px;padding:32px;
+      border:1px solid var(--ink-100);transition:all 0.3s;
+    }
+    .cap-card:hover{border-color:transparent;box-shadow:0 16px 48px rgba(0,0,0,0.08),0 0 0 1px rgba(99,87,232,0.1);transform:translateY(-4px);}
+    .cap-card .cap-emoji{font-size:28px;margin-bottom:16px;display:block;}
+    .cap-card h3{font-size:17px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;color:var(--ink-900);}
+    .cap-card p{font-size:14px;color:var(--ink-500);line-height:1.7;}
+    .cap-card .example{
+      margin-top:16px;padding:10px 14px;border-radius:10px;
+      background:var(--ink-50);font-size:13px;color:var(--accent-text);
+      font-weight:500;font-style:italic;
+    }
+
+    /* PRO NOTE */
+    .pro-note{
+      text-align:center;padding:0 24px 80px;
+    }
+    .pro-note-inner{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:12px 24px;border-radius:100px;
+      background:linear-gradient(135deg,rgba(143,134,240,0.12),rgba(99,87,232,0.12));
+      font-size:14px;font-weight:700;color:var(--accent-text);
+    }
+
+    /* CTA */
+    .cta-section{text-align:center;padding:120px 24px;position:relative;overflow:hidden;background:var(--ink-900);}
+    .cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(99,87,232,0.15),transparent 60%);pointer-events:none;}
+    .cta-content{position:relative;z-index:1;max-width:560px;margin:0 auto;}
+    .cta-section h2{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-0.04em;margin-bottom:16px;color:#fff;line-height:1.1;}
+    .cta-section h2 .gradient{background:linear-gradient(135deg,#9B8FF7,#6357E8,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .cta-section p{font-size:17px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:40px;}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:16px 36px;border-radius:14px;background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;font-size:16px;font-weight:700;text-decoration:none;border:none;cursor:pointer;transition:all 0.25s;box-shadow:0 4px 20px rgba(99,87,232,0.25);}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,87,232,0.35);}
+
+    /* FOOTER */
+    .footer{border-top:1px solid rgba(255,255,255,0.06);padding:48px 40px 32px;background:var(--ink-900);}
+    .footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+    .footer-left{display:flex;align-items:center;gap:12px;}
+    .footer-wordmark{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.03em;}
+    .footer-copy{font-size:13px;color:rgba(255,255,255,0.3);}
+    .footer-right{display:flex;align-items:center;gap:24px;}
+    .footer-link{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s;}
+    .footer-link:hover{color:#fff;}
+
+    .reveal{opacity:0;transform:translateY(32px);transition:opacity 0.6s ease-out,transform 0.6s ease-out;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+    .reveal-d1{transition-delay:0.1s;}.reveal-d2{transition-delay:0.2s;}.reveal-d3{transition-delay:0.3s;}
+
+    @media(max-width:1100px){.ai-float{display:none;}}
+    @media(max-width:900px){.cap-grid{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:640px){
+      .nav{padding:0 20px;}.nav-links a:not(.nav-cta){display:none;}
+      .page-hero{padding:80px 20px 20px;}
+      .cap-grid{grid-template-columns:1fr;}
+      .capabilities{padding:60px 20px 80px;}
+      .cta-section{padding:80px 20px;}
+      .footer{padding:32px 20px 24px;}
+      .footer-inner{flex-direction:column;gap:16px;text-align:center;}
+      .footer-right{flex-wrap:wrap;justify-content:center;}
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="index.html" class="nav-left" style="text-decoration:none;">
+      <svg width="36" height="36" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="url(#g)"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text><rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/></svg>
+      <span class="nav-wordmark">Workived</span>
+    </a>
+    <div class="nav-links">
+      <a href="features.html">Features</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="security.html">Security</a>
+      <a href="ai.html" class="active">AI</a>
+      <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+    </div>
+  </nav>
+
+  <section class="page-hero">
+    <div class="ai-badge reveal">
+      <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      AI-Powered — Pro Plan
+    </div>
+    <h1 class="reveal reveal-d1">Just ask.<br><span class="muted">Workived does the rest.</span></h1>
+    <p class="reveal reveal-d2">Query your team data in natural language. Submit leave, check attendance trends, find who's available — all through a simple conversation.</p>
+  </section>
+
+  <div class="ai-demo reveal">
+    <!-- Floating prompt bubbles (desktop) -->
+    <div class="ai-float"><strong>Most on-time employee?</strong></div>
+    <div class="ai-float"><strong>Turnover this year?</strong></div>
+    <div class="ai-float"><strong>Sales team status?</strong></div>
+    <div class="ai-float"><strong>Pending expense claims?</strong></div>
+    <div class="ai-float"><strong>Who's on leave next week?</strong></div>
+    <div class="ai-float"><strong>Average attendance rate?</strong></div>
+    <div class="ai-float"><strong>Overdue tasks?</strong></div>
+    <div class="ai-float"><strong>Sick days this quarter?</strong></div>
+
+    <div class="ai-chat-window">
+      <div class="ai-chat-bar">
+        <div class="ai-chat-bar-dot"></div>
+        <span class="ai-chat-bar-title">Workived AI</span>
+        <span class="ai-chat-bar-badge">Pro</span>
+      </div>
+      <div class="ai-chat-messages" id="chatMessages">
+        <div class="ai-msg user">
+          <div class="ai-msg-avatar">WD</div>
+          <div class="ai-msg-bubble">I want to take leave from 17 Aug to 20 Aug.</div>
+        </div>
+        <div class="ai-msg bot">
+          <div class="ai-msg-avatar">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M18 14a6 6 0 0 1-12 0"/><path d="M12 18v4"/></svg>
+          </div>
+          <div class="ai-msg-bubble">Done! I've submitted a <strong>4-day annual leave</strong> request (17–20 Aug). Your manager has been notified. You have <strong>12 days</strong> remaining.</div>
+        </div>
+      </div>
+      <div class="ai-chat-input">
+        <div class="ai-chat-input-field">Ask anything about your team…</div>
+        <div class="ai-chat-send">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="capabilities">
+    <div class="section-header reveal">
+      <span class="section-label">What AI can do</span>
+      <h2>Your team data,<br><span class="muted">one question away.</span></h2>
+    </div>
+    <div class="cap-grid">
+      <div class="cap-card reveal">
+        <span class="cap-emoji">💬</span>
+        <h3>Natural Language Queries</h3>
+        <p>Ask questions in plain English. No dashboards to navigate, no filters to set.</p>
+        <div class="example">"Who had the most sick days this quarter?"</div>
+      </div>
+      <div class="cap-card reveal reveal-d1">
+        <span class="cap-emoji">📊</span>
+        <h3>Instant Analytics</h3>
+        <p>Get attendance trends, task completion rates, and leave utilization with a single question.</p>
+        <div class="example">"Show attendance trends for March"</div>
+      </div>
+      <div class="cap-card reveal reveal-d2">
+        <span class="cap-emoji">✈️</span>
+        <h3>Submit Actions</h3>
+        <p>Request leave, check balances, and manage approvals — all through conversation.</p>
+        <div class="example">"Submit 2 days annual leave next Friday"</div>
+      </div>
+      <div class="cap-card reveal reveal-d3">
+        <span class="cap-emoji">👥</span>
+        <h3>Team Status</h3>
+        <p>Instantly know who's in, who's on leave, and who's available for a meeting.</p>
+        <div class="example">"Who's available this Thursday afternoon?"</div>
+      </div>
+      <div class="cap-card reveal">
+        <span class="cap-emoji">📈</span>
+        <h3>Performance Insights</h3>
+        <p>Identify top performers, track trends, and spot issues before they become problems.</p>
+        <div class="example">"Which team has the best punctuality rate?"</div>
+      </div>
+      <div class="cap-card reveal reveal-d1">
+        <span class="cap-emoji">💰</span>
+        <h3>Budget Intelligence</h3>
+        <p>Track claim budgets, spending patterns, and remaining allocations across departments.</p>
+        <div class="example">"How much is left in the marketing budget?"</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="pro-note">
+    <div class="pro-note-inner">
+      <svg style="width:14px;height:14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      AI Assistant is available exclusively on the Pro plan
+    </div>
+  </div>
+
+  <section class="cta-section">
+    <div class="cta-content reveal">
+      <h2>Be first to try<br><span class="gradient">Workived AI.</span></h2>
+      <p>Join the waitlist for the Pro plan and get early access to AI-powered team management.</p>
+      <a href="mailto:my@workived.com" class="btn-primary">Join the Waitlist <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <svg width="28" height="28" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="gf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="url(#gf)"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text><rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/></svg>
+        <span class="footer-wordmark">Workived</span>
+        <span class="footer-copy">&copy; 2026</span>
+      </div>
+      <div class="footer-right">
+        <a href="features.html" class="footer-link">Features</a>
+        <a href="pricing.html" class="footer-link">Pricing</a>
+        <a href="security.html" class="footer-link">Security</a>
+        <a href="ai.html" class="footer-link">AI</a>
+        <a href="mailto:my@workived.com" class="footer-link">my@workived.com</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Reveal
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // AI floating bubbles — show 4 at a time, cycle
+    (() => {
+      const bubbles = document.querySelectorAll('.ai-float');
+      if (!bubbles.length) return;
+      const total = bubbles.length;
+      const showCount = 4;
+      let active = new Set();
+      while (active.size < showCount) active.add(Math.floor(Math.random() * total));
+      active.forEach(i => bubbles[i].classList.add('visible'));
+      setInterval(() => {
+        const arr = [...active];
+        const hideIdx = arr[Math.floor(Math.random() * arr.length)];
+        bubbles[hideIdx].classList.remove('visible');
+        active.delete(hideIdx);
+        setTimeout(() => {
+          const inactive = [];
+          for (let i = 0; i < total; i++) if (!active.has(i)) inactive.push(i);
+          const showIdx = inactive[Math.floor(Math.random() * inactive.length)];
+          bubbles[showIdx].classList.add('visible');
+          active.add(showIdx);
+        }, 600);
+      }, 2200);
+    })();
+
+    // Chat demo animation: cycle through conversations
+    const conversations = [
+      { user: "I want to take leave from 17 Aug to 20 Aug.", bot: 'Done! I\'ve submitted a <strong>4-day annual leave</strong> request (17–20 Aug). Your manager has been notified. You have <strong>12 days</strong> remaining.' },
+      { user: "Who's on leave next week?", bot: '<strong>3 people</strong> on leave next week: Sarah (Mon–Wed, Annual), Ahmad (Tue, Sick), Budi (Thu–Fri, Annual). <strong>5 of 8</strong> available all week.' },
+      { user: "Show me attendance trends for March.", bot: 'March attendance: <strong>94.2%</strong> avg (up from 91.8% in Feb). Best day: Monday (97%). Worst: Friday (89%). <strong>Top performer:</strong> Sarah — 100% on time.' },
+      { user: "How much is left in the marketing budget?", bot: 'Marketing claims budget: <strong>IDR 8,500,000</strong> remaining of IDR 15,000,000 (56.7%). Top spend: client meals (IDR 3.2M). <strong>2 pending</strong> claims to approve.' },
+    ];
+    let convIndex = 0;
+    const messagesEl = document.getElementById('chatMessages');
+
+    setInterval(() => {
+      convIndex = (convIndex + 1) % conversations.length;
+      const c = conversations[convIndex];
+      messagesEl.style.opacity = '0';
+      messagesEl.style.transform = 'translateY(10px)';
+      setTimeout(() => {
+        messagesEl.innerHTML = `
+          <div class="ai-msg user">
+            <div class="ai-msg-avatar">WD</div>
+            <div class="ai-msg-bubble">${c.user}</div>
+          </div>
+          <div class="ai-msg bot">
+            <div class="ai-msg-avatar"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M18 14a6 6 0 0 1-12 0"/><path d="M12 18v4"/></svg></div>
+            <div class="ai-msg-bubble">${c.bot}</div>
+          </div>`;
+        messagesEl.style.opacity = '1';
+        messagesEl.style.transform = 'translateY(0)';
+      }, 400);
+    }, 5000);
+    messagesEl.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+  </script>
+</body>
+</html>
