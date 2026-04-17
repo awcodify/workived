@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Articles — Workived</title>
+  <meta name="description" content="Insights on HR operations, team management, and building great startups from the Workived team.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://workived.com/articles">
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://workived.com/articles">
+  <meta property="og:title" content="articles — Workived">
+  <meta property="og:description" content="Insights on HR operations, team management, and building great startups from the Workived team.">
+  <meta property="og:image" content="https://workived.com/images/og-cover.png">
+  <meta property="og:site_name" content="Workived">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="articles — Workived">
+  <meta name="twitter:description" content="Insights on HR operations, team management, and building great startups from the Workived team.">
+  <meta name="twitter:image" content="https://workived.com/images/og-cover.png">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FFFFFF">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='30' fill='%236357E8'/><text x='90' y='112' text-anchor='middle' dominant-baseline='middle' style='font-family:Plus Jakarta Sans,sans-serif;font-size:108px;font-weight:800;fill:white'>W</text><rect x='55' y='150' width='70' height='10' rx='5' fill='white' opacity='0.7'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --accent:#6357E8;--accent-dim:#EFEDFD;--accent-mid:#8F86F0;--accent-text:#4A3FBF;
+      --ink-900:#0F0E13;--ink-700:#1F1D2B;--ink-500:#72708A;--ink-300:#B0AEBE;
+      --ink-150:#DDDBE8;--ink-100:#EDECF4;--ink-50:#F6F5FC;--ink-0:#FFFFFF;
+      --dark:#0A0A12;--green:#10B981;
+    }
+    html{scroll-behavior:smooth;}
+    body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--ink-0);color:var(--ink-900);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    .nav{position:sticky;top:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--ink-100);}
+    .nav-left{display:flex;align-items:center;gap:14px;text-decoration:none;}
+    .nav-wordmark{font-size:22px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;}
+    .nav-links{display:flex;align-items:center;gap:32px;}
+    .nav-links a{font-size:14px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;}
+    .nav-links a:hover{color:var(--ink-900);}
+    .nav-links a.active{color:var(--accent);}
+    .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;}
+    .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.35);}
+
+    /* Hero */
+    .hero{padding:96px 24px 64px;text-align:center;}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:100px;background:var(--accent-dim);border:1px solid rgba(99,87,232,0.15);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent-text);margin-bottom:28px;}
+    .hero h1{font-size:clamp(38px,6vw,64px);font-weight:800;letter-spacing:-0.05em;line-height:1.05;margin-bottom:20px;color:var(--ink-900);}
+    .hero h1 em{font-style:normal;color:var(--accent);}
+    .hero-sub{font-size:18px;color:var(--ink-500);line-height:1.65;max-width:480px;margin:0 auto;}
+
+    /* Category filters */
+    .filters{padding:0 24px 48px;display:flex;justify-content:center;}
+    .filter-list{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;}
+    .filter-btn{padding:8px 18px;border-radius:100px;font-size:13px;font-weight:600;border:1.5px solid var(--ink-150);background:transparent;color:var(--ink-500);cursor:pointer;transition:all 0.2s;text-decoration:none;}
+    .filter-btn:hover{border-color:var(--accent);color:var(--accent);}
+    .filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+    /* Featured article */
+    .featured{padding:0 24px 72px;}
+    .featured-inner{max-width:1040px;margin:0 auto;}
+    .featured-card{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:24px;overflow:hidden;background:var(--ink-50);border:1px solid var(--ink-100);transition:box-shadow 0.3s,transform 0.3s;text-decoration:none;color:inherit;}
+    .featured-card:hover{box-shadow:0 20px 56px rgba(0,0,0,0.08);transform:translateY(-4px);}
+    .featured-image{background:linear-gradient(135deg,#6357E8 0%,#9B8FF7 50%,#C4BFFA 100%);min-height:380px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+    .featured-image::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,rgba(255,255,255,0.15),transparent 55%);}
+    .feat-illus{position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;padding:32px;}
+    .feat-task{background:rgba(255,255,255,0.18);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.3);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;}
+    .feat-task-check{width:20px;height:20px;border-radius:6px;border:2px solid rgba(255,255,255,0.6);flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+    .feat-task-check.done{background:rgba(255,255,255,0.9);border-color:transparent;}
+    .feat-task-check.done svg{display:block;}
+    .feat-task-check svg{display:none;width:11px;height:11px;}
+    .feat-task-text{font-size:13px;font-weight:600;color:rgba(255,255,255,0.9);}
+    .feat-task-text.done{text-decoration:line-through;opacity:0.55;}
+    .feat-task-badge{margin-left:auto;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:0.04em;}
+    .badge-high{background:rgba(255,100,80,0.25);color:#FF9E95;}
+    .badge-med{background:rgba(255,180,50,0.25);color:#FFD080;}
+    .badge-low{background:rgba(80,220,160,0.25);color:#80EABD;}
+    .featured-body{padding:44px 48px;display:flex;flex-direction:column;justify-content:center;}
+    .article-meta{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+    .article-category{padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:var(--accent-dim);color:var(--accent-text);}
+    .article-read-time{font-size:12px;color:var(--ink-300);font-weight:600;}
+    .article-dot{width:3px;height:3px;border-radius:50%;background:var(--ink-300);}
+    .featured-title{font-size:clamp(22px,3vw,30px);font-weight:800;letter-spacing:-0.04em;line-height:1.2;margin-bottom:16px;color:var(--ink-900);}
+    .featured-excerpt{font-size:15px;color:var(--ink-500);line-height:1.7;margin-bottom:28px;}
+    .featured-author{display:flex;align-items:center;gap:10px;}
+    .author-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--accent-mid),var(--accent));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;}
+    .author-name{font-size:13px;font-weight:700;color:var(--ink-700);}
+    .author-date{font-size:12px;color:var(--ink-300);}
+    .read-link{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--accent);text-decoration:none;}
+    .read-link svg{transition:transform 0.2s;}
+    .featured-card:hover .read-link svg{transform:translateX(4px);}
+
+    /* Article list */
+    .articles{padding:0 24px 100px;}
+    .articles-inner{max-width:1040px;margin:0 auto;}
+    .section-label{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-300);margin-bottom:8px;}
+    .articles-list{display:flex;flex-direction:column;border-top:1px solid var(--ink-100);}
+    .list-item{display:grid;grid-template-columns:160px 1fr auto;align-items:center;gap:32px;padding:28px 0;border-bottom:1px solid var(--ink-100);text-decoration:none;color:inherit;transition:background 0.2s;border-radius:4px;position:relative;}
+    .list-item::before{content:'';position:absolute;left:-16px;top:0;bottom:0;width:3px;border-radius:2px;background:var(--accent);opacity:0;transition:opacity 0.2s;}
+    .list-item:hover::before{opacity:1;}
+    .list-item:hover .list-title{color:var(--accent);}
+    .list-item:hover .list-arrow{transform:translateX(4px);color:var(--accent);}
+    .list-left{display:flex;flex-direction:column;gap:8px;}
+    .list-category{padding:4px 12px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:var(--accent-dim);color:var(--accent-text);display:inline-flex;width:fit-content;}
+    .list-meta{display:flex;flex-direction:column;gap:3px;}
+    .list-date{font-size:12px;font-weight:600;color:var(--ink-300);}
+    .list-read-time{font-size:12px;font-weight:600;color:var(--ink-300);}
+    .list-body{display:flex;flex-direction:column;gap:8px;}
+    .list-title{font-size:18px;font-weight:800;letter-spacing:-0.03em;line-height:1.3;color:var(--ink-900);transition:color 0.2s;}
+    .list-excerpt{font-size:14px;color:var(--ink-500);line-height:1.6;max-width:560px;}
+    .list-arrow{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--ink-150);display:flex;align-items:center;justify-content:center;color:var(--ink-300);transition:all 0.2s;flex-shrink:0;}
+
+    /* Coming soon list items */
+    .list-item.coming-soon{opacity:0.4;pointer-events:none;}
+    .list-item.coming-soon::before{display:none;}
+    .coming-soon-badge{padding:2px 10px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:var(--ink-100);color:var(--ink-300);}
+
+    @media(max-width:640px){
+      .list-item{grid-template-columns:1fr auto;gap:16px;}
+      .list-left{display:none;}
+      .list-title{font-size:15px;}
+    }
+
+    /* Newsletter */
+    .newsletter{padding:0 24px 100px;}
+    .newsletter-inner{max-width:1040px;margin:0 auto;}
+    .newsletter-card{background:var(--dark);border-radius:24px;padding:56px 64px;display:flex;align-items:center;gap:48px;position:relative;overflow:hidden;}
+    .newsletter-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 80% 50%,rgba(99,87,232,0.2),transparent 60%);pointer-events:none;}
+    .newsletter-text{flex:1;position:relative;z-index:1;}
+    .newsletter-eyebrow{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent-mid);margin-bottom:12px;}
+    .newsletter-title{font-size:clamp(24px,3vw,32px);font-weight:800;letter-spacing:-0.04em;color:#fff;line-height:1.2;margin-bottom:10px;}
+    .newsletter-sub{font-size:15px;color:rgba(255,255,255,0.4);line-height:1.6;}
+    .newsletter-form{display:flex;gap:10px;flex-shrink:0;position:relative;z-index:1;}
+    .newsletter-input{padding:13px 20px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.07);color:#fff;font-size:14px;font-weight:500;font-family:inherit;outline:none;width:240px;transition:border-color 0.2s;}
+    .newsletter-input::placeholder{color:rgba(255,255,255,0.3);}
+    .newsletter-input:focus{border-color:var(--accent-mid);}
+    .newsletter-btn{padding:13px 24px;border-radius:12px;background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;font-size:14px;font-weight:700;border:none;cursor:pointer;font-family:inherit;transition:all 0.2s;white-space:nowrap;}
+    .newsletter-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(99,87,232,0.4);}
+
+    /* Footer */
+    .footer{border-top:1px solid rgba(255,255,255,0.06);padding:48px 40px 32px;background:var(--dark);}
+    .footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+    .footer-left{display:flex;align-items:center;gap:12px;}
+    .footer-wordmark{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.03em;}
+    .footer-copy{font-size:13px;color:rgba(255,255,255,0.3);}
+    .footer-right{display:flex;align-items:center;gap:24px;}
+    .footer-link{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s;}
+    .footer-link:hover{color:#fff;}
+
+    /* Animations */
+    .reveal{opacity:0;transform:translateY(28px);transition:opacity 0.65s ease-out,transform 0.65s ease-out;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+    .reveal-d1{transition-delay:0.1s;}.reveal-d2{transition-delay:0.2s;}.reveal-d3{transition-delay:0.3s;}
+
+    @media(max-width:900px){
+      .featured-card{grid-template-columns:1fr;}
+      .featured-image{min-height:260px;}
+      .featured-body{padding:32px;}
+      .newsletter-card{flex-direction:column;gap:28px;padding:40px 32px;}
+      .newsletter-form{width:100%;}
+      .newsletter-input{flex:1;}
+    }
+    @media(max-width:700px){
+      .nav{padding:0 20px;}.nav-links a:not(.nav-cta){display:none;}
+      .hero{padding:72px 20px 48px;}
+      .newsletter-card{padding:32px 24px;}
+      .footer{padding:32px 20px 24px;}
+      .footer-inner{flex-direction:column;gap:16px;text-align:center;}
+      .footer-right{flex-wrap:wrap;justify-content:center;}
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="index.html" class="nav-left">
+      <svg width="36" height="36" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="url(#g)"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text><rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/></svg>
+      <span class="nav-wordmark">Workived</span>
+    </a>
+    <div class="nav-links">
+      <a href="features.html">Features</a>
+      <a href="pricing.html">Pricing</a>
+      <a href="security.html">Security</a>
+      <a href="ai.html">AI</a>
+      <a href="articles.html" class="active">Articles</a>
+      <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-eyebrow">From the Workived team</div>
+    <h1>Insights to help your<br><em>team thrive.</em></h1>
+    <p class="hero-sub">HR operations, team management, and startup culture — practical reads for founders and ops leads.</p>
+  </section>
+
+  <!-- Filters -->
+  <div class="filters">
+    <div class="filter-list">
+      <a href="#" class="filter-btn active">All</a>
+      <a href="#" class="filter-btn">Team Management</a>
+      <a href="#" class="filter-btn">HR Ops</a>
+      <a href="#" class="filter-btn">Productivity</a>
+      <a href="#" class="filter-btn">Startup Culture</a>
+    </div>
+  </div>
+
+  <!-- Featured Article -->
+  <section class="featured">
+    <div class="featured-inner reveal">
+      <a href="articles/boost-team-task-management.html" class="featured-card">
+        <div class="featured-image">
+          <div class="feat-illus">
+            <div class="feat-task">
+              <div class="feat-task-check done">
+                <svg viewBox="0 0 11 11" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4.5 8.5L9.5 2.5"/></svg>
+              </div>
+              <span class="feat-task-text done">Q2 onboarding flow review</span>
+              <span class="feat-task-badge badge-high">High</span>
+            </div>
+            <div class="feat-task">
+              <div class="feat-task-check done">
+                <svg viewBox="0 0 11 11" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4.5 8.5L9.5 2.5"/></svg>
+              </div>
+              <span class="feat-task-text done">Set leave policy for UAE team</span>
+              <span class="feat-task-badge badge-med">Med</span>
+            </div>
+            <div class="feat-task">
+              <div class="feat-task-check"></div>
+              <span class="feat-task-text">Performance review cycle setup</span>
+              <span class="feat-task-badge badge-high">High</span>
+            </div>
+            <div class="feat-task">
+              <div class="feat-task-check"></div>
+              <span class="feat-task-text">Update employee handbook</span>
+              <span class="feat-task-badge badge-low">Low</span>
+            </div>
+            <div class="feat-task">
+              <div class="feat-task-check"></div>
+              <span class="feat-task-text">Schedule 1-on-1s for May</span>
+              <span class="feat-task-badge badge-med">Med</span>
+            </div>
+          </div>
+        </div>
+        <div class="featured-body">
+          <div class="article-meta">
+            <span class="article-category">Team Management</span>
+            <span class="article-dot"></span>
+            <span class="article-read-time">7 min read</span>
+          </div>
+          <h2 class="featured-title">How to Boost Your Team with Proper Task Management</h2>
+          <p class="featured-excerpt">Most small teams don't fail because of a lack of talent — they fail because of unclear ownership and scattered priorities. Here's how a structured approach to task management turns a group of good people into a high-performance team.</p>
+          <div class="featured-author">
+            <div class="author-avatar">W</div>
+            <div>
+              <div class="author-name">Workived Team</div>
+              <div class="author-date">April 18, 2026</div>
+            </div>
+            <span class="read-link">
+              Read article
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+            </span>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- More articles -->
+  <section class="articles">
+    <div class="articles-inner">
+      <p class="section-label">All articles</p>
+      <div class="articles-list">
+
+        <!-- Article 1 — published -->
+        <a href="articles/boost-team-task-management.html" class="list-item reveal">
+          <div class="list-left">
+            <span class="list-category">Team Management</span>
+            <div class="list-meta">
+              <span class="list-date">Apr 18, 2026</span>
+              <span class="list-read-time">7 min read</span>
+            </div>
+          </div>
+          <div class="list-body">
+            <div class="list-title">How to Boost Your Team with Proper Task Management</div>
+            <div class="list-excerpt">Most small teams don't fail because of a lack of talent — they fail because of unclear ownership and scattered priorities.</div>
+          </div>
+          <div class="list-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+          </div>
+        </a>
+
+        <!-- Article 2 — coming soon -->
+        <div class="list-item coming-soon">
+          <div class="list-left">
+            <span class="list-category" style="background:#1F1D2B;color:var(--ink-300);">HR Ops</span>
+            <div class="list-meta">
+              <span class="coming-soon-badge">Coming soon</span>
+            </div>
+          </div>
+          <div class="list-body">
+            <div class="list-title">The Startup Founder's Guide to Leave Management</div>
+            <div class="list-excerpt">How to design a leave policy that keeps your team happy without creating chaos as you scale.</div>
+          </div>
+          <div class="list-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+          </div>
+        </div>
+
+        <!-- Article 3 — coming soon -->
+        <div class="list-item coming-soon">
+          <div class="list-left">
+            <span class="list-category" style="background:#0F3D28;color:#80EABD;">Productivity</span>
+            <div class="list-meta">
+              <span class="coming-soon-badge">Coming soon</span>
+            </div>
+          </div>
+          <div class="list-body">
+            <div class="list-title">Why Your Team's Attendance System Is Slowing You Down</div>
+            <div class="list-excerpt">Manual check-ins and spreadsheet tracking cost more than you think. Here's the data.</div>
+          </div>
+          <div class="list-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+          </div>
+        </div>
+
+        <!-- Article 4 — coming soon -->
+        <div class="list-item coming-soon">
+          <div class="list-left">
+            <span class="list-category" style="background:#2D1854;color:#C4BFFA;">Startup Culture</span>
+            <div class="list-meta">
+              <span class="coming-soon-badge">Coming soon</span>
+            </div>
+          </div>
+          <div class="list-body">
+            <div class="list-title">Building a Remote-First Culture Across Indonesia and UAE</div>
+            <div class="list-excerpt">Timezone gaps, public holiday differences, multi-currency expenses — here's how to make it work.</div>
+          </div>
+          <div class="list-arrow">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- Newsletter -->
+  <section class="newsletter">
+    <div class="newsletter-inner reveal">
+      <div class="newsletter-card">
+        <div class="newsletter-text">
+          <div class="newsletter-eyebrow">Stay in the loop</div>
+          <div class="newsletter-title">New articles, straight to your inbox.</div>
+          <p class="newsletter-sub">No spam. Practical reads for startup ops leads, founders, and HR teams — once or twice a month.</p>
+        </div>
+        <form class="newsletter-form" onsubmit="handleSubscribe(event)">
+          <input class="newsletter-input" type="email" placeholder="you@company.com" required autocomplete="email">
+          <button class="newsletter-btn" type="submit">Subscribe</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <svg width="28" height="28" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="fg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="url(#fg)"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text></svg>
+        <span class="footer-wordmark">Workived</span>
+        <span class="footer-copy">&nbsp;© 2026</span>
+      </div>
+      <div class="footer-right">
+        <a href="features.html" class="footer-link">Features</a>
+        <a href="pricing.html" class="footer-link">Pricing</a>
+        <a href="security.html" class="footer-link">Security</a>
+        <a href="ai.html" class="footer-link">AI</a>
+        <a href="articles.html" class="footer-link">Articles</a>
+        <a href="mailto:my@workived.com" class="footer-link">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Scroll reveal
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // Newsletter
+    function handleSubscribe(e) {
+      e.preventDefault();
+      const btn = e.target.querySelector('button');
+      const input = e.target.querySelector('input');
+      btn.textContent = '✓ Subscribed!';
+      btn.style.background = '#10B981';
+      input.value = '';
+      input.disabled = true;
+      btn.disabled = true;
+    }
+
+    // Filter buttons (UI only — no filtering logic needed for now)
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>
