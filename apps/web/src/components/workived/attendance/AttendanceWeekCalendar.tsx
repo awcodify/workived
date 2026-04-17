@@ -88,11 +88,11 @@ export function AttendanceWeekCalendar({
   const showNavigation = onPreviousWeek || onNextWeek || onCurrentWeek
 
   return (
-    <div className="mb-4">
+    <div data-testid="attendance-week-calendar" className="mb-4">
       {/* Employee name (if team view) */}
       {employeeName && (
-        <h3 
-          className="font-bold mb-3 px-4" 
+        <h3
+          className="font-bold mb-3 px-4"
           style={{ fontSize: 15, color: t.text }}
         >
           {employeeName}
@@ -129,6 +129,7 @@ export function AttendanceWeekCalendar({
             <div className="flex items-center gap-2">
               {onPreviousWeek && (
                 <button
+                  data-testid="attendance-week-prev-btn"
                   onClick={onPreviousWeek}
                   className="p-2 rounded-lg transition-all hover:bg-white"
                   style={{ color: '#6B7280' }}
@@ -137,9 +138,10 @@ export function AttendanceWeekCalendar({
                   <ChevronLeft size={16} strokeWidth={2.5} />
                 </button>
               )}
-              
+
               {onCurrentWeek && (
                 <button
+                  data-testid="attendance-week-today-btn"
                   onClick={onCurrentWeek}
                   className="px-3 py-2 text-xs font-bold transition-all rounded-lg"
                   style={{
@@ -152,9 +154,10 @@ export function AttendanceWeekCalendar({
                   Today
                 </button>
               )}
-              
+
               {onNextWeek && (
                 <button
+                  data-testid="attendance-week-next-btn"
                   onClick={onNextWeek}
                   disabled={!canNavigateNext}
                   className="p-2 rounded-lg transition-all hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
@@ -169,7 +172,7 @@ export function AttendanceWeekCalendar({
         </div>
 
         {/* 7-day grid */}
-        <div className="grid grid-cols-7">
+        <div data-testid="attendance-week-grid" className="grid grid-cols-7">
           {days.map((day, index) => (
             <DayColumn key={day.date || index} day={day} isLast={index === 6} tz={tz} />
           ))}
@@ -186,6 +189,7 @@ function DayColumn({ day, isLast, tz }: { day: WeekDay; isLast: boolean; tz: str
 
   return (
     <div
+      data-testid={`attendance-week-day-${day.date}`}
       className="flex flex-col items-center py-6 px-3 relative transition-all"
       style={{
         borderRight: isLast ? 'none' : '1px solid #F3F4F6',
@@ -248,7 +252,8 @@ function DayColumn({ day, isLast, tz }: { day: WeekDay; isLast: boolean; tz: str
       {day.clock_in_at || day.clock_out_at ? (
         <div className="space-y-2 w-full text-center">
           {day.clock_in_at && (
-            <div 
+            <div
+              data-testid={`attendance-clock-in-${day.date}`}
               className="py-2 px-3 rounded-lg"
               style={{
                 background: '#F0FDF4',
@@ -271,22 +276,23 @@ function DayColumn({ day, isLast, tz }: { day: WeekDay; isLast: boolean; tz: str
           )}
           
           {day.clock_out_at && (
-            <div 
+            <div
+              data-testid={`attendance-clock-out-${day.date}`}
               className="py-2 px-3 rounded-lg"
               style={{
-                background: '#F9FAFB',
-                border: '1px solid #E5E7EB',
+                background: day.is_leaving_early ? '#FFF7ED' : day.is_overtime ? '#EFF6FF' : '#F9FAFB',
+                border: `1px solid ${day.is_leaving_early ? '#FED7AA' : day.is_overtime ? '#BFDBFE' : '#E5E7EB'}`,
               }}
             >
-              <div 
+              <div
                 className="text-[9px] font-bold uppercase tracking-wider mb-1"
-                style={{ color: '#6B7280', opacity: 0.7 }}
+                style={{ color: day.is_leaving_early ? '#EA580C' : day.is_overtime ? '#2563EB' : '#6B7280', opacity: 0.7 }}
               >
-                Out
+                {day.is_leaving_early ? 'Early' : day.is_overtime ? 'OT' : 'Out'}
               </div>
-              <div 
+              <div
                 className="text-xs font-bold tabular-nums"
-                style={{ color: '#374151' }}
+                style={{ color: day.is_leaving_early ? '#EA580C' : day.is_overtime ? '#2563EB' : '#374151' }}
               >
                 {formatDate(day.clock_out_at, tz, 'time')}
               </div>

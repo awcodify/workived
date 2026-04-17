@@ -18,7 +18,8 @@ import (
 type fakeRepo struct {
 	getByEmpDateFn            func(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error)
 	createFn                  func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error)
-	updateClockOutFn          func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error)
+	updateClockOutFn          func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, isLeavingEarly, isOvertime bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error)
+	getScheduleForEmployeeFn  func(ctx context.Context, orgID, empID uuid.UUID) (*attendance.WorkSchedule, error)
 	listByDateFn              func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error)
 	listByMonthFn             func(ctx context.Context, orgID uuid.UUID, year, month int) ([]attendance.Record, error)
 	listByEmpMonthFn          func(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error)
@@ -38,8 +39,14 @@ func (f *fakeRepo) GetByEmployeeAndDate(ctx context.Context, orgID, empID uuid.U
 func (f *fakeRepo) Create(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error) {
 	return f.createFn(ctx, orgID, empID, date, clockIn, isLate, note, latitude, longitude, photoURL)
 }
-func (f *fakeRepo) UpdateClockOut(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error) {
-	return f.updateClockOutFn(ctx, orgID, empID, date, clockOut, note, latitude, longitude, photoURL)
+func (f *fakeRepo) UpdateClockOut(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, isLeavingEarly, isOvertime bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error) {
+	return f.updateClockOutFn(ctx, orgID, empID, date, clockOut, isLeavingEarly, isOvertime, note, latitude, longitude, photoURL)
+}
+func (f *fakeRepo) GetScheduleForEmployee(ctx context.Context, orgID, empID uuid.UUID) (*attendance.WorkSchedule, error) {
+	if f.getScheduleForEmployeeFn != nil {
+		return f.getScheduleForEmployeeFn(ctx, orgID, empID)
+	}
+	return nil, nil
 }
 func (f *fakeRepo) ListByDate(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error) {
 	return f.listByDateFn(ctx, orgID, date)
@@ -57,9 +64,6 @@ func (f *fakeRepo) ListByEmployeesDateRange(ctx context.Context, orgID uuid.UUID
 	return []attendance.Record{}, nil
 }
 func (f *fakeRepo) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error) {
-	return f.getDefaultSchedFn(ctx, orgID)
-}
-func (f *fakeRepo) GetScheduleForEmployee(ctx context.Context, orgID, _ uuid.UUID) (*attendance.WorkSchedule, error) {
 	return f.getDefaultSchedFn(ctx, orgID)
 }
 func (f *fakeRepo) ListHolidays(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error) {
@@ -173,11 +177,12 @@ func fixedNow(t time.Time) func() time.Time {
 	return func() time.Time { return t }
 }
 
-// schedule9AM creates a Mon-Fri schedule starting at 09:00.
+/// schedule9AM creates a Mon-Fri schedule 09:00–18:00.
 func schedule9AM() *attendance.WorkSchedule {
 	return &attendance.WorkSchedule{
 		WorkDays:  []int{1, 2, 3, 4, 5},
 		StartTime: time.Date(0, 1, 1, 9, 0, 0, 0, time.UTC),
+		EndTime:   time.Date(0, 1, 1, 18, 0, 0, 0, time.UTC),
 	}
 }
 
@@ -197,7 +202,7 @@ func defaultFakeRepo() *fakeRepo {
 				Note:           note,
 			}, nil
 		},
-		updateClockOutFn: func(_ context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, note *string, _, _ *float64, _ *string) (*attendance.Record, error) {
+		updateClockOutFn: func(_ context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, isLeavingEarly, isOvertime bool, note *string, _, _ *float64, _ *string) (*attendance.Record, error) {
 			return &attendance.Record{
 				ID:             uuid.New(),
 				OrganisationID: orgID,
@@ -205,10 +210,15 @@ func defaultFakeRepo() *fakeRepo {
 				Date:           date,
 				ClockInAt:      clockOut.Add(-8 * time.Hour),
 				ClockOutAt:     &clockOut,
+				IsLeavingEarly: isLeavingEarly,
+				IsOvertime:     isOvertime,
 				Note:           note,
 			}, nil
 		},
 		getDefaultSchedFn: func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+			return schedule9AM(), nil
+		},
+		getScheduleForEmployeeFn: func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) {
 			return schedule9AM(), nil
 		},
 		listByDateFn: func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.Record, error) {
@@ -308,7 +318,7 @@ func TestService_ClockIn(t *testing.T) {
 		{
 			name: "schedule error",
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.getDefaultSchedFn = func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+				r.getScheduleForEmployeeFn = func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) {
 					return nil, errors.New("schedule db error")
 				}
 			},
@@ -317,7 +327,7 @@ func TestService_ClockIn(t *testing.T) {
 			name:     "no schedule — skip late check",
 			wantLate: false,
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				r.getDefaultSchedFn = func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+				r.getScheduleForEmployeeFn = func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) {
 					return nil, nil
 				}
 			},
@@ -387,34 +397,108 @@ func TestService_ClockIn(t *testing.T) {
 // ── ClockOut tests ───────────────────────────────────────────────────────────
 
 func TestService_ClockOut(t *testing.T) {
-	nowUTC := time.Date(2026, 3, 16, 10, 0, 0, 0, time.UTC) // 17:00 WIB
 	clockInTime := time.Date(2026, 3, 16, 2, 0, 0, 0, time.UTC)
 
+	// schedule09to18 = Mon-Fri 09:00–18:00 WIB
+	sched := &attendance.WorkSchedule{
+		WorkDays:  []int{1, 2, 3, 4, 5},
+		StartTime: time.Date(0, 1, 1, 9, 0, 0, 0, time.UTC),
+		EndTime:   time.Date(0, 1, 1, 18, 0, 0, 0, time.UTC),
+	}
+
 	tests := []struct {
-		name    string
-		setup   func(r *fakeRepo, o *fakeOrgInfo)
-		wantErr string
+		name           string
+		nowUTC         time.Time
+		setup          func(r *fakeRepo, o *fakeOrgInfo)
+		wantErr        string
+		wantLeavingEarly bool
+		wantOvertime   bool
 	}{
 		{
-			name: "success",
+			// 11:00 UTC = 18:00 WIB — exactly at schedule end → neither leaving early nor overtime
+			name:           "on time clock-out",
+			nowUTC:         time.Date(2026, 3, 16, 11, 0, 0, 0, time.UTC),
+			wantLeavingEarly: false,
+			wantOvertime:   false,
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
 				r.getByEmpDateFn = func(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Record, error) {
 					return &attendance.Record{ID: uuid.New(), ClockInAt: clockInTime}, nil
+				}
+				r.getScheduleForEmployeeFn = func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+					return sched, nil
+				}
+			},
+		},
+		{
+			// 08:00 UTC = 15:00 WIB — before 18:00 end → leaving early
+			name:           "leaving early",
+			nowUTC:         time.Date(2026, 3, 16, 8, 0, 0, 0, time.UTC),
+			wantLeavingEarly: true,
+			wantOvertime:   false,
+			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
+				r.getByEmpDateFn = func(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Record, error) {
+					return &attendance.Record{ID: uuid.New(), ClockInAt: clockInTime}, nil
+				}
+				r.getScheduleForEmployeeFn = func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+					return sched, nil
+				}
+			},
+		},
+		{
+			// 14:00 UTC = 21:00 WIB — after 18:00 end → overtime
+			name:         "overtime",
+			nowUTC:       time.Date(2026, 3, 16, 14, 0, 0, 0, time.UTC),
+			wantOvertime: true,
+			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
+				r.getByEmpDateFn = func(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Record, error) {
+					return &attendance.Record{ID: uuid.New(), ClockInAt: clockInTime}, nil
+				}
+				r.getScheduleForEmployeeFn = func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+					return sched, nil
+				}
+			},
+		},
+		{
+			// Sunday 2026-03-15 10:00 UTC = 17:00 WIB — non-work day → overtime
+			name:         "overtime on weekend",
+			nowUTC:       time.Date(2026, 3, 15, 10, 0, 0, 0, time.UTC),
+			wantOvertime: true,
+			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
+				r.getByEmpDateFn = func(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Record, error) {
+					return &attendance.Record{ID: uuid.New(), ClockInAt: clockInTime}, nil
+				}
+				r.getScheduleForEmployeeFn = func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+					return sched, nil
+				}
+			},
+		},
+		{
+			// No schedule — both flags should be false
+			name: "no schedule — no flags",
+			nowUTC: time.Date(2026, 3, 16, 10, 0, 0, 0, time.UTC),
+			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
+				r.getByEmpDateFn = func(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Record, error) {
+					return &attendance.Record{ID: uuid.New(), ClockInAt: clockInTime}, nil
+				}
+				r.getScheduleForEmployeeFn = func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+					return nil, nil
 				}
 			},
 		},
 		{
 			name:    "already clocked out",
+			nowUTC:  time.Date(2026, 3, 16, 10, 0, 0, 0, time.UTC),
 			wantErr: apperr.CodeConflict,
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
-				co := nowUTC
+				co := time.Date(2026, 3, 16, 10, 0, 0, 0, time.UTC)
 				r.getByEmpDateFn = func(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Record, error) {
 					return &attendance.Record{ID: uuid.New(), ClockInAt: clockInTime, ClockOutAt: &co}, nil
 				}
 			},
 		},
 		{
-			name: "no record found",
+			name:   "no record found",
+			nowUTC: time.Date(2026, 3, 16, 10, 0, 0, 0, time.UTC),
 			setup: func(r *fakeRepo, _ *fakeOrgInfo) {
 				r.getByEmpDateFn = func(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Record, error) {
 					return nil, apperr.NotFound("attendance record")
@@ -422,13 +506,15 @@ func TestService_ClockOut(t *testing.T) {
 			},
 		},
 		{
-			name: "timezone error",
+			name:   "timezone error",
+			nowUTC: time.Date(2026, 3, 16, 10, 0, 0, 0, time.UTC),
 			setup: func(_ *fakeRepo, o *fakeOrgInfo) {
 				o.tzErr = errors.New("tz error")
 			},
 		},
 		{
-			name: "invalid timezone",
+			name:   "invalid timezone",
+			nowUTC: time.Date(2026, 3, 16, 10, 0, 0, 0, time.UTC),
 			setup: func(_ *fakeRepo, o *fakeOrgInfo) {
 				o.tz = "Bad/Zone"
 			},
@@ -443,7 +529,7 @@ func TestService_ClockOut(t *testing.T) {
 				tt.setup(repo, orgInfo)
 			}
 
-			svc := newTestService(repo, orgInfo, nowUTC)
+			svc := newTestService(repo, orgInfo, tt.nowUTC)
 			rec, err := svc.ClockOut(context.Background(), testOrgID, attendance.ClockOutRequest{
 				EmployeeID: testEmpID,
 			})
@@ -468,6 +554,12 @@ func TestService_ClockOut(t *testing.T) {
 			}
 			if rec == nil {
 				t.Fatal("expected record, got nil")
+			}
+			if rec.IsLeavingEarly != tt.wantLeavingEarly {
+				t.Errorf("IsLeavingEarly = %v, want %v", rec.IsLeavingEarly, tt.wantLeavingEarly)
+			}
+			if rec.IsOvertime != tt.wantOvertime {
+				t.Errorf("IsOvertime = %v, want %v", rec.IsOvertime, tt.wantOvertime)
 			}
 		})
 	}

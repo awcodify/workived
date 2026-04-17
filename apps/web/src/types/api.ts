@@ -367,6 +367,8 @@ export interface MonthlySummary {
   present: number
   late: number
   absent: number
+  leaving_early: number
+  overtime: number
   working_days: number
 }
 
@@ -379,6 +381,8 @@ export interface WeekDay {
   clock_out_at?: string
   note?: string
   is_today: boolean
+  is_leaving_early?: boolean
+  is_overtime?: boolean
 }
 
 export interface WeekCalendar {

@@ -40,6 +40,8 @@ function makeSummary(overrides: Partial<MonthlySummary> = {}): MonthlySummary {
     present: 18,
     late: 2,
     absent: 1,
+    leaving_early: 0,
+    overtime: 0,
     working_days: 21,
     ...overrides,
   }

@@ -16,7 +16,7 @@ import (
 type RepositoryInterface interface {
 	GetByEmployeeAndDate(ctx context.Context, orgID, employeeID uuid.UUID, date string) (*Record, error)
 	Create(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockInAt time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*Record, error)
-	UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, note *string, latitude, longitude *float64, photoURL *string) (*Record, error)
+	UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, isLeavingEarly, isOvertime bool, note *string, latitude, longitude *float64, photoURL *string) (*Record, error)
 	ListByDate(ctx context.Context, orgID uuid.UUID, date string) ([]Record, error)
 	ListByMonth(ctx context.Context, orgID uuid.UUID, year, month int) ([]Record, error)
 	ListByEmployeeMonth(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]Record, error)
@@ -169,7 +169,16 @@ func (s *Service) ClockOut(ctx context.Context, orgID uuid.UUID, req ClockOutReq
 		return nil, apperr.Conflict("already clocked out today")
 	}
 
-	rec, err := s.repo.UpdateClockOut(ctx, orgID, req.EmployeeID, today, now, req.Note, req.Latitude, req.Longitude, req.PhotoURL)
+	// Compute clock-out flags against the employee's schedule
+	schedule, err := s.repo.GetScheduleForEmployee(ctx, orgID, req.EmployeeID)
+	if err != nil {
+		return nil, fmt.Errorf("get employee schedule: %w", err)
+	}
+	localNow := now.In(loc)
+	isLeavingEarly := s.checkLeavingEarly(localNow, schedule)
+	isOvertime := s.checkOvertimeClockOut(localNow, schedule)
+
+	rec, err := s.repo.UpdateClockOut(ctx, orgID, req.EmployeeID, today, now, isLeavingEarly, isOvertime, req.Note, req.Latitude, req.Longitude, req.PhotoURL)
 	if err != nil {
 		return nil, err
 	}
@@ -377,8 +386,10 @@ func (s *Service) MonthlySummaryReport(ctx context.Context, orgID uuid.UUID, fil
 
 	// Index records by employee_id
 	type empCounts struct {
-		present int
-		late    int
+		present      int
+		late         int
+		leavingEarly int
+		overtime     int
 	}
 	countMap := make(map[uuid.UUID]*empCounts, len(employees))
 	for _, rec := range records {
@@ -391,6 +402,12 @@ func (s *Service) MonthlySummaryReport(ctx context.Context, orgID uuid.UUID, fil
 		if rec.IsLate {
 			c.late++
 		}
+		if rec.IsLeavingEarly {
+			c.leavingEarly++
+		}
+		if rec.IsOvertime {
+			c.overtime++
+		}
 	}
 
 	summaries := make([]MonthlySummary, 0, len(employees))
@@ -398,9 +415,13 @@ func (s *Service) MonthlySummaryReport(ctx context.Context, orgID uuid.UUID, fil
 		c := countMap[emp.ID]
 		present := 0
 		late := 0
+		leavingEarly := 0
+		overtime := 0
 		if c != nil {
 			present = c.present
 			late = c.late
+			leavingEarly = c.leavingEarly
+			overtime = c.overtime
 		}
 		absent := workingDays - present
 		if absent < 0 {
@@ -413,6 +434,8 @@ func (s *Service) MonthlySummaryReport(ctx context.Context, orgID uuid.UUID, fil
 			Present:      present,
 			Late:         late,
 			Absent:       absent,
+			LeavingEarly: leavingEarly,
+			Overtime:     overtime,
 			WorkingDays:  workingDays,
 		})
 	}
@@ -439,9 +462,17 @@ func (s *Service) EmployeeMonthlySummary(ctx context.Context, orgID, employeeID 
 
 	present := len(records)
 	late := 0
+	leavingEarly := 0
+	overtime := 0
 	for _, rec := range records {
 		if rec.IsLate {
 			late++
+		}
+		if rec.IsLeavingEarly {
+			leavingEarly++
+		}
+		if rec.IsOvertime {
+			overtime++
 		}
 	}
 	absent := workingDays - present
@@ -455,6 +486,8 @@ func (s *Service) EmployeeMonthlySummary(ctx context.Context, orgID, employeeID 
 		Present:      present,
 		Late:         late,
 		Absent:       absent,
+		LeavingEarly: leavingEarly,
+		Overtime:     overtime,
 		WorkingDays:  workingDays,
 	}, nil
 }
@@ -583,6 +616,8 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 			weekDay.ClockInAt = &rec.ClockInAt
 			weekDay.ClockOutAt = rec.ClockOutAt
 			weekDay.Note = rec.Note
+			weekDay.IsLeavingEarly = rec.IsLeavingEarly
+			weekDay.IsOvertime = rec.IsOvertime
 		} else if isHoliday {
 			// Public holiday with no attendance
 			weekDay.Status = "holiday"
@@ -749,6 +784,8 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 				weekDay.ClockInAt = &rec.ClockInAt
 				weekDay.ClockOutAt = rec.ClockOutAt
 				weekDay.Note = rec.Note
+				weekDay.IsLeavingEarly = rec.IsLeavingEarly
+				weekDay.IsOvertime = rec.IsOvertime
 			} else if isHoliday {
 				// Public holiday with no attendance
 				weekDay.Status = "holiday"
@@ -918,6 +955,8 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 				weekDay.ClockInAt = &rec.ClockInAt
 				weekDay.ClockOutAt = rec.ClockOutAt
 				weekDay.Note = rec.Note
+				weekDay.IsLeavingEarly = rec.IsLeavingEarly
+				weekDay.IsOvertime = rec.IsOvertime
 			} else if isHoliday {
 				// Public holiday with no attendance
 				weekDay.Status = "holiday"
@@ -1010,6 +1049,40 @@ func (s *Service) CountEmployeesBySchedule(ctx context.Context, orgID, scheduleI
 }
 
 // ── Internal helpers ─────────────────────────────────────────────────────────
+
+// checkLeavingEarly determines if the local clock-out time is before the schedule end time on a work day.
+func (s *Service) checkLeavingEarly(localNow time.Time, schedule *WorkSchedule) bool {
+	if schedule == nil {
+		return false
+	}
+	weekday := int(localNow.Weekday())
+	for _, wd := range schedule.WorkDays {
+		if wd == weekday {
+			endMinutes := schedule.EndTime.Hour()*60 + schedule.EndTime.Minute()
+			clockOutMinutes := localNow.Hour()*60 + localNow.Minute()
+			return clockOutMinutes < endMinutes
+		}
+	}
+	return false
+}
+
+// checkOvertimeClockOut determines if the local clock-out time is after the schedule end time on a work day,
+// or if clocking out on a non-work day.
+func (s *Service) checkOvertimeClockOut(localNow time.Time, schedule *WorkSchedule) bool {
+	if schedule == nil {
+		return false
+	}
+	weekday := int(localNow.Weekday())
+	for _, wd := range schedule.WorkDays {
+		if wd == weekday {
+			endMinutes := schedule.EndTime.Hour()*60 + schedule.EndTime.Minute()
+			clockOutMinutes := localNow.Hour()*60 + localNow.Minute()
+			return clockOutMinutes > endMinutes
+		}
+	}
+	// Clocking out on a non-work day = overtime
+	return true
+}
 
 // checkLate determines if the local clock-in time is past the schedule start time.
 func (s *Service) checkLate(localNow time.Time, schedule *WorkSchedule) bool {

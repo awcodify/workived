@@ -23,6 +23,8 @@ type Record struct {
 	ClockOutPhotoURL  *string    `json:"clock_out_photo_url,omitempty"`
 	WorkLocationType  *string    `json:"work_location_type,omitempty"`
 	IsLate            bool       `json:"is_late"`
+	IsLeavingEarly    bool       `json:"is_leaving_early"`
+	IsOvertime        bool       `json:"is_overtime"`
 	Note              *string    `json:"note,omitempty"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
@@ -32,6 +34,7 @@ type Record struct {
 type WorkSchedule struct {
 	WorkDays  []int     // e.g. [1,2,3,4,5] — 0=Sun, 6=Sat
 	StartTime time.Time // only the time component matters
+	EndTime   time.Time // only the time component matters
 }
 
 // WorkScheduleListItem is the API-facing representation of a work schedule.
@@ -61,6 +64,8 @@ type DailyEntry struct {
 	ClockInLongitude *float64   `json:"clock_in_longitude,omitempty"`
 	ClockInPhotoURL  *string    `json:"clock_in_photo_url,omitempty"`
 	WorkLocationType *string    `json:"work_location_type,omitempty"`
+	IsLeavingEarly   bool       `json:"is_leaving_early,omitempty"`
+	IsOvertime       bool       `json:"is_overtime,omitempty"`
 }
 
 // MonthlySummary aggregates attendance counters for a single employee.
@@ -70,19 +75,23 @@ type MonthlySummary struct {
 	Present      int       `json:"present"`
 	Late         int       `json:"late"`
 	Absent       int       `json:"absent"`
+	LeavingEarly int       `json:"leaving_early"`
+	Overtime     int       `json:"overtime"`
 	WorkingDays  int       `json:"working_days"`
 }
 
 // WeekDay represents a single day in the week calendar view.
 type WeekDay struct {
-	Date       string     `json:"date"`       // "2026-03-17" (YYYY-MM-DD)
-	DayName    string     `json:"day_name"`   // "Mon", "Tue", etc.
-	DayNumber  int        `json:"day_number"` // 17
-	Status     string     `json:"status"`     // "on-time", "late", "absent", "weekend", "future", "overtime", "on_leave"
-	ClockInAt  *time.Time `json:"clock_in_at,omitempty"`
-	ClockOutAt *time.Time `json:"clock_out_at,omitempty"`
-	Note       *string    `json:"note,omitempty"`
-	IsToday    bool       `json:"is_today"`
+	Date           string     `json:"date"`       // "2026-03-17" (YYYY-MM-DD)
+	DayName        string     `json:"day_name"`   // "Mon", "Tue", etc.
+	DayNumber      int        `json:"day_number"` // 17
+	Status         string     `json:"status"`     // "on-time", "late", "absent", "weekend", "future", "overtime", "on_leave"
+	ClockInAt      *time.Time `json:"clock_in_at,omitempty"`
+	ClockOutAt     *time.Time `json:"clock_out_at,omitempty"`
+	Note           *string    `json:"note,omitempty"`
+	IsToday        bool       `json:"is_today"`
+	IsLeavingEarly bool       `json:"is_leaving_early,omitempty"`
+	IsOvertime     bool       `json:"is_overtime,omitempty"`
 }
 
 // WeekCalendar contains 7 days (Monday–Sunday) for the week calendar view.

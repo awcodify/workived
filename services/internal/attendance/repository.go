@@ -28,7 +28,7 @@ func (r *Repository) GetByEmployeeAndDate(ctx context.Context, orgID, employeeID
 		       clock_in_at, clock_out_at,
 		       clock_in_latitude, clock_in_longitude, clock_in_photo_url,
 		       clock_out_latitude, clock_out_longitude, clock_out_photo_url,
-		       work_location_type, is_late, note,
+		       work_location_type, is_late, is_leaving_early, is_overtime, note,
 		       created_at, updated_at
 		FROM attendance_records
 		WHERE organisation_id = $1
@@ -39,7 +39,7 @@ func (r *Repository) GetByEmployeeAndDate(ctx context.Context, orgID, employeeID
 		&rec.ClockInAt, &rec.ClockOutAt,
 		&rec.ClockInLatitude, &rec.ClockInLongitude, &rec.ClockInPhotoURL,
 		&rec.ClockOutLatitude, &rec.ClockOutLongitude, &rec.ClockOutPhotoURL,
-		&rec.WorkLocationType, &rec.IsLate, &rec.Note,
+		&rec.WorkLocationType, &rec.IsLate, &rec.IsLeavingEarly, &rec.IsOvertime, &rec.Note,
 		&rec.CreatedAt, &rec.UpdatedAt,
 	)
 	if err != nil {
@@ -72,14 +72,14 @@ func (r *Repository) Create(ctx context.Context, orgID, employeeID uuid.UUID, da
 		          clock_in_at, clock_out_at,
 		          clock_in_latitude, clock_in_longitude, clock_in_photo_url,
 		          clock_out_latitude, clock_out_longitude, clock_out_photo_url,
-		          work_location_type, is_late, note,
+		          work_location_type, is_late, is_leaving_early, is_overtime, note,
 		          created_at, updated_at
 	`, orgID, employeeID, date, clockInAt, isLate, note, latitude, longitude, photoURL, workLocationType).Scan(
 		&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
 		&rec.ClockInAt, &rec.ClockOutAt,
 		&rec.ClockInLatitude, &rec.ClockInLongitude, &rec.ClockInPhotoURL,
 		&rec.ClockOutLatitude, &rec.ClockOutLongitude, &rec.ClockOutPhotoURL,
-		&rec.WorkLocationType, &rec.IsLate, &rec.Note,
+		&rec.WorkLocationType, &rec.IsLate, &rec.IsLeavingEarly, &rec.IsOvertime, &rec.Note,
 		&rec.CreatedAt, &rec.UpdatedAt,
 	)
 	if err != nil {
@@ -92,15 +92,17 @@ func (r *Repository) Create(ctx context.Context, orgID, employeeID uuid.UUID, da
 }
 
 // UpdateClockOut sets the clock_out_at on an existing attendance record.
-func (r *Repository) UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, note *string, latitude, longitude *float64, photoURL *string) (*Record, error) {
+func (r *Repository) UpdateClockOut(ctx context.Context, orgID, employeeID uuid.UUID, date string, clockOutAt time.Time, isLeavingEarly, isOvertime bool, note *string, latitude, longitude *float64, photoURL *string) (*Record, error) {
 	rec := &Record{}
 	err := r.db.QueryRow(ctx, `
 		UPDATE attendance_records
-		SET clock_out_at = $4,
-		    note = COALESCE($5, note),
-		    clock_out_latitude = $6,
-		    clock_out_longitude = $7,
-		    clock_out_photo_url = $8
+		SET clock_out_at      = $4,
+		    is_leaving_early  = $5,
+		    is_overtime       = $6,
+		    note = COALESCE($7, note),
+		    clock_out_latitude  = $8,
+		    clock_out_longitude = $9,
+		    clock_out_photo_url = $10
 		WHERE organisation_id = $1
 		  AND employee_id = $2
 		  AND date = $3::date
@@ -108,14 +110,14 @@ func (r *Repository) UpdateClockOut(ctx context.Context, orgID, employeeID uuid.
 		          clock_in_at, clock_out_at,
 		          clock_in_latitude, clock_in_longitude, clock_in_photo_url,
 		          clock_out_latitude, clock_out_longitude, clock_out_photo_url,
-		          work_location_type, is_late, note,
+		          work_location_type, is_late, is_leaving_early, is_overtime, note,
 		          created_at, updated_at
-	`, orgID, employeeID, date, clockOutAt, note, latitude, longitude, photoURL).Scan(
+	`, orgID, employeeID, date, clockOutAt, isLeavingEarly, isOvertime, note, latitude, longitude, photoURL).Scan(
 		&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
 		&rec.ClockInAt, &rec.ClockOutAt,
 		&rec.ClockInLatitude, &rec.ClockInLongitude, &rec.ClockInPhotoURL,
 		&rec.ClockOutLatitude, &rec.ClockOutLongitude, &rec.ClockOutPhotoURL,
-		&rec.WorkLocationType, &rec.IsLate, &rec.Note,
+		&rec.WorkLocationType, &rec.IsLate, &rec.IsLeavingEarly, &rec.IsOvertime, &rec.Note,
 		&rec.CreatedAt, &rec.UpdatedAt,
 	)
 	if err != nil {
@@ -131,7 +133,7 @@ func (r *Repository) UpdateClockOut(ctx context.Context, orgID, employeeID uuid.
 func (r *Repository) ListByDate(ctx context.Context, orgID uuid.UUID, date string) ([]Record, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, employee_id, date::text,
-		       clock_in_at, clock_out_at, is_late, note,
+		       clock_in_at, clock_out_at, is_late, is_leaving_early, is_overtime, note,
 		       clock_in_latitude, clock_in_longitude, clock_in_photo_url, work_location_type,
 		       created_at, updated_at
 		FROM attendance_records
@@ -149,7 +151,7 @@ func (r *Repository) ListByDate(ctx context.Context, orgID uuid.UUID, date strin
 		var rec Record
 		if err := rows.Scan(
 			&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
-			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.Note,
+			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.IsLeavingEarly, &rec.IsOvertime, &rec.Note,
 			&rec.ClockInLatitude, &rec.ClockInLongitude, &rec.ClockInPhotoURL, &rec.WorkLocationType,
 			&rec.CreatedAt, &rec.UpdatedAt,
 		); err != nil {
@@ -191,7 +193,7 @@ func (r *Repository) GetLocationCounts(ctx context.Context, orgID uuid.UUID, sta
 func (r *Repository) ListByMonth(ctx context.Context, orgID uuid.UUID, year, month int) ([]Record, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, employee_id, date::text,
-		       clock_in_at, clock_out_at, is_late, note,
+		       clock_in_at, clock_out_at, is_late, is_leaving_early, is_overtime, note,
 		       created_at, updated_at
 		FROM attendance_records
 		WHERE organisation_id = $1
@@ -209,7 +211,7 @@ func (r *Repository) ListByMonth(ctx context.Context, orgID uuid.UUID, year, mon
 		var rec Record
 		if err := rows.Scan(
 			&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
-			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.Note,
+			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.IsLeavingEarly, &rec.IsOvertime, &rec.Note,
 			&rec.CreatedAt, &rec.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -224,13 +226,13 @@ func (r *Repository) ListByMonth(ctx context.Context, orgID uuid.UUID, year, mon
 func (r *Repository) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*WorkSchedule, error) {
 	ws := &WorkSchedule{}
 	err := r.db.QueryRow(ctx, `
-		SELECT work_days, start_time
+		SELECT work_days, start_time, end_time
 		FROM work_schedules
 		WHERE organisation_id = $1
 		  AND is_default = TRUE
 		  AND is_active = TRUE
 		LIMIT 1
-	`, orgID).Scan(&ws.WorkDays, &ws.StartTime)
+	`, orgID).Scan(&ws.WorkDays, &ws.StartTime, &ws.EndTime)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -246,7 +248,7 @@ func (r *Repository) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*
 func (r *Repository) GetScheduleForEmployee(ctx context.Context, orgID, employeeID uuid.UUID) (*WorkSchedule, error) {
 	ws := &WorkSchedule{}
 	err := r.db.QueryRow(ctx, `
-		SELECT ws.work_days, ws.start_time
+		SELECT ws.work_days, ws.start_time, ws.end_time
 		FROM employees e
 		JOIN work_schedules ws
 		  ON ws.organisation_id = $1
@@ -254,7 +256,7 @@ func (r *Repository) GetScheduleForEmployee(ctx context.Context, orgID, employee
 		  AND ws.id = COALESCE(e.work_schedule_id,
 		      (SELECT id FROM work_schedules WHERE organisation_id = $1 AND is_default = TRUE AND is_active = TRUE LIMIT 1))
 		WHERE e.organisation_id = $1 AND e.id = $2
-	`, orgID, employeeID).Scan(&ws.WorkDays, &ws.StartTime)
+	`, orgID, employeeID).Scan(&ws.WorkDays, &ws.StartTime, &ws.EndTime)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -323,7 +325,7 @@ func (r *Repository) ListActiveEmployees(ctx context.Context, orgID uuid.UUID, d
 func (r *Repository) ListByEmployeeMonth(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]Record, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, employee_id, date::text,
-		       clock_in_at, clock_out_at, is_late, note,
+		       clock_in_at, clock_out_at, is_late, is_leaving_early, is_overtime, note,
 		       created_at, updated_at
 		FROM attendance_records
 		WHERE organisation_id = $1
@@ -342,7 +344,7 @@ func (r *Repository) ListByEmployeeMonth(ctx context.Context, orgID, employeeID 
 		var rec Record
 		if err := rows.Scan(
 			&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
-			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.Note,
+			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.IsLeavingEarly, &rec.IsOvertime, &rec.Note,
 			&rec.CreatedAt, &rec.UpdatedAt,
 		); err != nil {
 			return nil, err
@@ -362,7 +364,7 @@ func (r *Repository) ListByEmployeesDateRange(ctx context.Context, orgID uuid.UU
 
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, employee_id, date::text,
-		       clock_in_at, clock_out_at, is_late, note,
+		       clock_in_at, clock_out_at, is_late, is_leaving_early, is_overtime, note,
 		       created_at, updated_at
 		FROM attendance_records
 		WHERE organisation_id = $1
@@ -381,7 +383,7 @@ func (r *Repository) ListByEmployeesDateRange(ctx context.Context, orgID uuid.UU
 		var rec Record
 		if err := rows.Scan(
 			&rec.ID, &rec.OrganisationID, &rec.EmployeeID, &rec.Date,
-			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.Note,
+			&rec.ClockInAt, &rec.ClockOutAt, &rec.IsLate, &rec.IsLeavingEarly, &rec.IsOvertime, &rec.Note,
 			&rec.CreatedAt, &rec.UpdatedAt,
 		); err != nil {
 			return nil, err

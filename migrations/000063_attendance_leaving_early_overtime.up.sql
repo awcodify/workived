@@ -1,0 +1,3 @@
+ALTER TABLE attendance_records
+    ADD COLUMN is_leaving_early BOOLEAN NOT NULL DEFAULT FALSE,
+    ADD COLUMN is_overtime      BOOLEAN NOT NULL DEFAULT FALSE;

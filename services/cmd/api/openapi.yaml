@@ -2595,6 +2595,142 @@ paths:
                       count:
                         type: integer
 
+  /attendance/my/week:
+    get:
+      operationId: getMyWeek
+      summary: Get week calendar for the authenticated employee
+      tags: [Attendance]
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Monday of the week (YYYY-MM-DD)
+      responses:
+        "200":
+          description: Employee week calendar
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/WeekCalendar"
+
+  /attendance/my/summary:
+    get:
+      operationId: getMySummary
+      summary: Get monthly attendance summary for the authenticated employee
+      tags: [Attendance]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        "200":
+          description: Employee monthly summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/MonthlySummary"
+
+  /attendance/team/week:
+    get:
+      operationId: getTeamWeek
+      summary: Get week calendars for the manager and all subordinates
+      tags: [Attendance]
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Monday of the week (YYYY-MM-DD)
+      responses:
+        "200":
+          description: Team week calendars
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TeamWeekEntry"
+
+  /attendance/all/week:
+    get:
+      operationId: getAllWeek
+      summary: Get week calendars for all active employees (admin only)
+      tags: [Attendance]
+      parameters:
+        - name: start_date
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+          description: Monday of the week (YYYY-MM-DD)
+      responses:
+        "200":
+          description: All employees week calendars
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TeamWeekEntry"
+
+  /attendance/team/summary:
+    get:
+      operationId: getTeamSummary
+      summary: Get monthly attendance summary for all subordinates
+      tags: [Attendance]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+      responses:
+        "200":
+          description: Team monthly summaries
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/MonthlySummary"
+
   # ── Admin ─────────────────────────────────────────────────────────────────
   /admin/stats:
     get:
@@ -5061,6 +5197,12 @@ components:
           type: string
           format: date-time
           nullable: true
+        is_late:
+          type: boolean
+        is_leaving_early:
+          type: boolean
+        is_overtime:
+          type: boolean
         note:
           type: string
           nullable: true
@@ -5087,6 +5229,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        is_leaving_early:
+          type: boolean
+        is_overtime:
+          type: boolean
         note:
           type: string
           nullable: true
@@ -5099,18 +5245,82 @@ components:
           format: uuid
         employee_name:
           type: string
-        year:
+        present:
           type: integer
-        month:
+        late:
           type: integer
-        total_present:
+        absent:
           type: integer
-        total_late:
+        leaving_early:
           type: integer
-        total_absent:
+        overtime:
           type: integer
-        total_working_days:
+        working_days:
           type: integer
+
+    WeekDay:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        day_name:
+          type: string
+          description: "Mon, Tue, Wed, Thu, Fri, Sat, Sun"
+        day_number:
+          type: integer
+        status:
+          type: string
+          enum: [on-time, late, absent, weekend, holiday, future, on_leave, overtime]
+        clock_in_at:
+          type: string
+          format: date-time
+          nullable: true
+        clock_out_at:
+          type: string
+          format: date-time
+          nullable: true
+        note:
+          type: string
+          nullable: true
+        is_today:
+          type: boolean
+        is_leaving_early:
+          type: boolean
+        is_overtime:
+          type: boolean
+
+    WeekCalendar:
+      type: object
+      properties:
+        start_date:
+          type: string
+          format: date
+          description: Monday of the week (YYYY-MM-DD)
+        end_date:
+          type: string
+          format: date
+          description: Sunday of the week (YYYY-MM-DD)
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeekDay"
+          minItems: 7
+          maxItems: 7
+
+    TeamWeekEntry:
+      type: object
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        employee_name:
+          type: string
+        work_schedule_name:
+          type: string
+          nullable: true
+        week:
+          $ref: "#/components/schemas/WeekCalendar"
 
     WorkScheduleListItem:
       type: object
