@@ -86,9 +86,9 @@ export function ClaimCategoriesStep({
   const allSelected = selected.length === templates.length
 
   return (
-    <div>
+    <div data-testid="claim-categories-step">
       <div className="mb-10 text-center">
-        <div 
+        <div
           className="mb-4 inline-flex h-16 w-16 items-center justify-center"
           style={{ borderRadius: 16, background: colors.okDim }}
         >
@@ -107,6 +107,7 @@ export function ClaimCategoriesStep({
           {selected.length} of {templates.length} selected
         </p>
         <button
+          data-testid="claim-categories-select-all-btn"
           onClick={handleSelectAll}
           className="text-sm font-semibold transition-opacity hover:opacity-70"
           style={{ color: colors.accent }}
@@ -140,6 +141,7 @@ export function ClaimCategoriesStep({
                 }}
               >
                 <input
+                  data-testid={`claim-category-checkbox-${template.id}`}
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => toggleSelection(template)}
@@ -179,6 +181,7 @@ export function ClaimCategoriesStep({
                       </div>
                       {template.monthly_limit && (
                         <button
+                          data-testid={`claim-category-customize-btn-${template.id}`}
                           onClick={(e) => {
                             e.stopPropagation()
                             if (!isSelected) {
@@ -233,6 +236,7 @@ export function ClaimCategoriesStep({
                         −
                       </button>
                       <input
+                        data-testid={`claim-category-limit-input-${template.id}`}
                         type="number"
                         value={(customLimit ?? template.monthly_limit!) / 100}
                         onChange={(e) => {
@@ -295,6 +299,7 @@ export function ClaimCategoriesStep({
 
       <div className="flex justify-between">
         <button
+          data-testid="claim-categories-back-btn"
           onClick={onBack}
           className="flex items-center gap-2 px-8 py-3 font-semibold transition-all hover:bg-opacity-60"
           style={{
@@ -309,6 +314,7 @@ export function ClaimCategoriesStep({
         </button>
 
         <button
+          data-testid="claim-categories-next-btn"
           onClick={handleNext}
           disabled={!canProceed}
           className="flex items-center gap-2 px-8 py-3 font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"

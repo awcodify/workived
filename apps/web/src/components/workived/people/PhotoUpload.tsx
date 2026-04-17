@@ -78,6 +78,7 @@ export function PhotoUpload({ value, onChange, error }: PhotoUploadProps) {
   return (
     <div className="space-y-2">
       <input
+        data-testid="photo-upload-input"
         ref={fileInputRef}
         type="file"
         accept="image/*"
@@ -103,6 +104,7 @@ export function PhotoUpload({ value, onChange, error }: PhotoUploadProps) {
             />
           </div>
           <button
+            data-testid="photo-upload-remove-btn"
             type="button"
             onClick={handleRemove}
             className="absolute -top-2 -right-2 rounded-full p-1.5 shadow-lg transition-transform hover:scale-110"
@@ -117,6 +119,7 @@ export function PhotoUpload({ value, onChange, error }: PhotoUploadProps) {
       ) : (
         // Upload state
         <button
+          data-testid="photo-upload-btn"
           type="button"
           onClick={handleClick}
           onDrop={handleDrop}

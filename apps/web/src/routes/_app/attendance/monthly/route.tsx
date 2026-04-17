@@ -19,6 +19,7 @@ function MonthlyReportPage() {
 
   return (
     <div
+      data-testid="attendance-monthly-page"
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       style={{ background: moduleBackgrounds.attendance }}
     >
@@ -31,6 +32,7 @@ function MonthlyReportPage() {
 
       <div className="flex items-center gap-2 mb-6">
         <select
+          data-testid="attendance-monthly-month-select"
           value={month}
           onChange={(e) => setMonth(Number(e.target.value))}
           className="text-sm border border-ink-150 rounded-lg px-3 py-1.5 bg-white"
@@ -42,6 +44,7 @@ function MonthlyReportPage() {
           ))}
         </select>
         <input
+          data-testid="attendance-monthly-year-input"
           type="number"
           value={year}
           onChange={(e) => setYear(Number(e.target.value))}
@@ -52,11 +55,11 @@ function MonthlyReportPage() {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-ink-500 py-8 text-center">Loading...</p>
+        <p data-testid="attendance-monthly-skeleton" className="text-sm text-ink-500 py-8 text-center">Loading...</p>
       ) : !summaries || summaries.length === 0 ? (
-        <p className="text-sm text-ink-500 py-8 text-center">No data for this period</p>
+        <p data-testid="attendance-monthly-empty" className="text-sm text-ink-500 py-8 text-center">No data for this period</p>
       ) : (
-        <div className="bg-white rounded-xl border border-ink-100 overflow-hidden">
+        <div data-testid="attendance-monthly-table" className="bg-white rounded-xl border border-ink-100 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-ink-100">
@@ -69,7 +72,7 @@ function MonthlyReportPage() {
             </thead>
             <tbody>
               {summaries.map((s) => (
-                <tr key={s.employee_id} className="border-b border-ink-100 last:border-0">
+                <tr key={s.employee_id} data-testid={`attendance-monthly-row-${s.employee_id}`} className="border-b border-ink-100 last:border-0">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <Avatar name={s.employee_name} id={s.employee_id} size={28} />

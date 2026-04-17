@@ -69,7 +69,7 @@ export function LeavePoliciesStep({
   const allSelected = selected.length === templates.length
 
   return (
-    <div>
+    <div data-testid="leave-policies-step">
       <div className="mb-10 text-center">
         <div 
           className="mb-4 inline-flex h-16 w-16 items-center justify-center"
@@ -90,6 +90,7 @@ export function LeavePoliciesStep({
           {selected.length} of {templates.length} selected
         </p>
         <button
+          data-testid="leave-policies-select-all-btn"
           onClick={handleSelectAll}
           className="text-sm font-semibold transition-opacity hover:opacity-70"
           style={{ color: colors.accent }}
@@ -123,6 +124,7 @@ export function LeavePoliciesStep({
                 }}
               >
                 <input
+                  data-testid={`leave-policy-checkbox-${template.id}`}
                   type="checkbox"
                   checked={isSelected}
                   onChange={() => toggleSelection(template)}
@@ -157,6 +159,7 @@ export function LeavePoliciesStep({
                         </p>
                       </div>
                       <button
+                        data-testid={`leave-policy-customize-btn-${template.id}`}
                         onClick={(e) => {
                           e.stopPropagation()
                           if (!isSelected) {
@@ -165,7 +168,7 @@ export function LeavePoliciesStep({
                           setCustomizing(template.id)
                         }}
                         className="p-2 transition-all hover:scale-105"
-                        style={{ 
+                        style={{
                           borderRadius: 8,
                           background: colors.accentDim,
                           color: colors.accent,
@@ -211,6 +214,7 @@ export function LeavePoliciesStep({
                         −
                       </button>
                       <input
+                        data-testid={`leave-policy-days-input-${template.id}`}
                         type="number"
                         value={customDays ?? template.entitled_days_per_year}
                         onChange={(e) => {
@@ -274,6 +278,7 @@ export function LeavePoliciesStep({
 
       <div className="flex justify-between">
         <button
+          data-testid="leave-policies-back-btn"
           onClick={onBack}
           className="flex items-center gap-2 px-8 py-3 font-semibold transition-all hover:bg-opacity-60"
           style={{
@@ -288,6 +293,7 @@ export function LeavePoliciesStep({
         </button>
 
         <button
+          data-testid="leave-policies-next-btn"
           onClick={handleNext}
           disabled={!canProceed}
           className="flex items-center gap-2 px-8 py-3 font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"

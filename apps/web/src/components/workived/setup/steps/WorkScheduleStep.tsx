@@ -68,9 +68,9 @@ export function WorkScheduleStep({
   }
 
   return (
-    <div>
+    <div data-testid="work-schedule-step">
       <div className="mb-10 text-center">
-        <div 
+        <div
           className="mb-4 inline-flex h-16 w-16 items-center justify-center"
           style={{ borderRadius: 16, background: colors.accentDim }}
         >
@@ -92,6 +92,7 @@ export function WorkScheduleStep({
               return (
                 <button
                   key={template.id}
+                  data-testid={`work-schedule-template-${template.id}`}
                   onClick={() => handleTemplateSelect(template)}
                   className="text-left transition-all hover:shadow-md"
                   style={{
@@ -119,6 +120,7 @@ export function WorkScheduleStep({
           </div>
 
           <button
+            data-testid="work-schedule-custom-toggle-btn"
             onClick={handleCustomToggle}
             className="mt-6 flex items-center gap-2 font-medium transition-opacity hover:opacity-70"
             style={{ color: colors.accent }}
@@ -145,6 +147,7 @@ export function WorkScheduleStep({
               Schedule Name
             </label>
             <input
+              data-testid="work-schedule-custom-name-input"
               type="text"
               value={customSchedule.name}
               onChange={(e) => setCustomSchedule({ ...customSchedule, name: e.target.value })}
@@ -191,6 +194,7 @@ export function WorkScheduleStep({
                 Start Time
               </label>
               <input
+                data-testid="work-schedule-custom-start-time-input"
                 type="time"
                 value={customSchedule.start_time}
                 onChange={(e) =>
@@ -210,6 +214,7 @@ export function WorkScheduleStep({
                 End Time
               </label>
               <input
+                data-testid="work-schedule-custom-end-time-input"
                 type="time"
                 value={customSchedule.end_time}
                 onChange={(e) =>
@@ -238,6 +243,7 @@ export function WorkScheduleStep({
 
       <div className="flex justify-between">
         <button
+          data-testid="work-schedule-back-btn"
           onClick={onBack}
           className="flex items-center gap-2 px-8 py-3 font-semibold transition-all hover:bg-opacity-60"
           style={{
@@ -252,6 +258,7 @@ export function WorkScheduleStep({
         </button>
 
         <button
+          data-testid="work-schedule-next-btn"
           onClick={handleNext}
           disabled={!canProceed}
           className="flex items-center gap-2 px-8 py-3 font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"

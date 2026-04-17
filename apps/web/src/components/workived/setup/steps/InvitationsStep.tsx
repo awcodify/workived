@@ -52,7 +52,7 @@ export function InvitationsStep({
   }
 
   return (
-    <div>
+    <div data-testid="invitations-step">
       <div className="mb-10 text-center">
         <div 
           className="mb-4 inline-flex h-16 w-16 items-center justify-center"
@@ -72,6 +72,7 @@ export function InvitationsStep({
         {invitations.map((invitation, index) => (
           <div
             key={index}
+            data-testid={`invitations-row-${index}`}
             className="flex items-center gap-3"
             style={{
               borderRadius: 14,
@@ -82,6 +83,7 @@ export function InvitationsStep({
             }}
           >
             <input
+              data-testid={`invite-email-input-${index}`}
               type="email"
               value={invitation.email}
               onChange={(e) => updateInvitation(index, { email: e.target.value })}
@@ -96,6 +98,7 @@ export function InvitationsStep({
             />
 
             <select
+              data-testid={`invite-role-select-${index}`}
               value={invitation.role}
               onChange={(e) => updateInvitation(index, { role: e.target.value as MemberRole })}
               className="px-4 py-2 text-base font-medium"
@@ -115,6 +118,7 @@ export function InvitationsStep({
 
             {invitations.length > 1 && (
               <button
+                data-testid={`invite-remove-btn-${index}`}
                 onClick={() => removeInvitation(index)}
                 className="p-2 transition-opacity hover:opacity-70"
                 style={{ 
@@ -130,6 +134,7 @@ export function InvitationsStep({
 
         {invitations.length < 10 && (
           <button
+            data-testid="invite-add-btn"
             onClick={addInvitation}
             className="w-full px-4 py-4 text-base font-medium transition-all hover:border-opacity-60"
             style={{
@@ -161,6 +166,7 @@ export function InvitationsStep({
 
       <div className="flex justify-between">
         <button
+          data-testid="invitations-back-btn"
           onClick={onBack}
           disabled={isSubmitting}
           className="flex items-center gap-2 px-8 py-3 font-semibold transition-all hover:bg-opacity-60 disabled:opacity-50"
@@ -176,6 +182,7 @@ export function InvitationsStep({
         </button>
 
         <button
+          data-testid="invitations-finish-btn"
           onClick={handleFinish}
           disabled={isSubmitting}
           className="flex items-center gap-2 px-8 py-3 font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"

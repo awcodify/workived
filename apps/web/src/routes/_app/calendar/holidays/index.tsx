@@ -64,6 +64,7 @@ function CustomHolidaysPage() {
 
   return (
     <div
+      data-testid="holidays-page"
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       style={{ background: moduleBackgrounds.calendar, paddingBottom: '160px' }}
     >
@@ -95,6 +96,7 @@ function CustomHolidaysPage() {
         </div>
         {canManage && (
           <button
+            data-testid="holidays-add-btn"
             onClick={() => setShowForm(!showForm)}
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-70"
             style={{
@@ -112,6 +114,7 @@ function CustomHolidaysPage() {
       {/* Create Form */}
       {showForm && (
         <div
+          data-testid="holidays-form"
           className="mb-6 p-5"
           style={{
             background: t.surface,
@@ -134,6 +137,7 @@ function CustomHolidaysPage() {
                 Date
               </label>
               <input
+                data-testid="holidays-date-input"
                 type="date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
@@ -155,6 +159,7 @@ function CustomHolidaysPage() {
                 Holiday Name
               </label>
               <input
+                data-testid="holidays-name-input"
                 type="text"
                 placeholder="e.g. Company Anniversary"
                 value={formData.name}
@@ -177,6 +182,7 @@ function CustomHolidaysPage() {
           )}
           <div className="flex gap-2 mt-4">
             <button
+              data-testid="holidays-create-btn"
               onClick={handleCreate}
               disabled={createMutation.isPending}
               className="text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-70 disabled:opacity-50"
@@ -189,6 +195,7 @@ function CustomHolidaysPage() {
               {createMutation.isPending ? 'Creating…' : 'Create'}
             </button>
             <button
+              data-testid="holidays-cancel-btn"
               onClick={() => { setShowForm(false); setFormError('') }}
               className="text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-70"
               style={{
@@ -221,6 +228,7 @@ function CustomHolidaysPage() {
           {sortedHolidays.map((holiday, idx) => (
             <div
               key={holiday.id ?? idx}
+              data-testid={`holidays-row-${holiday.id ?? idx}`}
               className="flex items-center justify-between px-5 py-4 transition-colors"
               style={{
                 background: idx % 2 === 0 ? 'transparent' : 'rgba(217,119,6,0.02)',
@@ -256,6 +264,7 @@ function CustomHolidaysPage() {
               </div>
               {canManage && holiday.id && (
                 <button
+                  data-testid={`holidays-delete-btn-${holiday.id}`}
                   onClick={() => handleDelete(holiday.id!)}
                   className="p-2 transition-opacity hover:opacity-70"
                   style={{
@@ -281,6 +290,7 @@ function CustomHolidaysPage() {
 function EmptyState({ canManage, onAdd }: { canManage: boolean; onAdd: () => void }) {
   return (
     <div
+      data-testid="holidays-empty"
       className="flex flex-col items-center justify-center py-16 px-6 text-center"
       style={{
         background: t.surface,
@@ -308,6 +318,7 @@ function EmptyState({ canManage, onAdd }: { canManage: boolean; onAdd: () => voi
       </p>
       {canManage && (
         <button
+          data-testid="holidays-empty-add-btn"
           onClick={onAdd}
           className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-70"
           style={{
@@ -329,6 +340,7 @@ function EmptyState({ canManage, onAdd }: { canManage: boolean; onAdd: () => voi
 function HolidaySkeleton() {
   return (
     <div
+      data-testid="holidays-skeleton"
       className="animate-pulse"
       style={{
         background: t.surface,

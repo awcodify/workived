@@ -89,6 +89,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
         onClick={onClose}
       >
         <div
+          data-testid="management-panel-modal"
           className="w-full max-w-2xl max-h-[80vh] flex flex-col"
           style={{
             background: t.surface,
@@ -109,6 +110,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
               Manage Organization Data
             </h2>
             <button
+              data-testid="management-panel-close-btn"
               onClick={onClose}
               className="text-sm font-semibold px-4 py-2 rounded-lg transition-opacity hover:opacity-70"
               style={{
@@ -127,6 +129,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
             style={{ borderBottom: `1px solid ${t.border}` }}
           >
             <button
+              data-testid="management-panel-tab-departments"
               onClick={() => setActiveTab('departments')}
               className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all"
               style={{
@@ -138,6 +141,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
               Departments ({safeDepartments.length})
             </button>
             <button
+              data-testid="management-panel-tab-jobtitles"
               onClick={() => setActiveTab('jobtitles')}
               className="flex items-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg transition-all"
               style={{
@@ -160,6 +164,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
                   </p>
                   {canManageEmployees && (
                     <button
+                      data-testid="management-panel-add-dept-btn"
                       onClick={handleNewDepartment}
                       className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg transition-opacity hover:opacity-90"
                       style={{
@@ -189,6 +194,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
                     {safeDepartments.map((dept) => (
                       <div
                         key={dept.id}
+                        data-testid={`management-dept-row-${dept.id}`}
                         className="flex items-center justify-between px-4 py-3 rounded-lg"
                         style={{
                           background: t.input,
@@ -201,6 +207,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
                         {canManageEmployees && (
                           <div className="flex items-center gap-2">
                             <button
+                              data-testid="management-dept-edit-btn"
                               onClick={() => handleEditDepartment(dept)}
                               className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
                               style={{ color: t.textMuted }}
@@ -208,6 +215,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
                               <Edit2 size={16} />
                             </button>
                             <button
+                              data-testid="management-dept-delete-btn"
                               onClick={() => handleDeleteDepartment(dept.id)}
                               disabled={deleteDepartment.isPending}
                               className="p-1.5 rounded-lg transition-opacity hover:opacity-70 disabled:opacity-50"
@@ -232,6 +240,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
                   </p>
                   {canManageEmployees && (
                     <button
+                      data-testid="management-panel-add-jobtitle-btn"
                       onClick={handleNewJobTitle}
                       className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg transition-opacity hover:opacity-90"
                       style={{
@@ -261,6 +270,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
                     {jobTitles.map((title: JobTitle) => (
                       <div
                         key={title.id}
+                        data-testid={`management-jobtitle-row-${title.id}`}
                         className="flex items-center justify-between px-4 py-3 rounded-lg"
                         style={{
                           background: t.input,
@@ -273,6 +283,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
                         {canManageEmployees && (
                           <div className="flex items-center gap-2">
                             <button
+                              data-testid="management-jobtitle-edit-btn"
                               onClick={() => handleEditJobTitle(title)}
                               className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
                               style={{ color: t.textMuted }}
@@ -280,6 +291,7 @@ export function ManagementPanel({ onClose }: ManagementPanelProps) {
                               <Edit2 size={16} />
                             </button>
                             <button
+                              data-testid="management-jobtitle-delete-btn"
                               onClick={() => handleDeleteJobTitle(title.id)}
                               disabled={deleteJobTitle.isPending}
                               className="p-1.5 rounded-lg transition-opacity hover:opacity-70 disabled:opacity-50"

@@ -146,6 +146,7 @@ function PerformancePage() {
 
   return (
     <div
+      data-testid="performance-page"
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       style={{ background: moduleBackgrounds.people, paddingBottom: '160px' }}
     >
@@ -191,6 +192,7 @@ function PerformancePage() {
         {PERIODS.map((p) => (
           <button
             key={p.key}
+            data-testid={`performance-period-${p.key}`}
             onClick={() => setPeriod(p.key)}
             className="px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors"
             style={{
@@ -379,6 +381,7 @@ function PerformancePage() {
               <p className="text-[11px]" style={{ color: S.textDim }}>Click an employee to see score breakdown</p>
               <div className="flex items-center gap-1">
                 <button
+                  data-testid="performance-expand-all-btn"
                   onClick={() => setExpandedIds(new Set(sortedEmployees.map(e => e.employee_id)))}
                   className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors"
                   style={{ color: S.textMuted }}
@@ -388,6 +391,7 @@ function PerformancePage() {
                   <ChevronsDown size={11} /> Expand all
                 </button>
                 <button
+                  data-testid="performance-collapse-all-btn"
                   onClick={() => setExpandedIds(new Set())}
                   className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors"
                   style={{ color: S.textMuted }}
@@ -770,6 +774,7 @@ function EmployeeRow({ emp, rank, isMe, isExpanded, period, weights, onToggle }:
     <div style={isMe ? { borderLeft: `3px solid ${colors.accent}` } : undefined}>
       {/* ── Row button ── */}
       <button
+        data-testid={`performance-row-${emp.employee_id}`}
         onClick={onToggle}
         className="flex items-center gap-2 px-5 py-3 w-full text-left transition-colors"
         style={{ background: rowBg }}
@@ -830,7 +835,7 @@ function EmployeeRow({ emp, rank, isMe, isExpanded, period, weights, onToggle }:
 
       {/* ── Expanded detail ── */}
       {isExpanded && (
-        <div className="px-5 pb-4 pt-0" style={{ background: 'rgba(99,87,232,0.025)', borderTop: '1px solid rgba(99,87,232,0.08)' }}>
+        <div data-testid={`performance-detail-${emp.employee_id}`} className="px-5 pb-4 pt-0" style={{ background: 'rgba(99,87,232,0.025)', borderTop: '1px solid rgba(99,87,232,0.08)' }}>
           {scorecardLoading ? (
             <div className="flex flex-col">
               {[1, 2, 3, 4].map((i) => (

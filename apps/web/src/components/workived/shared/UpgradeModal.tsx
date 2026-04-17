@@ -9,6 +9,7 @@ export function UpgradeModal() {
 
   return (
     <div
+      data-testid="upgrade-modal"
       className="fixed inset-0 z-[70] flex items-center justify-center"
       style={{ background: 'rgba(0,0,0,0.45)' }}
       onClick={hide}
@@ -22,6 +23,7 @@ export function UpgradeModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <button
+          data-testid="upgrade-modal-close-btn"
           onClick={hide}
           className="absolute top-4 right-4 rounded-lg p-1.5 transition-colors hover:bg-gray-100"
           style={{ color: colors.ink500 }}
@@ -72,6 +74,7 @@ export function UpgradeModal() {
           </div>
 
           <button
+            data-testid="upgrade-modal-contact-btn"
             onClick={() => {
               window.location.href = 'mailto:my@workived.com?subject=Upgrade%20to%20Pro'
               hide()
@@ -83,6 +86,7 @@ export function UpgradeModal() {
           </button>
 
           <button
+            data-testid="upgrade-modal-later-btn"
             onClick={hide}
             className="mt-3 w-full rounded-lg px-6 py-2 text-sm font-medium transition-colors hover:bg-gray-50"
             style={{ color: colors.ink500 }}

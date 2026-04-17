@@ -156,6 +156,7 @@ export function Dropdown({
       
       {/* Trigger Button */}
       <button
+        data-testid="dropdown-trigger"
         ref={buttonRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -200,6 +201,7 @@ export function Dropdown({
             {/* Search Input */}
             <div className="px-3 py-2 border-b" style={{ borderColor: t.border }}>
               <input
+                data-testid="dropdown-search-input"
                 ref={searchInputRef}
                 type="text"
                 placeholder="Search..."
@@ -227,6 +229,7 @@ export function Dropdown({
               return (
                 <button
                   key={option.value}
+                  data-testid={`dropdown-option-${option.value}`}
                   onClick={() => {
                     onChange(option.value)
                     setIsOpen(false)

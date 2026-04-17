@@ -81,6 +81,7 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
 
       {/* Dialog */}
       <div
+        data-testid="import-categories-modal"
         className="fixed inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 top-1/2 -translate-y-1/2 z-[100] max-w-2xl w-full"
         style={{
           background: t.surface,
@@ -109,6 +110,7 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
             </p>
           </div>
           <button
+            data-testid="import-categories-close-btn"
             onClick={onClose}
             className="transition-opacity hover:opacity-70"
             style={{ color: t.textMuted }}
@@ -165,7 +167,7 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
 
           {/* Loading State */}
           {isLoading && (
-            <div className="space-y-3">
+            <div data-testid="import-categories-skeleton" className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
@@ -185,6 +187,7 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
             <>
               {/* Select All */}
               <button
+                data-testid="import-categories-select-all-btn"
                 onClick={handleSelectAll}
                 className="flex items-center gap-2 mb-3 text-sm font-semibold transition-opacity hover:opacity-70"
                 style={{ color: t.accent }}
@@ -196,6 +199,7 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
                 {templates.map((template) => (
                   <div
                     key={template.id}
+                    data-testid={`import-category-card-${template.id}`}
                     onClick={() => handleToggle(template.id)}
                     className="cursor-pointer transition-all hover:scale-[1.01]"
                     style={{
@@ -209,6 +213,7 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
                   >
                     <div className="flex items-start gap-3">
                       <input
+                        data-testid={`import-category-checkbox-${template.id}`}
                         type="checkbox"
                         checked={selectedIds.has(template.id)}
                         onChange={() => handleToggle(template.id)}
@@ -248,6 +253,7 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
           {/* Empty State */}
           {!isLoading && (!templates || templates.length === 0) && (
             <div
+              data-testid="import-categories-empty"
               className="flex flex-col items-center justify-center text-center py-8"
               style={{ color: t.textMuted }}
             >
@@ -267,6 +273,7 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
             style={{ borderTop: `1px solid ${t.border}` }}
           >
             <button
+              data-testid="import-categories-cancel-btn"
               onClick={onClose}
               className="px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-70"
               style={{
@@ -277,6 +284,7 @@ export function ImportCategoryTemplatesModal({ onClose }: ImportCategoryTemplate
               Cancel
             </button>
             <button
+              data-testid="import-categories-import-btn"
               onClick={handleImport}
               disabled={selectedIds.size === 0 || importMutation.isPending}
               className="px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"

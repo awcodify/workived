@@ -485,6 +485,7 @@ function Prediction({ item }: { item: (typeof PREDICTIONS)[0] }) {
 function PerformanceBriefing() {
   return (
     <div
+      data-testid="reports-performance-page"
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       style={{ background: moduleBackgrounds.reports, paddingBottom: '160px' }}
     >

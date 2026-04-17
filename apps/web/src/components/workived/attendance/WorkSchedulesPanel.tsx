@@ -60,19 +60,21 @@ export function WorkSchedulesPanel({ onClose }: { onClose: () => void }) {
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
+        data-testid="work-schedules-panel"
         className="w-full max-w-md h-full overflow-y-auto"
         style={{ background: t.surface }}
       >
         {/* Header */}
         <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ background: t.surface, borderBottom: `1px solid ${t.border}` }}>
           <h2 className="text-base font-bold" style={{ color: t.text }}>Work Schedules</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/5 transition-colors">
+          <button data-testid="work-schedules-close-btn" onClick={onClose} className="p-1.5 rounded-lg hover:bg-black/5 transition-colors">
             <X size={18} style={{ color: t.textMuted }} />
           </button>
         </div>
 
         <div className="p-5 space-y-4">
           <button
+            data-testid="work-schedules-add-btn"
             onClick={openCreate}
             className="flex items-center gap-1.5 bg-accent text-white font-semibold text-sm px-4 py-2.5 rounded-lg hover:bg-accent-text transition-colors shadow-sm w-full justify-center"
           >
@@ -87,7 +89,7 @@ export function WorkSchedulesPanel({ onClose }: { onClose: () => void }) {
               ))}
             </div>
           ) : schedules.length === 0 ? (
-            <div className="rounded-xl p-6 text-center" style={{ border: `1px solid ${t.border}` }}>
+            <div data-testid="work-schedules-empty" className="rounded-xl p-6 text-center" style={{ border: `1px solid ${t.border}` }}>
               <Clock size={28} className="mx-auto mb-2" style={{ color: t.textMuted }} />
               <p className="text-sm font-medium" style={{ color: t.text }}>No work schedules yet</p>
               <p className="text-xs mt-1" style={{ color: t.textMuted }}>Create your first schedule above.</p>
@@ -147,6 +149,7 @@ function ScheduleCard({
 
   return (
     <div
+      data-testid={`work-schedules-row-${schedule.id}`}
       className="rounded-xl px-4 py-3 flex items-center justify-between"
       style={{ border: `1px solid ${t.border}` }}
     >
@@ -170,6 +173,7 @@ function ScheduleCard({
       </div>
       <div className="flex items-center gap-1">
         <button
+          data-testid="work-schedules-edit-btn"
           onClick={onEdit}
           className="p-2 rounded-lg hover:bg-black/5 transition-colors"
           title="Edit schedule"
@@ -178,6 +182,7 @@ function ScheduleCard({
         </button>
         {!schedule.is_default && (
           <button
+            data-testid="work-schedules-deactivate-btn"
             onClick={onDeactivate}
             className="p-2 rounded-lg hover:bg-black/5 transition-colors"
             title="Deactivate schedule"
@@ -238,15 +243,16 @@ function ScheduleFormModal({
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-full max-w-md rounded-2xl p-6" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+      <div data-testid="work-schedule-form-modal" className="w-full max-w-md rounded-2xl p-6" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
         <h2 className="text-base font-bold mb-4" style={{ color: t.text }}>
           {isEdit ? 'Edit Schedule' : 'New Schedule'}
         </h2>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form data-testid="work-schedule-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1.5" style={{ color: t.textMuted }}>Name</label>
             <input
+              data-testid="work-schedule-name-input"
               className="form-input-dark w-full"
               placeholder="e.g., Night Shift"
               style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
@@ -284,11 +290,11 @@ function ScheduleFormModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium mb-1.5" style={{ color: t.textMuted }}>Start Time</label>
-              <input type="time" className="form-input-dark w-full" style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }} {...form.register('start_time')} />
+              <input data-testid="work-schedule-start-time-input" type="time" className="form-input-dark w-full" style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }} {...form.register('start_time')} />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1.5" style={{ color: t.textMuted }}>End Time</label>
-              <input type="time" className="form-input-dark w-full" style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }} {...form.register('end_time')} />
+              <input data-testid="work-schedule-end-time-input" type="time" className="form-input-dark w-full" style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }} {...form.register('end_time')} />
             </div>
           </div>
 
@@ -300,13 +306,14 @@ function ScheduleFormModal({
 
           <div className="flex items-center gap-3 pt-2">
             <button
+              data-testid="work-schedule-submit-btn"
               type="submit"
               disabled={isPending}
               className="bg-accent text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-accent-text transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             >
               {isPending ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Schedule'}
             </button>
-            <button type="button" onClick={onClose} className="text-sm font-medium px-4 py-2.5" style={{ color: t.textMuted }}>
+            <button data-testid="work-schedule-cancel-btn" type="button" onClick={onClose} className="text-sm font-medium px-4 py-2.5" style={{ color: t.textMuted }}>
               Cancel
             </button>
           </div>
@@ -338,7 +345,7 @@ function DeactivateConfirm({
       className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-full max-w-sm rounded-2xl p-6" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+      <div data-testid="work-schedule-deactivate-modal" className="w-full max-w-sm rounded-2xl p-6" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
         <div className="flex items-center gap-2 mb-3">
           <AlertTriangle size={18} style={{ color: colors.warn }} />
           <h2 className="text-base font-bold" style={{ color: t.text }}>Deactivate Schedule</h2>
@@ -362,6 +369,7 @@ function DeactivateConfirm({
 
         <div className="flex items-center gap-3">
           <button
+            data-testid="work-schedule-deactivate-confirm-btn"
             onClick={handleConfirm}
             disabled={deactivateMutation.isPending}
             className="font-semibold text-sm px-5 py-2.5 rounded-lg transition-colors disabled:opacity-50"
@@ -369,7 +377,7 @@ function DeactivateConfirm({
           >
             {deactivateMutation.isPending ? 'Deactivating...' : 'Deactivate'}
           </button>
-          <button onClick={onClose} className="text-sm font-medium px-4 py-2.5" style={{ color: t.textMuted }}>
+          <button data-testid="work-schedule-deactivate-cancel-btn" onClick={onClose} className="text-sm font-medium px-4 py-2.5" style={{ color: t.textMuted }}>
             Cancel
           </button>
         </div>

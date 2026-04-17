@@ -183,6 +183,7 @@ export function EmployeeDropdown({
       
       {/* Trigger Button */}
       <button
+        data-testid="employee-dropdown-trigger"
         ref={buttonRef}
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -227,6 +228,7 @@ export function EmployeeDropdown({
             {/* Search Input */}
             <div className="px-3 py-2 border-b" style={{ borderColor: t.border }}>
               <input
+                data-testid="employee-dropdown-search-input"
                 ref={searchInputRef}
                 type="text"
                 placeholder="Search employees..."
@@ -251,6 +253,7 @@ export function EmployeeDropdown({
               {/* "None" option */}
               {includeNone && (
                 <button
+                  data-testid="employee-dropdown-none-option"
                   onClick={() => {
                     onChange('')
                     setIsOpen(false)
@@ -286,6 +289,7 @@ export function EmployeeDropdown({
                 return (
                   <button
                     key={employee.id}
+                    data-testid={`employee-dropdown-option-${employee.id}`}
                     onClick={() => {
                       onChange(employee.id)
                       setIsOpen(false)

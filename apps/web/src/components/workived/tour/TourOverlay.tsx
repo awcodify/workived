@@ -414,6 +414,7 @@ function ModalCard({
         >
           {!isFirstStep && (
             <button
+              data-testid="tour-prev-btn"
               onClick={onPrev}
               style={{
                 display: 'flex',
@@ -442,6 +443,7 @@ function ModalCard({
           )}
 
           <button
+            data-testid="tour-next-btn"
             onClick={onNext}
             style={{
               display: 'flex',
@@ -476,6 +478,7 @@ function ModalCard({
         {/* Skip link */}
         {!isLastStep && (
           <button
+            data-testid="tour-skip-btn"
             onClick={onSkip}
             style={{
               marginTop: 16,
@@ -575,6 +578,7 @@ function SpotlightTooltip({
     >
       {/* Skip button (top-right) */}
       <button
+        data-testid="tour-spotlight-skip-btn"
         onClick={onSkip}
         style={{
           position: 'absolute',
@@ -643,6 +647,7 @@ function SpotlightTooltip({
         }}
       >
         <button
+          data-testid="tour-spotlight-prev-btn"
           onClick={onPrev}
           disabled={isFirstStep}
           style={{
@@ -671,6 +676,7 @@ function SpotlightTooltip({
         </button>
 
         <button
+          data-testid="tour-spotlight-next-btn"
           onClick={onNext}
           style={{
             display: 'flex',

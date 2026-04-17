@@ -171,6 +171,7 @@ export function RequestListItem({
       )}
       
       <div
+        data-testid={`request-item-${request.id}`}
         className="transition-all"
         style={{
           padding: '12px 18px',
@@ -236,6 +237,7 @@ export function RequestListItem({
               <div className="flex items-center gap-1.5">
                 {actions.onApprove && (
                   <button
+                    data-testid={`request-approve-btn-${request.id}`}
                     onClick={handleApprove}
                     disabled={actions.isPendingApprove}
                     className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
@@ -258,6 +260,7 @@ export function RequestListItem({
                 )}
                 {actions.onReject && (
                   <button
+                    data-testid={`request-reject-btn-${request.id}`}
                     onClick={() => setShowRejectInput(true)}
                     className="flex items-center justify-center transition-all hover:scale-110"
                     style={{
@@ -278,6 +281,7 @@ export function RequestListItem({
             {/* Cancel button (my variant, icon) */}
             {variant === 'my' && request.status === 'pending' && actions.onCancel && (
               <button
+                data-testid={`request-cancel-btn-${request.id}`}
                 onClick={handleCancel}
                 disabled={actions.isPendingCancel}
                 className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
@@ -313,6 +317,7 @@ export function RequestListItem({
         {variant === 'approval' && showRejectInput && (
           <div className="mt-2">
             <textarea
+              data-testid={`request-reject-reason-input-${request.id}`}
               value={rejectReason}
               onChange={(e) => {
                 setRejectReason(e.target.value)
@@ -336,6 +341,7 @@ export function RequestListItem({
             )}
             <div className="flex items-center gap-2 mt-2">
               <button
+                data-testid={`request-reject-confirm-btn-${request.id}`}
                 onClick={handleReject}
                 disabled={actions.isPendingReject}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
@@ -349,6 +355,7 @@ export function RequestListItem({
                 {actions.isPendingReject ? 'Rejecting...' : 'Confirm Reject'}
               </button>
               <button
+                data-testid={`request-reject-cancel-btn-${request.id}`}
                 onClick={() => {
                   setShowRejectInput(false)
                   setRejectReason('')

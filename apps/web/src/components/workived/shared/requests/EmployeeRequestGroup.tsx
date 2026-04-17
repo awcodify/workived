@@ -95,6 +95,7 @@ export function EmployeeRequestGroup({
   
   return (
     <div
+      data-testid={`employee-request-group-${employeeName.replace(/\s+/g, '-').toLowerCase()}`}
       style={{
         background: theme.surface,
         borderRadius: 14,
@@ -116,7 +117,8 @@ export function EmployeeRequestGroup({
           e.currentTarget.style.background = 'transparent'
         }}
       >
-        <div 
+        <div
+          data-testid={`employee-request-group-toggle-${employeeName.replace(/\s+/g, '-').toLowerCase()}`}
           className="flex-1 cursor-pointer"
           onClick={() => setIsExpanded(!isExpanded)}
         >
@@ -144,6 +146,7 @@ export function EmployeeRequestGroup({
           {!showRejectInput && (
             <>
               <button
+                data-testid={`employee-request-approve-all-btn-${employeeName.replace(/\s+/g, '-').toLowerCase()}`}
                 onClick={handleApproveAll}
                 disabled={actions.isPendingApprove}
                 className="flex items-center justify-center transition-all hover:scale-110 disabled:opacity-50"
@@ -165,6 +168,7 @@ export function EmployeeRequestGroup({
               </button>
               
               <button
+                data-testid={`employee-request-reject-all-btn-${employeeName.replace(/\s+/g, '-').toLowerCase()}`}
                 onClick={() => setShowRejectInput(true)}
                 className="flex items-center justify-center transition-all hover:scale-110"
                 style={{
@@ -183,6 +187,7 @@ export function EmployeeRequestGroup({
           
           {requestCount > 1 && (
             <button
+              data-testid={`employee-request-expand-btn-${employeeName.replace(/\s+/g, '-').toLowerCase()}`}
               onClick={() => setIsExpanded(!isExpanded)}
               className="flex items-center justify-center transition-all hover:opacity-70"
               style={{
@@ -222,6 +227,7 @@ export function EmployeeRequestGroup({
         >
           <div className="pt-3">
             <textarea
+              data-testid={`employee-request-reject-reason-input-${employeeName.replace(/\s+/g, '-').toLowerCase()}`}
               value={rejectReason}
               onChange={(e) => {
                 setRejectReason(e.target.value)
@@ -245,6 +251,7 @@ export function EmployeeRequestGroup({
             )}
             <div className="flex items-center gap-2 mt-2">
               <button
+                data-testid={`employee-request-reject-confirm-btn-${employeeName.replace(/\s+/g, '-').toLowerCase()}`}
                 onClick={handleRejectAll}
                 disabled={actions.isPendingReject}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
@@ -258,6 +265,7 @@ export function EmployeeRequestGroup({
                 {actions.isPendingReject ? 'Rejecting...' : `Reject All ${requestCount}`}
               </button>
               <button
+                data-testid={`employee-request-reject-cancel-btn-${employeeName.replace(/\s+/g, '-').toLowerCase()}`}
                 onClick={() => {
                   setShowRejectInput(false)
                   setRejectReason('')

@@ -257,6 +257,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
 
   return (
     <div
+      data-testid="employee-detail-modal"
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isEditMode) onClose()
@@ -278,6 +279,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
             {isEditMode ? (
               <>
                 <button
+                  data-testid="employee-detail-cancel-btn"
                   onClick={handleCancel}
                   disabled={updateEmployee.isPending}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-black/5 transition-colors text-sm font-semibold disabled:opacity-50"
@@ -287,6 +289,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                   Cancel
                 </button>
                 <button
+                  data-testid="employee-detail-save-btn"
                   onClick={handleSave}
                   disabled={updateEmployee.isPending}
                   className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:opacity-90 transition-colors text-sm font-semibold disabled:opacity-50"
@@ -303,6 +306,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
               <>
                 {canEdit && (
                   <button
+                    data-testid="employee-detail-edit-btn"
                     onClick={() => setIsEditMode(true)}
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg hover:bg-black/5 transition-colors text-sm font-semibold"
                     style={{ color: colors.accent }}
@@ -312,6 +316,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                   </button>
                 )}
                 <button
+                  data-testid="employee-detail-close-btn"
                   onClick={onClose}
                   className="p-1.5 rounded-lg hover:bg-black/5 transition-colors"
                 >
@@ -339,6 +344,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
             style={{ background: t.surface, borderColor: t.border }}
           >
             <button
+              data-testid="employee-detail-tab-detail"
               onClick={() => setActiveTab('detail')}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors relative ${
                 activeTab === 'detail' ? '' : 'hover:bg-black/5'
@@ -357,6 +363,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
               )}
             </button>
             <button
+              data-testid="employee-detail-tab-payroll"
               onClick={() => setActiveTab('payroll')}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors relative ${
                 activeTab === 'payroll' ? '' : 'hover:bg-black/5'
@@ -375,6 +382,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
               )}
             </button>
             <button
+              data-testid="employee-detail-tab-history"
               onClick={() => setActiveTab('history')}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors relative ${
                 activeTab === 'history' ? '' : 'hover:bg-black/5'
@@ -411,6 +419,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                   {isEditMode ? (
                     <div className="space-y-2">
                       <input
+                        data-testid="employee-detail-full-name-input"
                         type="text"
                         value={formData.full_name}
                         onChange={(e) => updateFormData({ full_name: e.target.value })}
@@ -484,6 +493,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                           Phone
                         </label>
                         <input
+                          data-testid="employee-detail-phone-input"
                           type="tel"
                           placeholder="Not provided"
                           value={formData.phone}
@@ -593,6 +603,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                           Start Date
                         </label>
                         <input
+                          data-testid="employee-detail-start-date-input"
                           type="date"
                           value={formData.start_date}
                           onChange={(e) => updateFormData({ start_date: e.target.value })}
@@ -609,6 +620,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                           End Date
                         </label>
                         <input
+                          data-testid="employee-detail-end-date-input"
                           type="date"
                           value={formData.end_date}
                           onChange={(e) => updateFormData({ end_date: e.target.value })}

@@ -93,6 +93,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
 
       {/* Dialog */}
       <div
+        data-testid="import-templates-modal"
         className="fixed inset-x-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 top-1/2 -translate-y-1/2 z-[100] max-w-2xl w-full"
         style={{
           background: t.surface,
@@ -121,6 +122,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
             </p>
           </div>
           <button
+            data-testid="import-templates-close-btn"
             onClick={onClose}
             className="transition-opacity hover:opacity-70"
             style={{ color: t.textMuted }}
@@ -211,6 +213,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
               </div>
               <div className="flex items-center justify-end gap-2">
                 <button
+                  data-testid="import-templates-conflict-cancel-btn"
                   onClick={handleCancelConflict}
                   className="px-3 py-1.5 text-sm font-semibold transition-opacity hover:opacity-70"
                   style={{
@@ -221,6 +224,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
                   Cancel
                 </button>
                 <button
+                  data-testid="import-templates-conflict-confirm-btn"
                   onClick={handleImport}
                   disabled={importMutation.isPending}
                   className="px-3 py-1.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -238,7 +242,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
 
           {/* Loading State */}
           {isLoading && (
-            <div className="space-y-3">
+            <div data-testid="import-templates-skeleton" className="space-y-3">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
@@ -258,6 +262,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
             <>
               {/* Select All */}
               <button
+                data-testid="import-templates-select-all-btn"
                 onClick={handleSelectAll}
                 className="flex items-center gap-2 mb-3 text-sm font-semibold transition-opacity hover:opacity-70"
                 style={{ color: t.accent }}
@@ -281,6 +286,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
           {/* Empty State */}
           {!isLoading && (!templates || templates.length === 0) && (
             <div
+              data-testid="import-templates-empty"
               className="flex flex-col items-center justify-center text-center py-8"
               style={{ color: t.textMuted }}
             >
@@ -300,6 +306,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
             style={{ borderTop: `1px solid ${t.border}` }}
           >
             <button
+              data-testid="import-templates-cancel-btn"
               onClick={onClose}
               className="px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-70"
               style={{
@@ -310,6 +317,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
               Cancel
             </button>
             <button
+              data-testid="import-templates-import-btn"
               onClick={handleImport}
               disabled={selectedIds.size === 0 || importMutation.isPending}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -340,6 +348,7 @@ interface TemplateCardProps {
 function TemplateCard({ template, isSelected, onToggle }: TemplateCardProps) {
   return (
     <button
+      data-testid={`import-template-card-${template.id}`}
       onClick={onToggle}
       className="w-full text-left p-4 transition-all duration-150"
       style={{

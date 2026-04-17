@@ -147,6 +147,7 @@ export function QuickClock({
 
             {allowWebClockIn ? (
               <button
+                data-testid="quick-clock-in-btn"
                 onClick={handleClockIn}
                 disabled={clockIn.isPending}
                 className="group w-full relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:hover:scale-100"
@@ -235,6 +236,7 @@ export function QuickClock({
             
             {allowWebClockIn ? (
               <button
+                data-testid="quick-clock-out-btn"
                 onClick={handleClockOut}
                 disabled={clockOut.isPending}
                 className="w-full flex items-center justify-center gap-2.5 px-5 py-4 font-bold text-sm transition-all hover:opacity-90 disabled:opacity-50"
@@ -340,6 +342,7 @@ export function QuickClock({
           {allowWebClockIn ? (
             <div className="flex gap-2 mt-6">
               <input
+                data-testid="quick-clock-in-note-input"
                 type="text"
                 placeholder="Note (optional)"
                 aria-label="Clock in note"
@@ -349,6 +352,7 @@ export function QuickClock({
                 style={{ background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 12, color: colors.text }}
               />
               <button
+                data-testid="quick-clock-in-submit-btn"
                 onClick={handleClockIn}
                 disabled={clockIn.isPending}
                 className="font-bold px-6 py-3 transition-all disabled:opacity-50"
@@ -450,6 +454,7 @@ export function QuickClock({
           {allowWebClockIn ? (
             <div className="flex gap-2">
               <input
+                data-testid="quick-clock-out-note-input"
                 type="text"
                 placeholder="Note (optional)"
                 aria-label="Clock out note"
@@ -459,6 +464,7 @@ export function QuickClock({
                 style={{ background: colors.bg, border: `1px solid ${colors.border}`, borderRadius: 12, color: colors.text }}
               />
               <button
+                data-testid="quick-clock-out-submit-btn"
                 onClick={handleClockOut}
                 disabled={clockOut.isPending}
                 className="font-bold px-6 py-3 transition-all disabled:opacity-50"
