@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" style="color-scheme: light;">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pricing — Workived</title>
   <meta name="description" content="Simple pricing for Workived. Free for teams up to 15 employees. Pro plan coming soon with AI, unlimited employees, and advanced features.">
-  <meta name="color-scheme" content="light only">
-  <meta name="theme-color" content="#F3F2FB">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FFFFFF">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='30' fill='%236357E8'/><text x='90' y='112' text-anchor='middle' dominant-baseline='middle' style='font-family:Plus Jakarta Sans,sans-serif;font-size:108px;font-weight:800;fill:white'>W</text><rect x='55' y='150' width='70' height='10' rx='5' fill='white' opacity='0.7'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,84 +14,88 @@
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
     :root{
-      color-scheme:light only;
       --accent:#6357E8;--accent-dim:#EFEDFD;--accent-mid:#8F86F0;--accent-text:#4A3FBF;
       --ink-900:#0F0E13;--ink-700:#1F1D2B;--ink-500:#72708A;--ink-300:#B0AEBE;
-      --ink-150:#DDDBE8;--ink-100:#EDECF4;--ink-50:#F3F2FB;--ink-0:#FFFFFF;
+      --ink-150:#DDDBE8;--ink-100:#EDECF4;--ink-50:#F6F5FC;--ink-0:#FFFFFF;
+      --dark:#0A0A12;--green:#10B981;
     }
     html{scroll-behavior:smooth;}
-    body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--ink-50);color:var(--ink-900);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
-
-    /* NAV */
-    .nav{position:sticky;top:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(243,242,251,0.8);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(0,0,0,0.04);}
+    body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--ink-0);color:var(--ink-900);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    .nav{position:sticky;top:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--ink-100);}
     .nav-left{display:flex;align-items:center;gap:14px;text-decoration:none;}
     .nav-wordmark{font-size:22px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;}
     .nav-links{display:flex;align-items:center;gap:32px;}
     .nav-links a{font-size:14px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;}
-    .nav-links a:hover{color:var(--accent);}
+    .nav-links a:hover{color:var(--ink-900);}
     .nav-links a.active{color:var(--accent);}
-    .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;border:none;}
-    .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.3);}
-
-    /* HERO */
-    .page-hero{padding:100px 24px 60px;text-align:center;position:relative;overflow:hidden;}
-    .page-hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(99,87,232,0.08),transparent 60%);pointer-events:none;}
-    .page-hero h1{font-size:clamp(36px,6vw,60px);font-weight:800;letter-spacing:-0.04em;line-height:1.1;margin-bottom:16px;position:relative;}
-    .page-hero h1 .highlight{background:linear-gradient(135deg,#9B8FF7,#6357E8,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    .page-hero p{font-size:18px;color:var(--ink-500);line-height:1.7;max-width:480px;margin:0 auto;position:relative;}
-
-    /* PRICING */
-    .pricing-section{max-width:900px;margin:0 auto;padding:40px 24px 120px;}
-    .pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;}
-    .pricing-card{background:#fff;border-radius:20px;padding:40px;border:1px solid var(--ink-100);position:relative;transition:all 0.3s;}
-    .pricing-card:hover{border-color:transparent;box-shadow:0 16px 48px rgba(0,0,0,0.08),0 0 0 1px rgba(99,87,232,0.1);transform:translateY(-4px);}
-    .pricing-card.featured{border-color:var(--accent);box-shadow:0 16px 48px rgba(99,87,232,0.12),0 0 0 2px var(--accent);}
-    .pricing-card.featured:hover{box-shadow:0 24px 64px rgba(99,87,232,0.18),0 0 0 2px var(--accent);}
-    .pricing-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);padding:4px 16px;border-radius:100px;background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;white-space:nowrap;}
-    .pricing-plan{font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-300);margin-bottom:8px;}
-    .pricing-card.featured .pricing-plan{color:var(--accent);}
-    .pricing-price{display:flex;align-items:baseline;gap:4px;margin-bottom:8px;}
-    .pricing-amount{font-size:48px;font-weight:800;letter-spacing:-0.04em;color:var(--ink-900);line-height:1;}
-    .pricing-savings{display:inline-block;margin-top:8px;padding:4px 12px;border-radius:100px;background:#D1FAE5;color:#059669;font-size:12px;font-weight:700;}
-    .pricing-desc{font-size:15px;color:var(--ink-500);line-height:1.6;margin-bottom:32px;}
-    .pricing-features{list-style:none;display:flex;flex-direction:column;gap:12px;margin-bottom:36px;}
-    .pricing-features li{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--ink-500);font-weight:500;line-height:1.5;}
-    .pricing-features li::before{content:'';width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:1px;background:var(--ink-100) url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' fill='none' stroke='%2372708A' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 6.5L5 9l4.5-6'/%3E%3C/svg%3E") center/10px no-repeat;}
-    .pricing-card.featured .pricing-features li::before{background-color:var(--accent-dim);background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 12 12' fill='none' stroke='%236357E8' stroke-width='2' stroke-linecap='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2.5 6.5L5 9l4.5-6'/%3E%3C/svg%3E");}
-    .pricing-cta{display:block;width:100%;text-align:center;padding:14px 24px;border-radius:12px;font-size:15px;font-weight:700;text-decoration:none;transition:all 0.2s;cursor:pointer;border:none;font-family:inherit;}
-    .pricing-cta.outline{background:#fff;color:var(--ink-900);border:1.5px solid var(--ink-150);}
-    .pricing-cta.outline:hover{border-color:var(--accent);color:var(--accent);}
-    .pricing-cta.filled{background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;box-shadow:0 4px 16px rgba(99,87,232,0.25);}
-    .pricing-cta.filled:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(99,87,232,0.35);}
-
-    /* FAQ */
-    .faq-section{max-width:800px;margin:0 auto;padding:0 24px 120px;}
-    .section-header{text-align:center;margin-bottom:60px;}
-    .section-label{display:inline-block;font-size:12px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;}
-    .section-header h2{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-0.04em;line-height:1.15;}
-    .section-header h2 .muted{color:var(--ink-300);}
-    .faq-list{display:flex;flex-direction:column;}
-    .faq-item{border-bottom:1px solid var(--ink-100);}
-    .faq-question{display:flex;align-items:center;justify-content:space-between;width:100%;padding:24px 0;background:none;border:none;cursor:pointer;font-family:inherit;font-size:17px;font-weight:700;color:var(--ink-900);text-align:left;line-height:1.4;transition:color 0.2s;}
-    .faq-question:hover{color:var(--accent);}
-    .faq-icon{width:24px;height:24px;flex-shrink:0;margin-left:16px;color:var(--ink-300);transition:transform 0.3s,color 0.3s;}
-    .faq-item.open .faq-icon{transform:rotate(45deg);color:var(--accent);}
-    .faq-answer{max-height:0;overflow:hidden;transition:max-height 0.3s ease,padding 0.3s ease;}
-    .faq-item.open .faq-answer{max-height:200px;}
-    .faq-answer p{padding:0 0 24px;font-size:15px;color:var(--ink-500);line-height:1.7;}
-
-    /* CTA */
-    .cta-section{text-align:center;padding:120px 24px;position:relative;overflow:hidden;background:var(--ink-900);}
-    .cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(99,87,232,0.15),transparent 60%);pointer-events:none;}
-    .cta-content{position:relative;z-index:1;max-width:560px;margin:0 auto;}
-    .cta-section h2{font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-0.04em;margin-bottom:16px;color:#fff;line-height:1.1;}
-    .cta-section h2 .gradient{background:linear-gradient(135deg,#9B8FF7,#6357E8,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
-    .cta-section p{font-size:17px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:40px;}
+    .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;}
+    .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.35);}
+    .hero{padding:100px 24px 72px;text-align:center;background:var(--ink-0);}
+    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:100px;background:var(--accent-dim);border:1px solid rgba(99,87,232,0.15);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent-text);margin-bottom:28px;}
+    .hero h1{font-size:clamp(40px,6vw,68px);font-weight:800;letter-spacing:-0.05em;line-height:1.05;margin-bottom:20px;color:var(--ink-900);}
+    .hero h1 em{font-style:normal;color:var(--accent);}
+    .hero-sub{font-size:18px;color:var(--ink-500);line-height:1.65;max-width:460px;margin:0 auto;}
+    .plans{padding:0 24px 80px;}
+    .plans-inner{max-width:880px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+    .plan{border-radius:24px;padding:40px 36px;position:relative;transition:transform 0.3s,box-shadow 0.3s;}
+    .plan:hover{transform:translateY(-4px);}
+    .plan-free{background:var(--ink-50);border:1px solid var(--ink-100);}
+    .plan-free:hover{box-shadow:0 20px 56px rgba(0,0,0,0.07);}
+    .plan-pro{background:var(--dark);color:#fff;}
+    .plan-pro:hover{box-shadow:0 20px 64px rgba(99,87,232,0.28);}
+    .plan-pro::before{content:'';position:absolute;inset:0;border-radius:24px;background:radial-gradient(ellipse at 70% 0%,rgba(99,87,232,0.35),transparent 60%);pointer-events:none;}
+    .plan-tag{display:inline-flex;align-items:center;gap:6px;padding:4px 14px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:28px;}
+    .plan-free .plan-tag{background:var(--ink-100);color:var(--ink-500);}
+    .plan-pro .plan-tag{background:rgba(99,87,232,0.25);color:var(--accent-mid);}
+    .plan-tag-dot{width:6px;height:6px;border-radius:50%;background:var(--green);}
+    .plan-pro .plan-tag-dot{background:var(--accent-mid);}
+    .plan-name{font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px;}
+    .plan-free .plan-name{color:var(--ink-300);}
+    .plan-pro .plan-name{color:rgba(255,255,255,0.4);}
+    .plan-price{font-size:clamp(48px,7vw,72px);font-weight:800;letter-spacing:-0.05em;line-height:1;margin-bottom:6px;}
+    .plan-free .plan-price{color:var(--ink-900);}
+    .plan-pro .plan-price{color:#fff;}
+    .plan-price-note{font-size:14px;font-weight:600;margin-bottom:28px;}
+    .plan-free .plan-price-note{color:var(--ink-300);}
+    .plan-pro .plan-price-note{color:rgba(255,255,255,0.35);}
+    .plan-desc{font-size:15px;line-height:1.65;margin-bottom:32px;padding-bottom:32px;}
+    .plan-free .plan-desc{color:var(--ink-500);border-bottom:1px solid var(--ink-100);}
+    .plan-pro .plan-desc{color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,255,255,0.08);}
+    .plan-features{list-style:none;display:flex;flex-direction:column;gap:14px;margin-bottom:36px;}
+    .plan-features li{display:flex;align-items:flex-start;gap:10px;font-size:14px;font-weight:500;line-height:1.5;}
+    .plan-free .plan-features li{color:var(--ink-700);}
+    .plan-pro .plan-features li{color:rgba(255,255,255,0.75);}
+    .plan-check{width:18px;height:18px;border-radius:50%;flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;}
+    .plan-free .plan-check{background:var(--ink-100);}
+    .plan-pro .plan-check{background:rgba(99,87,232,0.3);}
+    .plan-check svg{width:10px;height:10px;}
+    .plan-cta{display:block;text-align:center;padding:15px 24px;border-radius:14px;font-size:15px;font-weight:700;text-decoration:none;transition:all 0.2s;}
+    .plan-free .plan-cta{background:var(--ink-0);color:var(--ink-900);border:1.5px solid var(--ink-150);}
+    .plan-free .plan-cta:hover{border-color:var(--accent);color:var(--accent);}
+    .plan-pro .plan-cta{background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;box-shadow:0 4px 20px rgba(99,87,232,0.35);}
+    .plan-pro .plan-cta:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(99,87,232,0.45);}
+    .plan-soon{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;background:rgba(99,87,232,0.15);color:var(--accent-mid);font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px;}
+    .modules{padding:0 24px 100px;}
+    .modules-inner{max-width:880px;margin:0 auto;}
+    .modules-header{text-align:center;margin-bottom:48px;}
+    .modules-eyebrow{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
+    .modules-title{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-0.04em;color:var(--ink-900);}
+    .modules-subtitle{font-size:15px;color:var(--ink-500);margin-top:10px;}
+    .modules-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+    .mod-card{background:var(--ink-50);border:1px solid var(--ink-100);border-radius:18px;padding:24px 22px;display:flex;flex-direction:column;gap:12px;transition:all 0.25s;}
+    .mod-card:hover{background:var(--ink-0);border-color:var(--ink-150);box-shadow:0 8px 28px rgba(0,0,0,0.06);transform:translateY(-2px);}
+    .mod-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;}
+    .mod-name{font-size:15px;font-weight:800;letter-spacing:-0.02em;color:var(--ink-900);}
+    .mod-desc{font-size:13px;color:var(--ink-500);line-height:1.5;}
+    .cta-section{text-align:center;padding:100px 24px;position:relative;overflow:hidden;background:var(--dark);}
+    .cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(99,87,232,0.18),transparent 60%);pointer-events:none;}
+    .cta-content{position:relative;z-index:1;max-width:540px;margin:0 auto;}
+    .cta-section h2{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-0.04em;margin-bottom:14px;color:#fff;line-height:1.1;}
+    .cta-section h2 em{font-style:normal;color:var(--accent-mid);}
+    .cta-section p{font-size:17px;color:rgba(255,255,255,0.4);line-height:1.7;margin-bottom:36px;}
     .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:16px 36px;border-radius:14px;background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;font-size:16px;font-weight:700;text-decoration:none;border:none;cursor:pointer;transition:all 0.25s;box-shadow:0 4px 20px rgba(99,87,232,0.25);}
-    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,87,232,0.35);}
-
-    /* FOOTER */
-    .footer{border-top:1px solid rgba(255,255,255,0.06);padding:48px 40px 32px;background:var(--ink-900);}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,87,232,0.4);}
+    .footer{border-top:1px solid rgba(255,255,255,0.06);padding:48px 40px 32px;background:var(--dark);}
     .footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
     .footer-left{display:flex;align-items:center;gap:12px;}
     .footer-wordmark{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.03em;}
@@ -99,30 +103,26 @@
     .footer-right{display:flex;align-items:center;gap:24px;}
     .footer-link{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s;}
     .footer-link:hover{color:#fff;}
-
-    .reveal{opacity:0;transform:translateY(32px);transition:opacity 0.6s ease-out,transform 0.6s ease-out;}
+    .reveal{opacity:0;transform:translateY(28px);transition:opacity 0.65s ease-out,transform 0.65s ease-out;}
     .reveal.visible{opacity:1;transform:translateY(0);}
     .reveal-d1{transition-delay:0.1s;}.reveal-d2{transition-delay:0.2s;}
-
-    @media(max-width:640px){
+    @media(max-width:700px){
       .nav{padding:0 20px;}.nav-links a:not(.nav-cta){display:none;}
-      .page-hero{padding:80px 20px 40px;}
-      .pricing-section{padding:40px 16px 80px;}
-      .pricing-grid{grid-template-columns:1fr;max-width:440px;margin:0 auto;}
-      .pricing-card{padding:32px;}
-      .faq-section{padding:0 20px 80px;}
-      .faq-question{font-size:15px;}
+      .hero{padding:80px 20px 56px;}
+      .plans-inner{grid-template-columns:1fr;}
+      .modules-grid{grid-template-columns:repeat(2,1fr);}
       .cta-section{padding:80px 20px;}
       .footer{padding:32px 20px 24px;}
       .footer-inner{flex-direction:column;gap:16px;text-align:center;}
       .footer-right{flex-wrap:wrap;justify-content:center;}
     }
+    @media(max-width:480px){.modules-grid{grid-template-columns:1fr;}}
   </style>
 </head>
 <body>
 
   <nav class="nav">
-    <a href="index.html" class="nav-left" style="text-decoration:none;">
+    <a href="index.html" class="nav-left">
       <svg width="36" height="36" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="url(#g)"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text><rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/></svg>
       <span class="nav-wordmark">Workived</span>
     </a>
@@ -135,96 +135,115 @@
     </div>
   </nav>
 
-  <section class="page-hero">
-    <h1 class="reveal">Start free.<br><span class="highlight">Upgrade when ready.</span></h1>
-    <p class="reveal reveal-d1">No credit card, no trial period, no catch. Free for teams up to 15 employees.</p>
+  <section class="hero">
+    <div class="hero-eyebrow">Simple pricing</div>
+    <h1>Free to start.<br><em>Pro when you're ready.</em></h1>
+    <p class="hero-sub">No credit card. No trial period. All 9 modules included in the free plan — forever.</p>
   </section>
 
-  <section class="pricing-section">
-    <div class="pricing-grid">
-      <div class="pricing-card reveal">
-        <div class="pricing-plan">Explore</div>
-        <div class="pricing-price"><span class="pricing-amount">Free</span></div>
-        <p class="pricing-desc">Everything you need to run a small team. No credit card required.</p>
-        <ul class="pricing-features">
-          <li>Up to 15 employees</li>
-          <li>All 9 modules included</li>
-          <li>Attendance, leave & claims</li>
-          <li>Task boards & calendar</li>
-          <li>People directory</li>
-          <li>Indonesia & UAE compliance</li>
-          <li>Email support</li>
+  <section class="plans">
+    <div class="plans-inner">
+      <div class="plan plan-free reveal">
+        <div class="plan-tag"><span class="plan-tag-dot"></span>Available now</div>
+        <div class="plan-name">Explore</div>
+        <div class="plan-price">$0</div>
+        <div class="plan-price-note">Free forever &middot; up to 15 employees</div>
+        <p class="plan-desc">Everything your team needs from day one. Attendance, leave, claims, tasks, calendar, people, performance, and dashboards — no limits, no expiry.</p>
+        <ul class="plan-features">
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--ink-500)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>Up to 15 employees</li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--ink-500)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>All 9 modules included</li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--ink-500)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>Indonesia &amp; UAE compliance</li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--ink-500)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>iOS &amp; Android mobile apps</li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--ink-500)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>Multi-currency (IDR, AED, MYR, SGD)</li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--ink-500)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>Email support</li>
         </ul>
-        <a href="mailto:my@workived.com" class="pricing-cta outline">Get Started Free</a>
+        <a href="mailto:my@workived.com" class="plan-cta">Get Started Free</a>
       </div>
 
-      <div class="pricing-card featured reveal reveal-d1">
-        <div class="pricing-badge">Coming Soon</div>
-        <div class="pricing-plan">Pro</div>
-        <div class="pricing-price"><span class="pricing-amount" style="font-size:36px;">Price TBA</span></div>
-        <div class="pricing-savings">Early users lock in the best rate</div>
-        <p class="pricing-desc" style="margin-top:12px;">For growing teams who need more power and flexibility.</p>
-        <ul class="pricing-features">
-          <li><strong style="color:var(--accent);">AI Assistant — ask anything</strong></li>
-          <li>Unlimited employees</li>
-          <li>Everything in Explore</li>
-          <li>Custom leave policies</li>
-          <li>Advanced claim budgets</li>
-          <li>Performance analytics & custom dashboards</li>
-          <li>Priority support</li>
-          <li>Custom branding</li>
+      <div class="plan plan-pro reveal reveal-d1">
+        <div class="plan-soon">Coming soon</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price" style="font-size:clamp(36px,5vw,52px);margin-top:4px;">Price TBA</div>
+        <div class="plan-price-note">Early users lock in the best rate</div>
+        <p class="plan-desc">For growing teams who need AI, more employees, and deeper control over their data.</p>
+        <ul class="plan-features">
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--accent-mid)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span><strong style="color:#fff;">AI Assistant — ask in natural language</strong></li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--accent-mid)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>Unlimited employees</li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--accent-mid)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>Everything in Explore</li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--accent-mid)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>Custom leave policies</li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--accent-mid)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>Advanced performance analytics</li>
+          <li><span class="plan-check"><svg viewBox="0 0 10 10" fill="none" stroke="var(--accent-mid)" stroke-width="2" stroke-linecap="round"><path d="M1.5 5.5L4 8l4.5-6"/></svg></span>Priority support &amp; custom branding</li>
         </ul>
-        <a href="mailto:my@workived.com" class="pricing-cta filled">Join the Waitlist</a>
+        <a href="mailto:my@workived.com" class="plan-cta">Join the Waitlist</a>
       </div>
     </div>
   </section>
 
-  <section class="faq-section" id="faq">
-    <div class="section-header reveal">
-      <span class="section-label">Common questions</span>
-      <h2>Got questions?<br><span class="muted">We've got answers.</span></h2>
-    </div>
-    <div class="faq-list">
-      <div class="faq-item open">
-        <button class="faq-question">Is it really free?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-        <div class="faq-answer"><p>Yes. The Explore plan is free forever for teams up to 15 employees. All 9 modules included. No credit card, no trial that expires, no surprise invoices.</p></div>
+  <section class="modules">
+    <div class="modules-inner">
+      <div class="modules-header reveal">
+        <div class="modules-eyebrow">Included in every plan</div>
+        <div class="modules-title">9 modules. One workspace.</div>
+        <div class="modules-subtitle">No add-ons. No paywalled features. Everything ships with the free plan.</div>
       </div>
-      <div class="faq-item">
-        <button class="faq-question">What happens when my team grows past 15?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-        <div class="faq-answer"><p>You upgrade to the Pro plan — pricing is being finalised, and early users will lock in the best rate. Your data, settings, and history carry over seamlessly.</p></div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-question">Which countries do you support?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-        <div class="faq-answer"><p>We're launching in Indonesia and UAE with country-specific leave policies, public holidays, and multi-currency support (IDR, AED, MYR, SGD). More countries coming soon.</p></div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-question">Is my data safe?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-        <div class="faq-answer"><p>Absolutely. Encrypted, isolated per organization, and hosted on secure cloud infrastructure. Your data is never shared or mixed. <a href="security.html" style="color:var(--accent);">Learn more about security →</a></p></div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-question">Can I use Workived for payroll?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-        <div class="faq-answer"><p>Not yet — payroll is on our roadmap and will integrate seamlessly with attendance, leave, and claims data. Join early access to be the first to know.</p></div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-question">How does the Custom Dashboard work?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-        <div class="faq-answer"><p>Query and visualize any data from tasks, attendance, leave, claims, and more. Drag-and-drop widgets, custom charts, and shareable dashboards — like built-in BI.</p></div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-question">Do you have a mobile app?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-        <div class="faq-answer"><p>Yes! Native iOS and Android apps for clock in/out, leave requests, expense claims, and task management on the go. Managers can approve requests from anywhere.</p></div>
-      </div>
-      <div class="faq-item">
-        <button class="faq-question">How does the AI assistant work?<svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
-        <div class="faq-answer"><p>The AI assistant (Pro plan) lets you query data in natural language — "Who's on leave next week?" — and even perform actions like submitting leave requests. <a href="ai.html" style="color:var(--accent);">See how AI works →</a></p></div>
+      <div class="modules-grid">
+        <div class="mod-card reveal">
+          <div class="mod-icon" style="background:#EFEDFD;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+          <div class="mod-name">Overview</div>
+          <div class="mod-desc">Real-time team pulse, pending approvals, and daily summary.</div>
+        </div>
+        <div class="mod-card reveal reveal-d1">
+          <div class="mod-icon" style="background:#EDE9FE;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+          <div class="mod-name">Attendance</div>
+          <div class="mod-desc">One-tap clock in, late tracking, schedules, and manager view.</div>
+        </div>
+        <div class="mod-card reveal reveal-d2">
+          <div class="mod-icon" style="background:#E8EFFE;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round"><path d="M17 17h5v-5"/><path d="M17 17c0-5-3-8-8-8s-8 3-8 8"/></svg></div>
+          <div class="mod-name">Leave</div>
+          <div class="mod-desc">Visual balances, one-click requests, and instant approvals.</div>
+        </div>
+        <div class="mod-card reveal">
+          <div class="mod-icon" style="background:#E6F7F0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+          <div class="mod-name">Claims</div>
+          <div class="mod-desc">Submit expenses, attach receipts, track budgets.</div>
+        </div>
+        <div class="mod-card reveal reveal-d1">
+          <div class="mod-icon" style="background:#FEF7E6;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+          <div class="mod-name">Tasks</div>
+          <div class="mod-desc">Kanban boards, priorities, assignees, and custom fields.</div>
+        </div>
+        <div class="mod-card reveal reveal-d2">
+          <div class="mod-icon" style="background:#FEF3C7;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+          <div class="mod-name">Calendar</div>
+          <div class="mod-desc">Team leaves, public holidays, and availability at a glance.</div>
+        </div>
+        <div class="mod-card reveal">
+          <div class="mod-icon" style="background:#FDE8F0;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+          <div class="mod-name">People</div>
+          <div class="mod-desc">Employee directory, reporting lines, and org structure.</div>
+        </div>
+        <div class="mod-card reveal reveal-d1">
+          <div class="mod-icon" style="background:#FEF3C7;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+          <div class="mod-name">Performance</div>
+          <div class="mod-desc">Attendance trends, task completion, and team rankings.</div>
+        </div>
+        <div class="mod-card reveal reveal-d2">
+          <div class="mod-icon" style="background:#EDE9FE;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="4" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="10" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="4" rx="1"/></svg></div>
+          <div class="mod-name">Dashboards</div>
+          <div class="mod-desc">Custom charts and views built from all your data.</div>
+        </div>
       </div>
     </div>
   </section>
 
   <section class="cta-section">
     <div class="cta-content reveal">
-      <h2>Ready to simplify<br><span class="gradient">your team ops?</span></h2>
-      <p>Free for teams up to 15. No credit card, no trial period, no catch.</p>
-      <a href="mailto:my@workived.com" class="btn-primary">Get Early Access <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg></a>
+      <h2>Start free.<br><em>Upgrade when your team grows.</em></h2>
+      <p>Free for teams up to 15. No credit card, no trial period.</p>
+      <a href="mailto:my@workived.com" class="btn-primary">
+        Get Early Access
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
     </div>
   </section>
 
@@ -246,19 +265,13 @@
   </footer>
 
   <script>
+  (() => {
+    'use strict';
     const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
-
-    document.querySelectorAll('.faq-question').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const item = btn.parentElement;
-        const wasOpen = item.classList.contains('open');
-        document.querySelectorAll('.faq-item').forEach(i => i.classList.remove('open'));
-        if (!wasOpen) item.classList.add('open');
-      });
-    });
+  })();
   </script>
 </body>
 </html>

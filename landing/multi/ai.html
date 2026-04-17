@@ -127,7 +127,7 @@
       border:1px solid var(--ink-100);transition:all 0.3s;
     }
     .cap-card:hover{border-color:transparent;box-shadow:0 16px 48px rgba(0,0,0,0.08),0 0 0 1px rgba(99,87,232,0.1);transform:translateY(-4px);}
-    .cap-card .cap-emoji{font-size:28px;margin-bottom:16px;display:block;}
+    .cap-card .cap-icon{width:48px;height:48px;border-radius:12px;background:var(--accent-dim);color:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:16px;}
     .cap-card h3{font-size:17px;font-weight:800;letter-spacing:-0.02em;margin-bottom:8px;color:var(--ink-900);}
     .cap-card p{font-size:14px;color:var(--ink-500);line-height:1.7;}
     .cap-card .example{
@@ -255,37 +255,37 @@
     </div>
     <div class="cap-grid">
       <div class="cap-card reveal">
-        <span class="cap-emoji">💬</span>
+        <span class="cap-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
         <h3>Natural Language Queries</h3>
         <p>Ask questions in plain English. No dashboards to navigate, no filters to set.</p>
         <div class="example">"Who had the most sick days this quarter?"</div>
       </div>
       <div class="cap-card reveal reveal-d1">
-        <span class="cap-emoji">📊</span>
+        <span class="cap-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg></span>
         <h3>Instant Analytics</h3>
         <p>Get attendance trends, task completion rates, and leave utilization with a single question.</p>
         <div class="example">"Show attendance trends for March"</div>
       </div>
       <div class="cap-card reveal reveal-d2">
-        <span class="cap-emoji">✈️</span>
+        <span class="cap-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
         <h3>Submit Actions</h3>
         <p>Request leave, check balances, and manage approvals — all through conversation.</p>
         <div class="example">"Submit 2 days annual leave next Friday"</div>
       </div>
       <div class="cap-card reveal reveal-d3">
-        <span class="cap-emoji">👥</span>
+        <span class="cap-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
         <h3>Team Status</h3>
         <p>Instantly know who's in, who's on leave, and who's available for a meeting.</p>
         <div class="example">"Who's available this Thursday afternoon?"</div>
       </div>
       <div class="cap-card reveal">
-        <span class="cap-emoji">📈</span>
+        <span class="cap-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></span>
         <h3>Performance Insights</h3>
         <p>Identify top performers, track trends, and spot issues before they become problems.</p>
         <div class="example">"Which team has the best punctuality rate?"</div>
       </div>
       <div class="cap-card reveal reveal-d1">
-        <span class="cap-emoji">💰</span>
+        <span class="cap-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span>
         <h3>Budget Intelligence</h3>
         <p>Track claim budgets, spending patterns, and remaining allocations across departments.</p>
         <div class="example">"How much is left in the marketing budget?"</div>
@@ -359,9 +359,9 @@
     // Chat demo animation: cycle through conversations
     const conversations = [
       { user: "I want to take leave from 17 Aug to 20 Aug.", bot: 'Done! I\'ve submitted a <strong>4-day annual leave</strong> request (17–20 Aug). Your manager has been notified. You have <strong>12 days</strong> remaining.' },
-      { user: "Who's on leave next week?", bot: '<strong>3 people</strong> on leave next week: Sarah (Mon–Wed, Annual), Ahmad (Tue, Sick), Budi (Thu–Fri, Annual). <strong>5 of 8</strong> available all week.' },
-      { user: "Show me attendance trends for March.", bot: 'March attendance: <strong>94.2%</strong> avg (up from 91.8% in Feb). Best day: Monday (97%). Worst: Friday (89%). <strong>Top performer:</strong> Sarah — 100% on time.' },
-      { user: "How much is left in the marketing budget?", bot: 'Marketing claims budget: <strong>IDR 8,500,000</strong> remaining of IDR 15,000,000 (56.7%). Top spend: client meals (IDR 3.2M). <strong>2 pending</strong> claims to approve.' },
+      { user: "Submit a meal claim — IDR 250,000, client lunch yesterday.", bot: 'Submitted! Expense claim <strong>#CLM-0042</strong> for <strong>IDR 250,000</strong> (Client Meal — 17 Apr) is now pending approval. Finance will review within <strong>2 working days</strong>.' },
+      { user: "Approve Ahmad's leave request for this Friday.", bot: 'Done! Ahmad\'s <strong>annual leave on Fri 18 Apr</strong> has been approved and he\'s been notified. <strong>4 of 8</strong> team members remain available that day.' },
+      { user: "Claim my WFH internet allowance for April.", bot: 'Submitted! <strong>Internet allowance</strong> of <strong>IDR 150,000</strong> for April has been created (<strong>#CLM-0043</strong>). Fixed benefit — auto-approved within 24 hours.' },
     ];
     let convIndex = 0;
     const messagesEl = document.getElementById('chatMessages');
