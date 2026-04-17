@@ -704,9 +704,9 @@
     <div class="hero-grid"></div>
     <div class="hero-inner">
       <div class="hero-text">
-        <h1>HR that<br><span class="gradient" id="heroTyping">works for you</span><span class="typing-cursor"></span></h1>
+        <h1>Run your team,<br><span id="heroTyping" style="color:var(--accent);">not just HR</span><span class="typing-cursor"></span></h1>
         <p class="hero-sub">
-          Attendance, leave, claims, tasks, and people — one workspace that replaces scattered tools and WhatsApp threads.
+          HR data and Task Management — one workspace.
         </p>
         <div class="hero-actions">
           <a href="mailto:my@workived.com" class="btn-primary">
@@ -770,7 +770,7 @@
 
     <div class="tour-grid">
       <!-- ATTENDANCE -->
-      <div class="tour-card tour-card--purple tour-card--half reveal">
+      <a href="features.html#attendance" class="tour-card tour-card--purple tour-card--half reveal" style="text-decoration:none;color:inherit;">
         <div class="tour-card-brand">
           <div class="tour-card-icon" style="background:rgba(99,87,232,0.15);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -787,10 +787,10 @@
           <img src="../images/thumbnails/attendance-schedules.png" alt="Work schedules" loading="lazy"
                style="width:40%; bottom:16px; right:4%; z-index:3;">
         </div>
-      </div>
+      </a>
 
       <!-- LEAVE -->
-      <div class="tour-card tour-card--blue tour-card--half reveal reveal-d1">
+      <a href="features.html#leave" class="tour-card tour-card--blue tour-card--half reveal reveal-d1" style="text-decoration:none;color:inherit;">
         <div class="tour-card-brand">
           <div class="tour-card-icon" style="background:rgba(129,140,248,0.15);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round"><path d="M17 17h5v-5"/><path d="M17 17c0-5-3-8-8-8s-8 3-8 8"/></svg>
@@ -807,10 +807,10 @@
           <img src="../images/thumbnails/leave-apply.png" alt="Apply leave" loading="lazy"
                style="width:36%; bottom:0; right:3%; z-index:2;">
         </div>
-      </div>
+      </a>
 
       <!-- CLAIMS -->
-      <div class="tour-card tour-card--green tour-card--half reveal">
+      <a href="features.html#claims" class="tour-card tour-card--green tour-card--half reveal" style="text-decoration:none;color:inherit;">
         <div class="tour-card-brand">
           <div class="tour-card-icon" style="background:rgba(16,185,129,0.15);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -827,10 +827,10 @@
           <img src="../images/thumbnails/pending-approvals.png" alt="Pending approvals" loading="lazy"
                style="width:38%; bottom:16px; right:4%; z-index:3;">
         </div>
-      </div>
+      </a>
 
       <!-- TASKS -->
-      <div class="tour-card tour-card--amber tour-card--half reveal reveal-d1">
+      <a href="features.html#tasks" class="tour-card tour-card--amber tour-card--half reveal reveal-d1" style="text-decoration:none;color:inherit;">
         <div class="tour-card-brand">
           <div class="tour-card-icon" style="background:rgba(245,158,11,0.15);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
@@ -847,10 +847,10 @@
           <img src="../images/thumbnails/task-list.png" alt="Task list" loading="lazy"
                style="width:88%; bottom:0; left:50%; margin-left:-44%; z-index:3; border-radius:12px 12px 0 0;">
         </div>
-      </div>
+      </a>
 
       <!-- PEOPLE -->
-      <div class="tour-card tour-card--teal tour-card--wide reveal">
+      <a href="features.html#people" class="tour-card tour-card--teal tour-card--wide reveal" style="text-decoration:none; color:inherit;">
         <div class="tour-card-brand">
           <div class="tour-card-icon" style="background:rgba(6,182,212,0.15);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -867,7 +867,7 @@
           <img src="../images/thumbnails/people-history.png" alt="Employment history" loading="lazy"
                style="width:25%; bottom:0; right:2%; z-index:2; border-radius:10px;">
         </div>
-      </div>
+      </a>
 
       <!-- SEE ALL FEATURES -->
       <a href="features.html" class="tour-card tour-card--features tour-card--narrow reveal reveal-d1" style="text-decoration:none; color:inherit;">
@@ -1042,7 +1042,7 @@
     }, { passive: true });
 
     // ─── Hero typing effect ───
-    const phrases = ['works for you', 'runs itself', 'saves hours', 'stays free'];
+    const phrases = ['not just HR', 'without the chaos', 'the way it should be', 'simplified.'];
     const typingEl = document.getElementById('heroTyping');
     let phraseIdx = 0;
     let charIdx = 0;

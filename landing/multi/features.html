@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" style="color-scheme: light;">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Features — Workived</title>
   <meta name="description" content="Explore all Workived modules: attendance, leave, claims, tasks, calendar, people directory, performance analytics, and custom dashboards.">
-  <meta name="color-scheme" content="light only">
-  <meta name="theme-color" content="#F3F2FB">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#F6F5FC">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='30' fill='%236357E8'/><text x='90' y='112' text-anchor='middle' dominant-baseline='middle' style='font-family:Plus Jakarta Sans,sans-serif;font-size:108px;font-weight:800;fill:white'>W</text><rect x='55' y='150' width='70' height='10' rx='5' fill='white' opacity='0.7'/></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,180 +14,100 @@
   <style>
     *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
     :root{
-      color-scheme:light only;
-      --accent:#6357E8;--accent-dim:#EFEDFD;--accent-mid:#8F86F0;--accent-text:#4A3FBF;
+      --accent:#6357E8;--accent-mid:#8F86F0;--accent-text:#4A3FBF;--accent-dim:#EFEDFD;
       --ink-900:#0F0E13;--ink-700:#1F1D2B;--ink-500:#72708A;--ink-300:#B0AEBE;
-      --ink-150:#DDDBE8;--ink-100:#EDECF4;--ink-50:#F3F2FB;--ink-0:#FFFFFF;
+      --ink-150:#DDDBE8;--ink-100:#EDECF4;--ink-50:#F6F5FC;--ink-0:#FFFFFF;
+      --dark:#0A0A12;
     }
     html{scroll-behavior:smooth;}
-    body{
-      font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
-      background:var(--ink-50);color:var(--ink-900);
-      -webkit-font-smoothing:antialiased;overflow-x:hidden;
-    }
+    body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--ink-50);color:var(--ink-900);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
 
-    /* NAV */
-    .nav{
-      position:sticky;top:0;z-index:1000;
-      padding:0 40px;height:72px;
-      display:flex;align-items:center;justify-content:space-between;
-      background:rgba(243,242,251,0.8);
-      backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-      border-bottom:1px solid rgba(0,0,0,0.04);
-    }
+    /* ─── NAV (light) ─── */
+    .nav{position:sticky;top:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(246,245,252,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--ink-100);}
     .nav-left{display:flex;align-items:center;gap:14px;text-decoration:none;}
     .nav-wordmark{font-size:22px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;}
-    .nav-links{display:flex;align-items:center;gap:32px;}
+    .nav-links{display:flex;align-items:center;gap:28px;}
     .nav-links a{font-size:14px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;}
-    .nav-links a:hover{color:var(--accent);}
+    .nav-links a:hover{color:var(--ink-900);}
     .nav-links a.active{color:var(--accent);}
-    .nav-cta{
-      padding:10px 24px;border-radius:10px;background:var(--accent);
-      color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;border:none;
-    }
-    .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.3);}
+    .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;}
+    .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.4);}
 
-    /* HERO */
-    .page-hero{
-      padding:100px 24px 80px;text-align:center;
-      background:var(--ink-50);position:relative;overflow:hidden;
-    }
-    .page-hero::before{
-      content:'';position:absolute;inset:0;
-      background:radial-gradient(ellipse at 50% 0%,rgba(99,87,232,0.08) 0%,transparent 60%);pointer-events:none;
-    }
-    .page-hero h1{
-      font-size:clamp(36px,6vw,60px);font-weight:800;
-      letter-spacing:-0.04em;line-height:1.1;margin-bottom:16px;position:relative;
-    }
-    .page-hero h1 .highlight{
-      background:linear-gradient(135deg,#9B8FF7,#6357E8,#818CF8);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    }
-    .page-hero p{font-size:18px;color:var(--ink-500);line-height:1.7;max-width:560px;margin:0 auto;position:relative;}
+    /* ─── PAGE LAYOUT (sticky sidebar) ─── */
+    .page-layout{display:grid;grid-template-columns:260px 1fr;align-items:start;}
+    .page-sidebar{position:sticky;top:72px;height:calc(100vh - 72px);border-right:1px solid var(--ink-100);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none;background:var(--ink-0);}
+    .page-sidebar::-webkit-scrollbar{display:none;}
+    .sidebar-eyebrow{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);padding:32px 28px 20px;display:block;}
+    .sidebar-modlist{flex:1;border-top:1px solid var(--ink-100);}
 
-    /* FEATURE BLOCKS */
-    .feature-block{
-      max-width:1100px;margin:0 auto;padding:80px 24px;
-      display:grid;grid-template-columns:1fr 1.2fr;gap:64px;align-items:center;
-    }
-    .feature-block.reverse{direction:rtl;}
-    .feature-block.reverse>*{direction:ltr;}
-    .feature-text{display:flex;flex-direction:column;gap:16px;}
-    .feature-icon-row{display:flex;align-items:center;gap:12px;}
-    .feature-emoji{
-      width:48px;height:48px;border-radius:14px;
-      display:flex;align-items:center;justify-content:center;
-    }
-    .feature-emoji svg{width:24px;height:24px;stroke-width:2;}
-    .feature-module-name{font-size:13px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;}
-    .feature-text h3{
-      font-size:clamp(28px,3.5vw,40px);font-weight:800;
-      letter-spacing:-0.03em;line-height:1.12;color:var(--ink-900);
-    }
-    .feature-text p{font-size:17px;color:var(--ink-500);line-height:1.7;max-width:460px;}
-    .feature-bullets{
-      list-style:none;display:flex;flex-direction:column;gap:12px;margin-top:8px;
-    }
-    .feature-bullets li{
-      display:flex;align-items:center;gap:10px;
-      font-size:15px;color:var(--ink-500);font-weight:500;
-    }
-    .feature-bullets li::before{
-      content:'';width:7px;height:7px;border-radius:50%;flex-shrink:0;
-    }
-    .screenshot-wrapper{
-      border-radius:20px;overflow:hidden;
-      box-shadow:0 24px 64px rgba(0,0,0,0.08),0 0 0 1px rgba(0,0,0,0.04);
-      transition:transform 0.4s ease;
-    }
-    .screenshot-wrapper:hover{transform:translateY(-6px);}
-    .browser-bar{
-      display:flex;align-items:center;gap:8px;padding:14px 20px;
-      background:var(--ink-50);border-bottom:1px solid var(--ink-100);
-    }
-    .browser-dot{width:10px;height:10px;border-radius:50;background:var(--ink-150);}
-    .browser-dot:nth-child(1){background:#FF6058;}
-    .browser-dot:nth-child(2){background:#FFBD2E;}
-    .browser-dot:nth-child(3){background:#28CA42;}
-    .browser-url{
-      flex:1;margin-left:12px;padding:6px 16px;border-radius:8px;
-      background:#fff;border:1px solid var(--ink-100);
-      font-size:12px;color:var(--ink-300);font-weight:500;
-    }
-    .screenshot-wrapper img{display:block;width:100%;height:auto;}
+    /* Sidebar module rows */
+    .mrow{display:flex;align-items:center;gap:12px;padding:12px 28px;text-decoration:none;position:relative;transition:background 0.15s;border-bottom:1px solid var(--ink-100);}
+    .mrow::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--mc,var(--accent));opacity:0;transition:opacity 0.15s;border-radius:0 2px 2px 0;}
+    .mrow.active,.mrow:hover{background:var(--ink-50);}
+    .mrow.active::before,.mrow:hover::before{opacity:1;}
+    .mrow-num{font-size:11px;font-weight:700;color:var(--ink-300);width:20px;flex-shrink:0;letter-spacing:0.06em;}
+    .mrow-name{font-size:14px;font-weight:700;letter-spacing:-0.02em;color:var(--ink-700);flex:1;transition:color 0.15s;}
+    .mrow.active .mrow-name,.mrow:hover .mrow-name{color:var(--mc,var(--accent));}
+    .mrow-arrow{font-size:12px;color:var(--ink-300);flex-shrink:0;opacity:0;transition:all 0.15s;transform:translateX(-4px);}
+    .mrow.active .mrow-arrow,.mrow:hover .mrow-arrow{opacity:1;color:var(--mc,var(--accent));transform:translateX(0);}
 
-    /* Divider */
-    .divider{
-      max-width:1100px;margin:0 auto;height:1px;
-      background:linear-gradient(90deg,transparent,var(--ink-150),transparent);
-    }
+    /* ─── MODULE SECTIONS ─── */
+    /* nav=72px + 24px breathing room = 96px */
+    .msec{padding:96px 24px;position:relative;overflow:hidden;scroll-margin-top:96px;}
+    .msec:nth-child(even){background:var(--ink-50);}
+    .msec:nth-child(odd){background:var(--ink-0);}
+    .msec-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1.28fr;gap:72px;align-items:center;position:relative;z-index:1;}
+    .msec.flip .msec-text{order:2;}
+    .msec.flip .msec-visual{order:1;}
+
+    /* Giant watermark number */
+    .msec-num{position:absolute;font-size:clamp(160px,22vw,280px);font-weight:800;letter-spacing:-0.08em;color:transparent;-webkit-text-stroke:1.5px var(--ink-100);user-select:none;pointer-events:none;line-height:1;top:-10px;right:-8px;z-index:0;}
+    .msec:nth-child(even) .msec-num{-webkit-text-stroke-color:rgba(0,0,0,0.035);}
+
+    /* Text */
+    .msec-eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:14px;}
+    .msec-edot{width:7px;height:7px;border-radius:50%;}
+    .msec-title{font-size:clamp(28px,3.5vw,46px);font-weight:800;letter-spacing:-0.04em;line-height:1.08;color:var(--ink-900);margin-bottom:12px;}
+    .msec-desc{font-size:16px;color:var(--ink-500);line-height:1.75;max-width:420px;margin-bottom:26px;}
+    .msec-chips{display:flex;flex-wrap:wrap;gap:8px;}
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:7px 15px;border-radius:100px;font-size:13px;font-weight:600;background:var(--ink-50);color:var(--ink-600,var(--ink-500));border:1px solid var(--ink-150);}
+    .msec:nth-child(even) .chip{background:var(--ink-0);}
+    .cdot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+
+    /* Visual */
+    .msec-visual{position:relative;}
+    .msec-glow{position:absolute;width:70%;height:50%;bottom:-5%;left:15%;border-radius:50%;filter:blur(56px);opacity:0.13;pointer-events:none;z-index:0;}
+    .msec-frame{position:relative;z-index:1;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.09),0 0 0 1px rgba(0,0,0,0.05);transition:transform 0.5s cubic-bezier(0.23,1,0.32,1),box-shadow 0.5s ease;}
+    .msec:nth-child(odd) .msec-frame{transform:perspective(1400px) rotateY(-5deg) rotateX(1.5deg);}
+    .msec:nth-child(even) .msec-frame{transform:perspective(1400px) rotateY(5deg) rotateX(1.5deg);}
+    .msec-frame:hover{transform:perspective(1400px) rotateY(0) rotateX(0) translateY(-8px) !important;box-shadow:0 40px 100px rgba(0,0,0,0.13),0 0 0 1px rgba(0,0,0,0.05);}
+    .bbar{display:flex;align-items:center;gap:7px;padding:12px 18px;background:var(--ink-50);border-bottom:1px solid var(--ink-100);}
+    .bdot{width:9px;height:9px;border-radius:50%;}
+    .bdot:nth-child(1){background:#FF6058;}.bdot:nth-child(2){background:#FFBD2E;}.bdot:nth-child(3){background:#28CA42;}
+    .burl{flex:1;margin-left:8px;padding:5px 14px;border-radius:6px;background:#fff;border:1px solid var(--ink-100);font-size:11px;color:var(--ink-300);font-weight:500;}
+    .msec-frame img{display:block;width:100%;height:auto;}
 
     /* Dashboard slider */
-    .dashboard-slider{
-      position:relative;background:#f8f9fa;padding:16px 16px 50px;
-    }
-    .dashboard-slider-track{
-      display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;
-      -webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-behavior:smooth;
-    }
-    .dashboard-slider-track::-webkit-scrollbar{display:none;}
-    .dashboard-slide{
-      flex:0 0 100%;width:100%;scroll-snap-align:center;border-radius:8px;
-    }
-    .dashboard-dots{
-      position:absolute;bottom:16px;left:50%;transform:translateX(-50%);
-      display:flex;gap:8px;
-    }
-    .dashboard-dot{
-      width:8px;height:8px;border-radius:50%;background:#cbd5e0;
-      border:none;padding:0;cursor:pointer;transition:all 0.3s;
-    }
-    .dashboard-dot.active{background:#8B5CF6;width:24px;border-radius:4px;}
+    .dslider{position:relative;padding-bottom:38px;background:var(--ink-50);}
+    .dtrack{display:flex;gap:0;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;scroll-behavior:smooth;}
+    .dtrack::-webkit-scrollbar{display:none;}
+    .dslide{flex:0 0 100%;width:100%;scroll-snap-align:center;}
+    .ddots{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);display:flex;gap:6px;}
+    .ddot{width:7px;height:7px;border-radius:50%;background:var(--ink-150);border:none;padding:0;cursor:pointer;transition:all 0.3s;}
+    .ddot.active{background:#8B5CF6;width:20px;border-radius:4px;}
 
-    /* VALUE BAR */
-    .value-bar{background:var(--ink-700);padding:64px 24px;}
-    .value-bar-inner{
-      max-width:1000px;margin:0 auto;
-      display:flex;align-items:center;justify-content:center;gap:64px;flex-wrap:wrap;
-    }
-    .value-item{text-align:center;}
-    .value-number{font-size:40px;font-weight:800;letter-spacing:-0.04em;color:#fff;line-height:1;}
-    .value-number .v-accent{color:var(--accent-mid);}
-    .value-desc{font-size:14px;font-weight:500;color:rgba(255,255,255,0.5);margin-top:8px;}
-    .value-divider{width:1px;height:48px;background:rgba(255,255,255,0.12);}
-
-    /* CTA */
-    .cta-section{
-      text-align:center;padding:120px 24px;position:relative;overflow:hidden;
-      background:var(--ink-900);
-    }
-    .cta-section::before{
-      content:'';position:absolute;inset:0;
-      background:radial-gradient(ellipse at 50% 50%,rgba(99,87,232,0.15),transparent 60%);pointer-events:none;
-    }
+    /* ─── CTA ─── */
+    .cta-section{text-align:center;padding:120px 24px;position:relative;overflow:hidden;background:var(--dark);}
+    .cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(99,87,232,0.18),transparent 60%);pointer-events:none;}
     .cta-content{position:relative;z-index:1;max-width:560px;margin:0 auto;}
-    .cta-section h2{
-      font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-0.04em;
-      margin-bottom:16px;color:#fff;line-height:1.1;
-    }
-    .cta-section h2 .gradient{
-      background:linear-gradient(135deg,#9B8FF7,#6357E8,#818CF8);
-      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
-    }
-    .cta-section p{font-size:17px;color:rgba(255,255,255,0.5);line-height:1.7;margin-bottom:40px;}
-    .btn-primary{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:16px 36px;border-radius:14px;
-      background:linear-gradient(135deg,var(--accent-mid),var(--accent));
-      color:#fff;font-size:16px;font-weight:700;text-decoration:none;
-      border:none;cursor:pointer;transition:all 0.25s;
-      box-shadow:0 4px 20px rgba(99,87,232,0.25);
-    }
+    .cta-section h2{font-size:clamp(32px,5vw,52px);font-weight:800;letter-spacing:-0.04em;margin-bottom:16px;color:#fff;line-height:1.1;}
+    .cta-section h2 .g{background:linear-gradient(135deg,#9B8FF7,#6357E8,#818CF8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .cta-section p{font-size:17px;color:rgba(255,255,255,0.4);line-height:1.7;margin-bottom:40px;}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:16px 36px;border-radius:14px;background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;font-size:16px;font-weight:700;text-decoration:none;border:none;cursor:pointer;transition:all 0.25s;box-shadow:0 4px 20px rgba(99,87,232,0.25);}
     .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,87,232,0.35);}
 
-    /* FOOTER */
-    .footer{border-top:1px solid rgba(255,255,255,0.06);padding:48px 40px 32px;background:var(--ink-900);}
+    /* ─── FOOTER ─── */
+    .footer{border-top:1px solid rgba(255,255,255,0.06);padding:48px 40px 32px;background:var(--dark);}
     .footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
     .footer-left{display:flex;align-items:center;gap:12px;}
     .footer-wordmark{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.03em;}
@@ -196,41 +116,28 @@
     .footer-link{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s;}
     .footer-link:hover{color:#fff;}
 
-    /* REVEAL */
-    .reveal{opacity:0;transform:translateY(32px);transition:opacity 0.6s ease-out,transform 0.6s ease-out;}
+    /* ─── REVEAL ─── */
+    .reveal{opacity:0;transform:translateY(28px);transition:opacity 0.65s ease-out,transform 0.65s ease-out;}
     .reveal.visible{opacity:1;transform:translateY(0);}
     .reveal-d1{transition-delay:0.1s;}.reveal-d2{transition-delay:0.2s;}
 
-    /* Module accent colors */
-    [data-module="overview"] .feature-bullets li::before{background:var(--accent);}
-    [data-module="overview"] .screenshot-wrapper{box-shadow:0 24px 64px rgba(99,87,232,0.10),0 0 0 1px rgba(99,87,232,0.08);}
-    [data-module="attendance"] .feature-bullets li::before{background:#8B5CF6;}
-    [data-module="attendance"] .screenshot-wrapper{box-shadow:0 24px 64px rgba(139,92,246,0.10),0 0 0 1px rgba(139,92,246,0.08);}
-    [data-module="leave"] .feature-bullets li::before{background:var(--accent);}
-    [data-module="leave"] .screenshot-wrapper{box-shadow:0 24px 64px rgba(99,87,232,0.10),0 0 0 1px rgba(99,87,232,0.08);}
-    [data-module="claims"] .feature-bullets li::before{background:#10B981;}
-    [data-module="claims"] .screenshot-wrapper{box-shadow:0 24px 64px rgba(16,185,129,0.10),0 0 0 1px rgba(16,185,129,0.08);}
-    [data-module="tasks"] .feature-bullets li::before{background:#818CF8;}
-    [data-module="tasks"] .screenshot-wrapper{box-shadow:0 24px 64px rgba(129,140,248,0.10),0 0 0 1px rgba(129,140,248,0.08);}
-    [data-module="calendar"] .feature-bullets li::before{background:#D97706;}
-    [data-module="calendar"] .screenshot-wrapper{box-shadow:0 24px 64px rgba(217,119,6,0.10),0 0 0 1px rgba(217,119,6,0.08);}
-    [data-module="people"] .feature-bullets li::before{background:#EC4899;}
-    [data-module="people"] .screenshot-wrapper{box-shadow:0 24px 64px rgba(236,72,153,0.10),0 0 0 1px rgba(236,72,153,0.08);}
-    [data-module="performance"] .feature-bullets li::before{background:#F59E0B;}
-    [data-module="performance"] .screenshot-wrapper{box-shadow:0 24px 64px rgba(245,158,11,0.10),0 0 0 1px rgba(245,158,11,0.08);}
-    [data-module="dashboard"] .feature-bullets li::before{background:#8B5CF6;}
-    [data-module="dashboard"] .screenshot-wrapper{box-shadow:0 24px 64px rgba(139,92,246,0.10),0 0 0 1px rgba(139,92,246,0.08);}
-
+    /* ─── RESPONSIVE ─── */
+    @media(max-width:1024px){
+      .page-layout{grid-template-columns:220px 1fr;}
+      .sidebar-eyebrow,.mrow{padding-left:20px;padding-right:20px;}
+    }
     @media(max-width:900px){
-      .feature-block{grid-template-columns:1fr;gap:40px;}
-      .feature-block.reverse{direction:ltr;}
-      .value-divider{display:none;}.value-bar-inner{gap:32px;}
+      .page-layout{grid-template-columns:1fr;}
+      .page-sidebar{display:none;}
+      .msec-inner{grid-template-columns:1fr;gap:44px;}
+      .msec.flip .msec-text,.msec.flip .msec-visual{order:unset;}
+      .msec-num{display:none;}
+      .msec:nth-child(odd) .msec-frame,.msec:nth-child(even) .msec-frame{transform:none;}
     }
     @media(max-width:640px){
       .nav{padding:0 20px;}
       .nav-links a:not(.nav-cta){display:none;}
-      .page-hero{padding:80px 20px 60px;}
-      .feature-block{padding:60px 20px;}
+      .msec{padding:60px 20px;}
       .cta-section{padding:80px 20px;}
       .footer{padding:32px 20px 24px;}
       .footer-inner{flex-direction:column;gap:16px;text-align:center;}
@@ -242,7 +149,7 @@
 
   <!-- NAV -->
   <nav class="nav">
-    <a href="index.html" class="nav-left" style="text-decoration:none;">
+    <a href="index.html" class="nav-left">
       <svg width="36" height="36" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="url(#g)"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text><rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/></svg>
       <span class="nav-wordmark">Workived</span>
     </a>
@@ -255,237 +162,271 @@
     </div>
   </nav>
 
-  <!-- HERO -->
-  <section class="page-hero">
-    <h1 class="reveal">One workspace.<br><span class="highlight">All the modules.</span></h1>
-    <p class="reveal reveal-d1">Attendance, leave, claims, tasks, calendar, people, performance, dashboards — everything your team needs, in one place.</p>
-  </section>
+  <!-- ─── PAGE LAYOUT ─── -->
+  <div class="page-layout">
 
-  <!-- VALUE BAR -->
-  <div class="value-bar">
-    <div class="value-bar-inner">
-      <div class="value-item"><div class="value-number">9</div><div class="value-desc">Built-in modules</div></div>
-      <div class="value-divider"></div>
-      <div class="value-item"><div class="value-number"><span class="v-accent">$0</span></div><div class="value-desc">Up to 15 employees</div></div>
-      <div class="value-divider"></div>
-      <div class="value-item"><div class="value-number">2</div><div class="value-desc">Countries supported</div></div>
-      <div class="value-divider"></div>
-      <div class="value-item"><div class="value-number">3x</div><div class="value-desc">Faster than spreadsheets</div></div>
-    </div>
-  </div>
+    <!-- Sticky Sidebar -->
+    <aside class="page-sidebar">
+      <span class="sidebar-eyebrow">All Features</span>
+      <nav class="sidebar-modlist">
+        <a href="#overview"    class="mrow active" style="--mc:#6357E8"><span class="mrow-num">01</span><span class="mrow-name">Overview</span>    <span class="mrow-arrow">→</span></a>
+        <a href="#attendance"  class="mrow"        style="--mc:#8B5CF6"><span class="mrow-num">02</span><span class="mrow-name">Attendance</span>  <span class="mrow-arrow">→</span></a>
+        <a href="#leave"       class="mrow"        style="--mc:#818CF8"><span class="mrow-num">03</span><span class="mrow-name">Leave</span>       <span class="mrow-arrow">→</span></a>
+        <a href="#claims"      class="mrow"        style="--mc:#10B981"><span class="mrow-num">04</span><span class="mrow-name">Claims</span>      <span class="mrow-arrow">→</span></a>
+        <a href="#tasks"       class="mrow"        style="--mc:#6357E8"><span class="mrow-num">05</span><span class="mrow-name">Tasks</span>       <span class="mrow-arrow">→</span></a>
+        <a href="#calendar"    class="mrow"        style="--mc:#D97706"><span class="mrow-num">06</span><span class="mrow-name">Calendar</span>    <span class="mrow-arrow">→</span></a>
+        <a href="#people"      class="mrow"        style="--mc:#EC4899"><span class="mrow-num">07</span><span class="mrow-name">People</span>      <span class="mrow-arrow">→</span></a>
+        <a href="#performance" class="mrow"        style="--mc:#F59E0B"><span class="mrow-num">08</span><span class="mrow-name">Performance</span> <span class="mrow-arrow">→</span></a>
+        <a href="#dashboard"   class="mrow"        style="--mc:#8B5CF6"><span class="mrow-num">09</span><span class="mrow-name">Dashboards</span>  <span class="mrow-arrow">→</span></a>
+      </nav>
+    </aside>
 
-  <!-- FEATURES -->
-  <div id="overview" class="feature-block reveal" data-module="overview">
-    <div class="feature-text">
-      <div class="feature-icon-row">
-        <div class="feature-emoji" style="background:#EFEDFD;"><svg viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
-        <span class="feature-module-name" style="color:var(--accent);">Overview</span>
-      </div>
-      <h3>Everything at a glance</h3>
-      <p>Your morning starts here. See who's in, pending approvals, leave balances, and team pulse — all in one dashboard.</p>
-      <ul class="feature-bullets">
-        <li>Real-time attendance clock</li>
-        <li>Pending leave & claim approvals</li>
-        <li>Team pulse with status breakdown</li>
-        <li>Upcoming holidays & events</li>
-      </ul>
-    </div>
-    <div class="screenshot-wrapper">
-      <div class="browser-bar"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-url">app.workived.com</div></div>
-      <img src="../images/overview.jpeg" alt="Workived overview dashboard" loading="lazy" width="960" height="600">
-    </div>
-  </div>
-  <div class="divider"></div>
+    <!-- Module sections -->
+    <div class="page-content">
 
-  <div id="attendance" class="feature-block reverse reveal" data-module="attendance">
-    <div class="feature-text">
-      <div class="feature-icon-row">
-        <div class="feature-emoji" style="background:#EDE9FE;"><svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
-        <span class="feature-module-name" style="color:#8B5CF6;">Attendance</span>
-      </div>
-      <h3>Clock in, track time, stay compliant</h3>
-      <p>One-tap clock in with real-time tracking. See who's on time, who's late, and the full daily attendance log.</p>
-      <ul class="feature-bullets">
-        <li>One-click clock in & out</li>
-        <li>Late / on-time status badges</li>
-        <li>Weekly day picker navigation</li>
-        <li>Manager view of all employees</li>
-      </ul>
-    </div>
-    <div class="screenshot-wrapper">
-      <div class="browser-bar"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-url">app.workived.com/attendance</div></div>
-      <img src="../images/attendance.jpeg" alt="Workived attendance tracking" loading="lazy" width="960" height="600">
-    </div>
-  </div>
-  <div class="divider"></div>
-
-  <div id="leave" class="feature-block reveal" data-module="leave">
-    <div class="feature-text">
-      <div class="feature-icon-row">
-        <div class="feature-emoji" style="background:#EFEDFD;"><svg viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round"><path d="M17 17h5v-5"/><path d="M17 17c0-5-3-8-8-8s-8 3-8 8"/><path d="M9 2L7 7M15 2l2 5M12 2v5"/></svg></div>
-        <span class="feature-module-name" style="color:var(--accent);">Leave</span>
-      </div>
-      <h3>Leave requests, without the back-and-forth</h3>
-      <p>Visual leave balances, one-click requests, and instant approvals. No more WhatsApp threads.</p>
-      <ul class="feature-bullets">
-        <li>All leave types with balance bars</li>
-        <li>Click a balance to request leave</li>
-        <li>Manager approval queue</li>
-        <li>Indonesia & UAE compliant policies</li>
-      </ul>
-    </div>
-    <div class="screenshot-wrapper">
-      <div class="browser-bar"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-url">app.workived.com/leave</div></div>
-      <img src="../images/leave.jpeg" alt="Workived leave management" loading="lazy" width="960" height="600">
-    </div>
-  </div>
-  <div class="divider"></div>
-
-  <div id="claims" class="feature-block reverse reveal" data-module="claims">
-    <div class="feature-text">
-      <div class="feature-icon-row">
-        <div class="feature-emoji" style="background:#D1FAE5;"><svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
-        <span class="feature-module-name" style="color:#10B981;">Claims</span>
-      </div>
-      <h3>Expense claims, tracked to the rupiah</h3>
-      <p>Submit claims against budget categories, attach receipts, and get instant approvals — all with real-time budget visibility.</p>
-      <ul class="feature-bullets">
-        <li>Budget categories with remaining limits</li>
-        <li>Receipt upload & documentation</li>
-        <li>Approve or reject in one click</li>
-        <li>Monthly budget tracking</li>
-      </ul>
-    </div>
-    <div class="screenshot-wrapper">
-      <div class="browser-bar"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-url">app.workived.com/claims</div></div>
-      <img src="../images/claims.jpeg" alt="Workived expense claims" loading="lazy" width="960" height="600">
-    </div>
-  </div>
-  <div class="divider"></div>
-
-  <div id="tasks" class="feature-block reveal" data-module="tasks">
-    <div class="feature-text">
-      <div class="feature-icon-row">
-        <div class="feature-emoji" style="background:#E0E7FF;"><svg viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-        <span class="feature-module-name" style="color:#818CF8;">Tasks</span>
-      </div>
-      <h3>Kanban boards for your whole team</h3>
-      <p>Assign tasks, set priorities, track progress. A drag-and-drop board that keeps everyone aligned.</p>
-      <ul class="feature-bullets">
-        <li>To Do → In Progress → Done columns</li>
-        <li>Priority labels (Urgent, High, Medium)</li>
-        <li>Assignees with due dates</li>
-        <li>Auto-generated approval tasks</li>
-      </ul>
-    </div>
-    <div class="screenshot-wrapper">
-      <div class="browser-bar"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-url">app.workived.com/tasks</div></div>
-      <img src="../images/tasks.png" alt="Workived task boards" loading="lazy" width="960" height="600">
-    </div>
-  </div>
-  <div class="divider"></div>
-
-  <div id="calendar" class="feature-block reverse reveal" data-module="calendar">
-    <div class="feature-text">
-      <div class="feature-icon-row">
-        <div class="feature-emoji" style="background:#FEF3C7;"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
-        <span class="feature-module-name" style="color:#D97706;">Calendar</span>
-      </div>
-      <h3>See who's off, at a glance</h3>
-      <p>A shared team calendar showing leaves, holidays, and events. Plan around your team's availability effortlessly.</p>
-      <ul class="feature-bullets">
-        <li>Monthly calendar with leave overlays</li>
-        <li>Public holidays by country</li>
-        <li>Color-coded leave types</li>
-        <li>Quick visibility into team availability</li>
-      </ul>
-    </div>
-    <div class="screenshot-wrapper">
-      <div class="browser-bar"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-url">app.workived.com/calendar</div></div>
-      <img src="../images/calendar.jpeg" alt="Workived team calendar" loading="lazy" width="960" height="600">
-    </div>
-  </div>
-  <div class="divider"></div>
-
-  <div id="people" class="feature-block reveal" data-module="people">
-    <div class="feature-text">
-      <div class="feature-icon-row">
-        <div class="feature-emoji" style="background:#FCE7F3;"><svg viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
-        <span class="feature-module-name" style="color:#EC4899;">People</span>
-      </div>
-      <h3>Your team directory, organized</h3>
-      <p>Employee profiles, reporting lines, departments, and status — all in a clean, searchable directory.</p>
-      <ul class="feature-bullets">
-        <li>Employee profiles with job titles</li>
-        <li>Reporting hierarchy</li>
-        <li>Active / probation / inactive filters</li>
-        <li>Quick search & org chart</li>
-      </ul>
-    </div>
-    <div class="screenshot-wrapper">
-      <div class="browser-bar"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-url">app.workived.com/people</div></div>
-      <img src="../images/people.png" alt="Workived people directory" loading="lazy" width="960" height="600">
-    </div>
-  </div>
-  <div class="divider"></div>
-
-  <div id="performance" class="feature-block reverse reveal" data-module="performance">
-    <div class="feature-text">
-      <div class="feature-icon-row">
-        <div class="feature-emoji" style="background:#FEF3E0;"><svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
-        <span class="feature-module-name" style="color:#F59E0B;">Performance</span>
-      </div>
-      <h3>Track what matters</h3>
-      <p>Monitor team performance with real-time insights on attendance, task completion, leave usage, and employee rankings.</p>
-      <ul class="feature-bullets">
-        <li>Attendance trends & punctuality rates</li>
-        <li>Task completion by employee & period</li>
-        <li>Leave utilization analytics</li>
-        <li>Team ranking with grade distribution</li>
-      </ul>
-    </div>
-    <div class="screenshot-wrapper">
-      <div class="browser-bar"><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-dot"></div><div class="browser-url">app.workived.com/performance</div></div>
-      <img src="../images/reports.png" alt="Workived performance dashboard" loading="lazy" width="960" height="600">
-    </div>
-  </div>
-  <div class="divider"></div>
-
-  <div id="dashboard" class="feature-block reveal" data-module="dashboard">
-    <div class="feature-text">
-      <div class="feature-icon-row">
-        <div class="feature-emoji" style="background:#EDE9FE;"><svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
-        <span class="feature-module-name" style="color:#8B5CF6;">Custom Dashboard</span>
-      </div>
-      <h3>Build your own view</h3>
-      <p>Create custom dashboards with charts and metrics from all your data — tasks, attendance, leave, claims, and more.</p>
-      <ul class="feature-bullets">
-        <li>Drag-and-drop dashboard builder</li>
-        <li>Query data from all modules</li>
-        <li>Custom charts and visualizations</li>
-        <li>Save and share team dashboards</li>
-      </ul>
-    </div>
-    <div class="screenshot-wrapper">
-      <div class="dashboard-slider">
-        <div class="dashboard-slider-track">
-          <img src="../images/dashboard-0.png" alt="Dashboard overview" loading="lazy" class="dashboard-slide">
-          <img src="../images/dashboard-1.png" alt="Dashboard analytics" loading="lazy" class="dashboard-slide">
-          <img src="../images/dashboard-2.png" alt="Dashboard builder" loading="lazy" class="dashboard-slide">
+    <!-- 01 OVERVIEW -->
+    <section id="overview" class="msec reveal">
+      <div class="msec-num" aria-hidden="true">01</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#6357E8;"></span>Overview</div>
+          <h2 class="msec-title">Everything<br>at a glance</h2>
+          <p class="msec-desc">Your morning starts here. See who's in, pending approvals, leave balances, and team pulse — all in one dashboard.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Real-time attendance clock</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Pending leave & claim approvals</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Team pulse summary</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Upcoming holidays & events</span>
+          </div>
         </div>
-        <div class="dashboard-dots">
-          <button class="dashboard-dot active" data-index="0"></button>
-          <button class="dashboard-dot" data-index="1"></button>
-          <button class="dashboard-dot" data-index="2"></button>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#6357E8;"></div>
+          <div class="msec-frame">
+            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com</div></div>
+            <img src="../images/overview.jpeg" alt="Workived overview dashboard" loading="lazy" width="960" height="600">
+          </div>
         </div>
       </div>
-    </div>
-  </div>
+    </section>
+
+    <!-- 02 ATTENDANCE -->
+    <section id="attendance" class="msec flip reveal">
+      <div class="msec-num" aria-hidden="true">02</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#8B5CF6;"></span>Attendance</div>
+          <h2 class="msec-title">Clock in, track time,<br>stay compliant</h2>
+          <p class="msec-desc">One-tap clock in with real-time tracking. See who's on time, who's late, and the full daily attendance log.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#8B5CF6;"></span>One-click clock in & out</span>
+            <span class="chip"><span class="cdot" style="background:#8B5CF6;"></span>Late / on-time status badges</span>
+            <span class="chip"><span class="cdot" style="background:#8B5CF6;"></span>Weekly day picker navigation</span>
+            <span class="chip"><span class="cdot" style="background:#8B5CF6;"></span>Manager view of all employees</span>
+          </div>
+        </div>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#8B5CF6;"></div>
+          <div class="msec-frame">
+            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/attendance</div></div>
+            <img src="../images/attendance.jpeg" alt="Workived attendance tracking" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 LEAVE -->
+    <section id="leave" class="msec reveal">
+      <div class="msec-num" aria-hidden="true">03</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#818CF8;"></span>Leave</div>
+          <h2 class="msec-title">Leave requests,<br>without the back-and-forth</h2>
+          <p class="msec-desc">Visual leave balances, one-click requests, and instant approvals. No more WhatsApp threads.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#818CF8;"></span>All leave types with balance bars</span>
+            <span class="chip"><span class="cdot" style="background:#818CF8;"></span>Click a balance to request leave</span>
+            <span class="chip"><span class="cdot" style="background:#818CF8;"></span>Manager approval queue</span>
+            <span class="chip"><span class="cdot" style="background:#818CF8;"></span>Indonesia & UAE compliant policies</span>
+          </div>
+        </div>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#818CF8;"></div>
+          <div class="msec-frame">
+            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/leave</div></div>
+            <img src="../images/leave.jpeg" alt="Workived leave management" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 04 CLAIMS -->
+    <section id="claims" class="msec flip reveal">
+      <div class="msec-num" aria-hidden="true">04</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#10B981;"></span>Claims</div>
+          <h2 class="msec-title">Expense claims,<br>tracked to the rupiah</h2>
+          <p class="msec-desc">Submit claims against budget categories, attach receipts, and get instant approvals — all with real-time budget visibility.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#10B981;"></span>Budget categories with limits</span>
+            <span class="chip"><span class="cdot" style="background:#10B981;"></span>Receipt upload & documentation</span>
+            <span class="chip"><span class="cdot" style="background:#10B981;"></span>Approve or reject in one click</span>
+            <span class="chip"><span class="cdot" style="background:#10B981;"></span>Monthly budget tracking</span>
+          </div>
+        </div>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#10B981;"></div>
+          <div class="msec-frame">
+            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/claims</div></div>
+            <img src="../images/claims.jpeg" alt="Workived expense claims" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 05 TASKS -->
+    <section id="tasks" class="msec reveal">
+      <div class="msec-num" aria-hidden="true">05</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#6357E8;"></span>Tasks</div>
+          <h2 class="msec-title">Kanban boards<br>for your whole team</h2>
+          <p class="msec-desc">Assign tasks, set priorities, track progress. A drag-and-drop board that keeps everyone aligned.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>To Do → In Progress → Done</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Priority labels (Urgent, High, Medium)</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Assignees with due dates</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Auto-generated approval tasks</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Custom fields to track anything</span>
+          </div>
+        </div>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#6357E8;"></div>
+          <div class="msec-frame">
+            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/tasks</div></div>
+            <img src="../images/tasks.png" alt="Workived task boards" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 06 CALENDAR -->
+    <section id="calendar" class="msec flip reveal">
+      <div class="msec-num" aria-hidden="true">06</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#D97706;"></span>Calendar</div>
+          <h2 class="msec-title">See who's off,<br>at a glance</h2>
+          <p class="msec-desc">A shared team calendar showing leaves, holidays, and events. Plan around your team's availability effortlessly.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#D97706;"></span>Monthly calendar with leave overlays</span>
+            <span class="chip"><span class="cdot" style="background:#D97706;"></span>Public holidays by country</span>
+            <span class="chip"><span class="cdot" style="background:#D97706;"></span>Color-coded leave types</span>
+            <span class="chip"><span class="cdot" style="background:#D97706;"></span>Quick team availability view</span>
+          </div>
+        </div>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#D97706;"></div>
+          <div class="msec-frame">
+            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/calendar</div></div>
+            <img src="../images/calendar.jpeg" alt="Workived team calendar" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 07 PEOPLE -->
+    <section id="people" class="msec reveal">
+      <div class="msec-num" aria-hidden="true">07</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#EC4899;"></span>People</div>
+          <h2 class="msec-title">Your team directory,<br>organized</h2>
+          <p class="msec-desc">Employee profiles, reporting lines, departments, and status — all in a clean, searchable directory.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#EC4899;"></span>Employee profiles with job titles</span>
+            <span class="chip"><span class="cdot" style="background:#EC4899;"></span>Reporting hierarchy</span>
+            <span class="chip"><span class="cdot" style="background:#EC4899;"></span>Active / probation / inactive filters</span>
+            <span class="chip"><span class="cdot" style="background:#EC4899;"></span>Quick search & org chart</span>
+          </div>
+        </div>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#EC4899;"></div>
+          <div class="msec-frame">
+            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/people</div></div>
+            <img src="../images/people.png" alt="Workived people directory" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 PERFORMANCE -->
+    <section id="performance" class="msec flip reveal">
+      <div class="msec-num" aria-hidden="true">08</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#F59E0B;"></span>Performance</div>
+          <h2 class="msec-title">Track what<br>matters</h2>
+          <p class="msec-desc">Monitor team performance with real-time insights on attendance, task completion, leave usage, and employee rankings.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#F59E0B;"></span>Attendance trends & punctuality</span>
+            <span class="chip"><span class="cdot" style="background:#F59E0B;"></span>Task completion by employee</span>
+            <span class="chip"><span class="cdot" style="background:#F59E0B;"></span>Leave utilization analytics</span>
+            <span class="chip"><span class="cdot" style="background:#F59E0B;"></span>Team ranking & grade distribution</span>
+          </div>
+        </div>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#F59E0B;"></div>
+          <div class="msec-frame">
+            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/performance</div></div>
+            <img src="../images/reports.png" alt="Workived performance dashboard" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 CUSTOM DASHBOARD -->
+    <section id="dashboard" class="msec reveal">
+      <div class="msec-num" aria-hidden="true">09</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#8B5CF6;"></span>Custom Dashboard</div>
+          <h2 class="msec-title">Build your<br>own view</h2>
+          <p class="msec-desc">Create custom dashboards with charts and metrics from all your data — tasks, attendance, leave, claims, and more.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#8B5CF6;"></span>Drag-and-drop dashboard builder</span>
+            <span class="chip"><span class="cdot" style="background:#8B5CF6;"></span>Query data from all modules</span>
+            <span class="chip"><span class="cdot" style="background:#8B5CF6;"></span>Custom charts & visualizations</span>
+            <span class="chip"><span class="cdot" style="background:#8B5CF6;"></span>Save and share team dashboards</span>
+          </div>
+        </div>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#8B5CF6;"></div>
+          <div class="msec-frame">
+            <div class="dslider">
+              <div class="dtrack">
+                <img src="../images/dashboard-0.png" alt="Dashboard overview" loading="lazy" class="dslide">
+                <img src="../images/dashboard-1.png" alt="Dashboard analytics" loading="lazy" class="dslide">
+                <img src="../images/dashboard-2.png" alt="Dashboard builder" loading="lazy" class="dslide">
+              </div>
+              <div class="ddots">
+                <button class="ddot active" data-index="0"></button>
+                <button class="ddot" data-index="1"></button>
+                <button class="ddot" data-index="2"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    </div><!-- /page-content -->
+  </div><!-- /page-layout -->
 
   <!-- CTA -->
   <section class="cta-section">
     <div class="cta-content reveal">
-      <h2>Ready to simplify<br><span class="gradient">your team ops?</span></h2>
+      <h2>Ready to simplify<br><span class="g">your team ops?</span></h2>
       <p>Free for teams up to 15. No credit card, no trial period, no catch.</p>
       <a href="mailto:my@workived.com" class="btn-primary">
         Get Early Access
@@ -513,16 +454,34 @@
   </footer>
 
   <script>
-    // Reveal
-    const observer = new IntersectionObserver(entries => {
-      entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  (() => {
+    'use strict';
 
-    // Dashboard slider dots
-    const slider = document.querySelector('.dashboard-slider-track');
+    // Reveal on scroll
+    const revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+
+    // Sidebar active state on scroll
+    const sidebarItems = document.querySelectorAll('.mrow[href]');
+    const sections = document.querySelectorAll('.msec[id]');
+    const sectionObserver = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const id = e.target.id;
+          sidebarItems.forEach(item => {
+            item.classList.toggle('active', item.getAttribute('href') === `#${id}`);
+          });
+        }
+      });
+    }, { threshold: 0.3, rootMargin: '-72px 0px -50% 0px' });
+    sections.forEach(s => sectionObserver.observe(s));
+
+    // Dashboard slider
+    const slider = document.querySelector('.dtrack');
     if (slider) {
-      const dots = document.querySelectorAll('.dashboard-dot');
+      const dots = document.querySelectorAll('.ddot');
       dots.forEach(dot => {
         dot.addEventListener('click', () => {
           const idx = parseInt(dot.dataset.index);
@@ -531,12 +490,11 @@
         });
       });
       slider.addEventListener('scroll', () => {
-        const scrollLeft = slider.scrollLeft;
-        const slideWidth = slider.children[0]?.offsetWidth || 0;
-        const idx = Math.round(scrollLeft / slideWidth);
-        dots.forEach((d,i) => d.classList.toggle('active', i === idx));
+        const idx = Math.round(slider.scrollLeft / (slider.children[0]?.offsetWidth || 1));
+        dots.forEach((d, i) => d.classList.toggle('active', i === idx));
       }, { passive: true });
     }
+  })();
   </script>
 </body>
 </html>
