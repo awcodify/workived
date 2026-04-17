@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ResponsiveGridLayout, useContainerWidth, type Layout } from 'react-grid-layout'
+import { ResponsiveGridLayout, type Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import { LayoutDashboard, Plus, X, BarChart2, LineChart, Table2, Hash, ChevronLeft, Users } from 'lucide-react'
 import { Dropdown } from '@/components/workived/shared/Dropdown'
@@ -20,6 +20,8 @@ import { KpiWidget } from '@/components/dashboard/KpiWidget'
 import { TableWidget } from '@/components/dashboard/TableWidget'
 import { BarWidget } from '@/components/dashboard/BarWidget'
 import { LineWidget } from '@/components/dashboard/LineWidget'
+import { DividerWidget } from '@/components/dashboard/DividerWidget'
+import { TextWidget } from '@/components/dashboard/TextWidget'
 import { WidgetConfigPanel } from '@/components/dashboard/WidgetConfigPanel'
 import type { Widget, QueryConfig, VizConfig, WidgetType } from '@/types/api'
 
@@ -66,34 +68,42 @@ const TEMPLATES: DashboardTemplate[] = [
     name: 'HR Overview',
     description: 'Attendance health, late arrivals, leave pipeline, and work-hour trends',
     widgets: [
+      // Text — top brief
+      {
+        title: 'About This Dashboard',
+        widget_type: 'text',
+        query_config: { source: 'attendance', aggregate: 'count' },
+        viz_config: { content: 'Tracks attendance health, late arrivals, leave pipeline, and work-hour trends.\n\nData refreshes automatically. Use the date range filter at the top to zoom in on a specific period.' },
+        position_x: 0, position_y: 0, width: 12, height: 2,
+      },
       // Row 1 — 4 KPIs
       {
         title: 'Present This Month',
         widget_type: 'kpi',
         query_config: { source: 'attendance', aggregate: 'count', date_range: 'this_month' },
         viz_config: { color: '#12A05C' },
-        position_x: 0, position_y: 0, width: 3, height: 2,
+        position_x: 0, position_y: 2, width: 3, height: 2,
       },
       {
         title: 'Late Arrivals This Month',
         widget_type: 'kpi',
         query_config: { source: 'attendance', aggregate: 'count', filters: [{ field: 'is_late', op: 'eq', value: true }], date_range: 'this_month' },
         viz_config: { color: '#D44040' },
-        position_x: 3, position_y: 0, width: 3, height: 2,
+        position_x: 3, position_y: 2, width: 3, height: 2,
       },
       {
         title: 'Avg Work Hours / Day',
         widget_type: 'kpi',
         query_config: { source: 'attendance', aggregate: 'avg', field: 'hours_worked', date_range: 'this_month' },
         viz_config: { color: '#6357E8', unit: 'hrs' },
-        position_x: 6, position_y: 0, width: 3, height: 2,
+        position_x: 6, position_y: 2, width: 3, height: 2,
       },
       {
         title: 'Pending Leave Requests',
         widget_type: 'kpi',
         query_config: { source: 'leave', aggregate: 'count', filters: [{ field: 'status', op: 'eq', value: 'pending' }] },
         viz_config: { color: '#C97B2A' },
-        position_x: 9, position_y: 0, width: 3, height: 2,
+        position_x: 9, position_y: 2, width: 3, height: 2,
       },
       // Row 2 — attendance trend + status breakdown
       {
@@ -101,14 +111,14 @@ const TEMPLATES: DashboardTemplate[] = [
         widget_type: 'line',
         query_config: { source: 'attendance', aggregate: 'count', date_bucket: 'day', date_range: 'last_30_days' },
         viz_config: { color: '#6357E8' },
-        position_x: 0, position_y: 2, width: 8, height: 3,
+        position_x: 0, position_y: 4, width: 8, height: 3,
       },
       {
         title: 'Attendance by Status',
         widget_type: 'bar',
         query_config: { source: 'attendance', aggregate: 'count', group_by: 'status', date_range: 'this_month' },
         viz_config: { color: '#12A05C' },
-        position_x: 8, position_y: 2, width: 4, height: 3,
+        position_x: 8, position_y: 4, width: 4, height: 3,
       },
       // Row 3 — leave breakdown
       {
@@ -116,21 +126,21 @@ const TEMPLATES: DashboardTemplate[] = [
         widget_type: 'bar',
         query_config: { source: 'leave', aggregate: 'sum', field: 'total_days', group_by: 'leave_type' },
         viz_config: { color: '#6357E8' },
-        position_x: 0, position_y: 5, width: 6, height: 3,
+        position_x: 0, position_y: 7, width: 6, height: 3,
       },
       {
         title: 'Leave Requests by Status',
         widget_type: 'kpi',
         query_config: { source: 'leave', aggregate: 'count', group_by: 'status' },
         viz_config: { color: '#C97B2A' },
-        position_x: 6, position_y: 5, width: 3, height: 3,
+        position_x: 6, position_y: 7, width: 3, height: 3,
       },
       {
         title: 'Late Arrivals Trend (Weekly)',
         widget_type: 'line',
         query_config: { source: 'attendance', aggregate: 'count', date_bucket: 'week', filters: [{ field: 'is_late', op: 'eq', value: true }], date_range: 'this_quarter' },
         viz_config: { color: '#D44040' },
-        position_x: 9, position_y: 5, width: 3, height: 3,
+        position_x: 9, position_y: 7, width: 3, height: 3,
       },
     ],
   },
@@ -139,34 +149,42 @@ const TEMPLATES: DashboardTemplate[] = [
     name: 'Task Tracker',
     description: 'Open tasks, overdue risk, velocity trend, and workload distribution',
     widgets: [
+      // Text — top brief
+      {
+        title: 'How to use',
+        widget_type: 'text',
+        query_config: { source: 'tasks', aggregate: 'count' },
+        viz_config: { content: 'Monitor task velocity and workload distribution across the team.\n\nHigh overdue count = bottleneck risk. Check assignee workload and reassign if needed.' },
+        position_x: 0, position_y: 0, width: 12, height: 2,
+      },
       // Row 1 — 4 KPIs
       {
         title: 'Open Tasks',
         widget_type: 'kpi',
         query_config: { source: 'tasks', aggregate: 'count', filters: [{ field: 'is_completed', op: 'eq', value: false }] },
         viz_config: { color: '#6357E8' },
-        position_x: 0, position_y: 0, width: 3, height: 2,
+        position_x: 0, position_y: 2, width: 3, height: 2,
       },
       {
         title: 'Overdue',
         widget_type: 'kpi',
         query_config: { source: 'tasks', aggregate: 'count', filters: [{ field: 'is_completed', op: 'eq', value: false }, { field: 'due_date', op: 'lt', value: 'today' }] },
         viz_config: { color: '#D44040' },
-        position_x: 3, position_y: 0, width: 3, height: 2,
+        position_x: 3, position_y: 2, width: 3, height: 2,
       },
       {
         title: 'Completed This Month',
         widget_type: 'kpi',
         query_config: { source: 'tasks', aggregate: 'count', filters: [{ field: 'completed_at', op: 'gte', value: 'this_month' }, { field: 'is_completed', op: 'eq', value: true }] },
         viz_config: { color: '#12A05C' },
-        position_x: 6, position_y: 0, width: 3, height: 2,
+        position_x: 6, position_y: 2, width: 3, height: 2,
       },
       {
         title: 'Completed This Week',
         widget_type: 'kpi',
         query_config: { source: 'tasks', aggregate: 'count', filters: [{ field: 'completed_at', op: 'gte', value: 'this_week' }, { field: 'is_completed', op: 'eq', value: true }] },
         viz_config: { color: '#12A05C' },
-        position_x: 9, position_y: 0, width: 3, height: 2,
+        position_x: 9, position_y: 2, width: 3, height: 2,
       },
       // Row 2 — velocity + priority
       {
@@ -174,14 +192,14 @@ const TEMPLATES: DashboardTemplate[] = [
         widget_type: 'line',
         query_config: { source: 'tasks', aggregate: 'count', date_bucket: 'day', date_range: 'last_30_days', filters: [{ field: 'is_completed', op: 'eq', value: true }] },
         viz_config: { color: '#12A05C' },
-        position_x: 0, position_y: 2, width: 8, height: 3,
+        position_x: 0, position_y: 4, width: 8, height: 3,
       },
       {
         title: 'Open Tasks by Priority',
         widget_type: 'kpi',
         query_config: { source: 'tasks', aggregate: 'count', group_by: 'priority', filters: [{ field: 'is_completed', op: 'eq', value: false }] },
         viz_config: { color: '#6357E8' },
-        position_x: 8, position_y: 2, width: 4, height: 3,
+        position_x: 8, position_y: 4, width: 4, height: 3,
       },
       // Row 3 — workload distribution
       {
@@ -189,14 +207,14 @@ const TEMPLATES: DashboardTemplate[] = [
         widget_type: 'bar',
         query_config: { source: 'tasks', aggregate: 'count', group_by: 'assignee_name', filters: [{ field: 'is_completed', op: 'eq', value: false }] },
         viz_config: { color: '#6357E8' },
-        position_x: 0, position_y: 5, width: 6, height: 3,
+        position_x: 0, position_y: 7, width: 6, height: 3,
       },
       {
         title: 'Tasks by Status',
         widget_type: 'bar',
         query_config: { source: 'tasks', aggregate: 'count', group_by: 'status' },
         viz_config: { color: '#C97B2A' },
-        position_x: 6, position_y: 5, width: 6, height: 3,
+        position_x: 6, position_y: 7, width: 6, height: 3,
       },
     ],
   },
@@ -205,34 +223,42 @@ const TEMPLATES: DashboardTemplate[] = [
     name: 'Claims Monitor',
     description: 'Spend visibility, approval pipeline, category breakdown, and monthly trends',
     widgets: [
+      // Text — top brief
+      {
+        title: 'Reminder',
+        widget_type: 'text',
+        query_config: { source: 'claims', aggregate: 'count' },
+        viz_config: { content: 'Approve pending claims within 3 business days per policy.\n\nHigh avg claim amount may indicate a category policy review is needed.' },
+        position_x: 0, position_y: 0, width: 12, height: 2,
+      },
       // Row 1 — 4 KPIs
       {
         title: 'Claims This Month',
         widget_type: 'kpi',
         query_config: { source: 'claims', aggregate: 'count', date_range: 'this_month' },
         viz_config: { color: '#6357E8' },
-        position_x: 0, position_y: 0, width: 3, height: 2,
+        position_x: 0, position_y: 2, width: 3, height: 2,
       },
       {
         title: 'Total Spend This Month',
         widget_type: 'kpi',
         query_config: { source: 'claims', aggregate: 'sum', field: 'amount', date_range: 'this_month' },
         viz_config: { color: '#6357E8' },
-        position_x: 3, position_y: 0, width: 3, height: 2,
+        position_x: 3, position_y: 2, width: 3, height: 2,
       },
       {
         title: 'Pending Approval',
         widget_type: 'kpi',
         query_config: { source: 'claims', aggregate: 'count', filters: [{ field: 'status', op: 'eq', value: 'pending' }] },
         viz_config: { color: '#C97B2A' },
-        position_x: 6, position_y: 0, width: 3, height: 2,
+        position_x: 6, position_y: 2, width: 3, height: 2,
       },
       {
         title: 'Avg Claim Amount',
         widget_type: 'kpi',
         query_config: { source: 'claims', aggregate: 'avg', field: 'amount', date_range: 'this_month' },
         viz_config: { color: '#3B82F6' },
-        position_x: 9, position_y: 0, width: 3, height: 2,
+        position_x: 9, position_y: 2, width: 3, height: 2,
       },
       // Row 2 — monthly trend + status
       {
@@ -240,14 +266,14 @@ const TEMPLATES: DashboardTemplate[] = [
         widget_type: 'line',
         query_config: { source: 'claims', aggregate: 'count', date_bucket: 'month', date_range: 'this_year' },
         viz_config: { color: '#6357E8' },
-        position_x: 0, position_y: 2, width: 8, height: 3,
+        position_x: 0, position_y: 4, width: 8, height: 3,
       },
       {
         title: 'Claims by Status',
         widget_type: 'kpi',
         query_config: { source: 'claims', aggregate: 'count', group_by: 'status' },
         viz_config: { color: '#C97B2A' },
-        position_x: 8, position_y: 2, width: 4, height: 3,
+        position_x: 8, position_y: 4, width: 4, height: 3,
       },
       // Row 3 — spend breakdown
       {
@@ -255,14 +281,14 @@ const TEMPLATES: DashboardTemplate[] = [
         widget_type: 'bar',
         query_config: { source: 'claims', aggregate: 'sum', field: 'amount', group_by: 'category_name' },
         viz_config: { color: '#6357E8' },
-        position_x: 0, position_y: 5, width: 7, height: 3,
+        position_x: 0, position_y: 7, width: 7, height: 3,
       },
       {
         title: 'Monthly Spend Trend',
         widget_type: 'line',
         query_config: { source: 'claims', aggregate: 'sum', field: 'amount', date_bucket: 'month', date_range: 'this_year' },
         viz_config: { color: '#12A05C' },
-        position_x: 7, position_y: 5, width: 5, height: 3,
+        position_x: 7, position_y: 7, width: 5, height: 3,
       },
     ],
   },
@@ -271,13 +297,21 @@ const TEMPLATES: DashboardTemplate[] = [
     name: 'Team Directory',
     description: 'A quick-glance table of all employees with leave, tasks, and claims at a glance',
     widgets: [
+      // Text — top brief
+      {
+        title: 'About This Dashboard',
+        widget_type: 'text',
+        query_config: { source: 'employees', aggregate: 'count' },
+        viz_config: { content: 'Snapshot of all employees and key HR metrics at a glance.\n\nUse this dashboard to quickly check headcount, leave, open tasks, and pending claims.' },
+        position_x: 0, position_y: 0, width: 12, height: 2,
+      },
       // Full-width employee table
       {
         title: 'All Employees',
         widget_type: 'table',
         query_config: { source: 'employees', columns: ['full_name', 'job_title', 'department_name', 'employment_type', 'status', 'start_date'] },
         viz_config: {},
-        position_x: 0, position_y: 0, width: 12, height: 5,
+        position_x: 0, position_y: 2, width: 12, height: 5,
       },
       // Row 2 — summary KPIs
       {
@@ -285,28 +319,28 @@ const TEMPLATES: DashboardTemplate[] = [
         widget_type: 'kpi',
         query_config: { source: 'employees', aggregate: 'count' },
         viz_config: { color: '#6357E8' },
-        position_x: 0, position_y: 5, width: 3, height: 2,
+        position_x: 0, position_y: 7, width: 3, height: 2,
       },
       {
         title: 'On Leave Today',
         widget_type: 'kpi',
         query_config: { source: 'leave', aggregate: 'count', filters: [{ field: 'status', op: 'eq', value: 'approved' }], date_range: 'today' },
         viz_config: { color: '#C97B2A' },
-        position_x: 3, position_y: 5, width: 3, height: 2,
+        position_x: 3, position_y: 7, width: 3, height: 2,
       },
       {
         title: 'Open Tasks',
         widget_type: 'kpi',
         query_config: { source: 'tasks', aggregate: 'count', filters: [{ field: 'status', op: 'eq', value: 'pending' }] },
         viz_config: { color: '#12A05C' },
-        position_x: 6, position_y: 5, width: 3, height: 2,
+        position_x: 6, position_y: 7, width: 3, height: 2,
       },
       {
         title: 'Pending Claims',
         widget_type: 'kpi',
         query_config: { source: 'claims', aggregate: 'count', filters: [{ field: 'status', op: 'eq', value: 'pending' }] },
         viz_config: { color: '#D44040' },
-        position_x: 9, position_y: 5, width: 3, height: 2,
+        position_x: 9, position_y: 7, width: 3, height: 2,
       },
       // Row 3 — leave trend
       {
@@ -314,14 +348,14 @@ const TEMPLATES: DashboardTemplate[] = [
         widget_type: 'bar',
         query_config: { source: 'leave', aggregate: 'count', date_bucket: 'month', date_range: 'this_year' },
         viz_config: { color: '#C97B2A' },
-        position_x: 0, position_y: 7, width: 6, height: 3,
+        position_x: 0, position_y: 9, width: 6, height: 3,
       },
       {
         title: 'Headcount by Department',
         widget_type: 'kpi',
         query_config: { source: 'employees', aggregate: 'count', group_by: 'department_name' },
         viz_config: { color: '#6357E8' },
-        position_x: 6, position_y: 7, width: 6, height: 3,
+        position_x: 6, position_y: 9, width: 6, height: 3,
       },
     ],
   },
@@ -347,6 +381,7 @@ function DashboardsPage() {
   const [creatingTemplate, setCreatingTemplate] = useState(false)
   const [dashDateRange, setDashDateRange] = useState<string>('')
   const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const [confirmDeleteDashId, setConfirmDeleteDashId] = useState<string | null>(null)
 
   // Guard browser tab close / refresh when a draft is open
   useEffect(() => {
@@ -428,8 +463,11 @@ function DashboardsPage() {
 
   const handleSaveDraft = async () => {
     if (!draftTemplate) return
-    await handleUseTemplate(draftTemplate)
-    setDraftTemplate(null)
+    try {
+      await handleUseTemplate(draftTemplate)
+    } finally {
+      setDraftTemplate(null)
+    }
   }
 
   const handleDiscardDraft = () => setConfirmDiscard(true)
@@ -477,7 +515,8 @@ function DashboardsPage() {
     setCreatingTemplate(true)
     try {
       const dash = await createDashboard.mutateAsync({ name: template.name })
-      await Promise.all(
+      // allSettled: individual widget failures (e.g. unsupported types) don't abort navigation
+      await Promise.allSettled(
         template.widgets.map((w) =>
           createWidget.mutateAsync({
             dashboardId: dash.id,
@@ -500,8 +539,26 @@ function DashboardsPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
-  // ── Container width for react-grid-layout v2 ─────────────────────────────────
-  const { width: gridWidth, containerRef, mounted: gridMounted } = useContainerWidth()
+  // ── Container width — callback ref so measurement fires whenever the grid
+  //    div enters/exits the DOM (it lives inside conditional branches).
+  const [gridWidth, setGridWidth] = useState(0)
+  const [gridMounted, setGridMounted] = useState(false)
+  const roRef = useRef<ResizeObserver | null>(null)
+
+  const containerRef = useCallback((el: HTMLDivElement | null) => {
+    if (roRef.current) { roRef.current.disconnect(); roRef.current = null }
+    if (!el) return
+    // Immediate measurement
+    const w = el.getBoundingClientRect().width
+    if (w > 0) { setGridWidth(w); setGridMounted(true) }
+    // ResizeObserver for subsequent size changes
+    const ro = new ResizeObserver(([entry]) => {
+      const cw = entry.contentRect.width
+      if (cw > 0) { setGridWidth(cw); setGridMounted(true) }
+    })
+    ro.observe(el)
+    roRef.current = ro
+  }, [])
 
   // Build lg layout from stored widget positions
   const lgLayout: Layout[] = widgets.map((w) => ({
@@ -623,6 +680,37 @@ function DashboardsPage() {
         </div>
       )}
 
+      {/* ── Delete dashboard confirm ────────────────────── */}
+      {confirmDeleteDashId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setConfirmDeleteDashId(null)} />
+          <div
+            className="relative w-full max-w-sm rounded-2xl p-6 shadow-2xl"
+            style={{ background: t.surface, border: `1px solid ${t.border}` }}
+          >
+            <h2 className="font-bold text-base mb-1" style={{ color: t.text }}>Delete dashboard?</h2>
+            <p className="text-sm mb-6" style={{ color: t.textMuted }}>
+              This will permanently delete the dashboard and all its widgets. This action cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmDeleteDashId(null)}
+                className="px-4 py-2 rounded-xl text-sm font-medium transition-colors border"
+                style={{ borderColor: t.border, color: t.textMuted, background: t.surface }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => { deleteDashboard.mutate(confirmDeleteDashId); setConfirmDeleteDashId(null) }}
+                className="px-4 py-2 rounded-xl text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {inDashboard ? (
         /* ══════════════════════════════════════════════════════
            DASHBOARD VIEW
@@ -694,8 +782,8 @@ function DashboardsPage() {
                 </button>
               </div>
             ) : (
-              <div className="px-4">
-              <div ref={containerRef}>
+              <div className="px-8">
+              <div ref={containerRef} className="w-full">
                 {gridMounted && (
                   <ResponsiveGridLayout
                     width={gridWidth}
@@ -806,8 +894,8 @@ function DashboardsPage() {
           </div>
 
           {/* Draft widget grid — static, read-only preview */}
-          <div className="px-4 pb-16">
-            <div ref={containerRef}>
+          <div className="px-8 pb-16">
+            <div ref={containerRef} className="w-full">
               {gridMounted && (
                 <ResponsiveGridLayout
                   width={gridWidth}
@@ -916,7 +1004,7 @@ function DashboardsPage() {
                     dashboard={d}
                     theme={t}
                     onClick={() => setActiveDashId(d.id)}
-                    onDelete={() => deleteDashboard.mutate(d.id)}
+                    onDelete={() => setConfirmDeleteDashId(d.id)}
                   />
                 ))}
 
@@ -972,6 +1060,7 @@ function DashboardCard({
   const kpi = widgets.filter((w) => w.widget_type === 'kpi').length
   const chart = widgets.filter((w) => w.widget_type === 'bar' || w.widget_type === 'line').length
   const table = widgets.filter((w) => w.widget_type === 'table').length
+  // dividers are layout elements, excluded from pill summary
   const parts: string[] = []
   if (kpi > 0) parts.push(`${kpi} KPI${kpi > 1 ? 's' : ''}`)
   if (chart > 0) parts.push(`${chart} chart${chart > 1 ? 's' : ''}`)
@@ -1008,6 +1097,8 @@ function defaultWidgetSize(type: WidgetType): { width: number; height: number } 
     case 'bar':
     case 'line': return { width: 6, height: 3 }
     case 'table': return { width: 12, height: 4 }
+    case 'divider': return { width: 12, height: 1 }
+    case 'text': return { width: 4, height: 2 }
   }
 }
 
@@ -1017,6 +1108,12 @@ function WidgetCard({ widget, onEdit, onDelete, dateRange }: { widget: Widget; o
   const stopProp = (fn?: () => void): (() => void) | undefined =>
     fn ? () => fn() : undefined
 
+  if (widget.widget_type === 'divider') {
+    return <DividerWidget widget={widget} onEdit={stopProp(onEdit)} onDelete={stopProp(onDelete)} />
+  }
+  if (widget.widget_type === 'text') {
+    return <TextWidget widget={widget} onEdit={stopProp(onEdit)} onDelete={stopProp(onDelete)} />
+  }
   if (widget.widget_type === 'kpi') {
     return <KpiWidget widget={widget} onEdit={stopProp(onEdit)} onDelete={stopProp(onDelete)} dateRange={dateRange} />
   }

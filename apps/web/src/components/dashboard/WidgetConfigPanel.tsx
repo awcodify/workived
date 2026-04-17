@@ -225,7 +225,7 @@ export function WidgetConfigPanel({
       <div className="flex flex-col gap-1.5">
         <label className="text-xs text-white/50 uppercase tracking-wider">Type</label>
         <div className="flex gap-2 flex-wrap">
-          {(['kpi', 'bar', 'line', 'table'] as WidgetType[]).map((t) => (
+          {(['kpi', 'bar', 'line', 'table', 'divider', 'text'] as WidgetType[]).map((t) => (
             <button
               key={t}
               onClick={() => handleTypeChange(t)}
@@ -241,8 +241,29 @@ export function WidgetConfigPanel({
         </div>
       </div>
 
+      {/* Divider hint */}
+      {widgetType === 'divider' && (
+        <p className="text-xs text-white/40 -mt-2">
+          Dividers are full-width section labels. Only the title above is used — no data source needed.
+        </p>
+      )}
+
+      {/* Text content */}
+      {widgetType === 'text' && (
+        <div className="flex flex-col gap-1.5">
+          <label className="text-xs text-white/50 uppercase tracking-wider">Content</label>
+          <textarea
+            rows={5}
+            className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder-white/20 focus:outline-none focus:border-white/30 resize-none"
+            placeholder="Write your note or description…"
+            value={(viz.content as string) ?? ''}
+            onChange={(e) => setViz((v) => ({ ...v, content: e.target.value }))}
+          />
+        </div>
+      )}
+
       {/* Source */}
-      <div className="flex flex-col gap-1.5">
+      {widgetType !== 'divider' && widgetType !== 'text' && <div className="flex flex-col gap-1.5">
         <label className="text-xs text-white/50 uppercase tracking-wider">Data Source</label>
         <select
           className="bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-sm text-white"
@@ -253,10 +274,10 @@ export function WidgetConfigPanel({
             <option key={s.value} value={s.value} className="bg-[#1a1a2e]">{s.label}</option>
           ))}
         </select>
-      </div>
+      </div>}
 
       {/* KPI / Bar / Line aggregate config */}
-      {widgetType !== 'table' && (
+      {widgetType !== 'table' && widgetType !== 'divider' && widgetType !== 'text' && (
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs text-white/50 uppercase tracking-wider">Aggregate</label>
@@ -426,7 +447,7 @@ export function WidgetConfigPanel({
       )}
 
       {/* Filters */}
-      <div className="flex flex-col gap-2">
+      {widgetType !== 'divider' && widgetType !== 'text' && <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
           <label className="text-xs text-white/50 uppercase tracking-wider">Filters</label>
           <button
@@ -472,31 +493,35 @@ export function WidgetConfigPanel({
             </button>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Preview */}
-      <button
-        onClick={() => setPreview((p) => !p)}
-        className="text-sm text-[#6357E8] hover:text-purple-300 transition-colors text-left"
-      >
-        {preview ? '▾ Hide preview' : '▸ Preview results'}
-      </button>
-
-      {preview && (
-        <div className="rounded-xl border border-white/10 p-4 min-h-[80px] text-sm">
-          {previewLoading ? (
-            <div className="text-white/30 animate-pulse">Loading…</div>
-          ) : previewError ? (
-            <div className="text-red-400">Query error — check config</div>
-          ) : previewResult?.value !== undefined ? (
-            <div className="text-3xl font-bold text-white">{previewResult.value}</div>
-          ) : (
-            <div className="text-white/50">{previewResult?.rows?.length ?? 0} rows</div>
+      {widgetType !== 'divider' && widgetType !== 'text' && (
+        <>
+          <button
+            onClick={() => setPreview((p) => !p)}
+            className="text-sm text-[#6357E8] hover:text-purple-300 transition-colors text-left"
+          >
+            {preview ? '▾ Hide preview' : '▸ Preview results'}
+          </button>
+          {preview && (
+            <div className="rounded-xl border border-white/10 p-4 min-h-[80px] text-sm">
+              {previewLoading ? (
+                <div className="text-white/30 animate-pulse">Loading…</div>
+              ) : previewError ? (
+                <div className="text-red-400">Query error — check config</div>
+              ) : previewResult?.value !== undefined ? (
+                <div className="text-3xl font-bold text-white">{previewResult.value}</div>
+              ) : (
+                <div className="text-white/50">{previewResult?.rows?.length ?? 0} rows</div>
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
 
       {/* Actions */}
+
       <div className="flex gap-3 pt-2 border-t border-white/5">
         <button
           onClick={handleSave}

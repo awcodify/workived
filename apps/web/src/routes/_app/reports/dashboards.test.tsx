@@ -2,6 +2,22 @@ import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
+// ── Global mocks ──────────────────────────────────────────────────────────────
+
+// ResizeObserver not in jsdom — stub so the callback-ref observer fires immediately
+class ResizeObserverStub {
+  private cb: ResizeObserverCallback
+  constructor(cb: ResizeObserverCallback) { this.cb = cb }
+  observe() { this.cb([{ contentRect: { width: 1200 } } as ResizeObserverEntry], this) }
+  unobserve() {}
+  disconnect() {}
+}
+vi.stubGlobal('ResizeObserver', ResizeObserverStub)
+
+// getBoundingClientRect returns 0 in jsdom — stub to non-zero width
+Element.prototype.getBoundingClientRect = () =>
+  ({ width: 1200, height: 0, top: 0, left: 0, bottom: 0, right: 1200, x: 0, y: 0, toJSON: () => ({}) })
+
 // ── Mocks ─────────────────────────────────────────────────────────────────────
 
 // Mutable search state — update before render to simulate URL params
@@ -52,8 +68,7 @@ vi.mock('react-grid-layout', async () => {
   const ResponsiveGridLayout = ({ children }: { children: React.ReactNode }) => (
     <div data-testid="grid-layout">{children}</div>
   )
-  const useContainerWidth = () => ({ width: 1200, containerRef: { current: null }, mounted: true })
-  return { ResponsiveGridLayout, useContainerWidth }
+  return { ResponsiveGridLayout }
 })
 
 vi.mock('@/design/tokens', () => ({

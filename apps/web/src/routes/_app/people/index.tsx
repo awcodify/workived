@@ -1,8 +1,7 @@
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import { Search, Plus, Network, Users, Clock, Settings, BarChart3 } from 'lucide-react'
+import { Search, Plus, Network, Users, Settings } from 'lucide-react'
 import { useEmployees } from '@/lib/hooks/useEmployees'
-import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
@@ -11,7 +10,7 @@ import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
 import { ManagementPanel } from '@/components/workived/people/ManagementPanel'
-import { Dropdown } from '@/components/workived/shared/Dropdown'
+import { PerformancePanel } from '@/components/workived/people/PerformancePanel'
 
 export const Route = createFileRoute('/_app/people/')({
   component: PeoplePage,
@@ -31,20 +30,16 @@ function PeoplePage() {
   const canManageEmployees = useCanManageEmployees()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string | undefined>('active')
-  const [scheduleFilter, setScheduleFilter] = useState<string | undefined>(undefined)
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [history, setHistory] = useState<(string | undefined)[]>([undefined])
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
   const [showManagementPanel, setShowManagementPanel] = useState(false)
-
-  const { data: workSchedules = [] } = useWorkSchedules()
 
   const { data, isLoading } = useEmployees({
     cursor,
     limit: 20,
     search: search || undefined,
     status: statusFilter,
-    schedule_id: scheduleFilter,
   })
   const employees = data?.data ?? []
   const meta = data?.meta
@@ -76,12 +71,6 @@ function PeoplePage() {
     setHistory([undefined])
   }
 
-  const handleScheduleFilter = (scheduleId: string | undefined) => {
-    setScheduleFilter(scheduleId)
-    setCursor(undefined)
-    setHistory([undefined])
-  }
-
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
@@ -103,19 +92,6 @@ function PeoplePage() {
         </div>
         
         <div className="flex items-center gap-3">
-          <Link
-            to="/people/performance"
-            className="flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 transition-colors hover:opacity-90 whitespace-nowrap"
-            style={{
-              background: t.surface,
-              color: t.text,
-              borderRadius: 12,
-              border: `1px solid ${t.border}`,
-            }}
-          >
-            <BarChart3 size={14} />
-            Performance
-          </Link>
           <DateTime
             textColor={t.text}
             textMutedColor={t.textMuted}
@@ -131,221 +107,153 @@ function PeoplePage() {
         </div>
         </div>
       </div>
-      {/* Search and Action Buttons Row */}
-      <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_auto_auto_auto] gap-3 mb-4">
-        {/* Search */}
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: t.textMuted }} />
-          <input
-            type="text"
-            placeholder="Search employees..."
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2"
-            style={{
-              background: t.input,
-              border: `1px solid ${t.inputBorder}`,
-              borderRadius: 12,
-              color: t.text,
-            }}
-          />
-        </div>
-        
-        {/* Manage Button - visible to everyone */}
-        <button
-          onClick={() => setShowManagementPanel(true)}
-          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90 whitespace-nowrap"
-          style={{
-            background: t.surface,
-            color: t.text,
-            borderRadius: 12,
-            border: `1px solid ${t.border}`,
-          }}
-        >
-          <Settings size={16} />
-          Dept. & Job Titles
-        </button>
-        
-        {/* Org Chart Button */}
-        <Link
-          to="/org-chart"
-          className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90 whitespace-nowrap"
-          style={{
-            background: t.surface,
-            color: t.text,
-            borderRadius: 12,
-            border: `1px solid ${t.border}`,
-          }}
-        >
-          <Network size={16} />
-          Org Chart
-        </Link>
-        
-        {/* Add Employee Button - moved to the right */}
-        {canManageEmployees && (
-          <Link
-            to="/people/new"
-            search={{ user_id: undefined }}
-            className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90 whitespace-nowrap"
-            style={{
-              background: t.accent,
-              color: t.accentText,
-              borderRadius: 12,
-            }}
-          >
-            <Plus size={16} />
-            Add employee
-          </Link>
-        )}
+      {/* Two-column layout: performance panel (left) + employee list (right) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6 items-start">
+
+      {/* Left: Performance panel — sticky while list scrolls */}
+      <div className="hidden lg:block sticky top-8 self-start">
+        <PerformancePanel theme={t} />
       </div>
 
-      {/* Filters row */}
-      <div className="flex items-center justify-between gap-3 mb-5">
-        {/* Status filter tabs */}
-        <div className="flex items-center gap-1">
-          {STATUS_TABS.map((tab) => {
-            const isActive = statusFilter === tab.value
-            return (
-              <button
-                key={tab.label}
-                onClick={() => handleStatusFilter(tab.value)}
-                className="text-sm font-medium px-3.5 py-1.5 transition-colors"
-                style={{
-                  borderRadius: 8,
-                  background: isActive ? t.surfaceHover : 'transparent',
-                  color: isActive ? t.text : t.textMuted,
-                  boxShadow: 'none',
-                }}
-              >
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
+      <div className="min-w-0">
+      {/* Sticky toolbar */}
+      <div className="sticky top-6 z-10 pb-2" style={{ background: bg }}>
+        {/* Single row: segmented tabs + search + icon actions + CTA */}
+        <div className="flex items-center gap-2 mb-3">
+          {/* Status segmented control */}
+          <div
+            className="flex items-center gap-0.5 p-1 rounded-xl shrink-0"
+            style={{ background: 'rgba(0,0,0,0.06)' }}
+          >
+            {STATUS_TABS.map((tab) => {
+              const isActive = statusFilter === tab.value
+              return (
+                <button
+                  key={tab.label}
+                  onClick={() => handleStatusFilter(tab.value)}
+                  className="text-sm font-semibold px-3.5 py-1.5 transition-all"
+                  style={{
+                    borderRadius: 9,
+                    background: isActive ? t.surface : 'transparent',
+                    color: isActive ? t.text : t.textMuted,
+                    boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.10)' : undefined,
+                  }}
+                >
+                  {tab.label}
+                </button>
+              )
+            })}
+          </div>
 
-        {/* Schedule filter */}
-        {workSchedules.length > 0 && (
-          <div className="flex items-center gap-1.5">
-            <Clock size={14} style={{ color: t.textMuted }} />
-            <Dropdown
-              value={scheduleFilter ?? ''}
-              onChange={(value) => handleScheduleFilter(value || undefined)}
-              options={[
-                { value: '', label: 'All schedules' },
-                ...workSchedules.map((ws) => ({
-                  value: ws.id,
-                  label: ws.name,
-                  badge: ws.is_default ? 'default' : undefined,
-                }))
-              ]}
-              placeholder="All schedules"
+          {/* Search — compact, fills remaining space */}
+          <div className="relative flex-1 min-w-0">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: t.textMuted }} />
+            <input
+              type="text"
+              placeholder="Search…"
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="w-full pl-8 pr-3 py-2 text-sm focus:outline-none"
               style={{
-                borderRadius: 8,
-                background: scheduleFilter ? t.surfaceHover : 'transparent',
-                color: scheduleFilter ? t.text : t.textMuted,
+                background: t.surface,
                 border: `1px solid ${t.border}`,
-                minWidth: '180px',
+                borderRadius: 10,
+                color: t.text,
               }}
             />
           </div>
-        )}
+
+          {/* Secondary actions */}
+          <button
+            onClick={() => setShowManagementPanel(true)}
+            className="flex items-center gap-1.5 text-sm font-medium shrink-0 px-3.5 py-2 transition-opacity hover:opacity-70 whitespace-nowrap"
+            style={{ borderRadius: 10, background: t.surface, border: `1px solid ${t.border}`, color: t.textMuted }}
+          >
+            <Settings size={14} />
+            Dept. & Job Titles
+          </button>
+
+          <Link
+            to="/org-chart"
+            className="flex items-center gap-1.5 text-sm font-medium shrink-0 px-3.5 py-2 transition-opacity hover:opacity-70 whitespace-nowrap"
+            style={{ borderRadius: 10, background: t.surface, border: `1px solid ${t.border}`, color: t.textMuted }}
+          >
+            <Network size={14} />
+            Org Chart
+          </Link>
+
+          {canManageEmployees && (
+            <Link
+              to="/people/new"
+              search={{ user_id: undefined }}
+              className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 shrink-0 transition-opacity hover:opacity-90 whitespace-nowrap"
+              style={{ background: t.accent, color: t.accentText, borderRadius: 10 }}
+            >
+              <Plus size={15} />
+              Add employee
+            </Link>
+          )}
+        </div>
+
       </div>
 
-      {/* Employee list */}
-      {isLoading ? (
-        <PeopleRowsSkeleton />
-      ) : employees.length === 0 ? (
-        <PeopleEmptyState hasSearch={!!search} search={search} hasFilter={!!statusFilter} />
-      ) : (
-        <div className="flex flex-col gap-[3px]">
-          {/* Table header */}
-          <div
-            className="grid items-center gap-4 px-5 py-2"
-            style={{
-              gridTemplateColumns: '40px 1.5fr 1fr 1fr 1fr 80px',
-              color: t.textMuted,
-              fontSize: 11,
-              fontWeight: 600,
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-            }}
-          >
-            <div></div>
-            <div>Employee</div>
-            <div>Schedule</div>
-            <div>Reporting to</div>
-            <div>Department</div>
-            <div>Status</div>
+      {/* Employee table */}
+      <div
+        className="overflow-hidden"
+        style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.border}` }}
+      >
+        {/* Table header */}
+        <div className="px-6 py-4 border-b" style={{ borderColor: t.border }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 shrink-0" />
+            <div className="flex-1 min-w-0 text-sm font-bold" style={{ color: t.text }}>Employee</div>
+            <div className="w-32 shrink-0 text-sm font-bold hidden lg:block" style={{ color: t.text }}>Schedule</div>
+            <div className="w-32 shrink-0 text-sm font-bold hidden md:block" style={{ color: t.text }}>Reporting to</div>
+            <div className="w-32 shrink-0 text-sm font-bold hidden md:block" style={{ color: t.text }}>Department</div>
+            <div className="w-24 shrink-0 text-sm font-bold" style={{ color: t.text }}>Status</div>
           </div>
-
-          {/* Table rows */}
-          {employees.map((emp) => {
-            const isInactive = emp.status === 'inactive'
-            return (
-              <button
-                key={emp.id}
-                onClick={() => setSelectedEmployeeId(emp.id)}
-                className="grid items-center gap-4 transition-all duration-150 hover:-translate-y-px w-full text-left"
-                style={{
-                  gridTemplateColumns: '40px 1.5fr 1fr 1fr 1fr 80px',
-                  background: t.surface,
-                  borderRadius: 12,
-                  padding: '14px 20px',
-                  opacity: isInactive ? 0.5 : 1,
-                  border: 'none',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = t.surfaceHover
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = t.surface
-                }}
-              >
-                <Avatar name={emp.full_name} id={emp.id} size={32} />
-
-              <div className="min-w-0">
-                <p
-                  className="font-semibold truncate"
-                  style={{ fontSize: 13, color: t.text }}
-                >
-                  {emp.full_name}
-                </p>
-                <p
-                  className="truncate"
-                  style={{ fontSize: 12, color: t.textMuted, marginTop: 2 }}
-                >
-                  {emp.job_title ?? emp.employment_type.replace('_', ' ')}
-                </p>
-              </div>
-
-              <p
-                className="truncate"
-                style={{ fontSize: 12, color: t.textMuted }}
-              >
-                {emp.work_schedule_name ?? '—'}
-              </p>
-
-              <p
-                className="truncate"
-                style={{ fontSize: 12, color: t.textMuted }}
-              >
-                {emp.manager_name ?? '—'}
-              </p>
-
-              <p
-                className="truncate"
-                style={{ fontSize: 12, color: t.textMuted }}
-              >
-                {emp.department_name ?? '—'}
-              </p>
-
-              <StatusSquare status={emp.invitation_pending ? 'pending' : emp.status} />
-            </button>
-            )
-          })}
         </div>
-      )}
+
+        {/* Body */}
+        {isLoading ? (
+          <PeopleRowsSkeleton />
+        ) : employees.length === 0 ? (
+          <PeopleEmptyState hasSearch={!!search} search={search} hasFilter={!!statusFilter} />
+        ) : (
+          employees.map((emp) => (
+            <div
+              key={emp.id}
+              onClick={() => setSelectedEmployeeId(emp.id)}
+              className="px-6 py-4 border-b transition-colors hover:bg-black/[0.02] cursor-pointer"
+              style={{ borderColor: t.border, opacity: emp.status === 'inactive' ? 0.5 : 1 }}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 shrink-0">
+                  <Avatar name={emp.full_name} id={emp.id} size={40} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-bold truncate" style={{ color: t.text }}>{emp.full_name}</p>
+                  <p className="text-xs truncate mt-0.5" style={{ color: t.textMuted }}>
+                    {emp.job_title ?? emp.employment_type.replace('_', ' ')}
+                  </p>
+                </div>
+                <div className="w-32 shrink-0 hidden lg:block">
+                  <span className="text-xs truncate block" style={{ color: t.textMuted }}>{emp.work_schedule_name ?? '—'}</span>
+                </div>
+                <div className="w-32 shrink-0 hidden md:block">
+                  <span className="text-xs truncate block" style={{ color: t.textMuted }}>{emp.manager_name ?? '—'}</span>
+                </div>
+                <div className="w-32 shrink-0 hidden md:block">
+                  <span className="text-xs truncate block" style={{ color: t.textMuted }}>{emp.department_name ?? '—'}</span>
+                </div>
+                <div className="w-24 shrink-0">
+                  <StatusSquare status={emp.invitation_pending ? 'pending' : emp.status} />
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* Pagination */}
       {(meta?.has_more || history.length > 1) && (
@@ -381,6 +289,10 @@ function PeoplePage() {
         </div>
       )}
 
+      </div>{/* end right column */}
+
+      </div>{/* end two-column grid */}
+
       {/* Employee Detail Modal */}
       {selectedEmployeeId && (
         <EmployeeDetailModal
@@ -403,49 +315,30 @@ function PeopleRowsSkeleton() {
   const t = useModuleTheme('people')
   
   return (
-    <div className="flex flex-col gap-[3px]">
-      {/* Header skeleton */}
-      <div
-        className="grid items-center gap-4 px-5 py-2"
-        style={{
-          gridTemplateColumns: '40px 1.5fr 1fr 1fr 1fr 80px',
-        }}
-      >
-        <div></div>
-        <div className="rounded-md" style={{ width: 40, height: 11, background: t.surfaceHover }} />
-        <div className="rounded-md" style={{ width: 60, height: 11, background: t.surfaceHover }} />
-        <div className="rounded-md" style={{ width: 50, height: 11, background: t.surfaceHover }} />
-        <div className="rounded-md" style={{ width: 70, height: 11, background: t.surfaceHover }} />
-        <div className="rounded-md" style={{ width: 40, height: 11, background: t.surfaceHover }} />
-      </div>
-
-      {/* Row skeletons */}
+    <>
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
-          className="grid items-center gap-4 animate-pulse"
-          style={{
-            gridTemplateColumns: '40px 1.5fr 1fr 1fr 1fr 80px',
-            background: t.surface,
-            borderRadius: 12,
-            padding: '14px 20px',
-          }}
+          className="px-6 py-4 border-b animate-pulse"
+          style={{ borderColor: t.border }}
         >
-          <div className="rounded-[9px] flex-shrink-0" style={{ width: 32, height: 32, background: t.surfaceHover }} />
-          <div className="min-w-0">
-            <div className="rounded-md" style={{ width: 120, height: 13, background: t.surfaceHover, marginBottom: 4 }} />
-            <div className="rounded-md" style={{ width: 90, height: 12, background: t.surface }} />
-          </div>
-          <div className="rounded-md" style={{ width: 80, height: 12, background: t.surface }} />
-          <div className="rounded-md" style={{ width: 90, height: 12, background: t.surface }} />
-          <div className="rounded-md" style={{ width: 70, height: 12, background: t.surface }} />
-          <div className="flex items-center gap-1.5">
-            <div className="rounded-sm" style={{ width: 7, height: 7, background: t.surfaceHover }} />
-            <div className="rounded-sm" style={{ width: 40, height: 12, background: t.surface }} />
+          <div className="flex items-center gap-3">
+            <div className="w-10 shrink-0 rounded-[9px]" style={{ width: 40, height: 40, background: t.surfaceHover }} />
+            <div className="flex-1 min-w-0">
+              <div className="rounded-md mb-1.5" style={{ width: 130, height: 13, background: t.surfaceHover }} />
+              <div className="rounded-md" style={{ width: 90, height: 11, background: t.border }} />
+            </div>
+            <div className="w-32 shrink-0 hidden lg:block rounded-md" style={{ height: 11, background: t.border }} />
+            <div className="w-32 shrink-0 hidden md:block rounded-md" style={{ height: 11, background: t.border }} />
+            <div className="w-32 shrink-0 hidden md:block rounded-md" style={{ height: 11, background: t.border }} />
+            <div className="w-24 shrink-0 flex items-center gap-1.5">
+              <div className="rounded-sm" style={{ width: 7, height: 7, background: t.surfaceHover }} />
+              <div className="rounded-md" style={{ width: 44, height: 11, background: t.border }} />
+            </div>
           </div>
         </div>
       ))}
-    </div>
+    </>
   )
 }
 

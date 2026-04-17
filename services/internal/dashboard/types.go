@@ -14,6 +14,8 @@ const (
 	WidgetTable = "table"
 	WidgetBar   = "bar"
 	WidgetLine  = "line"
+	WidgetDivider = "divider"
+	WidgetText    = "text"
 )
 
 // ── Filter operators ──────────────────────────────────────────────────────────
@@ -96,6 +98,7 @@ type VizConfig struct {
 	Unit        string `json:"unit,omitempty"`
 	ShowDelta   bool   `json:"show_delta,omitempty"`
 	CompareWith string `json:"compare_with,omitempty"` // "previous_period"
+	Content     string `json:"content,omitempty"`      // for text widgets
 }
 
 // QueryResult holds the raw result rows returned from the query engine.
@@ -119,7 +122,7 @@ type UpdateDashboardInput struct {
 
 type CreateWidgetInput struct {
 	Title       string      `json:"title" validate:"required,min=1,max=200"`
-	WidgetType  string      `json:"widget_type" validate:"required,oneof=kpi table bar line"`
+	WidgetType  string      `json:"widget_type" validate:"required,oneof=kpi table bar line divider text"`
 	QueryConfig QueryConfig `json:"query_config"`
 	VizConfig   VizConfig   `json:"viz_config"`
 	PositionX   int         `json:"position_x"`
@@ -130,7 +133,7 @@ type CreateWidgetInput struct {
 
 type UpdateWidgetInput struct {
 	Title       string      `json:"title" validate:"required,min=1,max=200"`
-	WidgetType  string      `json:"widget_type" validate:"required,oneof=kpi table bar line"`
+	WidgetType  string      `json:"widget_type" validate:"required,oneof=kpi table bar line divider text"`
 	QueryConfig QueryConfig `json:"query_config"`
 	VizConfig   VizConfig   `json:"viz_config"`
 	PositionX   int         `json:"position_x"`

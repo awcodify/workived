@@ -94,8 +94,10 @@ func (s *Service) ListWidgets(ctx context.Context, orgID, dashboardID uuid.UUID)
 }
 
 func (s *Service) CreateWidget(ctx context.Context, orgID, dashboardID uuid.UUID, input CreateWidgetInput) (*Widget, error) {
-	if err := s.validateQueryConfig(ctx, orgID, input.QueryConfig); err != nil {
-		return nil, err
+	if input.WidgetType != WidgetText && input.WidgetType != WidgetDivider {
+		if err := s.validateQueryConfig(ctx, orgID, input.QueryConfig); err != nil {
+			return nil, err
+		}
 	}
 	w, err := s.repo.CreateWidget(ctx, orgID, dashboardID, input)
 	if err != nil {
@@ -111,8 +113,10 @@ func (s *Service) CreateWidget(ctx context.Context, orgID, dashboardID uuid.UUID
 }
 
 func (s *Service) UpdateWidget(ctx context.Context, orgID, dashboardID, widgetID uuid.UUID, input UpdateWidgetInput) (*Widget, error) {
-	if err := s.validateQueryConfig(ctx, orgID, input.QueryConfig); err != nil {
-		return nil, err
+	if input.WidgetType != WidgetText && input.WidgetType != WidgetDivider {
+		if err := s.validateQueryConfig(ctx, orgID, input.QueryConfig); err != nil {
+			return nil, err
+		}
 	}
 	w, err := s.repo.UpdateWidget(ctx, orgID, dashboardID, widgetID, input)
 	if err != nil {

@@ -2998,6 +2998,205 @@ paths:
                   summary:
                     $ref: "#/components/schemas/CompanySummary"
 
+  # ── Dashboards ───────────────────────────────────────────────────────────
+  /dashboards:
+    get:
+      operationId: listDashboards
+      summary: List dashboards
+      description: Returns all dashboards for the authenticated org
+      tags: [Dashboards]
+      responses:
+        "200":
+          description: List of dashboards
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Dashboard"
+
+    post:
+      operationId: createDashboard
+      summary: Create a dashboard
+      tags: [Dashboards]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDashboardRequest"
+      responses:
+        "201":
+          description: Dashboard created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Dashboard"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /dashboards/{id}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+
+    put:
+      operationId: updateDashboard
+      summary: Update dashboard name or default flag
+      tags: [Dashboards]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDashboardRequest"
+      responses:
+        "200":
+          description: Dashboard updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Dashboard"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      operationId: deleteDashboard
+      summary: Delete a dashboard and all its widgets
+      tags: [Dashboards]
+      responses:
+        "204":
+          description: Dashboard deleted
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /dashboards/{id}/widgets:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+
+    get:
+      operationId: listWidgets
+      summary: List widgets for a dashboard
+      tags: [Dashboards]
+      responses:
+        "200":
+          description: List of widgets
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Widget"
+
+    post:
+      operationId: createWidget
+      summary: Create a widget on a dashboard
+      tags: [Dashboards]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWidgetRequest"
+      responses:
+        "201":
+          description: Widget created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Widget"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
+  /dashboards/{id}/widgets/{wid}:
+    parameters:
+      - $ref: "#/components/parameters/ResourceID"
+      - name: wid
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    put:
+      operationId: updateWidget
+      summary: Update a widget (config, position, or both)
+      tags: [Dashboards]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWidgetRequest"
+      responses:
+        "200":
+          description: Widget updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Widget"
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+    delete:
+      operationId: deleteWidget
+      summary: Delete a widget
+      tags: [Dashboards]
+      responses:
+        "204":
+          description: Widget deleted
+        "404":
+          $ref: "#/components/responses/NotFoundError"
+
+  /dashboards/query:
+    post:
+      operationId: executeQuery
+      summary: Execute a widget query
+      description: |
+        Translates a QueryConfig to SQL and runs it against the org's data.
+        Results are cached for 5 minutes per org + query config hash.
+        Used by the frontend to preview widget data before saving.
+      tags: [Dashboards]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query_config]
+              properties:
+                query_config:
+                  $ref: "#/components/schemas/QueryConfig"
+      responses:
+        "200":
+          description: Query result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/QueryResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+
 # ── Components ────────────────────────────────────────────────────────────────
 
 components:
@@ -5345,4 +5544,202 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/DepartmentBreakdown"
+
+    # ── Dashboard schemas ──────────────────────────────────────────────────
+    Dashboard:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        is_default:
+          type: boolean
+        created_by:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    Widget:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        dashboard_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        widget_type:
+          type: string
+          enum: [kpi, table, bar, line, divider, text]
+        query_config:
+          $ref: "#/components/schemas/QueryConfig"
+        viz_config:
+          $ref: "#/components/schemas/VizConfig"
+        position_x:
+          type: integer
+          minimum: 0
+        position_y:
+          type: integer
+          minimum: 0
+        width:
+          type: integer
+          minimum: 1
+          maximum: 12
+        height:
+          type: integer
+          minimum: 1
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    QueryConfig:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [tasks, attendance, leave, claims, employees]
+        aggregate:
+          type: string
+          enum: [count, count_distinct, sum, avg, min, max]
+        field:
+          type: string
+          description: Column to aggregate (required for sum/avg/min/max)
+        group_by:
+          type: string
+        facet:
+          type: string
+          description: Multi-series split for line charts
+        date_bucket:
+          type: string
+          enum: [day, week, month]
+        columns:
+          type: array
+          items:
+            type: string
+          description: Column list for table widgets
+        filters:
+          type: array
+          items:
+            $ref: "#/components/schemas/QueryFilter"
+        sort_by:
+          type: string
+        sort_dir:
+          type: string
+          enum: [asc, desc]
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        date_range:
+          type: string
+          description: Date alias (e.g. this_month, last_30_days, this_year)
+
+    QueryFilter:
+      type: object
+      required: [field, op, value]
+      properties:
+        field:
+          type: string
+        op:
+          type: string
+          enum: [eq, neq, gt, gte, lt, lte, in, is_null, not_null]
+        value:
+          description: Filter value (string, number, boolean, or array for `in`)
+
+    VizConfig:
+      type: object
+      properties:
+        color:
+          type: string
+          description: Hex color for the widget accent
+        unit:
+          type: string
+          description: Unit suffix for KPI values (e.g. hrs, %)
+        show_delta:
+          type: boolean
+        compare_with:
+          type: string
+          enum: [previous_period]
+        content:
+          type: string
+          description: Free-text content for text widgets
+
+    QueryResult:
+      type: object
+      properties:
+        columns:
+          type: array
+          items:
+            type: string
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        value:
+          type: number
+          format: double
+          description: Scalar value for KPI widgets
+
+    CreateDashboardRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        is_default:
+          type: boolean
+
+    CreateWidgetRequest:
+      type: object
+      required: [title, widget_type]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 200
+        widget_type:
+          type: string
+          enum: [kpi, table, bar, line, divider, text]
+        query_config:
+          $ref: "#/components/schemas/QueryConfig"
+        viz_config:
+          $ref: "#/components/schemas/VizConfig"
+        position_x:
+          type: integer
+          minimum: 0
+          default: 0
+        position_y:
+          type: integer
+          minimum: 0
+          default: 0
+        width:
+          type: integer
+          minimum: 1
+          maximum: 12
+          default: 4
+        height:
+          type: integer
+          minimum: 1
+          default: 2
 

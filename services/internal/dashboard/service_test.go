@@ -126,6 +126,19 @@ func TestService_CreateWidget(t *testing.T) {
 	}
 }
 
+func TestService_CreateWidget_TextSkipsQueryValidation(t *testing.T) {
+	svc := newTestService(&fakeRepo{})
+	_, err := svc.CreateWidget(context.Background(), uuid.New(), uuid.New(), CreateWidgetInput{
+		Title:      "About This Dashboard",
+		WidgetType: WidgetText,
+		QueryConfig: QueryConfig{Source: "nonexistent"}, // invalid source — must be skipped for text
+		VizConfig:   VizConfig{Content: "Hello world"},
+	})
+	if err != nil {
+		t.Fatalf("text widget should skip query validation: %v", err)
+	}
+}
+
 func TestService_CreateWidget_InvalidQuery(t *testing.T) {
 	svc := newTestService(&fakeRepo{})
 	_, err := svc.CreateWidget(context.Background(), uuid.New(), uuid.New(), CreateWidgetInput{

@@ -1081,7 +1081,7 @@ export interface CompanySummary {
 
 // ── Dashboard / Analytics ────────────────────────────────────
 
-export type WidgetType = 'kpi' | 'table' | 'bar' | 'line'
+export type WidgetType = 'kpi' | 'table' | 'bar' | 'line' | 'divider' | 'text'
 export type AggregateType = 'count' | 'count_distinct' | 'sum' | 'avg' | 'min' | 'max'
 export type FilterOp = 'eq' | 'neq' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'is_null' | 'not_null'
 export type DateRangeAlias =
@@ -1114,6 +1114,7 @@ export interface VizConfig {
   unit?: string
   show_delta?: boolean
   compare_with?: 'previous_period'
+  content?: string
 }
 
 export interface Dashboard {
