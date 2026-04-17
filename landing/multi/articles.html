@@ -52,19 +52,12 @@
     .hero h1 em{font-style:normal;color:var(--accent);}
     .hero-sub{font-size:18px;color:var(--ink-500);line-height:1.65;max-width:480px;margin:0 auto;}
 
-    /* Category filters */
-    .filters{padding:0 24px 48px;display:flex;justify-content:center;}
-    .filter-list{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:center;}
-    .filter-btn{padding:8px 18px;border-radius:100px;font-size:13px;font-weight:600;border:1.5px solid var(--ink-150);background:transparent;color:var(--ink-500);cursor:pointer;transition:all 0.2s;text-decoration:none;}
-    .filter-btn:hover{border-color:var(--accent);color:var(--accent);}
-    .filter-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
-
     /* Featured article */
     .featured{padding:0 24px 72px;}
     .featured-inner{max-width:1040px;margin:0 auto;}
     .featured-card{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:24px;overflow:hidden;background:var(--ink-50);border:1px solid var(--ink-100);transition:box-shadow 0.3s,transform 0.3s;text-decoration:none;color:inherit;}
     .featured-card:hover{box-shadow:0 20px 56px rgba(0,0,0,0.08);transform:translateY(-4px);}
-    .featured-image{background:linear-gradient(135deg,#6357E8 0%,#9B8FF7 50%,#C4BFFA 100%);min-height:380px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
+    .featured-image{background:linear-gradient(135deg,#3B31C4 0%,#6357E8 50%,#7B6FF0 100%);min-height:380px;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;}
     .featured-image::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,rgba(255,255,255,0.15),transparent 55%);}
     .feat-illus{position:relative;z-index:1;display:flex;flex-direction:column;gap:12px;padding:32px;}
     .feat-task{background:rgba(255,255,255,0.18);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.3);border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:12px;}
@@ -197,17 +190,6 @@
     <p class="hero-sub">HR operations, team management, and startup culture — practical reads for founders and ops leads.</p>
   </section>
 
-  <!-- Filters -->
-  <div class="filters">
-    <div class="filter-list">
-      <a href="#" class="filter-btn active">All</a>
-      <a href="#" class="filter-btn">Team Management</a>
-      <a href="#" class="filter-btn">HR Ops</a>
-      <a href="#" class="filter-btn">Productivity</a>
-      <a href="#" class="filter-btn">Startup Culture</a>
-    </div>
-  </div>
-
   <!-- Featured Article -->
   <section class="featured">
     <div class="featured-inner reveal">
@@ -257,7 +239,7 @@
             <div class="author-avatar">W</div>
             <div>
               <div class="author-name">Workived Team</div>
-              <div class="author-date">April 18, 2026</div>
+              <div class="author-date">April 15, 2026</div>
             </div>
             <span class="read-link">
               Read article
@@ -275,47 +257,31 @@
       <p class="section-label">All articles</p>
       <div class="articles-list">
 
-        <!-- Article 1 — published -->
-        <a href="articles/boost-team-task-management.html" class="list-item reveal">
+        <!-- Article 1 — newest -->
+        <a href="articles/remote-first-culture.html" class="list-item reveal">
           <div class="list-left">
-            <span class="list-category">Team Management</span>
+            <span class="list-category" style="background:#EDE9FE;color:#5B21B6;">Startup Culture</span>
             <div class="list-meta">
               <span class="list-date">Apr 18, 2026</span>
               <span class="list-read-time">7 min read</span>
             </div>
           </div>
           <div class="list-body">
-            <div class="list-title">How to Boost Your Team with Proper Task Management</div>
-            <div class="list-excerpt">Most small teams don't fail because of a lack of talent — they fail because of unclear ownership and scattered priorities.</div>
+            <div class="list-title">How to Build a Remote-First Culture That Actually Works</div>
+            <div class="list-excerpt">Remote-first isn't the same as remote-friendly. Here's how to design the systems, norms, and communication patterns that make distributed teams genuinely effective.</div>
           </div>
           <div class="list-arrow">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
           </div>
         </a>
 
-        <!-- Article 2 — coming soon -->
-        <div class="list-item coming-soon">
+        <!-- Article 2 -->
+        <a href="articles/attendance-system-productivity.html" class="list-item reveal">
           <div class="list-left">
-            <span class="list-category" style="background:#1F1D2B;color:var(--ink-300);">HR Ops</span>
+            <span class="list-category" style="background:#FFF8E6;color:#92400E;">Productivity</span>
             <div class="list-meta">
-              <span class="coming-soon-badge">Coming soon</span>
-            </div>
-          </div>
-          <div class="list-body">
-            <div class="list-title">The Startup Founder's Guide to Leave Management</div>
-            <div class="list-excerpt">How to design a leave policy that keeps your team happy without creating chaos as you scale.</div>
-          </div>
-          <div class="list-arrow">
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
-          </div>
-        </div>
-
-        <!-- Article 3 — coming soon -->
-        <div class="list-item coming-soon">
-          <div class="list-left">
-            <span class="list-category" style="background:#0F3D28;color:#80EABD;">Productivity</span>
-            <div class="list-meta">
-              <span class="coming-soon-badge">Coming soon</span>
+              <span class="list-date">Apr 17, 2026</span>
+              <span class="list-read-time">6 min read</span>
             </div>
           </div>
           <div class="list-body">
@@ -325,25 +291,25 @@
           <div class="list-arrow">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
           </div>
-        </div>
+        </a>
 
-        <!-- Article 4 — coming soon -->
-        <div class="list-item coming-soon">
+        <!-- Article 3 -->
+        <a href="articles/people-ops-process.html" class="list-item reveal">
           <div class="list-left">
-            <span class="list-category" style="background:#2D1854;color:#C4BFFA;">Startup Culture</span>
+            <span class="list-category" style="background:var(--accent-dim);color:var(--accent-text);">HR Ops</span>
             <div class="list-meta">
-              <span class="coming-soon-badge">Coming soon</span>
+              <span class="list-date">Apr 16, 2026</span>
+              <span class="list-read-time">7 min read</span>
             </div>
           </div>
           <div class="list-body">
-            <div class="list-title">Building a Remote-First Culture Across Indonesia and UAE</div>
-            <div class="list-excerpt">Timezone gaps, public holiday differences, multi-currency expenses — here's how to make it work.</div>
+            <div class="list-title">Why Your Team Needs a People Ops Process Before You Think They Do</div>
+            <div class="list-excerpt">Most founders build HR infrastructure six months too late. Here's what to put in place at 5, 10, and 20 employees — before the fires start.</div>
           </div>
           <div class="list-arrow">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 7h10M8 3l4 4-4 4"/></svg>
           </div>
-        </div>
-
+        </a>
       </div>
     </div>
   </section>
@@ -403,14 +369,6 @@
       btn.disabled = true;
     }
 
-    // Filter buttons (UI only — no filtering logic needed for now)
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-      });
-    });
   </script>
 </body>
 </html>

@@ -36,19 +36,19 @@
     html{scroll-behavior:smooth;}
     body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--ink-50);color:var(--ink-900);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
 
-    /* ─── NAV (light) ─── */
-    .nav{position:sticky;top:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(246,245,252,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--ink-100);}
+    /* ─── NAV ─── */
+    .nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(246,245,252,0.92);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--ink-100);}
     .nav-left{display:flex;align-items:center;gap:14px;text-decoration:none;}
     .nav-wordmark{font-size:22px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;}
-    .nav-links{display:flex;align-items:center;gap:28px;}
+    .nav-links{display:flex;align-items:center;gap:32px;}
     .nav-links a{font-size:14px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;}
     .nav-links a:hover{color:var(--ink-900);}
     .nav-links a.active{color:var(--accent);}
-    .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;}
+    .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;border:none;}
     .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.4);}
 
     /* ─── PAGE LAYOUT (sticky sidebar) ─── */
-    .page-layout{display:grid;grid-template-columns:260px 1fr;align-items:start;}
+    .page-layout{display:grid;grid-template-columns:260px 1fr;align-items:start;padding-top:72px;}
     .page-sidebar{position:sticky;top:72px;height:calc(100vh - 72px);border-right:1px solid var(--ink-100);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none;background:var(--ink-0);}
     .page-sidebar::-webkit-scrollbar{display:none;}
     .sidebar-eyebrow{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);padding:32px 28px 20px;display:block;}
@@ -205,7 +205,7 @@
       <div class="msec-inner">
         <div class="msec-text">
           <div class="msec-eyebrow"><span class="msec-edot" style="background:#6357E8;"></span>Overview</div>
-          <h1 class="msec-title" style="font-size:inherit;font-weight:inherit;letter-spacing:inherit;line-height:inherit;">Everything<br>at a glance</h1>
+          <h2 class="msec-title">Everything<br>at a glance</h2>
           <p class="msec-desc">Your morning starts here. See who's in, pending approvals, leave balances, and team pulse — all in one dashboard.</p>
           <div class="msec-chips">
             <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Real-time attendance clock</span>

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Startup Founder's Guide to Leave Management — Workived Articles</title>
+  <meta name="description" content="How to design a leave policy that keeps your team happy without creating chaos as you scale. A practical guide for startup founders and HR leads.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://workived.com/articles/leave-management-guide">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://workived.com/articles/leave-management-guide">
+  <meta property="og:title" content="The Startup Founder's Guide to Leave Management">
+  <meta property="og:description" content="How to design a leave policy that keeps your team happy without creating chaos as you scale.">
+  <meta property="og:image" content="https://workived.com/images/og-cover.png">
+  <meta property="og:site_name" content="Workived">
+  <meta property="article:published_time" content="2026-04-18T00:00:00Z">
+  <meta property="article:author" content="Workived Team">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="The Startup Founder's Guide to Leave Management">
+  <meta name="twitter:description" content="How to design a leave policy that keeps your team happy without creating chaos as you scale.">
+  <meta name="twitter:image" content="https://workived.com/images/og-cover.png">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FFFFFF">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='30' fill='%236357E8'/><text x='90' y='112' text-anchor='middle' dominant-baseline='middle' style='font-family:Plus Jakarta Sans,sans-serif;font-size:108px;font-weight:800;fill:white'>W</text><rect x='55' y='150' width='70' height='10' rx='5' fill='white' opacity='0.7'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --accent:#6357E8;--accent-dim:#EFEDFD;--accent-mid:#8F86F0;--accent-text:#4A3FBF;
+      --ink-900:#0F0E13;--ink-700:#1F1D2B;--ink-500:#72708A;--ink-300:#B0AEBE;
+      --ink-150:#DDDBE8;--ink-100:#EDECF4;--ink-50:#F6F5FC;--ink-0:#FFFFFF;
+      --dark:#0A0A12;--green:#10B981;
+    }
+    html{scroll-behavior:smooth;}
+    body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--ink-0);color:var(--ink-900);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+    .nav{position:sticky;top:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--ink-100);}
+    .nav-left{display:flex;align-items:center;gap:14px;text-decoration:none;}
+    .nav-wordmark{font-size:22px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;}
+    .nav-links{display:flex;align-items:center;gap:32px;}
+    .nav-links a{font-size:14px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;}
+    .nav-links a:hover{color:var(--ink-900);}
+    .nav-links a.active{color:var(--accent);}
+    .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;}
+    .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.35);}
+    .breadcrumb{padding:24px 40px 0;max-width:1200px;margin:0 auto;display:flex;align-items:center;gap:8px;}
+    .breadcrumb a{font-size:13px;font-weight:600;color:var(--ink-300);text-decoration:none;transition:color 0.2s;}
+    .breadcrumb a:hover{color:var(--accent);}
+    .breadcrumb-sep{font-size:13px;color:var(--ink-150);}
+    .breadcrumb-current{font-size:13px;font-weight:600;color:var(--ink-500);}
+    .article-header{padding:40px 48px 0;max-width:1200px;margin:0 auto;}
+    .article-meta{display:flex;align-items:center;gap:10px;margin-bottom:24px;}
+    .article-category{padding:5px 14px;border-radius:100px;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;background:var(--accent-dim);color:var(--accent-text);}
+    .article-read-time{font-size:13px;color:var(--ink-300);font-weight:600;}
+    .article-dot{width:3px;height:3px;border-radius:50%;background:var(--ink-300);}
+    .article-title{font-size:clamp(30px,5vw,48px);font-weight:800;letter-spacing:-0.05em;line-height:1.1;color:var(--ink-900);margin-bottom:20px;}
+    .article-excerpt{font-size:18px;color:var(--ink-500);line-height:1.7;margin-bottom:32px;border-bottom:1px solid var(--ink-100);padding-bottom:32px;}
+    .article-author-row{display:flex;align-items:center;gap:12px;margin-bottom:48px;}
+    .author-avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,var(--accent-mid),var(--accent));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+    .author-info{flex:1;}
+    .author-name{font-size:14px;font-weight:700;color:var(--ink-700);}
+    .author-date{font-size:13px;color:var(--ink-300);}
+    .share-row{display:flex;align-items:center;gap:8px;}
+    .share-label{font-size:12px;font-weight:600;color:var(--ink-300);}
+    .share-btn{width:32px;height:32px;border-radius:8px;background:var(--ink-50);border:1px solid var(--ink-100);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;text-decoration:none;color:var(--ink-500);}
+    .share-btn:hover{background:var(--ink-100);color:var(--ink-900);}
+    .article-hero-image{max-width:1200px;margin:0 auto 56px;padding:0 48px;}
+    .hero-visual{border-radius:20px;background:linear-gradient(135deg,#0F3D28 0%,#10B981 60%,#6EE7B7 100%);padding:48px 40px;position:relative;overflow:hidden;min-height:300px;display:flex;align-items:center;justify-content:center;}
+    .hero-visual::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 20% 30%,rgba(255,255,255,0.1),transparent 55%);}
+    .leave-calendar{position:relative;z-index:1;display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:480px;}
+    .cal-day{background:rgba(255,255,255,0.12);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:10px 8px;text-align:center;}
+    .cal-day-label{font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.45);margin-bottom:6px;}
+    .cal-day-num{font-size:18px;font-weight:800;color:rgba(255,255,255,0.9);line-height:1;margin-bottom:6px;}
+    .cal-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;display:inline-block;}
+    .tag-leave{background:rgba(255,255,255,0.2);color:rgba(255,255,255,0.9);}
+    .tag-holiday{background:rgba(255,200,50,0.3);color:#FFE080;}
+    .tag-work{background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.35);}
+    .tag-remote{background:rgba(100,200,255,0.25);color:#A0E4FF;}
+    .article-body{max-width:1200px;margin:0 auto;padding:0 48px 80px;line-height:1.8;font-size:17px;color:var(--ink-700);}
+    .article-body h2{font-size:clamp(22px,3vw,28px);font-weight:800;letter-spacing:-0.04em;color:var(--ink-900);margin:52px 0 18px;line-height:1.2;}
+    .article-body h3{font-size:18px;font-weight:700;letter-spacing:-0.02em;color:var(--ink-900);margin:36px 0 14px;}
+    .article-body p{margin-bottom:22px;}
+    .article-body p:last-child{margin-bottom:0;}
+    .article-body ul,.article-body ol{margin:0 0 22px 24px;display:flex;flex-direction:column;gap:10px;}
+    .article-body li{line-height:1.7;}
+    .article-body strong{font-weight:700;color:var(--ink-900);}
+    .article-body em{font-style:italic;}
+    .article-body a{color:var(--accent);text-decoration:underline;text-decoration-color:rgba(99,87,232,0.3);text-underline-offset:3px;transition:text-decoration-color 0.2s;}
+    .article-body a:hover{text-decoration-color:var(--accent);}
+    .callout{background:var(--accent-dim);border-left:4px solid var(--accent);border-radius:0 14px 14px 0;padding:20px 24px;margin:32px 0;font-size:16px;color:var(--accent-text);}
+    .callout strong{color:var(--accent-text);}
+    .callout-green{background:#E6FAF3;border-left-color:#10B981;color:#065F46;}
+    .callout-green strong{color:#065F46;}
+    .stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:36px 0;}
+    .stat-card{background:var(--ink-50);border:1px solid var(--ink-100);border-radius:16px;padding:20px;text-align:center;}
+    .stat-number{font-size:clamp(28px,4vw,36px);font-weight:800;letter-spacing:-0.04em;color:var(--accent);margin-bottom:6px;}
+    .stat-label{font-size:12px;font-weight:600;color:var(--ink-500);line-height:1.4;}
+    .policy-table{width:100%;border-collapse:collapse;margin:28px 0;border-radius:14px;overflow:hidden;border:1px solid var(--ink-100);}
+    .policy-table th{background:var(--ink-50);padding:12px 16px;text-align:left;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-500);border-bottom:1px solid var(--ink-100);}
+    .policy-table td{padding:13px 16px;font-size:14px;color:var(--ink-700);border-bottom:1px solid var(--ink-100);}
+    .policy-table tr:last-child td{border-bottom:none;}
+    .policy-table tr:hover td{background:var(--ink-50);}
+    .badge-id{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;background:#FFF8E6;color:#C07A00;}
+    .badge-ae{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:5px;font-size:10px;font-weight:700;background:#E6F0FF;color:#1D4ED8;}
+    .divider{border:none;border-top:1px solid var(--ink-100);margin:52px 0;}
+    .article-footer{background:var(--dark);padding:80px 24px;text-align:center;position:relative;overflow:hidden;}
+    .article-footer::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(99,87,232,0.18),transparent 60%);pointer-events:none;}
+    .article-footer-content{position:relative;z-index:1;max-width:520px;margin:0 auto;}
+    .article-footer h2{font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-0.04em;color:#fff;line-height:1.15;margin-bottom:14px;}
+    .article-footer h2 em{font-style:normal;color:var(--accent-mid);}
+    .article-footer p{font-size:16px;color:rgba(255,255,255,0.4);line-height:1.7;margin-bottom:32px;}
+    .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:16px 36px;border-radius:14px;background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;font-size:16px;font-weight:700;text-decoration:none;border:none;cursor:pointer;transition:all 0.25s;box-shadow:0 4px 20px rgba(99,87,232,0.25);}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,87,232,0.4);}
+    .back-to-articles{display:inline-flex;align-items:center;gap:6px;margin-top:20px;font-size:14px;font-weight:600;color:rgba(255,255,255,0.3);text-decoration:none;transition:color 0.2s;}
+    .back-to-articles:hover{color:rgba(255,255,255,0.6);}
+    .footer{border-top:1px solid rgba(255,255,255,0.06);padding:48px 40px 32px;background:var(--dark);}
+    .footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+    .footer-left{display:flex;align-items:center;gap:12px;}
+    .footer-wordmark{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.03em;}
+    .footer-copy{font-size:13px;color:rgba(255,255,255,0.3);}
+    .footer-right{display:flex;align-items:center;gap:24px;}
+    .footer-link{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s;}
+    .footer-link:hover{color:#fff;}
+    .reveal{opacity:0;transform:translateY(24px);transition:opacity 0.6s ease-out,transform 0.6s ease-out;}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+    .reading-progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#10B981,#6EE7B7);z-index:2000;transition:width 0.1s linear;width:0%;}
+    @media(max-width:700px){
+      .nav{padding:0 20px;}.nav-links a:not(.nav-cta){display:none;}
+      .breadcrumb{padding:20px 20px 0;}
+      .article-header{padding:28px 20px 0;}
+      .article-hero-image{padding:0 20px;}
+      .hero-visual{padding:32px 20px;}
+      .leave-calendar{grid-template-columns:repeat(3,1fr);}
+      .stat-row{grid-template-columns:1fr;}
+      .article-body{padding:0 20px 60px;}
+      .footer{padding:32px 20px 24px;}
+      .footer-inner{flex-direction:column;gap:16px;text-align:center;}
+      .footer-right{flex-wrap:wrap;justify-content:center;}
+    }
+  </style>
+</head>
+<body>
+
+  <div class="reading-progress" id="progress"></div>
+
+  <nav class="nav">
+    <a href="../index.html" class="nav-left">
+      <svg width="36" height="36" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="url(#g)"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text><rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/></svg>
+      <span class="nav-wordmark">Workived</span>
+    </a>
+    <div class="nav-links">
+      <a href="../features.html">Features</a>
+      <a href="../pricing.html">Pricing</a>
+      <a href="../security.html">Security</a>
+      <a href="../ai.html">AI</a>
+      <a href="../articles.html" class="active">Articles</a>
+      <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+    </div>
+  </nav>
+
+  <div class="breadcrumb">
+    <a href="../articles.html">Articles</a>
+    <span class="breadcrumb-sep">/</span>
+    <span class="breadcrumb-current">HR Ops</span>
+  </div>
+
+  <header class="article-header">
+    <div class="article-meta">
+      <span class="article-category">HR Ops</span>
+      <span class="article-dot"></span>
+      <span class="article-read-time">8 min read</span>
+    </div>
+    <h1 class="article-title">The Startup Founder's Guide to Leave Management</h1>
+    <p class="article-excerpt">How to design a leave policy that keeps your team happy without creating chaos as you scale — with practical guidance for companies operating across Indonesia and UAE.</p>
+    <div class="article-author-row">
+      <div class="author-avatar">W</div>
+      <div class="author-info">
+        <div class="author-name">Workived Team</div>
+        <div class="author-date">April 18, 2026 &middot; 8 min read</div>
+      </div>
+      <div class="share-row">
+        <span class="share-label">Share</span>
+        <a href="https://twitter.com/intent/tweet?text=The+Startup+Founder%27s+Guide+to+Leave+Management&url=https://workived.com/articles/leave-management-guide" target="_blank" rel="noopener noreferrer" class="share-btn" aria-label="Share on Twitter/X">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.744l7.737-8.835L1.254 2.25H8.08l4.259 5.63 5.905-5.63zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+        </a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://workived.com/articles/leave-management-guide" target="_blank" rel="noopener noreferrer" class="share-btn" aria-label="Share on LinkedIn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <div class="article-hero-image">
+    <div class="hero-visual">
+      <div class="leave-calendar">
+        <div class="cal-day">
+          <div class="cal-day-label">Mon</div>
+          <div class="cal-day-num">14</div>
+          <span class="cal-tag tag-work">Work</span>
+        </div>
+        <div class="cal-day">
+          <div class="cal-day-label">Tue</div>
+          <div class="cal-day-num">15</div>
+          <span class="cal-tag tag-leave">Annual</span>
+        </div>
+        <div class="cal-day">
+          <div class="cal-day-label">Wed</div>
+          <div class="cal-day-num">16</div>
+          <span class="cal-tag tag-leave">Annual</span>
+        </div>
+        <div class="cal-day">
+          <div class="cal-day-label">Thu</div>
+          <div class="cal-day-num">17</div>
+          <span class="cal-tag tag-holiday">Holiday</span>
+        </div>
+        <div class="cal-day">
+          <div class="cal-day-label">Fri</div>
+          <div class="cal-day-num">18</div>
+          <span class="cal-tag tag-work">Work</span>
+        </div>
+        <div class="cal-day">
+          <div class="cal-day-label">Mon</div>
+          <div class="cal-day-num">21</div>
+          <span class="cal-tag tag-remote">Remote</span>
+        </div>
+        <div class="cal-day">
+          <div class="cal-day-label">Tue</div>
+          <div class="cal-day-num">22</div>
+          <span class="cal-tag tag-work">Work</span>
+        </div>
+        <div class="cal-day">
+          <div class="cal-day-label">Wed</div>
+          <div class="cal-day-num">23</div>
+          <span class="cal-tag tag-leave">Sick</span>
+        </div>
+        <div class="cal-day">
+          <div class="cal-day-label">Thu</div>
+          <div class="cal-day-num">24</div>
+          <span class="cal-tag tag-work">Work</span>
+        </div>
+        <div class="cal-day">
+          <div class="cal-day-label">Fri</div>
+          <div class="cal-day-num">25</div>
+          <span class="cal-tag tag-remote">Remote</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <article class="article-body reveal">
+
+    <p>Leave management is one of those things that feels simple until you're a company of 12 trying to run operations across two countries, each with their own public holiday calendars, religious observance requirements, and legal entitlements. What started as "just tell me when you're off" becomes a coordination problem with real legal and team-morale consequences.</p>
+
+    <p>This guide covers how to think about leave policy from first principles, what the regulations actually require in Indonesia and UAE, and how to build a system that scales without becoming a spreadsheet nightmare.</p>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-number">12</div>
+        <div class="stat-label">minimum annual leave days required by Indonesian labour law</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">30</div>
+        <div class="stat-label">calendar days annual leave required under UAE Labour Law</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">2×</div>
+        <div class="stat-label">the compliance calendar complexity when operating in both markets</div>
+      </div>
+    </div>
+
+    <h2>Why "just be flexible" isn't a leave policy</h2>
+
+    <p>Many early-stage startups operate on informal trust: if you need a day off, take it. This works until it doesn't. Problems emerge when:</p>
+
+    <ul>
+      <li>People don't take leave because there's no clear norm, leading to burnout</li>
+      <li>Someone takes two weeks during a critical sprint with no coverage plan</li>
+      <li>A team member resigns and asks to be paid out 30 days of accumulated leave you didn't know they had</li>
+      <li>A labour audit reveals you've been non-compliant with mandatory entitlements</li>
+    </ul>
+
+    <p>A leave policy doesn't mean bureaucracy. It means clarity — both for the employee ("here's what you're entitled to") and for the company ("here's how we track it").</p>
+
+    <h2>The legal baseline: Indonesia vs UAE</h2>
+
+    <p>Both countries have non-negotiable minimums. Your policy can be more generous, but it cannot be less.</p>
+
+    <table class="policy-table">
+      <thead>
+        <tr>
+          <th>Leave Type</th>
+          <th><span class="badge-id">🇮🇩 Indonesia</span></th>
+          <th><span class="badge-ae">🇦🇪 UAE</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Annual Leave</strong></td>
+          <td>12 working days (after 12 months)</td>
+          <td>30 calendar days (after 1 year); 2 days/month in year 1</td>
+        </tr>
+        <tr>
+          <td><strong>Sick Leave</strong></td>
+          <td>Paid with doctor's note; up to 12 months with graduated pay</td>
+          <td>15 days full pay, 30 days half pay, 45 days unpaid per year</td>
+        </tr>
+        <tr>
+          <td><strong>Maternity Leave</strong></td>
+          <td>3 months paid</td>
+          <td>60 days paid (45 full + 15 half)</td>
+        </tr>
+        <tr>
+          <td><strong>Paternity Leave</strong></td>
+          <td>2 days</td>
+          <td>5 days</td>
+        </tr>
+        <tr>
+          <td><strong>Public Holidays</strong></td>
+          <td>~16 national holidays/year (varies)</td>
+          <td>~14 public holidays/year (some date-shifting for Islamic calendar)</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout callout-green">
+      <strong>Important:</strong> UAE public holidays for Islamic observances (Eid Al Fitr, Eid Al Adha, etc.) shift each year based on the lunar calendar. You cannot hardcode these — they must be confirmed and updated annually. Workived's public holiday module handles this automatically.
+    </div>
+
+    <h2>Designing your leave policy: five decisions to make</h2>
+
+    <h3>1. Accrual vs granted upfront</h3>
+
+    <p>Do employees receive their full annual entitlement on day one of each year, or do they accrue it gradually (e.g., 1 day per month)? Most startups opt for granted upfront for simplicity, but accrual reduces risk if someone leaves early in the year having taken all their leave.</p>
+
+    <h3>2. Carryover rules</h3>
+
+    <p>Can unused leave roll over to the next year? Indonesian law requires that leave not taken within the year lapses (unless your policy extends it), but you must pay out any accumulated leave upon termination. UAE law requires payout of untaken leave on termination at whatever rate applies.</p>
+
+    <p>A clean approach: allow up to 5 days carryover with a 3-month expiry window in the new year. This encourages people to actually take their leave without creating unbounded liability.</p>
+
+    <h3>3. Leave approval workflow</h3>
+
+    <p>Who approves leave, and how far in advance must it be requested? Define minimums: "annual leave of 3+ consecutive days requires 2 weeks' notice; 1-2 days requires 48 hours." This isn't about control — it's about making coverage planning possible.</p>
+
+    <h3>4. Leave during probation</h3>
+
+    <p>Indonesian law: employees in the first 12 months haven't accrued annual leave entitlement yet. UAE law: employees in year 1 accrue at 2 days/month. Be explicit about what applies during probation — it's a frequent source of confusion and disputes.</p>
+
+    <h3>5. Emergency and compassionate leave</h3>
+
+    <p>Cover scenarios outside the standard types: bereavement (how many days, for which relatives), family emergencies, jury duty. A short, explicit policy here prevents awkward ad-hoc decisions when someone is already in a difficult moment.</p>
+
+    <h2>The operational layer: making it work day-to-day</h2>
+
+    <p>Policy without process is just words in a document. The operational requirements are:</p>
+
+    <ul>
+      <li><strong>A single source of truth for balances.</strong> Every employee should be able to see their current leave balance at any moment. No "check with HR" friction.</li>
+      <li><strong>Automated public holiday calendars.</strong> Maintaining two countries' holiday calendars manually is error-prone. Use a system that handles this for you and reflects them automatically in leave calculations.</li>
+      <li><strong>Manager visibility.</strong> The approving manager needs to see team availability before approving leave — not just a raw request with no context.</li>
+      <li><strong>Leave without pay (LWP) tracking.</strong> For requests beyond entitlement, you need a clear audit trail of what was agreed and what the pay impact was.</li>
+      <li><strong>Accrual reports at year-end.</strong> Before the calendar resets, you need a clear view of who has unused leave and what your carryover/payout liability looks like.</li>
+    </ul>
+
+    <div class="callout">
+      <strong>Multi-country tip:</strong> When running a team across Indonesia and UAE, be explicit about which country's rules apply to which employee. A UAE-based employee working for an Indonesian-registered entity creates ambiguity — usually the law of the country of employment applies. Always verify with local legal counsel.
+    </div>
+
+    <h2>When to formalise</h2>
+
+    <p>The honest answer: earlier than feels necessary. At 5 people you can get away with informal norms. By 10, you have enough calendar complexity that overlapping leave starts causing real coordination problems. By 15 — especially across two countries — you absolutely need a written policy, a digital system, and consistent enforcement.</p>
+
+    <p>The cost of building this system is low. The cost of not having it — a labour dispute, a burned-out team member, a missed compliance requirement — is high.</p>
+
+    <hr class="divider">
+
+    <p>Leave management isn't an HR admin task. It's a trust infrastructure. When your team knows exactly what they're entitled to, how to request it, and that their balance is accurate, you've removed a background stressor that affects morale and retention more than most founders realise.</p>
+
+    <p>Workived's leave module handles annual entitlements, sick leave, public holidays for Indonesia and UAE, approval workflows, and balance reports — all in one place, included in the free plan.</p>
+
+  </article>
+
+  <section class="article-footer">
+    <div class="article-footer-content">
+      <h2>Leave management,<br><em>sorted for good.</em></h2>
+      <p>Policies, public holidays, approvals, and balances — built for startups operating in Indonesia and UAE. Free to start.</p>
+      <a href="mailto:my@workived.com" class="btn-primary">
+        Get Early Access
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
+      </a>
+      <br>
+      <a href="../articles.html" class="back-to-articles">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M11 7H3M6 3L2 7l4 4"/></svg>
+        Back to articles
+      </a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <svg width="28" height="28" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="fg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="url(#fg)"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text></svg>
+        <span class="footer-wordmark">Workived</span>
+        <span class="footer-copy">&nbsp;© 2026</span>
+      </div>
+      <div class="footer-right">
+        <a href="../features.html" class="footer-link">Features</a>
+        <a href="../pricing.html" class="footer-link">Pricing</a>
+        <a href="../security.html" class="footer-link">Security</a>
+        <a href="../ai.html" class="footer-link">AI</a>
+        <a href="../articles.html" class="footer-link">Articles</a>
+        <a href="mailto:my@workived.com" class="footer-link">Contact</a>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    window.addEventListener('scroll', () => {
+      const doc = document.documentElement;
+      const scrollTop = doc.scrollTop || document.body.scrollTop;
+      const scrollHeight = doc.scrollHeight - doc.clientHeight;
+      const progress = scrollHeight > 0 ? (scrollTop / scrollHeight) * 100 : 0;
+      document.getElementById('progress').style.width = progress + '%';
+    });
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>
