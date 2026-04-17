@@ -55,7 +55,7 @@ function LoginPage() {
       : undefined
 
   return (
-    <div className="flex-1 flex">
+    <div className="flex-1 flex" data-testid="login-page">
       {/* Left Side - Black Background with Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
@@ -171,10 +171,12 @@ function LoginPage() {
             <form
               onSubmit={form.handleSubmit((data) => login.mutate(data))}
               className="space-y-5"
+              data-testid="login-form"
             >
               {apiError && (
                 <div
                   className="px-4 py-3 rounded-xl"
+                  data-testid="login-error"
                   style={{
                     background: colors.errDim,
                     border: `1px solid ${colors.err}`,
@@ -210,6 +212,7 @@ function LoginPage() {
                   type="email"
                   autoComplete="email"
                   placeholder="you@company.com"
+                  data-testid="login-email-input"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{
                     background: colors.ink50,
@@ -250,6 +253,7 @@ function LoginPage() {
                   type="password"
                   autoComplete="current-password"
                   placeholder="••••••••"
+                  data-testid="login-password-input"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{
                     background: colors.ink50,
@@ -284,6 +288,7 @@ function LoginPage() {
               <button
                 type="submit"
                 disabled={login.isPending}
+                data-testid="login-submit-btn"
                 className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50"
                 style={{
                   background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,

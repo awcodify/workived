@@ -60,6 +60,7 @@ function InvitationCard({
         <button
           onClick={() => onAccept(token)}
           disabled={isPending || !token}
+          data-testid="setup-org-accept-invite-btn"
           className="shrink-0 font-bold px-5 py-2.5 rounded-xl transition-all disabled:opacity-50"
           style={{
             background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,
@@ -157,7 +158,7 @@ function SetupOrgPage() {
   }
 
   return (
-    <div className="flex-1 flex">
+    <div className="flex-1 flex" data-testid="setup-org-page">
       {/* Left Side - Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
@@ -279,6 +280,7 @@ function SetupOrgPage() {
             <form
               onSubmit={form.handleSubmit((data) => createOrg.mutate(data))}
               className="space-y-5"
+              data-testid="setup-org-form"
             >
               {apiError && (
                 <div
@@ -306,6 +308,7 @@ function SetupOrgPage() {
                   id="name"
                   type="text"
                   placeholder="Acme Corp"
+                  data-testid="setup-org-name-input"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
                   {...form.register('name')}
@@ -345,6 +348,7 @@ function SetupOrgPage() {
                     id="slug"
                     type="text"
                     placeholder="acme-corp"
+                    data-testid="setup-org-slug-input"
                     className="flex-1 px-3 py-3.5 text-sm focus:outline-none bg-transparent"
                     style={{ color: colors.ink900 }}
                     {...form.register('slug')}
@@ -372,6 +376,7 @@ function SetupOrgPage() {
                 </label>
                 <select
                   id="country_code"
+                  data-testid="setup-org-country-select"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all appearance-none"
                   style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
                   {...form.register('country_code')}
@@ -401,6 +406,7 @@ function SetupOrgPage() {
               <button
                 type="submit"
                 disabled={createOrg.isPending}
+                data-testid="setup-org-submit-btn"
                 className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50"
                 style={{
                   background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,

@@ -74,6 +74,7 @@ function PeoplePage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      data-testid="people-page"
       style={{ background: bg, paddingBottom: '160px' }}
     >
       {/* Header */}
@@ -153,6 +154,7 @@ function PeoplePage() {
               placeholder="Search…"
               value={search}
               onChange={(e) => handleSearch(e.target.value)}
+              data-testid="people-search-input"
               className="w-full pl-8 pr-3 py-2 text-sm focus:outline-none"
               style={{
                 background: t.surface,
@@ -166,6 +168,7 @@ function PeoplePage() {
           {/* Secondary actions */}
           <button
             onClick={() => setShowManagementPanel(true)}
+            data-testid="people-manage-btn"
             className="flex items-center gap-1.5 text-sm font-medium shrink-0 px-3.5 py-2 transition-opacity hover:opacity-70 whitespace-nowrap"
             style={{ borderRadius: 10, background: t.surface, border: `1px solid ${t.border}`, color: t.textMuted }}
           >
@@ -186,6 +189,7 @@ function PeoplePage() {
             <Link
               to="/people/new"
               search={{ user_id: undefined }}
+              data-testid="people-add-btn"
               className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 shrink-0 transition-opacity hover:opacity-90 whitespace-nowrap"
               style={{ background: t.accent, color: t.accentText, borderRadius: 10 }}
             >
@@ -224,6 +228,7 @@ function PeoplePage() {
             <div
               key={emp.id}
               onClick={() => setSelectedEmployeeId(emp.id)}
+              data-testid={`people-row-${emp.id}`}
               className="px-6 py-4 border-b transition-colors hover:bg-black/[0.02] cursor-pointer"
               style={{ borderColor: t.border, opacity: emp.status === 'inactive' ? 0.5 : 1 }}
             >
@@ -261,6 +266,7 @@ function PeoplePage() {
           <button
             onClick={handlePrev}
             disabled={history.length <= 1}
+            data-testid="people-prev-btn"
             className="text-sm font-medium px-4 py-2 transition-colors disabled:opacity-30"
             style={{ color: t.textMuted, borderRadius: 8 }}
             onMouseEnter={(e) => {
@@ -275,6 +281,7 @@ function PeoplePage() {
           <button
             onClick={handleNext}
             disabled={!meta?.has_more}
+            data-testid="people-next-btn"
             className="text-sm font-medium px-4 py-2 transition-colors disabled:opacity-30"
             style={{ color: t.textMuted, borderRadius: 8 }}
             onMouseEnter={(e) => {
@@ -313,9 +320,9 @@ function PeoplePage() {
 // ── Skeleton loader ──────────────────────────────────────────────
 function PeopleRowsSkeleton() {
   const t = useModuleTheme('people')
-  
+
   return (
-    <>
+    <div data-testid="people-skeleton">
       {Array.from({ length: 8 }).map((_, i) => (
         <div
           key={i}
@@ -338,7 +345,7 @@ function PeopleRowsSkeleton() {
           </div>
         </div>
       ))}
-    </>
+    </div>
   )
 }
 
@@ -357,7 +364,7 @@ function PeopleEmptyState({
   const hasFiltering = hasSearch || hasFilter
 
   return (
-    <div className="flex flex-col items-center justify-center py-16 gap-3">
+    <div className="flex flex-col items-center justify-center py-16 gap-3" data-testid="people-empty">
       <div
         className="grid place-items-center"
         style={{ width: 48, height: 48, borderRadius: 14, background: t.accent }}

@@ -472,6 +472,7 @@ function TasksPage() {
   if (listsLoading || tasksLoading) {
     return (
       <div
+        data-testid="tasks-skeleton"
         className="min-h-screen px-6 py-8 md:px-11 md:py-10 flex items-center justify-center"
         style={{ background: moduleBackgrounds.tasks }}
       >

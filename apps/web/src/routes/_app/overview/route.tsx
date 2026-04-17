@@ -194,6 +194,7 @@ function OverviewPage() {
   return (
     <div
       className="min-h-screen px-6 py-6 md:px-11 md:py-8"
+      data-testid="overview-page"
       style={{ background: bg, paddingBottom: '160px' }}
     >
       {/* Header: Greeting left, Date/clock right */}

@@ -49,6 +49,7 @@ function PoliciesPage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
+      data-testid="leave-policies-page"
       style={{ background: moduleBackgrounds.leave }}
     >
       {/* Header */}
@@ -72,6 +73,7 @@ function PoliciesPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowImportModal(true)}
+            data-testid="leave-policies-import-btn"
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-70"
             style={{
               background: t.surface,
@@ -88,6 +90,7 @@ function PoliciesPage() {
               setEditingPolicy(undefined)
               setShowPolicyModal(true)
             }}
+            data-testid="leave-policies-add-btn"
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
             style={{
               background: t.accent,
@@ -103,20 +106,21 @@ function PoliciesPage() {
 
       {/* Policies List */}
       {isLoading ? (
-        <PoliciesSkeleton />
+        <div data-testid="leave-policies-skeleton"><PoliciesSkeleton /></div>
       ) : !activePolicies || activePolicies.length === 0 ? (
-        <EmptyPolicies
+        <div data-testid="leave-policies-empty"><EmptyPolicies
           onImport={() => setShowImportModal(true)}
           onCreateManually={() => {
             setEditingPolicy(undefined)
             setShowPolicyModal(true)
           }}
-        />
+        /></div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {activePolicies.map((policy) => (
             <div
               key={policy.id}
+              data-testid={`leave-policy-row-${policy.id}`}
               className="transition-all duration-150 hover:-translate-y-px"
               style={{
                 background: t.surface,
@@ -166,6 +170,7 @@ function PoliciesPage() {
                     setEditingPolicy(policy)
                     setShowPolicyModal(true)
                   }}
+                  data-testid={`leave-policy-edit-btn-${policy.id}`}
                   className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 transition-opacity hover:opacity-70"
                   style={{
                     color: t.accent,
@@ -177,6 +182,7 @@ function PoliciesPage() {
                 <button
                   onClick={() => handleDeactivate(policy.id)}
                   disabled={deactivateMutation.isPending}
+                  data-testid={`leave-policy-delete-btn-${policy.id}`}
                   className="flex items-center gap-1.5 text-sm font-semibold px-3 py-2 transition-opacity hover:opacity-70"
                   style={{
                     color: deletingId === policy.id ? '#D44040' : t.textMuted,

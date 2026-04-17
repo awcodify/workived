@@ -76,6 +76,7 @@ function LeaveDashboard() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      data-testid="leave-page"
       style={{ background: moduleBackgrounds.leave, paddingBottom: '160px' }}
     >
       {/* Header */}
@@ -137,6 +138,7 @@ function LeaveDashboard() {
               {canManageLeave && (
                 <button
                 onClick={() => navigate({ to: '/leave/policies' })}
+                data-testid="leave-settings-btn"
                 className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all hover:opacity-80"
                 style={{
                   background: t.surface,
@@ -153,9 +155,9 @@ function LeaveDashboard() {
             </div>
 
             {isLoading ? (
-              <BalancesSkeleton />
+              <div data-testid="leave-skeleton"><BalancesSkeleton /></div>
             ) : !balances || balances.length === 0 ? (
-              <EmptyBalances />
+              <div data-testid="leave-empty"><EmptyBalances /></div>
             ) : (
               <div
                 style={{
@@ -176,6 +178,7 @@ function LeaveDashboard() {
                   return (
                     <div
                       key={balance.id}
+                      data-testid={`leave-balance-row-${balance.id}`}
                       onClick={() => {
                         setSelectedPolicyId(balance.leave_policy_id)
                         setShowNewRequestModal(true)
@@ -311,6 +314,7 @@ function LeaveDashboard() {
             {pendingCount > 0 && (
               <button
                 onClick={() => setActiveTab('approvals')}
+                data-testid="leave-approvals-tab"
                 className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all"
                 style={{
                   background: activeTab === 'approvals' ? t.surface : 'transparent',
@@ -337,6 +341,7 @@ function LeaveDashboard() {
             )}
             <button
               onClick={() => setActiveTab('my-requests')}
+              data-testid="leave-my-requests-tab"
               className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all"
               style={{
                 background: activeTab === 'my-requests' ? t.surface : 'transparent',
@@ -690,6 +695,7 @@ function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
     >
       <div
         className="relative max-w-xl w-full"
+        data-testid="leave-request-modal"
         style={{
           background: t.surface,
           borderRadius: 16,
@@ -739,7 +745,7 @@ function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '0 24px 24px' }}>
+        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '0 24px 24px' }} data-testid="leave-request-form">
           {/* Date Range Picker */}
           <DateRangePicker
             startDate={startDate}
@@ -765,6 +771,7 @@ function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
               id="modal-reason"
               {...register('reason')}
               rows={1}
+              data-testid="leave-reason-input"
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none"
               style={{
                 background: t.input,
@@ -814,6 +821,7 @@ function NewRequestModal({ policyId, onClose }: NewRequestModalProps) {
                 <button
                   type="submit"
                   disabled={submitMutation.isPending || hasInsufficientBalance || workingDays === 0}
+                  data-testid="leave-submit-btn"
                   className="flex-1 font-semibold py-3 transition-opacity hover:opacity-90 disabled:opacity-50"
                   style={{
                     background: t.accent,

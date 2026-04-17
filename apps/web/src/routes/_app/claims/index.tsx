@@ -79,6 +79,7 @@ function ClaimsDashboard() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      data-testid="claims-page"
       style={{ background: moduleBackgrounds.claims, paddingBottom: '160px' }}
     >
       {/* Header */}
@@ -140,6 +141,7 @@ function ClaimsDashboard() {
             {canManageClaims && (
               <button
               onClick={() => navigate({ to: '/claims/categories' })}
+              data-testid="claims-settings-btn"
               className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all hover:opacity-80"
               style={{
                 background: t.surface,
@@ -156,9 +158,9 @@ function ClaimsDashboard() {
           </div>
 
           {isLoading ? (
-            <BalancesSkeleton />
+            <div data-testid="claims-skeleton"><BalancesSkeleton /></div>
           ) : !balances || balances.length === 0 ? (
-            <EmptyBalances />
+            <div data-testid="claims-empty"><EmptyBalances /></div>
           ) : (
             <div
               style={{
@@ -194,6 +196,7 @@ function ClaimsDashboard() {
                 return (
                   <div
                     key={balance.id}
+                    data-testid={`claims-balance-row-${balance.id}`}
                     onClick={() => {
                       if (!isExhausted) {
                         setSelectedCategoryId(balance.category_id)
@@ -335,6 +338,7 @@ function ClaimsDashboard() {
             {(pendingCount > 0 || approvedCount > 0) && (
               <button
                 onClick={() => setActiveTab('approvals')}
+                data-testid="claims-approvals-tab"
                 className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all"
                 style={{
                   background: activeTab === 'approvals' ? t.surface : 'transparent',
@@ -361,6 +365,7 @@ function ClaimsDashboard() {
             )}
             <button
               onClick={() => setActiveTab('my-requests')}
+              data-testid="claims-my-requests-tab"
               className="flex items-center gap-2 px-4 py-2 font-semibold text-sm transition-all"
               style={{
                 background: activeTab === 'my-requests' ? t.surface : 'transparent',
@@ -975,6 +980,7 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
     >
       <div
         className="relative max-w-xl w-full"
+        data-testid="claims-new-modal"
         style={{
           background: t.surface,
           borderRadius: 16,
@@ -1038,7 +1044,7 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
         )}
 
         {/* Form */}
-        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '0 24px 24px' }}>
+        <form onSubmit={handleSubmit(onSubmit)} style={{ padding: '0 24px 24px' }} data-testid="claims-new-form">
           {/* Amount */}
           <div className="mb-4">
             <label
@@ -1056,6 +1062,7 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
               onChange={handleAmountChange}
               placeholder="0"
               autoFocus
+              data-testid="claims-amount-input"
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -1095,6 +1102,7 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
             <input
               id="claim_date"
               type="date"
+              data-testid="claims-date-input"
               max={new Date().toISOString().split('T')[0]}
               {...register('claim_date', { 
                 required: 'Claim date is required',
@@ -1131,12 +1139,13 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
             </label>
             <textarea
               id="description"
-              {...register('description', { 
-                required: 'Description is required', 
+              {...register('description', {
+                required: 'Description is required',
                 maxLength: { value: 500, message: 'Description must not exceed 500 characters' }
               })}
               rows={3}
               placeholder="Describe the expense..."
+              data-testid="claims-description-input"
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2 resize-none"
               style={{
                 background: t.input,
@@ -1267,6 +1276,7 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
             <button
               type="submit"
               disabled={submitMutation.isPending}
+              data-testid="claims-submit-btn"
               className="w-full font-semibold text-sm py-3 transition-opacity hover:opacity-90 disabled:opacity-50"
               style={{
                 background: t.accent,

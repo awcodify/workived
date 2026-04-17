@@ -103,6 +103,7 @@ function CalendarPage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      data-testid="calendar-page"
       style={{ background: moduleBackgrounds.calendar, paddingBottom: '160px' }}
     >
       {/* Header */}
@@ -174,6 +175,7 @@ function CalendarPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={goToPrevMonth}
+            data-testid="calendar-prev-month-btn"
             className="p-2 transition-colors hover:opacity-70"
             style={{
               background: t.surface,
@@ -196,6 +198,7 @@ function CalendarPage() {
           </h2>
           <button
             onClick={goToNextMonth}
+            data-testid="calendar-next-month-btn"
             className="p-2 transition-colors hover:opacity-70"
             style={{
               background: t.surface,
@@ -225,6 +228,7 @@ function CalendarPage() {
           )}
           <button
             onClick={goToToday}
+            data-testid="calendar-today-btn"
             className="text-sm font-semibold px-4 py-2 transition-opacity hover:opacity-70"
             style={{
               background: t.accent,
@@ -240,7 +244,7 @@ function CalendarPage() {
       {/* Calendar Grid */}
       <div className="-mx-6 md:mx-0">
         {isLoading ? (
-          <CalendarSkeleton />
+          <div data-testid="calendar-skeleton"><CalendarSkeleton /></div>
         ) : (
           <CalendarGrid year={year} month={month} entries={entries ?? []} holidays={holidays ?? []} />
         )}

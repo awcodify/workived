@@ -35,7 +35,7 @@ function ForgotPasswordPage() {
       : undefined
 
   return (
-    <div className="flex-1 flex">
+    <div className="flex-1 flex" data-testid="forgot-password-page">
       {/* Left panel */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
@@ -90,7 +90,7 @@ function ForgotPasswordPage() {
           >
             {mutation.isSuccess ? (
               /* Success state */
-              <div className="text-center">
+              <div className="text-center" data-testid="forgot-password-success">
                 <div
                   className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-6"
                   style={{ background: colors.okDim }}
@@ -157,6 +157,7 @@ function ForgotPasswordPage() {
                   onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
                   className="space-y-5"
                   noValidate
+                  data-testid="forgot-password-form"
                 >
                   {apiError && (
                     <div
@@ -187,6 +188,7 @@ function ForgotPasswordPage() {
                       type="email"
                       autoComplete="email"
                       placeholder="you@company.com"
+                      data-testid="forgot-password-email-input"
                       className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                       style={{
                         background: colors.ink50,
@@ -205,6 +207,7 @@ function ForgotPasswordPage() {
                   <button
                     type="submit"
                     disabled={mutation.isPending}
+                    data-testid="forgot-password-submit-btn"
                     className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50"
                     style={{
                       background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,

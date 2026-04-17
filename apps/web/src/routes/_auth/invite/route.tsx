@@ -40,7 +40,7 @@ function InviteAcceptPage() {
   }
 
   return (
-    <div className="flex-1 flex">
+    <div className="flex-1 flex" data-testid="invite-page">
       {/* Left Side - Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
@@ -112,7 +112,7 @@ function InviteAcceptPage() {
           >
             {!token ? (
               // No token — invalid link
-              <div className="text-center">
+              <div className="text-center" data-testid="invite-invalid">
                 <div
                   className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
                   style={{ background: colors.errDim }}
@@ -162,7 +162,7 @@ function InviteAcceptPage() {
               </div>
             ) : !isAuthenticated ? (
               // Has token but not logged in — need to register or log in first
-              <div className="text-center">
+              <div className="text-center" data-testid="invite-unauthenticated">
                 <div
                   className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
                   style={{ background: colors.accentDim }}
@@ -227,7 +227,7 @@ function InviteAcceptPage() {
               </div>
             ) : (
               // Authenticated — show accept button
-              <div className="text-center">
+              <div className="text-center" data-testid="invite-accept">
                 <div
                   className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
                   style={{ background: colors.okDim }}
@@ -273,6 +273,7 @@ function InviteAcceptPage() {
                 <button
                   onClick={handleAccept}
                   disabled={acceptInvite.isPending}
+                  data-testid="invite-accept-btn"
                   className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50 mt-8"
                   style={{
                     background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,

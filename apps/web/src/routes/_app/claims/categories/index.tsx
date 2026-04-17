@@ -58,6 +58,7 @@ function CategoriesPage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
+      data-testid="claims-categories-page"
       style={{ background: moduleBackgrounds.claims }}
     >
       {/* Header */}
@@ -81,6 +82,7 @@ function CategoriesPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowImportModal(true)}
+            data-testid="claims-categories-import-btn"
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-opacity hover:opacity-70"
             style={{
               background: t.surface,
@@ -94,6 +96,7 @@ function CategoriesPage() {
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
+            data-testid="claims-categories-add-btn"
             className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2.5 transition-colors hover:opacity-90"
             style={{
               background: t.accent,

@@ -173,13 +173,14 @@ function Banner({ variant, message }: { variant: 'success' | 'error' | 'warning'
   )
 }
 
-function SaveButton({ loading, label = 'Save changes' }: { loading: boolean; label?: string }) {
+function SaveButton({ loading, label = 'Save changes', testId }: { loading: boolean; label?: string; testId?: string }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8">
       <div>
         <button
           type="submit"
           disabled={loading}
+          data-testid={testId}
           className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
           style={{ background: C.accent, color: '#FFFFFF' }}
         >
@@ -215,14 +216,14 @@ function CompanyInfoSection() {
   }
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-6">
+    <form data-testid="company-settings-general-form" onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-6">
       <SectionTitle id="general" description="Your company name and workspace URL.">General</SectionTitle>
 
       {apiError && <Banner variant="error" message={apiError} />}
       {successMessage && <Banner variant="success" message={successMessage} />}
 
       <FieldRow label="Company name" htmlFor="company-name">
-        <Input id="company-name" type="text" placeholder="Acme Corp" {...form.register('name')} />
+        <Input data-testid="company-settings-name-input" id="company-name" type="text" placeholder="Acme Corp" {...form.register('name')} />
         {form.formState.errors.name && (
           <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>{form.formState.errors.name.message}</p>
         )}
@@ -234,6 +235,7 @@ function CompanyInfoSection() {
             my.workived.com/
           </span>
           <input
+            data-testid="company-settings-slug-input"
             id="company-slug" type="text" placeholder="acme-corp"
             className="flex-1 px-3 py-2.5 text-sm focus:outline-none bg-transparent"
             style={{ color: S.text }}
@@ -245,7 +247,7 @@ function CompanyInfoSection() {
         )}
       </FieldRow>
 
-      <SaveButton loading={updateOrg.isPending} />
+      <SaveButton loading={updateOrg.isPending} testId="company-settings-general-save-btn" />
     </form>
   )
 }
@@ -304,7 +306,7 @@ function LocationSection() {
   }
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-6">
+    <form data-testid="company-settings-location-form" onSubmit={form.handleSubmit(handleSubmit)} className="flex flex-col gap-6">
       <SectionTitle id="location" description="Regional settings used for compliance and localization.">
         Location &amp; currency
       </SectionTitle>
@@ -319,7 +321,7 @@ function LocationSection() {
             {COUNTRIES.find((c) => c.value === org?.country_code)?.label ?? org?.country_code}
           </p>
         ) : (
-          <Select id="country-code" {...form.register('country_code')}>
+          <Select data-testid="company-settings-country-select" id="country-code" {...form.register('country_code')}>
             {COUNTRIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </Select>
         )}
@@ -334,7 +336,7 @@ function LocationSection() {
             {TIMEZONES.find((t) => t.value === org?.timezone)?.label ?? org?.timezone}
           </p>
         ) : (
-          <Select id="timezone" {...form.register('timezone')}>
+          <Select data-testid="company-settings-timezone-select" id="timezone" {...form.register('timezone')}>
             {TIMEZONES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </Select>
         )}
@@ -349,7 +351,7 @@ function LocationSection() {
             {CURRENCIES.find((cur) => cur.value === org?.currency_code)?.label ?? org?.currency_code}
           </p>
         ) : (
-          <Select id="currency-code" {...form.register('currency_code')}>
+          <Select data-testid="company-settings-currency-select" id="currency-code" {...form.register('currency_code')}>
             {CURRENCIES.map((cur) => <option key={cur.value} value={cur.value}>{cur.label}</option>)}
           </Select>
         )}
@@ -358,7 +360,7 @@ function LocationSection() {
         )}
       </FieldRow>
 
-      {!isLocked && <SaveButton loading={updateOrg.isPending} label="Save location" />}
+      {!isLocked && <SaveButton loading={updateOrg.isPending} label="Save location" testId="company-settings-location-save-btn" />}
     </form>
   )
 }
@@ -472,6 +474,7 @@ function AttendanceSection() {
       >
         <button
           id="allow-web-clock-in"
+          data-testid="company-settings-web-clock-in-toggle"
           role="switch"
           aria-checked={org.allow_web_clock_in}
           onClick={handleToggle}
@@ -620,6 +623,7 @@ function ScorecardConfigSection() {
             <div className="flex items-center gap-3 max-w-md">
               <input
                 id={sig.key}
+                data-testid={`company-settings-weight-${sig.key}-input`}
                 type="range"
                 min={0}
                 max={100}
@@ -660,6 +664,7 @@ function ScorecardConfigSection() {
               <label htmlFor={g.id} className="text-xs font-medium block mb-1" style={{ color: S.textMuted }}>{g.label}</label>
               <input
                 id={g.id}
+                data-testid={`company-settings-${g.id}-input`}
                 type="number"
                 min={0}
                 max={100}
@@ -694,6 +699,7 @@ function ScorecardConfigSection() {
         <FieldRow label="Late arrivals" htmlFor="late-threshold" description="Number of late days to trigger flag">
           <input
             id="late-threshold"
+            data-testid="company-settings-late-threshold-input"
             type="number"
             min={0}
             value={flags.late}
@@ -707,6 +713,7 @@ function ScorecardConfigSection() {
           <div className="flex items-center gap-2">
             <input
               id="leave-warning"
+              data-testid="company-settings-leave-warning-input"
               type="number"
               min={0}
               max={100}
@@ -723,6 +730,7 @@ function ScorecardConfigSection() {
           <div className="flex items-center gap-2">
             <input
               id="task-concern"
+              data-testid="company-settings-task-concern-input"
               type="number"
               min={0}
               max={100}
@@ -738,6 +746,7 @@ function ScorecardConfigSection() {
         <FieldRow label="Score drop alert" htmlFor="score-drop" description="Point drop vs previous period to flag">
           <input
             id="score-drop"
+            data-testid="company-settings-score-drop-input"
             type="number"
             min={0}
             value={flags.drop}
@@ -750,6 +759,7 @@ function ScorecardConfigSection() {
         <FieldRow label="Min working days" htmlFor="min-days" description="Minimum days before score is reliable">
           <input
             id="min-days"
+            data-testid="company-settings-min-days-input"
             type="number"
             min={1}
             value={flags.minDays}
@@ -764,6 +774,7 @@ function ScorecardConfigSection() {
       <div className="flex items-center gap-3">
         <button
           type="button"
+          data-testid="company-settings-scorecard-save-btn"
           onClick={handleSave}
           disabled={!canSave}
           className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
@@ -773,6 +784,7 @@ function ScorecardConfigSection() {
         </button>
         <button
           type="button"
+          data-testid="company-settings-scorecard-reset-btn"
           onClick={handleReset}
           className="px-4 py-2 rounded-lg text-sm font-medium transition-all"
           style={{ background: 'rgba(255,255,255,0.06)', color: S.textMuted }}
@@ -819,7 +831,7 @@ function TransferOwnershipSection() {
   }
 
   return (
-    <form onSubmit={form.handleSubmit(handleSubmitIntent)} className="flex flex-col gap-6">
+    <form data-testid="company-settings-transfer-form" onSubmit={form.handleSubmit(handleSubmitIntent)} className="flex flex-col gap-6">
       <SectionTitle id="danger" description="Irreversible actions that affect workspace ownership.">
         Danger zone
       </SectionTitle>
@@ -828,7 +840,7 @@ function TransferOwnershipSection() {
       {successMessage && <Banner variant="success" message={successMessage} />}
 
       <FieldRow label="Transfer ownership" htmlFor="new-owner-user-id" description="You will lose owner privileges. This cannot be undone.">
-        <Input id="new-owner-user-id" type="text" placeholder="User ID (UUID)" {...form.register('new_owner_user_id')} />
+        <Input data-testid="company-settings-transfer-owner-input" id="new-owner-user-id" type="text" placeholder="User ID (UUID)" {...form.register('new_owner_user_id')} />
         {form.formState.errors.new_owner_user_id && (
           <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>{form.formState.errors.new_owner_user_id.message}</p>
         )}
@@ -836,7 +848,7 @@ function TransferOwnershipSection() {
 
       <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-2 md:gap-8">
         <div>
-          <button type="submit" className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
+          <button type="submit" data-testid="company-settings-transfer-submit-btn" className="px-5 py-2 rounded-lg text-sm font-semibold transition-all disabled:opacity-50"
             style={{ background: 'rgba(212,64,64,0.12)', color: C.err, border: `1px solid rgba(212,64,64,0.25)` }}>
             Transfer ownership
           </button>
@@ -845,7 +857,7 @@ function TransferOwnershipSection() {
       </div>
 
       {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}
+        <div data-testid="company-settings-transfer-modal" className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)' }}
           role="dialog" aria-modal="true" aria-labelledby="confirm-transfer-title">
           <div className="w-full max-w-md p-6 rounded-xl flex flex-col gap-4 mx-4"
             style={{ background: colors.ink700, border: `1px solid ${S.divider}` }}>
@@ -859,12 +871,12 @@ function TransferOwnershipSection() {
               </span>? This cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
-              <button type="button" onClick={() => { setShowConfirm(false); setPendingData(null) }}
+              <button type="button" data-testid="company-settings-transfer-cancel-btn" onClick={() => { setShowConfirm(false); setPendingData(null) }}
                 className="px-4 py-2 rounded-lg text-sm font-semibold"
                 style={{ background: 'rgba(255,255,255,0.08)', color: S.textMuted }}>
                 Cancel
               </button>
-              <button type="button" onClick={handleConfirm} disabled={transferOwnership.isPending}
+              <button type="button" data-testid="company-settings-transfer-confirm-btn" onClick={handleConfirm} disabled={transferOwnership.isPending}
                 className="px-4 py-2 rounded-lg text-sm font-semibold disabled:opacity-50"
                 style={{ background: C.err, color: '#FFFFFF' }}>
                 {transferOwnership.isPending ? 'Transferring...' : 'Yes, transfer'}
@@ -926,6 +938,7 @@ function NoOrgView() {
           You haven&apos;t set up a workspace yet. Create one or accept a pending invitation below.
         </p>
         <button
+          data-testid="company-settings-setup-workspace-btn"
           onClick={() => navigate({ to: '/setup-org' })}
           className="mt-4 px-5 py-2 rounded-lg font-semibold text-sm"
           style={{ background: colors.accent, color: '#FFFFFF' }}
@@ -953,6 +966,7 @@ function NoOrgView() {
                     </p>
                   </div>
                   <button
+                    data-testid={`company-settings-accept-invite-btn-${inv.id}`}
                     onClick={() => acceptInvitation.mutate(token)}
                     disabled={acceptInvitation.isPending || !token}
                     className="shrink-0 px-4 py-1.5 rounded-lg font-semibold text-sm disabled:opacity-50"
@@ -1005,7 +1019,7 @@ function CompanyPage() {
   const [activeSection] = useState('general')
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: moduleBackgrounds.settings }}>
+    <div data-testid="company-settings-page" className="min-h-screen flex flex-col" style={{ background: moduleBackgrounds.settings }}>
       <a href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:rounded-lg focus:text-sm focus:font-bold"
         style={{ background: colors.accent, color: '#FFFFFF' }}>
@@ -1041,7 +1055,7 @@ function CompanyPage() {
           {!hasOrg && <NoOrgView />}
 
           {hasOrg && isLoading && (
-            <div className="flex flex-col gap-6" aria-label="Loading company settings">
+            <div data-testid="company-settings-skeleton" className="flex flex-col gap-6" aria-label="Loading company settings">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-16 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
               ))}

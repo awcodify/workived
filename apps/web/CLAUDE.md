@@ -176,12 +176,69 @@ formatDate(date: string, orgTimezone: string, format?: string)
 // Always format in org's timezone from API
 ```
 
+## data-testid (non-negotiable)
+
+Every component you write **must** include `data-testid` on all meaningful elements. This is mandatory — no exceptions.
+
+**Naming convention:** `{scope}-{element}` in kebab-case.
+- `scope` = component or page context (e.g. `people`, `invite`, `leave-form`)
+- `element` = what it is (e.g. `row`, `search-input`, `submit-btn`, `empty-state`)
+
+**What always gets a testid:**
+- Page/screen root container → `data-testid="{module}-page"`
+- Every `<button>` → `data-testid="{scope}-{action}-btn"`
+- Every `<input>` / `<select>` / `<textarea>` → `data-testid="{scope}-{field}-input"`
+- Every list row/card → `data-testid="{scope}-row"` (use `{scope}-row-{id}` if iterated)
+- Every modal/sheet container → `data-testid="{scope}-modal"`
+- Every form → `data-testid="{scope}-form"`
+- Loading skeleton → `data-testid="{scope}-skeleton"`
+- Empty state → `data-testid="{scope}-empty"`
+- Error state → `data-testid="{scope}-error"`
+
+**Examples:**
+```tsx
+// Page root
+<div data-testid="people-page">
+
+// Search input
+<input data-testid="people-search-input" ... />
+
+// Table row (iterated)
+<div key={emp.id} data-testid={`people-row-${emp.id}`}>
+
+// CTA button
+<button data-testid="people-add-btn">Add employee</button>
+
+// Modal
+<div data-testid="employee-detail-modal">
+
+// Form + fields
+<form data-testid="invite-form">
+  <input data-testid="invite-email-input" />
+  <select data-testid="invite-role-select" />
+  <button data-testid="invite-submit-btn">Send invite</button>
+</form>
+
+// States
+<div data-testid="people-skeleton" />
+<div data-testid="people-empty" />
+```
+
+**Before committing, verify:**
+- [ ] Page root has `data-testid`
+- [ ] All buttons have `data-testid`
+- [ ] All inputs/selects have `data-testid`
+- [ ] All iterated rows have `data-testid` with unique suffix
+- [ ] Loading/empty/error states have `data-testid`
+
 ## Testing (non-negotiable)
 
 - Every component → `{Component}.test.tsx` in same commit
 - Vitest + React Testing Library + MSW (mock API)
 - Test: rendering, user interactions, loading/error/empty states
 - Coverage target: critical paths (forms, auth, data display)
+- **Use `data-testid` selectors** in tests — never query by text for interactive elements
+- Same `data-testid` values work in **Playwright E2E** tests via `page.getByTestId()`
 
 **Pattern:**
 ```tsx
@@ -192,7 +249,12 @@ import { vi } from 'vitest'
 describe('EmployeeList', () => {
   it('renders empty state when no employees', () => {
     render(<EmployeeList employees={[]} />)
-    expect(screen.getByText(/no employees/i)).toBeInTheDocument()
+    expect(screen.getByTestId('people-empty')).toBeInTheDocument()
+  })
+
+  it('renders rows for each employee', () => {
+    render(<EmployeeList employees={[mockEmp]} />)
+    expect(screen.getByTestId(`people-row-${mockEmp.id}`)).toBeInTheDocument()
   })
 })
 ```

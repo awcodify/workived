@@ -245,6 +245,7 @@ function AttendancePage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      data-testid="attendance-page"
       style={{ background: moduleBackgrounds.attendance, paddingBottom: '160px' }}
     >
       {/* Header with Title and Toggle */}
@@ -354,6 +355,7 @@ function AttendancePage() {
           <div className="flex items-center gap-2 p-1 rounded-lg" style={{ background: t.border }}>
             <button
               onClick={() => setClockInFilter('all')}
+              data-testid="attendance-filter-all-btn"
               className="px-4 py-2 text-xs font-bold rounded-md transition-all"
               style={{
                 background: clockInFilter === 'all' ? t.surface : 'transparent',
@@ -364,6 +366,7 @@ function AttendancePage() {
             </button>
             <button
               onClick={() => setClockInFilter('clocked-in')}
+              data-testid="attendance-filter-clocked-in-btn"
               className="px-4 py-2 text-xs font-bold rounded-md transition-all"
               style={{
                 background: clockInFilter === 'clocked-in' ? t.surface : 'transparent',
@@ -476,6 +479,7 @@ function AttendancePage() {
           {(role.canViewTeam || role.canViewAll) && (
           <button
             onClick={() => setShowOthers(!showOthers)}
+            data-testid="attendance-show-all-btn"
             className="flex items-center gap-3 px-5 py-2.5 rounded-lg transition-all"
             style={{
               background: showOthers ? t.accent : t.surface,
@@ -592,6 +596,7 @@ function AttendancePage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setWeekOffset(weekOffset - 1)}
+                  data-testid="attendance-prev-week-btn"
                   className="p-2 rounded-lg hover:bg-black/5 transition-all"
                   style={{ color: t.textMuted }}
                 >
@@ -636,6 +641,7 @@ function AttendancePage() {
                 <button
                   onClick={() => setWeekOffset(weekOffset + 1)}
                   disabled={!canNavigateNext}
+                  data-testid="attendance-next-week-btn"
                   className="p-2 rounded-lg hover:bg-black/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
                   style={{ color: t.textMuted }}
                 >
@@ -648,6 +654,7 @@ function AttendancePage() {
                   setWeekOffset(0)
                   setDate(todayISO(tz))
                 }}
+                data-testid="attendance-today-btn"
                 className="px-4 py-2 text-sm font-bold rounded-lg transition-all"
                 style={{
                   background: weekOffset === 0 ? t.accent : 'transparent',
@@ -677,6 +684,7 @@ function AttendancePage() {
               <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: t.border }}>
                 <button
                   onClick={() => setViewMode('list')}
+                  data-testid="attendance-view-list-btn"
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all"
                   style={{
                     background: viewMode === 'list' ? t.surface : 'transparent',
@@ -688,6 +696,7 @@ function AttendancePage() {
                 </button>
                 <button
                   onClick={() => setViewMode('map')}
+                  data-testid="attendance-view-map-btn"
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all"
                   style={{
                     background: viewMode === 'map' ? t.surface : 'transparent',
@@ -759,7 +768,7 @@ function AttendancePage() {
 
             {/* Empty State */}
             {!isLoading && getEmployeeList().length === 0 && (
-              <div className="px-6 py-12 text-center">
+              <div className="px-6 py-12 text-center" data-testid="attendance-empty">
                 <p className="text-sm font-bold" style={{ color: t.textMuted }}>
                   No employees to display
                 </p>
@@ -917,6 +926,7 @@ function EmployeeRow({ employee, date, tz, onClick }: EmployeeRowProps) {
   return (
     <div
       className="px-6 py-4 border-b transition-all hover:bg-black/[0.02] cursor-pointer"
+      data-testid={`attendance-row-${employee.employee_id}`}
       style={{
         borderColor: t.border,
       }}
@@ -1065,7 +1075,7 @@ function EmployeeRow({ employee, date, tz, onClick }: EmployeeRowProps) {
 
 function AttendanceTableSkeleton() {
   return (
-    <div>
+    <div data-testid="attendance-skeleton">
       {Array.from({ length: 5 }).map((_, i) => (
         <div
           key={i}

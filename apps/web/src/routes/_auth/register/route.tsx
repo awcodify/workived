@@ -72,7 +72,7 @@ function RegisterPage() {
   const apiError = extractApiError(register.error)
 
   return (
-    <div className="flex-1 flex">
+    <div className="flex-1 flex" data-testid="register-page">
       {/* Left Side - Branding */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
@@ -190,10 +190,12 @@ function RegisterPage() {
             <form
               onSubmit={form.handleSubmit((data) => register.mutate(data))}
               className="space-y-5"
+              data-testid="register-form"
             >
               {apiError && (
                 <div
                   className="px-4 py-3 rounded-xl"
+                  data-testid="register-error"
                   style={{ background: colors.errDim, border: `1px solid ${colors.err}` }}
                 >
                   <p style={{ fontSize: 14, color: colors.errText, fontWeight: 500 }}>
@@ -214,6 +216,7 @@ function RegisterPage() {
                   type="text"
                   autoComplete="name"
                   placeholder="Ahmad Rizky"
+                  data-testid="register-full-name-input"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
                   {...form.register('full_name')}
@@ -242,6 +245,7 @@ function RegisterPage() {
                   type="email"
                   autoComplete="email"
                   placeholder="you@company.com"
+                  data-testid="register-email-input"
                   disabled={invitationData?.is_valid}
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{
@@ -271,6 +275,7 @@ function RegisterPage() {
                   type="password"
                   autoComplete="new-password"
                   placeholder="At least 8 characters"
+                  data-testid="register-password-input"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{ background: colors.ink50, border: `1.5px solid ${colors.ink100}`, color: colors.ink900 }}
                   {...form.register('password')}
@@ -285,6 +290,7 @@ function RegisterPage() {
               <button
                 type="submit"
                 disabled={register.isPending}
+                data-testid="register-submit-btn"
                 className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50"
                 style={{
                   background: colors.accent,

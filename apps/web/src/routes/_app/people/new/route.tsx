@@ -167,6 +167,7 @@ function NewEmployeePage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      data-testid="people-new-page"
       style={{ background: moduleBackgrounds.people }}
     >
       {/* Back button */}
@@ -190,7 +191,7 @@ function NewEmployeePage() {
       </div>
 
       {/* Form */}
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6" data-testid="people-new-form">
         {/* Access mode section */}
         <div>
           <AccessModeStep form={form} />
@@ -267,6 +268,7 @@ function NewEmployeePage() {
                 <input
                   type="text"
                   placeholder="e.g., Ahmad Rahman"
+                  data-testid="people-full-name-input"
                   className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                   style={{
                     background: t.input,
@@ -295,6 +297,7 @@ function NewEmployeePage() {
                 <input
                   type="tel"
                   placeholder="e.g., +62 812 3456 7890"
+                  data-testid="people-phone-input"
                   className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                   style={{
                     background: t.input,
@@ -316,6 +319,7 @@ function NewEmployeePage() {
                   </span>
                 </span>
                 <select
+                  data-testid="people-gender-select"
                   className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                   style={{
                     background: t.input,
@@ -354,6 +358,7 @@ function NewEmployeePage() {
                 </span>
                 <input
                   type="date"
+                  data-testid="people-start-date-input"
                   className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
                   style={{
                     background: t.input,
@@ -377,6 +382,7 @@ function NewEmployeePage() {
                   Employment type
                 </span>
                 <select
+                  data-testid="people-employment-type-select"
                   className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                   style={{
                     background: t.input,
@@ -508,6 +514,7 @@ function NewEmployeePage() {
           <button
             type="submit"
             disabled={createMutation.isPending || !form.formState.isValid}
+            data-testid="people-submit-btn"
             className="flex items-center gap-2 text-sm font-semibold px-8 py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
             style={{
               background: colors.accent,
@@ -523,6 +530,7 @@ function NewEmployeePage() {
         {createMutation.isError && (
           <div
             className="rounded-lg p-4"
+            data-testid="people-new-error"
             style={{
               background: colors.errDim,
               border: `1px solid ${colors.err}20`,

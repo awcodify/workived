@@ -39,6 +39,7 @@ function MyProfilePage() {
     return (
       <div
         className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+        data-testid="profile-skeleton"
         style={{ background: moduleBackgrounds.people, paddingBottom: '160px' }}
       >
         <div className="max-w-2xl mx-auto">
@@ -67,6 +68,7 @@ function MyProfilePage() {
     return (
       <div
         className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+        data-testid="profile-error"
         style={{ background: moduleBackgrounds.people, paddingBottom: '160px' }}
       >
         <div className="max-w-2xl mx-auto">
@@ -111,6 +113,7 @@ function MyProfilePage() {
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
+      data-testid="profile-page"
       style={{ background: moduleBackgrounds.people, paddingBottom: '160px' }}
     >
       <div className="max-w-2xl mx-auto">

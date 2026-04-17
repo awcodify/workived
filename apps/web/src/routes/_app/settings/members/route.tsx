@@ -161,12 +161,13 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
 
       {apiError && <Banner variant="error" message={apiError} />}
 
-      <form onSubmit={form.handleSubmit(handleInvite)} className="flex flex-col gap-3">
+      <form onSubmit={form.handleSubmit(handleInvite)} className="flex flex-col gap-3" data-testid="members-invite-form">
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px_auto] gap-3 items-start">
           <div>
             <input
               type="email"
               placeholder="colleague@company.com"
+              data-testid="members-invite-email-input"
               className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
               style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text }}
               {...form.register('email')}
@@ -179,6 +180,7 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
           </div>
 
           <select
+            data-testid="members-invite-role-select"
             className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none"
             style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text }}
             {...form.register('role')}
@@ -193,6 +195,7 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
           <button
             type="submit"
             disabled={inviteMember.isPending}
+            data-testid="members-invite-submit-btn"
             className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 whitespace-nowrap"
             style={{ background: C.accent, color: '#FFFFFF' }}
           >
@@ -360,6 +363,7 @@ function MemberRow({ member, isFreePlan = false }: { member: MemberWithProfile; 
   return (
     <div
       className="grid grid-cols-[1fr_100px_120px] gap-4 items-center px-4 py-3 rounded-lg transition-colors hover:bg-white/[0.03]"
+      data-testid={`members-row-${member.id}`}
     >
       {/* Name + email */}
       <div className="min-w-0">
@@ -512,7 +516,7 @@ function InvitationRow({
   const isExpired = new Date(invitation.expires_at) < new Date()
 
   return (
-    <div className="grid grid-cols-[1fr_80px_auto] gap-4 items-center px-4 py-3 rounded-lg transition-colors hover:bg-white/[0.03]">
+    <div className="grid grid-cols-[1fr_80px_auto] gap-4 items-center px-4 py-3 rounded-lg transition-colors hover:bg-white/[0.03]" data-testid={`members-invitation-row-${invitation.id}`}>
       {/* Email + expiry */}
       <div className="min-w-0">
         <p style={{ fontSize: 14, fontWeight: 600, color: S.text }} className="truncate">{invitation.email}</p>
@@ -549,6 +553,7 @@ function InvitationRow({
         <button
           onClick={() => onRevoke(invitation.id)}
           disabled={revoking}
+          data-testid={`members-revoke-btn-${invitation.id}`}
           className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 hover:bg-white/5"
           style={{ color: C.err }}
         >
@@ -568,7 +573,7 @@ function MembersPage() {
   const isFreePlan = org?.plan === 'free'
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: moduleBackgrounds.settings }}>
+    <div className="min-h-screen flex flex-col" data-testid="members-page" style={{ background: moduleBackgrounds.settings }}>
       {/* Header */}
       <div className="px-11 pt-10 pb-2">
         <WorkivedLogo size={32} showWordmark variant="light" />

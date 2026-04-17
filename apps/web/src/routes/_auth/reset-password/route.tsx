@@ -76,7 +76,7 @@ function ResetPasswordPage() {
   }
 
   return (
-    <div className="flex-1 flex">
+    <div className="flex-1 flex" data-testid="reset-password-page">
       {/* Left panel */}
       <div
         className="hidden lg:flex lg:flex-1 flex-col justify-between p-16"
@@ -149,6 +149,7 @@ function ResetPasswordPage() {
               onSubmit={form.handleSubmit((data) => mutation.mutate(data))}
               className="space-y-5"
               noValidate
+              data-testid="reset-password-form"
             >
               {apiError && (
                 <div
@@ -179,6 +180,7 @@ function ResetPasswordPage() {
                   type="password"
                   autoComplete="new-password"
                   placeholder="••••••••"
+                  data-testid="reset-password-new-input"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{
                     background: colors.ink50,
@@ -212,6 +214,7 @@ function ResetPasswordPage() {
                   type="password"
                   autoComplete="new-password"
                   placeholder="••••••••"
+                  data-testid="reset-password-confirm-input"
                   className="w-full px-4 py-3.5 rounded-xl text-sm focus:outline-none transition-all"
                   style={{
                     background: colors.ink50,
@@ -230,6 +233,7 @@ function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={mutation.isPending}
+                data-testid="reset-password-submit-btn"
                 className="w-full font-bold py-4 rounded-xl transition-all disabled:opacity-50"
                 style={{
                   background: `linear-gradient(135deg, #9B8FF7 0%, ${colors.accent} 100%)`,
