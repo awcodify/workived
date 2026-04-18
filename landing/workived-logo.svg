@@ -5,7 +5,7 @@
       <stop offset="100%" stop-color="#6357E8"/>
     </linearGradient>
   </defs>
-  <rect width="180" height="180" rx="30" fill="url(#g)"/>
-  <text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+  <rect width="180" height="180" rx="30" fill="#6357E8"/>
+  <text x="90" y="100" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
   <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
 </svg>
