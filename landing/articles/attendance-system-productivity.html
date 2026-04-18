@@ -137,8 +137,21 @@
     .reveal{opacity:0;transform:translateY(24px);transition:opacity 0.6s ease-out,transform 0.6s ease-out;}
     .reveal.visible{opacity:1;transform:translateY(0);}
     .reading-progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#F59E0B,#EF4444);z-index:2000;transition:width 0.1s linear;width:0%;}
+    .nav-hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;width:40px;height:40px;gap:5px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;transition:background 0.2s;}
+    .nav-hamburger:hover{background:var(--ink-50);}
+    .nav-hamburger span{display:block;width:22px;height:2px;background:var(--ink-700);border-radius:2px;transition:all 0.3s;}
+    .nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+    .nav-hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0);}
+    .nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+    .mobile-menu{display:none;position:fixed;inset:0;top:72px;background:rgba(255,255,255,0.97);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);z-index:999;padding:24px 24px 40px;flex-direction:column;gap:8px;border-top:1px solid var(--ink-100);}
+    .mobile-menu.open{display:flex;}
+    .mobile-menu a{font-size:16px;font-weight:600;color:var(--ink-700);text-decoration:none;padding:14px 16px;border-radius:12px;transition:background 0.2s,color 0.2s;}
+    .mobile-menu a:hover{background:var(--ink-50);color:var(--accent);}
+    .mobile-menu a.active{color:var(--accent);background:var(--accent-dim);}
+    .mobile-menu .nav-cta{margin-top:8px;background:var(--accent);color:#fff!important;text-align:center;padding:14px 24px;border-radius:12px;}
+    .mobile-menu .nav-cta:hover{background:var(--accent-text);}
     @media(max-width:700px){
-      .nav{padding:0 20px;}.nav-links a:not(.nav-cta){display:none;}
+      .nav{padding:0 20px;}.nav-links{display:none;}.nav-hamburger{display:flex;}
       .breadcrumb{padding:20px 20px 0;}
       .article-header{padding:28px 20px 0;}
       .article-hero-image{padding:0 20px;}
@@ -159,7 +172,7 @@
 
   <nav class="nav">
     <a href="../index" class="nav-left">
-      <svg width="36" height="36" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="#6357E8"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text><rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/></svg>
+      <svg width="36" height="36" viewBox="0 0 180 180" fill="none"><rect width="180" height="180" rx="30" fill="#6357E8"/><text x="90" y="100" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text><rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/></svg>
       <span class="nav-wordmark">Workived</span>
     </a>
     <div class="nav-links">
@@ -170,7 +183,18 @@
       <a href="../articles" class="active">Articles</a>
       <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
     </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </nav>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="../features">Features</a>
+    <a href="../pricing">Pricing</a>
+    <a href="../security">Security</a>
+    <a href="../ai">AI</a>
+    <a href="../articles" class="active">Articles</a>
+    <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+  </div>
 
   <div class="breadcrumb">
     <a href="../articles">Articles</a>
@@ -392,7 +416,7 @@
   <footer class="footer">
     <div class="footer-inner">
       <div class="footer-left">
-        <svg width="28" height="28" viewBox="0 0 180 180" fill="none"><defs><linearGradient id="fg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs><rect width="180" height="180" rx="30" fill="#6357E8"/><text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text></svg>
+        <svg width="28" height="28" viewBox="0 0 180 180" fill="none"><rect width="180" height="180" rx="30" fill="#6357E8"/><text x="90" y="100" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text></svg>
         <span class="footer-wordmark">Workived</span>
         <span class="footer-copy">&nbsp;© 2026</span>
       </div>
@@ -419,6 +443,22 @@
       entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
     }, { threshold: 0.08 });
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+    const hamburger = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    hamburger.addEventListener('click', () => {
+      const open = mobileMenu.classList.toggle('open');
+      hamburger.classList.toggle('open', open);
+      hamburger.setAttribute('aria-expanded', open);
+      document.body.style.overflow = open ? 'hidden' : '';
+    });
+    mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      setTimeout(() => {
+        mobileMenu.classList.remove('open');
+        hamburger.classList.remove('open');
+        hamburger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+      }, 0);
+    }));
   </script>
 </body>
 </html>
