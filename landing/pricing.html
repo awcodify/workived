@@ -31,10 +31,12 @@
       --accent:#6357E8;--accent-dim:#EFEDFD;--accent-mid:#8F86F0;--accent-text:#4A3FBF;
       --ink-900:#0F0E13;--ink-700:#1F1D2B;--ink-500:#72708A;--ink-300:#B0AEBE;
       --ink-150:#DDDBE8;--ink-100:#EDECF4;--ink-50:#F6F5FC;--ink-0:#FFFFFF;
-      --dark:#0A0A12;--green:#10B981;
+      --dark:#0A0A12;--green:#10B981;--red:#EF4444;
     }
     html{scroll-behavior:smooth;}
     body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--ink-0);color:var(--ink-900);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+
+    /* NAV */
     .nav{position:sticky;top:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--ink-100);}
     .nav-left{display:flex;align-items:center;gap:14px;text-decoration:none;}
     .nav-wordmark{font-size:22px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;}
@@ -44,13 +46,41 @@
     .nav-links a.active{color:var(--accent);}
     .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;}
     .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.35);}
-    .hero{padding:100px 24px 72px;text-align:center;background:var(--ink-0);}
-    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:100px;background:var(--accent-dim);border:1px solid rgba(99,87,232,0.15);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent-text);margin-bottom:28px;}
-    .hero h1{font-size:clamp(40px,6vw,68px);font-weight:800;letter-spacing:-0.05em;line-height:1.05;margin-bottom:20px;color:var(--ink-900);}
-    .hero h1 em{font-style:normal;color:var(--accent);}
-    .hero-sub{font-size:18px;color:var(--ink-500);line-height:1.65;max-width:460px;margin:0 auto;}
-    .plans{padding:0 24px 80px;}
-    .plans-inner{max-width:880px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+
+    /* ─── INTRO: EDITORIAL OPENER ─── */
+    .opener{padding:56px 40px 48px;max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr;gap:48px;align-items:start;}
+    .opener .eyebrow{font-size:12px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;}
+    .opener h1{font-size:clamp(24px,3vw,34px);font-weight:800;letter-spacing:-0.035em;line-height:1.3;color:var(--ink-900);}
+    .opener h1 s{color:var(--ink-300);text-decoration:line-through;text-decoration-color:var(--red);text-decoration-thickness:2px;font-weight:700;}
+    .opener .sub{font-size:15px;color:var(--ink-500);line-height:1.7;margin-top:14px;}
+
+    /* Simulation: three disconnected apps — ledger rows */
+    .sim{display:flex;flex-direction:column;gap:0;padding-top:4px;}
+    .sim-title{font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--red);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+    .sim-title::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--red);flex-shrink:0;}
+    .sim-title::after{content:'';flex:1;height:1px;background:var(--ink-100);}
+    .sim-row{padding:12px 0 12px 18px;border-left:2.5px solid var(--ink-150);display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;}
+    .sim-row:nth-child(2){border-color:#E04F5F;}
+    .sim-row:nth-child(4){border-color:#7C5CFC;}
+    .sim-row:nth-child(6){border-color:#D97706;}
+    .sim-label{font-size:13px;font-weight:700;color:var(--ink-700);}
+    .sim-tags{display:flex;gap:6px;}
+    .sim-tag{font-size:10px;color:var(--ink-300);font-weight:600;padding:2px 8px;border:1px solid var(--ink-100);border-radius:4px;letter-spacing:0.02em;}
+    .sim-cost{font-size:13px;font-weight:700;color:var(--red);white-space:nowrap;text-decoration:line-through;text-decoration-thickness:1.5px;font-variant-numeric:tabular-nums;}
+    .sim-gap{padding:2px 0;display:flex;align-items:center;gap:8px;padding-left:18px;}
+    .sim-gap::before{content:'';width:12px;height:1px;border-top:1px dashed var(--ink-150);}
+    .sim-gap span{font-size:10px;font-weight:600;color:var(--ink-200);letter-spacing:0.04em;}
+    .sim-total{margin-top:14px;padding:12px 0 0 18px;border-top:1.5px solid var(--ink-100);display:flex;justify-content:space-between;align-items:center;}
+    .sim-total-label{font-size:12px;font-weight:700;color:var(--ink-300);text-transform:uppercase;letter-spacing:0.06em;}
+    .sim-total-price{font-size:15px;font-weight:800;color:var(--red);text-decoration:line-through;text-decoration-thickness:2px;}
+
+    /* Divider between opener and plans */
+    .divider{max-width:1100px;margin:0 auto;padding:0 40px;}
+    .divider-line{height:1px;background:var(--ink-100);}
+
+    /* ─── PLANS ─── */
+    .plans{padding:48px 40px 80px;}
+    .plans-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:20px;}
     .plan{border-radius:24px;padding:40px 36px;position:relative;transition:transform 0.3s,box-shadow 0.3s;}
     .plan:hover{transform:translateY(-4px);}
     .plan-free{background:var(--ink-50);border:1px solid var(--ink-100);}
@@ -89,8 +119,10 @@
     .plan-pro .plan-cta{background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;box-shadow:0 4px 20px rgba(99,87,232,0.35);}
     .plan-pro .plan-cta:hover{transform:translateY(-1px);box-shadow:0 8px 32px rgba(99,87,232,0.45);}
     .plan-soon{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;background:rgba(99,87,232,0.15);color:var(--accent-mid);font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:12px;}
-    .modules{padding:0 24px 100px;}
-    .modules-inner{max-width:880px;margin:0 auto;}
+
+    /* ─── SECTION 3: MODULES ─── */
+    .modules{padding:0 40px 100px;}
+    .modules-inner{max-width:1100px;margin:0 auto;}
     .modules-header{text-align:center;margin-bottom:48px;}
     .modules-eyebrow{font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
     .modules-title{font-size:clamp(26px,4vw,38px);font-weight:800;letter-spacing:-0.04em;color:var(--ink-900);}
@@ -101,6 +133,8 @@
     .mod-icon{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;}
     .mod-name{font-size:15px;font-weight:800;letter-spacing:-0.02em;color:var(--ink-900);}
     .mod-desc{font-size:13px;color:var(--ink-500);line-height:1.5;}
+
+    /* ─── CTA ─── */
     .cta-section{text-align:center;padding:100px 24px;position:relative;overflow:hidden;background:var(--dark);}
     .cta-section::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(99,87,232,0.18),transparent 60%);pointer-events:none;}
     .cta-content{position:relative;z-index:1;max-width:540px;margin:0 auto;}
@@ -109,6 +143,8 @@
     .cta-section p{font-size:17px;color:rgba(255,255,255,0.4);line-height:1.7;margin-bottom:36px;}
     .btn-primary{display:inline-flex;align-items:center;gap:8px;padding:16px 36px;border-radius:14px;background:linear-gradient(135deg,var(--accent-mid),var(--accent));color:#fff;font-size:16px;font-weight:700;text-decoration:none;border:none;cursor:pointer;transition:all 0.25s;box-shadow:0 4px 20px rgba(99,87,232,0.25);}
     .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(99,87,232,0.4);}
+
+    /* FOOTER */
     .footer{border-top:1px solid rgba(255,255,255,0.06);padding:48px 40px 32px;background:var(--dark);}
     .footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
     .footer-left{display:flex;align-items:center;gap:12px;}
@@ -117,12 +153,18 @@
     .footer-right{display:flex;align-items:center;gap:24px;}
     .footer-link{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s;}
     .footer-link:hover{color:#fff;}
+
+    /* REVEAL */
     .reveal{opacity:0;transform:translateY(28px);transition:opacity 0.65s ease-out,transform 0.65s ease-out;}
     .reveal.visible{opacity:1;transform:translateY(0);}
-    .reveal-d1{transition-delay:0.1s;}.reveal-d2{transition-delay:0.2s;}
+    .reveal-d1{transition-delay:0.1s;}.reveal-d2{transition-delay:0.2s;}.reveal-d3{transition-delay:0.3s;}
+
     @media(max-width:700px){
       .nav{padding:0 20px;}.nav-links a:not(.nav-cta){display:none;}
-      .hero{padding:80px 20px 56px;}
+      .opener{padding:40px 20px 36px;grid-template-columns:1fr;gap:24px;}
+      .sim-app::after{display:none;}
+      .divider{padding:0 20px;}
+      .plans{padding:36px 20px 80px;}
       .plans-inner{grid-template-columns:1fr;}
       .modules-grid{grid-template-columns:repeat(2,1fr);}
       .cta-section{padding:80px 20px;}
@@ -150,12 +192,42 @@
     </div>
   </nav>
 
-  <section class="hero">
-    <div class="hero-eyebrow">Simple pricing</div>
-    <h1>Free to start.<br><em>Pro when you're ready.</em></h1>
-    <p class="hero-sub">No credit card. No trial period. All 9 modules included in the free plan — forever.</p>
+  <!-- Opener -->
+  <section class="opener reveal">
+    <div class="opener-left">
+      <h1>Your team uses an <s>HR platform</s>, an <s>attendance app</s>, and a <s>task manager</s>. Workived replaces all three, for $0.</h1>
+      <p class="sub">Free for up to 15 employees. No credit card, no trial period.</p>
+    </div>
+    <div class="sim">
+      <div class="sim-title">What you’re paying today</div>
+      <div class="sim-row">
+        <span class="sim-label">HR Platform</span>
+        <span class="sim-tags"><span class="sim-tag">login #1</span><span class="sim-tag">invoice #1</span></span>
+        <span class="sim-cost">$10/user</span>
+      </div>
+      <div class="sim-gap"><span>no sync</span></div>
+      <div class="sim-row">
+        <span class="sim-label">Attendance App</span>
+        <span class="sim-tags"><span class="sim-tag">login #2</span><span class="sim-tag">invoice #2</span></span>
+        <span class="sim-cost">$5/user</span>
+      </div>
+      <div class="sim-gap"><span>no sync</span></div>
+      <div class="sim-row">
+        <span class="sim-label">Task Manager</span>
+        <span class="sim-tags"><span class="sim-tag">login #3</span><span class="sim-tag">invoice #3</span></span>
+        <span class="sim-cost">$10/user</span>
+      </div>
+      <div class="sim-total">
+        <span class="sim-total-label">Total per user</span>
+        <span class="sim-total-price">$25/mo</span>
+      </div>
+    </div>
+    </div>
   </section>
 
+  <div class="divider"><div class="divider-line"></div></div>
+
+  <!-- Plans -->
   <section class="plans">
     <div class="plans-inner">
       <div class="plan plan-free reveal">

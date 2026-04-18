@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Workived — Free Attendance, Leave & HR Management for Small Teams</title>
-  <meta name="description" content="Free HR software for startups with 5–25 employees. Attendance tracking, leave management, expense claims, task boards, and team directory — all in one workspace. No hidden costs.">
+  <meta name="description" content="Free HR software for startups with 5–15 employees. Attendance tracking, leave management, expense claims, task boards, and team directory — all in one workspace. No hidden costs.">
   <meta name="keywords" content="attendance management, leave management, HR software, free HR tool, small team management, employee attendance, leave tracker, expense claims, task management, startup HR, Indonesia HR, UAE HR">
   <meta name="author" content="Workived">
   <meta name="color-scheme" content="light only">
@@ -14,7 +14,7 @@
 
   <!-- Open Graph -->
   <meta property="og:title" content="Workived — Free Attendance, Leave & HR Management for Small Teams">
-  <meta property="og:description" content="Free HR software for startups with 5–25 employees. Attendance, leave, claims, tasks — one workspace to run your team. No hidden costs.">
+  <meta property="og:description" content="Free HR software for startups with 5–15 employees. Attendance, leave, claims, tasks — one workspace to run your team. No hidden costs.">
   <meta property="og:type" content="website">
   <meta property="og:url" content="https://workived.com">
   <meta property="og:site_name" content="Workived">
@@ -44,7 +44,7 @@
       "@type": "Offer",
       "price": "0",
       "priceCurrency": "USD",
-      "description": "Free for teams up to 25 employees"
+      "description": "Free for teams up to 15 employees"
     },
     "creator": {
       "@type": "Organization",
@@ -119,11 +119,30 @@
       transition: background 0.3s ease, box-shadow 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease;
     }
     .header.scrolled {
-      background: rgba(255, 255, 255, 0.6);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
       border-bottom-color: rgba(0,0,0,0.04);
-      box-shadow: 0 1px 12px rgba(0,0,0,0.06);
+      box-shadow: 0 1px 12px rgba(0,0,0,0.04);
+    }
+    .header.scrolled.on-light {
+      background: rgba(243, 242, 251, 0.7);
+    }
+    .header.scrolled.on-dark {
+      background: rgba(15, 14, 19, 0.75);
+      box-shadow: 0 1px 12px rgba(0,0,0,0.20);
+      border-bottom-color: rgba(255,255,255,0.06);
+    }
+    .header.on-dark .logo-wordmark {
+      color: #FFFFFF;
+    }
+    .header.on-dark .header-nav a {
+      color: rgba(255,255,255,0.7);
+    }
+    .header.on-dark .header-nav a:hover {
+      color: #FFFFFF;
+    }
+    .header.on-dark .header-nav a.header-cta {
+      color: #FFFFFF;
     }
     .header-left {
       display: flex;
@@ -152,6 +171,24 @@
       letter-spacing: -0.01em;
     }
     .header-nav a:hover { color: var(--accent); }
+    .header-nav a.nav-highlight {
+      color: #FFFFFF;
+      background: linear-gradient(135deg, var(--accent-mid) 0%, var(--accent) 100%);
+      padding: 7px 16px;
+      border-radius: 100px;
+      border: none;
+      font-weight: 700;
+      letter-spacing: 0;
+      font-size: 13px;
+      box-shadow: 0 2px 8px rgba(99,87,232,0.25);
+      transition: all 0.2s ease;
+    }
+    .header-nav a.nav-highlight:hover {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-text) 100%);
+      color: #FFFFFF;
+      box-shadow: 0 4px 14px rgba(99,87,232,0.35);
+      transform: translateY(-1px);
+    }
     .header-nav a.header-cta,
     .header-nav a.header-cta:hover {
       color: #FFFFFF;
@@ -184,9 +221,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 100px 24px 80px;
+      padding: 72px 24px 60px;
       text-align: center;
-      min-height: calc(100vh - 72px);
       background: var(--ink-50);
       overflow: hidden;
     }
@@ -252,7 +288,7 @@
       font-weight: 600;
       color: var(--accent-text);
       letter-spacing: 0.02em;
-      margin-bottom: 32px;
+      margin-bottom: 24px;
     }
     .pill-dot {
       width: 8px;
@@ -271,7 +307,7 @@
       font-weight: 800;
       letter-spacing: -0.05em;
       line-height: 1.05;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       color: var(--ink-900);
     }
     .highlight {
@@ -284,7 +320,7 @@
       font-size: clamp(16px, 2.2vw, 19px);
       color: var(--ink-500);
       line-height: 1.7;
-      margin: 0 auto 40px;
+      margin: 0 auto 32px;
     }
 
     /* Hero CTA buttons */
@@ -293,7 +329,7 @@
       align-items: center;
       justify-content: center;
       gap: 16px;
-      margin-bottom: 64px;
+      margin-bottom: 48px;
       flex-wrap: wrap;
     }
     .btn-primary {
@@ -318,7 +354,7 @@
     }
     /* Scroll hint */
     .scroll-hint {
-      margin-top: 80px;
+      margin-top: 48px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -599,6 +635,64 @@
       width: 100%;
       height: auto;
     }
+    .showcase-img .dashboard-gallery-image {
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      object-position: top center;
+    }
+    
+    /* Dashboard Horizontal Slider */
+    .dashboard-slider-container {
+      position: relative;
+      background: #f8f9fa;
+      padding: 16px 16px 50px;
+    }
+    .dashboard-slider-track {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      scroll-behavior: smooth;
+    }
+    .dashboard-slider-track::-webkit-scrollbar {
+      display: none;
+    }
+    .dashboard-slide {
+      flex: 0 0 100%;
+      width: 100%;
+      height: auto;
+      scroll-snap-align: center;
+      border-radius: 8px;
+    }
+    .dashboard-slider-dots {
+      position: absolute;
+      bottom: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 8px;
+    }
+    .dashboard-slider-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #cbd5e0;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .dashboard-slider-dot.active {
+      background: #8B5CF6;
+      width: 24px;
+      border-radius: 4px;
+    }
+    .dashboard-slider-dot:hover {
+      background: #a0aec0;
+    }
+    
     /* Showcase module accent colors */
     .showcase-panel[data-module="overview"] .feature-bullets li::before { background: var(--accent); }
     .showcase-panel[data-module="overview"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(99,87,232,0.10), 0 0 0 1px rgba(99,87,232,0.08); }
@@ -621,6 +715,55 @@
     .showcase-panel[data-module="people"] .feature-bullets li::before { background: #EC4899; }
     .showcase-panel[data-module="people"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(236,72,153,0.10), 0 0 0 1px rgba(236,72,153,0.08); }
     .showcase-panel[data-module="people"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(236,72,153,0.15), 0 0 0 1px rgba(236,72,153,0.12); }
+    .showcase-panel[data-module="performance"] .feature-bullets li::before { background: #F59E0B; }
+    .showcase-panel[data-module="performance"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(245,158,11,0.10), 0 0 0 1px rgba(245,158,11,0.08); }
+    .showcase-panel[data-module="performance"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(245,158,11,0.15), 0 0 0 1px rgba(245,158,11,0.12); }
+    .showcase-panel[data-module="dashboard"] .feature-bullets li::before { background: #8B5CF6; }
+    .showcase-panel[data-module="dashboard"] .screenshot-wrapper { box-shadow: 0 24px 64px rgba(139,92,246,0.10), 0 0 0 1px rgba(139,92,246,0.08); }
+    .showcase-panel[data-module="dashboard"] .screenshot-wrapper:hover { box-shadow: 0 32px 80px rgba(139,92,246,0.15), 0 0 0 1px rgba(139,92,246,0.12); }
+
+    /* ── Dashboard Multi-Image Gallery ── */
+    .dashboard-gallery {
+      position: relative;
+    }
+    .dashboard-gallery-images {
+      position: relative;
+      width: 100%;
+    }
+    .dashboard-gallery-image {
+      display: none;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      object-position: top center;
+    }
+    .dashboard-gallery-image.active {
+      display: block;
+    }
+    .dashboard-gallery-dots {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    .dashboard-gallery-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--ink-150);
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    .dashboard-gallery-dot.active {
+      background: #8B5CF6;
+      width: 24px;
+      border-radius: 4px;
+    }
+    .dashboard-gallery-dot:hover {
+      background: var(--ink-300);
+    }
 
     /* ── Mobile carousel ── */
     .feature-carousel {
@@ -738,7 +881,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 22px;
+    }
+    .feature-emoji svg {
+      width: 24px;
+      height: 24px;
+      stroke-width: 2;
     }
     .feature-module-name {
       font-size: 13px;
@@ -870,6 +1017,26 @@
       box-shadow: 0 32px 80px rgba(236,72,153,0.15), 0 0 0 1px rgba(236,72,153,0.12);
     }
 
+    .feature-block[data-module="performance"] .feature-emoji { background: #FEF3E0; }
+    .feature-block[data-module="performance"] .feature-module-name { color: #F59E0B; }
+    .feature-block[data-module="performance"] .feature-bullets li::before { background: #F59E0B; }
+    .feature-block[data-module="performance"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(245,158,11,0.10), 0 0 0 1px rgba(245,158,11,0.08);
+    }
+    .feature-block[data-module="performance"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(245,158,11,0.15), 0 0 0 1px rgba(245,158,11,0.12);
+    }
+
+    .feature-block[data-module="dashboard"] .feature-emoji { background: #EDE9FE; }
+    .feature-block[data-module="dashboard"] .feature-module-name { color: #8B5CF6; }
+    .feature-block[data-module="dashboard"] .feature-bullets li::before { background: #8B5CF6; }
+    .feature-block[data-module="dashboard"] .screenshot-wrapper {
+      box-shadow: 0 24px 64px rgba(139,92,246,0.10), 0 0 0 1px rgba(139,92,246,0.08);
+    }
+    .feature-block[data-module="dashboard"] .screenshot-wrapper:hover {
+      box-shadow: 0 32px 80px rgba(139,92,246,0.15), 0 0 0 1px rgba(139,92,246,0.12);
+    }
+
     /* ── Value Proposition bar ── */
     .value-bar {
       background: var(--ink-700);
@@ -963,70 +1130,73 @@
     /* ── How it works ── */
     .steps-section {
       padding: 120px 24px;
-      max-width: 1200px;
+      max-width: 800px;
       margin: 0 auto;
     }
     .steps-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 32px;
-      max-width: 900px;
-      margin: 0 auto;
-      position: relative;
-    }
-    .steps-grid::before {
-      content: '';
-      position: absolute;
-      top: 36px;
-      left: 15%;
-      right: 15%;
-      height: 2px;
-      background: linear-gradient(90deg, var(--ink-100), var(--accent-dim), var(--ink-100));
-      z-index: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
     }
     .step-card {
-      text-align: center;
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 0;
+      position: relative;
+    }
+    .step-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .step-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-dim);
+      flex-shrink: 0;
       position: relative;
       z-index: 1;
     }
-    .step-number {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 28px;
-      font-weight: 800;
-      margin: 0 auto 20px;
-      background: white;
-      color: var(--accent);
-      border: 2px solid var(--ink-100);
-      transition: all 0.3s ease;
+    .step-line {
+      width: 2px;
+      flex: 1;
+      background: linear-gradient(180deg, var(--accent-dim), var(--ink-100));
     }
-    .step-card:hover .step-number {
-      background: var(--accent-dim);
-      border-color: var(--accent);
-      transform: scale(1.08);
+    .step-card:last-child .step-line { display: none; }
+    .step-right {
+      padding: 0 0 56px 0;
+      margin-top: -4px;
+    }
+    .step-card:last-child .step-right { padding-bottom: 0; }
+    .step-num-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 6px;
     }
     .step-card h3 {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 22px;
+      font-weight: 800;
       color: var(--ink-900);
       margin-bottom: 8px;
+      letter-spacing: -0.03em;
+      line-height: 1.2;
     }
     .step-card p {
-      font-size: 14px;
+      font-size: 15px;
       color: var(--ink-500);
-      line-height: 1.65;
-      max-width: 260px;
-      margin: 0 auto;
+      line-height: 1.7;
+      max-width: 480px;
     }
 
     /* ── Trust strip ── */
     .trust-section {
       padding: 64px 24px;
-      background: var(--ink-50);
+      background: var(--ink-900);
     }
     .trust-inner {
       max-width: 800px;
@@ -1044,7 +1214,7 @@
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      border: 3px solid var(--ink-50);
+      border: 3px solid var(--ink-900);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1057,15 +1227,110 @@
     .trust-quote {
       font-size: clamp(16px, 2.5vw, 20px);
       font-weight: 600;
-      color: var(--ink-700);
+      color: rgba(255,255,255,0.85);
       line-height: 1.6;
       letter-spacing: -0.02em;
       margin-bottom: 12px;
     }
     .trust-meta {
       font-size: 14px;
-      color: var(--ink-300);
+      color: rgba(255,255,255,0.35);
       font-weight: 500;
+    }
+
+    /* ── Security & Trust ── */
+    .security-section {
+      padding: 100px 24px;
+      background: var(--ink-900);
+      position: relative;
+      overflow: hidden;
+    }
+    .security-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(99,87,232,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .security-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+    .security-statement {
+      /* left side */
+    }
+    .security-statement .section-label {
+      color: var(--accent-mid);
+      background: rgba(99,87,232,0.15);
+    }
+    .security-statement h2 {
+      font-size: clamp(32px, 4.5vw, 48px);
+      font-weight: 800;
+      color: white;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin: 16px 0 20px;
+    }
+    .security-statement h2 .muted {
+      color: rgba(255,255,255,0.35);
+    }
+    .security-statement > p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.7;
+      max-width: 400px;
+    }
+    .security-checks {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .security-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 20px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .security-check:first-child { padding-top: 0; }
+    .security-check:last-child { border-bottom: none; padding-bottom: 0; }
+    .check-marker {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(99,87,232,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .check-marker svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--accent-mid);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .check-text h4 {
+      font-size: 15px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 3px;
+      letter-spacing: -0.01em;
+    }
+    .check-text p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.4);
+      line-height: 1.6;
     }
 
     /* ── FAQ section ── */
@@ -1125,6 +1390,279 @@
       font-size: 15px;
       color: var(--ink-500);
       line-height: 1.7;
+    }
+
+    /* ── AI Vision section ── */
+    .ai-section {
+      padding: 120px 24px;
+      background: linear-gradient(180deg, var(--ink-50) 0%, #EFEDFD 50%, var(--ink-50) 100%);
+      position: relative;
+      overflow: hidden;
+    }
+    .ai-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 30% 20%, rgba(99,87,232,0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 80%, rgba(129,140,248,0.06) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    .ai-inner {
+      max-width: 1000px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 1;
+    }
+    .ai-header {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+    .ai-header .section-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 20px;
+      border-radius: 100px;
+      background: linear-gradient(135deg, rgba(143,134,240,0.12), rgba(99,87,232,0.12));
+      border: 1px solid rgba(99,87,232,0.12);
+    }
+    .ai-header h2 {
+      font-size: clamp(32px, 5vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+      color: var(--ink-900);
+      margin-top: 16px;
+    }
+    .ai-header h2 .muted { color: var(--ink-300); }
+    .ai-subtitle {
+      font-size: clamp(16px, 2vw, 18px);
+      color: var(--ink-500);
+      line-height: 1.7;
+      margin-top: 16px;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .ai-chat-window {
+      background: white;
+      border-radius: 24px;
+      box-shadow:
+        0 0 0 1px rgba(99,87,232,0.08),
+        0 24px 80px rgba(99,87,232,0.12),
+        0 8px 32px rgba(0,0,0,0.06);
+      overflow: hidden;
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    .ai-chat-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 24px;
+      background: var(--ink-50);
+      border-bottom: 1px solid var(--ink-100);
+    }
+    .ai-chat-bar-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse-dot 2s ease-in-out infinite;
+    }
+    .ai-chat-bar-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink-700);
+      letter-spacing: -0.01em;
+    }
+    .ai-chat-bar-badge {
+      margin-left: auto;
+      padding: 3px 10px;
+      border-radius: 100px;
+      background: linear-gradient(135deg, var(--accent-mid), var(--accent));
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .ai-chat-messages {
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .ai-msg {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .ai-msg.user {
+      flex-direction: row-reverse;
+    }
+    .ai-msg-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .ai-msg.user .ai-msg-avatar {
+      background: var(--ink-100);
+      color: var(--ink-500);
+      font-weight: 700;
+    }
+    .ai-msg.bot .ai-msg-avatar {
+      background: linear-gradient(135deg, var(--accent-mid), var(--accent));
+      color: white;
+    }
+    .ai-msg-bubble {
+      padding: 12px 18px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+      max-width: 420px;
+    }
+    .ai-msg.user .ai-msg-bubble {
+      background: var(--ink-50);
+      color: var(--ink-700);
+      border-bottom-right-radius: 4px;
+      font-weight: 500;
+    }
+    .ai-msg.bot .ai-msg-bubble {
+      background: var(--accent-dim);
+      color: var(--ink-700);
+      border-bottom-left-radius: 4px;
+    }
+    .ai-msg-bubble strong {
+      font-weight: 700;
+      color: var(--ink-900);
+    }
+    .ai-chat-input {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border-top: 1px solid var(--ink-100);
+    }
+    .ai-chat-input-field {
+      flex: 1;
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1.5px solid var(--ink-100);
+      font-family: inherit;
+      font-size: 13px;
+      color: var(--ink-300);
+      background: var(--ink-50);
+      outline: none;
+    }
+    .ai-chat-send {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--accent);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .ai-chat-area {
+      position: relative;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 80px 0;
+    }
+    .ai-float-bubble {
+      position: absolute;
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      padding: 11px 20px 11px 16px;
+      border-radius: 14px;
+      background: white;
+      border: none;
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.04),
+        0 6px 20px rgba(99,87,232,0.10);
+      font-size: 14px;
+      color: var(--ink-700);
+      font-weight: 500;
+      font-style: italic;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(10px) scale(0.95);
+      transition: opacity 0.5s cubic-bezier(0.4,0,0.2,1), transform 0.5s cubic-bezier(0.4,0,0.2,1);
+      z-index: 0;
+    }
+    .ai-float-bubble::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-right: 10px;
+    }
+    .ai-float-bubble.visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    .ai-float-bubble:nth-child(1)::before { background: var(--accent); }
+    .ai-float-bubble:nth-child(2)::before { background: #8B5CF6; }
+    .ai-float-bubble:nth-child(3)::before { background: #10B981; }
+    .ai-float-bubble:nth-child(4)::before { background: #818CF8; }
+    .ai-float-bubble:nth-child(5)::before { background: #EC4899; }
+    .ai-float-bubble:nth-child(6)::before { background: #D97706; }
+    .ai-float-bubble:nth-child(7)::before { background: var(--accent-mid); }
+    .ai-float-bubble:nth-child(8)::before { background: #059669; }
+    /* Positions well outside the chat window */
+    .ai-float-bubble:nth-child(1) { top: 20px; left: -200px; }
+    .ai-float-bubble:nth-child(2) { top: 10%; right: -180px; }
+    .ai-float-bubble:nth-child(3) { top: 38%; left: -220px; }
+    .ai-float-bubble:nth-child(4) { top: 52%; right: -200px; }
+    .ai-float-bubble:nth-child(5) { bottom: 20%; left: -180px; }
+    .ai-float-bubble:nth-child(6) { bottom: 10%; right: -190px; }
+    .ai-float-bubble:nth-child(7) { top: -30px; right: -100px; }
+    .ai-float-bubble:nth-child(8) { bottom: -20px; left: -120px; }
+    @media (max-width: 1100px) {
+      .ai-float-bubble:nth-child(1) { left: -160px; }
+      .ai-float-bubble:nth-child(2) { right: -140px; }
+      .ai-float-bubble:nth-child(3) { left: -170px; }
+      .ai-float-bubble:nth-child(4) { right: -150px; }
+      .ai-float-bubble:nth-child(5) { left: -140px; }
+      .ai-float-bubble:nth-child(6) { right: -150px; }
+      .ai-float-bubble:nth-child(7) { right: -80px; }
+      .ai-float-bubble:nth-child(8) { left: -90px; }
+    }
+    @media (max-width: 860px) {
+      .ai-chat-area { padding: 40px 0; }
+      .ai-float-bubble { display: none; }
+    }
+    .ai-pro-note {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink-300);
+    }
+    .ai-pro-note span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 100px;
+      background: linear-gradient(135deg, rgba(143,134,240,0.12), rgba(99,87,232,0.12));
+      color: var(--accent-text);
+      font-weight: 700;
+    }
+    @media (max-width: 640px) {
+      .ai-float-bubble { display: none; }
     }
 
     /* ── Pricing section ── */
@@ -1519,8 +2057,10 @@
       }
       .value-divider { display: none; }
       .stats-strip { gap: 32px; }
-      .steps-grid { grid-template-columns: 1fr; max-width: 320px; }
-      .steps-grid::before { display: none; }
+      .steps-grid { max-width: 100%; }
+      .step-card { grid-template-columns: 56px 1fr; }
+      .security-inner { grid-template-columns: 1fr; gap: 40px; }
+      .security-statement h2 { font-size: 28px; }
     }
 
     @media (max-width: 640px) {
@@ -1529,7 +2069,7 @@
         height: 64px;
       }
       .header-nav a:not(.header-cta) { display: none; }
-      .hero { padding: 60px 20px 40px; }
+      .hero { padding: 48px 20px 32px; }
       .hero-actions { flex-direction: column; }
       .btn-primary { width: 100%; justify-content: center; }
       .stats-strip { gap: 16px; }
@@ -1585,6 +2125,8 @@
     </a>
     <nav class="header-nav">
       <a href="#features">Features</a>
+      <a href="#security">Security</a>
+      <a href="#ai" class="nav-highlight"><svg style="width:14px;height:14px;display:inline-block;margin-right:6px;vertical-align:middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>AI</a>
       <a href="#pricing">Pricing</a>
       <a href="#faq">FAQ</a>
       <a href="mailto:my@workived.com" class="header-cta">Get Early Access</a>
@@ -1624,17 +2166,17 @@
       <div class="stats-strip">
         <div class="stat">
           <div class="stat-value"><span class="accent">$0</span></div>
-          <div class="stat-label">No hidden costs</div>
+          <div class="stat-label">Up to 15 employees</div>
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <div class="stat-value">5 min</div>
-          <div class="stat-label">Setup time</div>
+          <div class="stat-value">24/7</div>
+          <div class="stat-label">Bank-grade access</div>
         </div>
         <div class="stat-divider"></div>
         <div class="stat">
-          <div class="stat-value">25</div>
-          <div class="stat-label">Employees free tier</div>
+          <div class="stat-value">3x</div>
+          <div class="stat-label">Faster flow</div>
         </div>
       </div>
 
@@ -1665,7 +2207,6 @@
         </svg>
       </a>
     </div>
-
     <!-- Hero screenshot -->
     <div class="hero-screenshot reveal">
       <div class="browser-frame">
@@ -1691,19 +2232,21 @@
     <!-- Desktop showcase -->
     <div class="feature-showcase reveal">
       <div class="showcase-tabs" id="showcaseTabs">
-        <button class="showcase-tab active" data-module="overview"><span class="tab-emoji">🏠</span> Overview</button>
-        <button class="showcase-tab" data-module="attendance"><span class="tab-emoji">⏱</span> Attendance</button>
-        <button class="showcase-tab" data-module="leave"><span class="tab-emoji">🏖</span> Leave</button>
-        <button class="showcase-tab" data-module="claims"><span class="tab-emoji">💰</span> Claims</button>
-        <button class="showcase-tab" data-module="tasks"><span class="tab-emoji">✅</span> Tasks</button>
-        <button class="showcase-tab" data-module="calendar"><span class="tab-emoji">📅</span> Calendar</button>
-        <button class="showcase-tab" data-module="people"><span class="tab-emoji">👥</span> People</button>
+        <button class="showcase-tab active" data-module="overview">Overview</button>
+        <button class="showcase-tab" data-module="attendance">Attendance</button>
+        <button class="showcase-tab" data-module="leave">Leave</button>
+        <button class="showcase-tab" data-module="claims">Claims</button>
+        <button class="showcase-tab" data-module="tasks">Tasks</button>
+        <button class="showcase-tab" data-module="calendar">Calendar</button>
+        <button class="showcase-tab" data-module="people">People</button>
+        <button class="showcase-tab" data-module="performance">Performance</button>
+        <button class="showcase-tab" data-module="dashboard">Custom Dashboard</button>
       </div>
 
       <div class="showcase-panel active" data-module="overview">
         <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji" style="background:#EFEDFD;">🏠</div>
+            <div class="feature-emoji" style="background:#EFEDFD;"><svg viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
             <span class="feature-module-name" style="color:var(--accent);">Overview</span>
           </div>
           <h3>Everything at a glance</h3>
@@ -1717,6 +2260,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com</div>
+            </div>
             <img src="images/overview.jpeg" alt="Workived overview dashboard" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1725,7 +2274,7 @@
       <div class="showcase-panel" data-module="attendance">
         <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji" style="background:#EDE9FE;">⏱</div>
+            <div class="feature-emoji" style="background:#EDE9FE;"><svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
             <span class="feature-module-name" style="color:#8B5CF6;">Attendance</span>
           </div>
           <h3>Clock in, track time, stay compliant</h3>
@@ -1739,6 +2288,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/attendance</div>
+            </div>
             <img src="images/attendance.jpeg" alt="Workived attendance tracking" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1747,7 +2302,7 @@
       <div class="showcase-panel" data-module="leave">
         <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji" style="background:#EFEDFD;">🏖</div>
+            <div class="feature-emoji" style="background:#EFEDFD;"><svg viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17h5v-5"/><path d="M17 17c0-5-3-8-8-8s-8 3-8 8"/><path d="M9 2L7 7"/><path d="M15 2l2 5"/><path d="M12 2v5"/></svg></div>
             <span class="feature-module-name" style="color:var(--accent);">Leave</span>
           </div>
           <h3>Leave requests, without the back-and-forth</h3>
@@ -1761,6 +2316,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/leave</div>
+            </div>
             <img src="images/leave.jpeg" alt="Workived leave management" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1769,7 +2330,7 @@
       <div class="showcase-panel" data-module="claims">
         <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji" style="background:#D1FAE5;">💰</div>
+            <div class="feature-emoji" style="background:#D1FAE5;"><svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
             <span class="feature-module-name" style="color:#10B981;">Claims</span>
           </div>
           <h3>Expense claims, tracked to the rupiah</h3>
@@ -1783,6 +2344,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/claims</div>
+            </div>
             <img src="images/claims.jpeg" alt="Workived expense claims" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1791,7 +2358,7 @@
       <div class="showcase-panel" data-module="tasks">
         <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji" style="background:#E0E7FF;">✅</div>
+            <div class="feature-emoji" style="background:#E0E7FF;"><svg viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
             <span class="feature-module-name" style="color:#818CF8;">Tasks</span>
           </div>
           <h3>Kanban boards for your whole team</h3>
@@ -1805,7 +2372,13 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
-            <img src="images/tasks.jpeg" alt="Workived task boards" loading="lazy" width="960" height="600">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/tasks</div>
+            </div>
+            <img src="images/tasks.png" alt="Workived task boards" loading="lazy" width="960" height="600">
           </div>
         </div>
       </div>
@@ -1813,7 +2386,7 @@
       <div class="showcase-panel" data-module="calendar">
         <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji" style="background:#FEF3C7;">📅</div>
+            <div class="feature-emoji" style="background:#FEF3C7;"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
             <span class="feature-module-name" style="color:#D97706;">Calendar</span>
           </div>
           <h3>See who's off, at a glance</h3>
@@ -1827,6 +2400,12 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/calendar</div>
+            </div>
             <img src="images/calendar.jpeg" alt="Workived team calendar" loading="lazy" width="960" height="600">
           </div>
         </div>
@@ -1835,7 +2414,7 @@
       <div class="showcase-panel" data-module="people">
         <div class="showcase-text">
           <div class="feature-icon-row">
-            <div class="feature-emoji" style="background:#FCE7F3;">👥</div>
+            <div class="feature-emoji" style="background:#FCE7F3;"><svg viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
             <span class="feature-module-name" style="color:#EC4899;">People</span>
           </div>
           <h3>Your team directory, organized</h3>
@@ -1849,7 +2428,80 @@
         </div>
         <div class="showcase-img">
           <div class="screenshot-wrapper">
-            <img src="images/people-and-team.jpeg" alt="Workived people directory" loading="lazy" width="960" height="600">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/people</div>
+            </div>
+            <img src="images/people.png" alt="Workived people directory" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-panel" data-module="performance">
+        <div class="showcase-text">
+          <div class="feature-icon-row">
+            <div class="feature-emoji" style="background:#FEF3E0;"><svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+            <span class="feature-module-name" style="color:#F59E0B;">Performance</span>
+          </div>
+          <h3>Track what matters</h3>
+          <p>Monitor team performance with real-time insights on attendance, task completion, leave usage, and employee rankings.</p>
+          <ul class="feature-bullets">
+            <li>Attendance trends & punctuality rates</li>
+            <li>Task completion by employee & period</li>
+            <li>Leave utilization analytics</li>
+            <li>Team ranking with grade distribution</li>
+          </ul>
+        </div>
+        <div class="showcase-img">
+          <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/performance</div>
+            </div>
+            <img src="images/reports.png" alt="Workived performance dashboard" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+
+      <div class="showcase-panel" data-module="dashboard">
+        <div class="showcase-text">
+          <div class="feature-icon-row">
+            <div class="feature-emoji" style="background:#EDE9FE;"><svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
+            <span class="feature-module-name" style="color:#8B5CF6;">Custom Dashboard</span>
+          </div>
+          <h3>Build your own view</h3>
+          <p>Create custom dashboards with charts and metrics from all your data — tasks, attendance, leave, claims, and more.</p>
+          <ul class="feature-bullets">
+            <li>Drag-and-drop dashboard builder</li>
+            <li>Query data from all modules</li>
+            <li>Custom charts and visualizations</li>
+            <li>Save and share team dashboards</li>
+          </ul>
+        </div>
+        <div class="showcase-img">
+          <div class="screenshot-wrapper">
+            <div class="browser-bar">
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-dot"></div>
+              <div class="browser-url">app.workived.com/dashboard</div>
+            </div>
+            <div class="dashboard-slider-container">
+              <div class="dashboard-slider-track">
+                <img src="images/dashboard-0.png" alt="Workived custom dashboard - Overview" loading="lazy" class="dashboard-slide">
+                <img src="images/dashboard-1.png" alt="Workived custom dashboard - Analytics" loading="lazy" class="dashboard-slide">
+                <img src="images/dashboard-2.png" alt="Workived custom dashboard - Builder" loading="lazy" class="dashboard-slide">
+              </div>
+              <div class="dashboard-slider-dots">
+                <button class="dashboard-slider-dot active" data-index="0"></button>
+                <button class="dashboard-slider-dot" data-index="1"></button>
+                <button class="dashboard-slider-dot" data-index="2"></button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1864,7 +2516,7 @@
           </div>
           <div class="carousel-card-body">
             <div class="feature-icon-row">
-              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;">🏠</div>
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;background:#EFEDFD;"><svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
               <span class="feature-module-name" style="color:var(--accent);">Overview</span>
             </div>
             <h3>Everything at a glance</h3>
@@ -1877,7 +2529,7 @@
           </div>
           <div class="carousel-card-body">
             <div class="feature-icon-row">
-              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#EDE9FE;">⏱</div>
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;background:#EDE9FE;"><svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
               <span class="feature-module-name" style="color:#8B5CF6;">Attendance</span>
             </div>
             <h3>Clock in, track time</h3>
@@ -1890,7 +2542,7 @@
           </div>
           <div class="carousel-card-body">
             <div class="feature-icon-row">
-              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#EFEDFD;">🏖</div>
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;background:#EFEDFD;"><svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17h5v-5"/><path d="M17 17c0-5-3-8-8-8s-8 3-8 8"/><path d="M9 2L7 7"/><path d="M15 2l2 5"/><path d="M12 2v5"/></svg></div>
               <span class="feature-module-name" style="color:var(--accent);">Leave</span>
             </div>
             <h3>No more back-and-forth</h3>
@@ -1903,7 +2555,7 @@
           </div>
           <div class="carousel-card-body">
             <div class="feature-icon-row">
-              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#D1FAE5;">💰</div>
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;background:#D1FAE5;"><svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
               <span class="feature-module-name" style="color:#10B981;">Claims</span>
             </div>
             <h3>Tracked to the rupiah</h3>
@@ -1916,7 +2568,7 @@
           </div>
           <div class="carousel-card-body">
             <div class="feature-icon-row">
-              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#E0E7FF;">✅</div>
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;background:#E0E7FF;"><svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
               <span class="feature-module-name" style="color:#818CF8;">Tasks</span>
             </div>
             <h3>Kanban for your team</h3>
@@ -1929,7 +2581,7 @@
           </div>
           <div class="carousel-card-body">
             <div class="feature-icon-row">
-              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#FEF3C7;">📅</div>
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;background:#FEF3C7;"><svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
               <span class="feature-module-name" style="color:#D97706;">Calendar</span>
             </div>
             <h3>Who's off, at a glance</h3>
@@ -1938,15 +2590,41 @@
         </div>
         <div class="carousel-card" data-module="people">
           <div class="carousel-card-img">
-            <img src="images/people-and-team.jpeg" alt="People directory" loading="lazy" width="960" height="600">
+            <img src="images/people.png" alt="People directory" loading="lazy" width="960" height="600">
           </div>
           <div class="carousel-card-body">
             <div class="feature-icon-row">
-              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;font-size:16px;background:#FCE7F3;">👥</div>
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;background:#FCE7F3;"><svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
               <span class="feature-module-name" style="color:#EC4899;">People</span>
             </div>
             <h3>Team directory, organized</h3>
             <p>Profiles, reporting lines, departments, and status — searchable.</p>
+          </div>
+        </div>
+        <div class="carousel-card" data-module="performance">
+          <div class="carousel-card-img">
+            <img src="images/reports.png" alt="Performance insights" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;background:#FEF3E0;"><svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+              <span class="feature-module-name" style="color:#F59E0B;">Performance</span>
+            </div>
+            <h3>Track what matters</h3>
+            <p>Attendance, tasks, leave analytics with rankings and grade distribution.</p>
+          </div>
+        </div>
+        <div class="carousel-card" data-module="dashboard">
+          <div class="carousel-card-img">
+            <img src="images/dashboard-1.png" alt="Custom dashboards" loading="lazy" width="960" height="600">
+          </div>
+          <div class="carousel-card-body">
+            <div class="feature-icon-row">
+              <div class="feature-emoji" style="width:36px;height:36px;border-radius:10px;background:#EDE9FE;"><svg style="width:18px;height:18px;" viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x="3" y="9" x2="21" y2="9"/><line x="9" y="21" x2="9" y2="9"/></svg></div>
+              <span class="feature-module-name" style="color:#8B5CF6;">Custom Dashboard</span>
+            </div>
+            <h3>Build your own view</h3>
+            <p>Create custom charts and visualizations from all your team data.</p>
           </div>
         </div>
       </div>
@@ -1958,6 +2636,8 @@
         <button class="carousel-dot" data-index="4"></button>
         <button class="carousel-dot" data-index="5"></button>
         <button class="carousel-dot" data-index="6"></button>
+        <button class="carousel-dot" data-index="7"></button>
+        <button class="carousel-dot" data-index="8"></button>
       </div>
     </div>
 
@@ -1965,7 +2645,7 @@
     <div class="feature-block reveal" data-module="overview">
       <div class="feature-text">
         <div class="feature-icon-row">
-          <div class="feature-emoji">🏠</div>
+          <div class="feature-emoji" style="background:#EFEDFD;"><svg viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
           <span class="feature-module-name">Overview</span>
         </div>
         <h3>Everything at a glance</h3>
@@ -1988,7 +2668,7 @@
     <div class="feature-block reverse reveal" data-module="attendance">
       <div class="feature-text">
         <div class="feature-icon-row">
-          <div class="feature-emoji">⏱</div>
+          <div class="feature-emoji" style="background:#EDE9FE;"><svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
           <span class="feature-module-name">Attendance</span>
         </div>
         <h3>Clock in, track time, stay compliant</h3>
@@ -2011,7 +2691,7 @@
     <div class="feature-block reveal" data-module="leave">
       <div class="feature-text">
         <div class="feature-icon-row">
-          <div class="feature-emoji">🏖</div>
+          <div class="feature-emoji" style="background:#EFEDFD;"><svg viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17h5v-5"/><path d="M17 17c0-5-3-8-8-8s-8 3-8 8"/><path d="M9 2L7 7"/><path d="M15 2l2 5"/><path d="M12 2v5"/></svg></div>
           <span class="feature-module-name">Leave</span>
         </div>
         <h3>Leave requests, without the back-and-forth</h3>
@@ -2034,7 +2714,7 @@
     <div class="feature-block reverse reveal" data-module="claims">
       <div class="feature-text">
         <div class="feature-icon-row">
-          <div class="feature-emoji">💰</div>
+          <div class="feature-emoji" style="background:#D1FAE5;"><svg viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
           <span class="feature-module-name">Claims</span>
         </div>
         <h3>Expense claims, tracked to the rupiah</h3>
@@ -2057,7 +2737,7 @@
     <div class="feature-block reveal" data-module="tasks">
       <div class="feature-text">
         <div class="feature-icon-row">
-          <div class="feature-emoji">✅</div>
+          <div class="feature-emoji" style="background:#E0E7FF;"><svg viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
           <span class="feature-module-name">Tasks</span>
         </div>
         <h3>Kanban boards for your whole team</h3>
@@ -2080,7 +2760,7 @@
     <div class="feature-block reverse reveal" data-module="calendar">
       <div class="feature-text">
         <div class="feature-icon-row">
-          <div class="feature-emoji">📅</div>
+          <div class="feature-emoji" style="background:#FEF3C7;"><svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
           <span class="feature-module-name">Calendar</span>
         </div>
         <h3>See who's off, at a glance</h3>
@@ -2103,7 +2783,7 @@
     <div class="feature-block reveal" data-module="people">
       <div class="feature-text">
         <div class="feature-icon-row">
-          <div class="feature-emoji">👥</div>
+          <div class="feature-emoji" style="background:#FCE7F3;"><svg viewBox="0 0 24 24" fill="none" stroke="#EC4899" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
           <span class="feature-module-name">People</span>
         </div>
         <h3>Your team directory, organized</h3>
@@ -2117,7 +2797,64 @@
       </div>
       <div class="feature-visual">
         <div class="screenshot-wrapper">
-          <img src="images/people-and-team.jpeg" alt="Workived people directory with employee profiles, reporting lines and status filters" loading="lazy" width="960" height="600">
+          <img src="images/people.png" alt="Workived people directory with employee profiles, reporting lines and status filters" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Performance -->
+    <div class="feature-block reverse reveal" data-module="performance">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji" style="background:#FEF3E0;"><svg viewBox="0 0 24 24" fill="none" stroke="#F59E0B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+          <span class="feature-module-name">Performance</span>
+        </div>
+        <h3>Track what matters</h3>
+        <p>Monitor team performance with real-time insights on attendance, task completion, leave usage, and employee rankings.</p>
+        <ul class="feature-bullets">
+          <li>Attendance trends & punctuality rates</li>
+          <li>Task completion by employee & period</li>
+          <li>Leave utilization analytics</li>
+          <li>Team ranking with grade distribution</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <img src="images/reports.png" alt="Workived performance dashboard showing attendance, task completion, team rankings and analytics" loading="lazy" width="960" height="600">
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. Custom Dashboard -->
+    <div class="feature-block reveal" data-module="dashboard">
+      <div class="feature-text">
+        <div class="feature-icon-row">
+          <div class="feature-emoji" style="background:#EDE9FE;"><svg viewBox="0 0 24 24" fill="none" stroke="#8B5CF6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg></div>
+          <span class="feature-module-name">Custom Dashboard</span>
+        </div>
+        <h3>Build your own view</h3>
+        <p>Create custom dashboards with charts and metrics from all your data — tasks, attendance, leave, claims, and more. Query anything, visualize everything.</p>
+        <ul class="feature-bullets">
+          <li>Drag-and-drop dashboard builder</li>
+          <li>Query data from all modules</li>
+          <li>Custom charts and visualizations</li>
+          <li>Save and share team dashboards</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="screenshot-wrapper">
+          <div class="dashboard-gallery">
+            <div class="dashboard-gallery-images">
+              <img src="images/dashboard-0.png" alt="Workived custom dashboard - Overview" loading="lazy" width="960" height="600" class="dashboard-gallery-image active">
+              <img src="images/dashboard-1.png" alt="Workived custom dashboard - Analytics" loading="lazy" width="960" height="600" class="dashboard-gallery-image">
+              <img src="images/dashboard-2.png" alt="Workived custom dashboard - Builder" loading="lazy" width="960" height="600" class="dashboard-gallery-image">
+            </div>
+            <div class="dashboard-gallery-dots">
+              <button class="dashboard-gallery-dot active" data-index="0"></button>
+              <button class="dashboard-gallery-dot" data-index="1"></button>
+              <button class="dashboard-gallery-dot" data-index="2"></button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -2145,20 +2882,154 @@
 
     <div class="steps-grid">
       <div class="step-card reveal">
-        <div class="step-number">1</div>
-        <h3>Sign up free</h3>
-        <p>Create your workspace in under a minute. No credit card, no setup wizard, no demo call.</p>
+        <div class="step-left">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-num-label">Step 01</div>
+          <h3>Sign up free</h3>
+          <p>Create your workspace in under a minute. No credit card, no setup wizard, no demo call.</p>
+        </div>
       </div>
       <div class="step-card reveal reveal-delay-1">
-        <div class="step-number">2</div>
-        <h3>Invite your team</h3>
-        <p>Add employees by email. They get instant access to clock in, request leave, and submit claims.</p>
+        <div class="step-left">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-num-label">Step 02</div>
+          <h3>Invite your team</h3>
+          <p>Add employees by email. They get instant access to clock in, request leave, and submit claims.</p>
+        </div>
       </div>
       <div class="step-card reveal reveal-delay-2">
-        <div class="step-number">3</div>
-        <h3>You're live</h3>
-        <p>Attendance, leave, claims, tasks — everything works out of the box. Customize as you go.</p>
+        <div class="step-left">
+          <div class="step-dot"></div>
+          <div class="step-line"></div>
+        </div>
+        <div class="step-right">
+          <div class="step-num-label">Step 03</div>
+          <h3>You're live</h3>
+          <p>Attendance, leave, claims, tasks — everything works out of the box. Customize as you go.</p>
+        </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ SECURITY & TRUST ═══════════ -->
+  <section class="security-section" id="security">
+    <div class="security-inner reveal">
+      <div class="security-statement">
+        <span class="section-label">Your data is safe</span>
+        <h2>We treat your<br>team's data like<br><span class="muted">it's our own.</span></h2>
+        <p>Because it was. We used Workived internally for years before anyone else touched it. Security isn't a feature — it's the foundation.</p>
+      </div>
+
+      <div class="security-checks">
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Encrypted everywhere</h4>
+            <p>AES-256 at rest, TLS 1.3 in transit. Nothing leaves unprotected.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Isolated per organisation</h4>
+            <p>Your data is walled off from every other team. By architecture, not just policy.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Role-based access control</h4>
+            <p>Employees, managers, admins — each sees only what they should.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Full audit trail</h4>
+            <p>Every action logged. Who changed what, when, and from where.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Indonesia & UAE compliance</h4>
+            <p>Leave rules, holidays, and labour regs built in — not bolted on after.</p>
+          </div>
+        </div>
+        <div class="security-check">
+          <div class="check-marker"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></div>
+          <div class="check-text">
+            <h4>Automated backups</h4>
+            <p>Your data is backed up continuously. 99.9% uptime target.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ AI VISION ═══════════ -->
+  <section class="ai-section" id="ai">
+    <div class="ai-inner">
+      <div class="ai-header reveal">
+        <span class="section-label"><svg style="width:14px;height:14px;display:inline-block;margin-right:6px;vertical-align:middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>AI-Powered - Available exclusively on the Pro plan</span>
+        <h2>Just ask.<br><span class="muted">Workived does the rest.</span></h2>
+      </div>
+
+      <div class="ai-chat-area reveal">
+        <!-- Floating prompt bubbles -->
+        <div class="ai-float-bubble"><strong>Most on-time employee?</strong></div>
+        <div class="ai-float-bubble"><strong>Turnover this year?</strong></div>
+        <div class="ai-float-bubble"><strong>Sales this month?</strong></div>
+        <div class="ai-float-bubble"><strong>Pending expense claims?</strong></div>
+        <div class="ai-float-bubble"><strong>Who's on leave next week?</strong></div>
+        <div class="ai-float-bubble"><strong>Average attendance rate?</strong> </div>
+        <div class="ai-float-bubble"><strong>Overdue tasks?</strong> </div>
+        <div class="ai-float-bubble"><strong>Sick days this quarter?</strong></div>
+
+        <div class="ai-chat-window">
+          <div class="ai-chat-bar">
+            <div class="ai-chat-bar-dot"></div>
+            <span class="ai-chat-bar-title">Workived AI</span>
+            <span class="ai-chat-bar-badge">Pro</span>
+          </div>
+          <div class="ai-chat-messages">
+            <div class="ai-msg user">
+              <div class="ai-msg-avatar">WD</div>
+              <div class="ai-msg-bubble">I want to take a leave from 17 Aug to 20 Aug.</div>
+            </div>
+            <div class="ai-msg bot">
+              <div class="ai-msg-avatar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M18 14a6 6 0 0 1-12 0"/><path d="M12 18v4"/></svg>
+              </div>
+              <div class="ai-msg-bubble">Done! I've submitted a <strong>4-day annual leave</strong> request (17–20 Aug). Your manager has been notified. You have <strong>12 days</strong> remaining.</div>
+            </div>
+          </div>
+          <div class="ai-chat-input">
+            <div class="ai-chat-input-field">Ask anything about your team…</div>
+            <div class="ai-chat-send">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+  </section>
+
+  <!-- ═══════════ TRUST STRIP ═══════════ -->
+  <section class="trust-section">
+    <div class="trust-inner reveal">
+      <div class="trust-avatars">
+        <div class="trust-avatar" style="background: var(--accent);">D</div>
+        <div class="trust-avatar" style="background: #818CF8;">A</div>
+        <div class="trust-avatar" style="background: #10B981;">R</div>
+      </div>
+      <p class="trust-quote">"We built Workived because we needed it. We've used it every single day for years before showing it to anyone."</p>
+      <p class="trust-meta">— The founding team, who still clock in on it daily</p>
     </div>
   </section>
 
@@ -2178,7 +3049,7 @@
         </div>
         <p class="pricing-desc">Everything you need to run a small team. No credit card required.</p>
         <ul class="pricing-features">
-          <li>Up to 25 employees</li>
+          <li>Up to 15 employees</li>
           <li>All 7 modules included</li>
           <li>Attendance, leave & claims</li>
           <li>Task boards & calendar</li>
@@ -2199,30 +3070,17 @@
         <div class="pricing-savings">We're finalising pricing — early users lock in the best rate</div>
         <p class="pricing-desc" style="margin-top: 12px;">For growing teams who need more power and flexibility.</p>
         <ul class="pricing-features">
+          <li><strong style="color: var(--accent);"><svg style="width:14px;height:14px;display:inline-block;margin-right:4px;vertical-align:middle;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>AI Assistant — ask anything</strong></li>
           <li>Unlimited employees</li>
           <li>Everything in Explore</li>
           <li>Custom leave policies</li>
           <li>Advanced claim budgets</li>
-          <li>Team analytics & reports</li>
+          <li>Performance analytics & custom dashboards</li>
           <li>Priority support</li>
           <li>Custom branding</li>
         </ul>
         <a href="mailto:my@workived.com" class="pricing-cta filled">Join the Waitlist</a>
       </div>
-    </div>
-  </section>
-
-  <!-- ═══════════ TRUST STRIP ═══════════ -->
-  <section class="trust-section">
-    <div class="trust-inner reveal">Coming Soon — Free for small teams
-
-      <div class="trust-avatars">
-        <div class="trust-avatar" style="background: var(--accent);">D</div>
-        <div class="trust-avatar" style="background: #818CF8;">A</div>
-        <div class="trust-avatar" style="background: #10B981;">R</div>
-      </div>
-      <p class="trust-quote">"We built Workived because we needed it. We've used it every single day for years before showing it to anyone."</p>
-      <p class="trust-meta">— The founding team, who still clock in on it daily</p>
     </div>
   </section>
 
@@ -2240,13 +3098,13 @@
           <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
         <div class="faq-answer">
-          <p>Yes. The Explore plan is free forever for teams up to 25 employees. All 7 modules included. No credit card, no trial that expires, no surprise invoices.</p>
+          <p>Yes. The Explore plan is free forever for teams up to 15 employees. All 9 modules included. No credit card, no trial that expires, no surprise invoices.</p>
         </div>
       </div>
 
       <div class="faq-item">
         <button class="faq-question">
-          What happens when my team grows past 25?
+          What happens when my team grows past 15?
           <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </button>
         <div class="faq-answer">
@@ -2283,6 +3141,36 @@
           <p>Not yet — but it's coming soon. Payroll is on our roadmap and will integrate seamlessly with attendance, leave, and claims data already in Workived. Join early access to be the first to know when it launches.</p>
         </div>
       </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          How does the Custom Dashboard work?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>The Custom Dashboard lets you query and visualize any data from tasks, attendance, leave, claims, and more. Drag and drop widgets, create custom charts, and save dashboards for your team. It's like having a business intelligence tool built right in.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          Do you have a mobile app?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>Yes! Workived has native iOS and Android apps for employees to clock in/out, request leave, submit claims, and check tasks on the go. Managers can approve requests and track team activity from anywhere.</p>
+        </div>
+      </div>
+
+      <div class="faq-item">
+        <button class="faq-question">
+          How does the AI assistant work?
+          <svg class="faq-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </button>
+        <div class="faq-answer">
+          <p>The AI assistant (Pro plan only) lets you query your team data in natural language. Ask questions like "Who's on leave next week?" or "Show me attendance trends this month" and get instant answers with visualizations. It can also perform actions like submitting leave requests.</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -2290,7 +3178,7 @@
   <section class="cta-section">
     <div class="cta-content reveal">
       <h2>Ready to simplify<br><span class="highlight">your team ops?</span></h2>
-      <p>Workived is launching soon. Free for teams up to 25 people. No credit card, no trial period, no catch.</p>
+      <p>Workived is launching soon. Free for teams up to 15 people. No credit card, no trial period, no catch.</p>
       <a href="mailto:my@workived.com" class="btn-primary">
         Get Early Access
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
@@ -2306,6 +3194,7 @@
           <defs><linearGradient id="gf" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9B8FF7"/><stop offset="100%" stop-color="#6357E8"/></linearGradient></defs>
           <rect width="180" height="180" rx="30" fill="url(#gf)"/>
           <text x="90" y="112" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',-apple-system,sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+          <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
         </svg>
         <span class="footer-wordmark">Workived</span>
         <span class="footer-copy">© 2026</span>
@@ -2321,7 +3210,7 @@
   <!-- ═══════════ SUPPORT WIDGET ═══════════ -->
   <div class="support-float">
     <div class="support-card" id="supportCard">
-      <div class="support-card-header">We're all ears 👂</div>
+      <div class="support-card-header">We're all ears</div>
       <div class="typing-indicator" id="typingIndicator">
         <div class="typing-dot"></div>
         <div class="typing-dot"></div>
@@ -2343,11 +3232,36 @@
   </div>
 
   <script>
-    // Header shadow on scroll
+    // 👀
+    console.log('%c🛠️ Hey, you opened DevTools!', 'font-size:18px;font-weight:bold;color:#6357E8;');
+    console.log('%cYou must be a builder too.', 'font-size:14px;color:#72708A;');
+    console.log('%cWe\'re hiring nobody — we built this whole thing with 3 people and an unreasonable amount of coffee.', 'font-size:12px;color:#B0AEBE;');
+    console.log('%c☕ Total coffees during development: 1,247 (and counting)', 'font-size:12px;color:#D97706;');
+    console.log('%c🐛 Bugs squashed: more than we\'d like to admit', 'font-size:12px;color:#10B981;');
+    console.log('%c💡 If you\'re reading this, you\'re exactly the kind of person who\'d love Workived. Just saying.', 'font-size:12px;color:#6357E8;');
+    console.log('%cPS: No, the leave feature really was built while on leave. That\'s not marketing.', 'font-size:11px;color:#B0AEBE;font-style:italic;');
+
+    // Header: adapt bg based on section behind it
     const header = document.getElementById('header');
-    window.addEventListener('scroll', () => {
+    const darkSections = document.querySelectorAll('.confront-section, .security-section, .trust-section, .cta-section');
+    
+    const updateHeaderBg = () => {
       header.classList.toggle('scrolled', window.scrollY > 10);
-    }, { passive: true });
+      if (window.scrollY <= 10) {
+        header.classList.remove('on-light', 'on-dark');
+        return;
+      }
+      const headerBottom = header.getBoundingClientRect().bottom;
+      let onDark = false;
+      darkSections.forEach(s => {
+        const r = s.getBoundingClientRect();
+        if (r.top < headerBottom && r.bottom > 0) onDark = true;
+      });
+      header.classList.toggle('on-dark', onDark);
+      header.classList.toggle('on-light', !onDark);
+    };
+    window.addEventListener('scroll', updateHeaderBg, { passive: true });
+    updateHeaderBg();
 
     // Scroll reveal animations
     const observer = new IntersectionObserver(
@@ -2460,6 +3374,55 @@
       }, { passive: true });
     }
 
+    // Dashboard gallery
+    document.querySelectorAll('.dashboard-gallery').forEach(gallery => {
+      const images = gallery.querySelectorAll('.dashboard-gallery-image');
+      const dots = gallery.querySelectorAll('.dashboard-gallery-dot');
+      
+      dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+          const index = parseInt(dot.dataset.index);
+          
+          // Update images
+          images.forEach((img, i) => {
+            img.classList.toggle('active', i === index);
+          });
+          
+          // Update dots
+          dots.forEach((d, i) => {
+            d.classList.toggle('active', i === index);
+          });
+        });
+      });
+    });
+
+    // Dashboard showcase horizontal slider
+    const dashboardSlider = document.querySelector('.dashboard-slider-track');
+    if (dashboardSlider) {
+      const dots = document.querySelectorAll('.dashboard-slider-dot');
+      
+      // Dot click navigation
+      dots.forEach(dot => {
+        dot.addEventListener('click', () => {
+          const index = parseInt(dot.dataset.index);
+          const slide = dashboardSlider.children[index];
+          if (slide) {
+            slide.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          }
+        });
+      });
+      
+      // Update active dot on scroll
+      dashboardSlider.addEventListener('scroll', () => {
+        const scrollLeft = dashboardSlider.scrollLeft;
+        const slideWidth = dashboardSlider.children[0]?.offsetWidth || 0;
+        const index = Math.round(scrollLeft / slideWidth);
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('active', i === index);
+        });
+      }, { passive: true });
+    }
+
     // FAQ accordion
     document.querySelectorAll('.faq-question').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -2470,31 +3433,39 @@
       });
     });
 
-    // Auto-open after 3s
-    setTimeout(() => {
-      playNotificationSound();
-      supportBtn.classList.add('buzz');
-      setTimeout(() => {
-        supportBtn.classList.remove('buzz');
-        if (!autoOpenDismissed) {
-          cardHeader.textContent = originalHeader;
-          cardText.textContent = '';
-          supportBtn.classList.add('active');
-          supportCard.classList.add('active');
-          typingIndicator.classList.add('active');
-          setTimeout(async () => {
-            typingIndicator.classList.remove('active');
-            await typeText(cardText, originalText, 20);
-          }, 1500);
-        }
+    // AI floating bubbles — show 4 at a time, cycle one by one
+    (() => {
+      const bubbles = document.querySelectorAll('.ai-float-bubble');
+      if (!bubbles.length) return;
+      const total = bubbles.length;
+      const showCount = 4;
+      let active = new Set();
+
+      // Pick initial 4 random indices
+      while (active.size < showCount) {
+        active.add(Math.floor(Math.random() * total));
+      }
+      active.forEach(i => bubbles[i].classList.add('visible'));
+
+      setInterval(() => {
+        // Pick one active to hide
+        const activeArr = [...active];
+        const hideIdx = activeArr[Math.floor(Math.random() * activeArr.length)];
+        bubbles[hideIdx].classList.remove('visible');
+        active.delete(hideIdx);
+
+        // After fade out, show a new one
         setTimeout(() => {
-          if (!autoOpenDismissed) {
-            supportBtn.classList.remove('active');
-            supportCard.classList.remove('active');
+          const inactive = [];
+          for (let i = 0; i < total; i++) {
+            if (!active.has(i)) inactive.push(i);
           }
-        }, 15000);
-      }, 600);
-    }, 3000);
+          const showIdx = inactive[Math.floor(Math.random() * inactive.length)];
+          bubbles[showIdx].classList.add('visible');
+          active.add(showIdx);
+        }, 600);
+      }, 2200);
+    })();
   </script>
 
 </body>

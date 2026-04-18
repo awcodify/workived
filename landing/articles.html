@@ -45,15 +45,18 @@
     .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;}
     .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.35);}
 
-    /* Hero */
-    .hero{padding:96px 24px 64px;text-align:center;}
-    .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:100px;background:var(--accent-dim);border:1px solid rgba(99,87,232,0.15);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent-text);margin-bottom:28px;}
-    .hero h1{font-size:clamp(38px,6vw,64px);font-weight:800;letter-spacing:-0.05em;line-height:1.05;margin-bottom:20px;color:var(--ink-900);}
-    .hero h1 em{font-style:normal;color:var(--accent);}
-    .hero-sub{font-size:18px;color:var(--ink-500);line-height:1.65;max-width:480px;margin:0 auto;}
+    /* Topic bar */
+    .topic-bar{
+      max-width:1040px;margin:0 auto;padding:96px 24px 0;
+      display:flex;align-items:center;gap:20px;flex-wrap:wrap;
+    }
+    .topic-bar-greeting{
+      font-size:32px;font-weight:800;letter-spacing:-0.04em;color:var(--ink-900);width:100%;
+    }
+    .topic-bar-greeting span{color:var(--ink-300);}
 
     /* Featured article */
-    .featured{padding:0 24px 72px;}
+    .featured{padding:32px 24px 72px;}
     .featured-inner{max-width:1040px;margin:0 auto;}
     .featured-card{display:grid;grid-template-columns:1fr 1fr;gap:0;border-radius:24px;overflow:hidden;background:var(--ink-50);border:1px solid var(--ink-100);transition:box-shadow 0.3s,transform 0.3s;text-decoration:none;color:inherit;}
     .featured-card:hover{box-shadow:0 20px 56px rgba(0,0,0,0.08);transform:translateY(-4px);}
@@ -158,7 +161,9 @@
     }
     @media(max-width:700px){
       .nav{padding:0 20px;}.nav-links a:not(.nav-cta){display:none;}
-      .hero{padding:72px 20px 48px;}
+      .topic-bar{padding:80px 20px 0;}
+      .topic-bar-greeting{font-size:24px;width:100%;}
+      .featured{padding:24px 20px 48px;}
       .newsletter-card{padding:32px 24px;}
       .footer{padding:32px 20px 24px;}
       .footer-inner{flex-direction:column;gap:16px;text-align:center;}
@@ -183,12 +188,10 @@
     </div>
   </nav>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="hero-eyebrow">From the Workived team</div>
-    <h1>Insights to help your<br><em>team thrive.</em></h1>
-    <p class="hero-sub">HR operations, team management, and startup culture — practical reads for founders and ops leads.</p>
-  </section>
+  <!-- Topic bar -->
+  <div class="topic-bar reveal">
+    <div class="topic-bar-greeting" id="greeting">Good morning. <span>Here's what's new.</span></div>
+  </div>
 
   <!-- Featured Article -->
   <section class="featured">
@@ -351,6 +354,13 @@
   </footer>
 
   <script>
+    // Time-aware greeting
+    (() => {
+      const h = new Date().getHours();
+      const g = h < 12 ? 'Good morning.' : h < 17 ? 'Good afternoon.' : 'Good evening.';
+      document.getElementById('greeting').innerHTML = g + '<span> Insights to help your<br><em>team thrive.</em></span>';
+    })();
+
     // Scroll reveal
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
