@@ -1180,6 +1180,34 @@ export interface QueryResult {
   value?: number // scalar for KPI widgets
 }
 
+// ── Announcements ────────────────────────────────────────────
+export interface Announcement {
+  id: string
+  organisation_id: string
+  author_id: string
+  author_name: string
+  title: string
+  body: string
+  is_pinned: boolean
+  is_read: boolean
+  published_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CreateAnnouncementRequest {
+  title: string
+  body: string
+  is_pinned?: boolean
+  publish?: boolean
+}
+
+export interface UpdateAnnouncementRequest {
+  title: string
+  body: string
+  is_pinned?: boolean
+}
+
 // ── API wrapper ──────────────────────────────────────────────
 // All API responses are wrapped in {"data": ...}
 export interface ApiResponse<T> {

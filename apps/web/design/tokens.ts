@@ -46,6 +46,8 @@ export const moduleBackgrounds = {
   claims:      '#F3F2FB',  // soft violet
   tasks:       '#FDF4E3',  // warm amber energy
   reports:     '#0F0F1A',  // deep indigo night
+  announcements: '#FFF8F0', // warm peach
+  settings:    '#F0F0F5',  // neutral grey
 } as const
 
 // ── DOCK THEMES ───────────────────────────────────────────────
@@ -126,6 +128,28 @@ export const dockThemes = {
       bg:    'rgba(255,255,255,0.15)',
       icon:  '#FFFFFF',
       label: 'rgba(255,255,255,0.85)',
+    },
+  },
+  announcements: {
+    bg:     'rgba(180,80,20,0.07)',
+    border: 'rgba(180,80,20,0.10)',
+    icon:   'rgba(180,80,20,0.30)',
+    label:  'rgba(180,80,20,0.30)',
+    active: {
+      bg:    'rgba(180,80,20,0.12)',
+      icon:  '#B45014',
+      label: '#B45014',
+    },
+  },
+  settings: {
+    bg:     'rgba(60,60,80,0.07)',
+    border: 'rgba(60,60,80,0.10)',
+    icon:   'rgba(60,60,80,0.30)',
+    label:  'rgba(60,60,80,0.30)',
+    active: {
+      bg:    'rgba(60,60,80,0.12)',
+      icon:  '#3C3C50',
+      label: '#3C3C50',
     },
   },
 } as const

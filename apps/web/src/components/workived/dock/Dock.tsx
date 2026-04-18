@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { to: '/claims', label: 'Claims', icon: Receipt, module: 'claims' as ModuleKey, featureKey: null, notificationKey: 'claims', hideOnMobile: false },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'calendar' as ModuleKey, featureKey: null, notificationKey: null, hideOnMobile: false },
   { to: '/reports/dashboards', label: 'Dashboards', icon: LayoutDashboard, module: 'reports' as ModuleKey, featureKey: 'reports', notificationKey: null, hideOnMobile: false },
-  { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey, featureKey: null, notificationKey: 'people', hideOnMobile: true }
+  { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey, featureKey: null, notificationKey: 'people', hideOnMobile: true },
 ] as const
 
 function getCurrentModule(pathname: string): ModuleKey {

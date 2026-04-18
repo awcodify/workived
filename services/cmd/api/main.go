@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/workived/services/internal/admin"
+	"github.com/workived/services/internal/announcements"
 	"github.com/workived/services/internal/dashboard"
 	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/internal/audit"
@@ -125,6 +126,7 @@ func main() {
 	calendarRepo := calendar.NewRepository(db)
 	reportsRepo := reports.NewRepository(db)
 	dashboardRepo := dashboard.NewRepository(db, log)
+	annRepo := announcements.NewRepository(db)
 
 	// ── Cache ────────────────────────────────────────────────────────────────
 	cacheStore := cache.New(rdb, log)
@@ -148,6 +150,7 @@ func main() {
 	calendarSvc := calendar.NewService(calendarRepo, orgRepo, log)
 	reportsSvc := reports.NewService(reportsRepo, log)
 	dashboardSvc := dashboard.NewService(dashboardRepo, dashboard.WithLogger(log), dashboard.WithCache(cacheStore))
+	annSvc := announcements.NewService(annRepo, log)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	authHandler := auth.NewHandler(authSvc)
@@ -205,6 +208,13 @@ func main() {
 	employmentHistoryHandler := employmentchange.NewHandler(employmentChangeRepo)
 
 	dashboardHandler := dashboard.NewHandler(dashboardSvc, log)
+	annHandler := announcements.NewHandler(annSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
+		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
+		if err != nil {
+			return uuid.Nil, err
+		}
+		return emp.ID, nil
+	}, log)
 
 	reportsHandler := reports.NewHandler(reportsSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
 		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
@@ -294,6 +304,7 @@ func main() {
 	uploadHandler.RegisterRoutes(authed)
 	reportsHandler.RegisterRoutes(authed)
 	dashboardHandler.RegisterRoutes(authed)
+	annHandler.RegisterRoutes(authed)
 
 	// Admin routes (super_admin only — Workived internal team)
 	adminHandler.RegisterRoutes(authOnly)

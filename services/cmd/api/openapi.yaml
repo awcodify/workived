@@ -3451,6 +3451,197 @@ components:
         type: string
         format: uuid
 
+  # ── Announcements ────────────────────────────────────────────────────────
+  /announcements:
+    get:
+      operationId: listAnnouncements
+      summary: List published announcements
+      description: Returns published announcements for the employee, with is_read flag.
+      tags: [Announcements]
+      responses:
+        "200":
+          description: List of announcements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Announcement"
+    post:
+      operationId: createAnnouncement
+      summary: Create announcement (admin)
+      tags: [Announcements]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateAnnouncementRequest"
+      responses:
+        "201":
+          description: Created announcement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Announcement"
+
+  /announcements/admin:
+    get:
+      operationId: listAnnouncementsAdmin
+      summary: List all announcements including drafts (admin)
+      tags: [Announcements]
+      responses:
+        "200":
+          description: List of announcements
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Announcement"
+
+  /announcements/unread-count:
+    get:
+      operationId: getAnnouncementUnreadCount
+      summary: Get unread announcement count for current employee
+      tags: [Announcements]
+      responses:
+        "200":
+          description: Unread count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      count:
+                        type: integer
+
+  /announcements/{id}:
+    put:
+      operationId: updateAnnouncement
+      summary: Update announcement (admin)
+      tags: [Announcements]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAnnouncementRequest"
+      responses:
+        "200":
+          description: Updated announcement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Announcement"
+    delete:
+      operationId: deleteAnnouncement
+      summary: Delete announcement (admin)
+      tags: [Announcements]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Deleted
+
+  /announcements/{id}/publish:
+    patch:
+      operationId: publishAnnouncement
+      summary: Publish announcement (admin)
+      tags: [Announcements]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Published announcement
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Announcement"
+
+  /announcements/{id}/pin:
+    patch:
+      operationId: pinAnnouncement
+      summary: Pin announcement (admin)
+      tags: [Announcements]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Pinned announcement
+
+  /announcements/{id}/unpin:
+    patch:
+      operationId: unpinAnnouncement
+      summary: Unpin announcement (admin)
+      tags: [Announcements]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Unpinned announcement
+
+  /announcements/{id}/read:
+    post:
+      operationId: markAnnouncementRead
+      summary: Mark announcement as read
+      tags: [Announcements]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Marked as read
+
   # ── Reusable responses ──────────────────────────────────────────────────
   responses:
     MessageResponse:
@@ -6098,6 +6289,71 @@ components:
           minLength: 1
           maxLength: 100
         is_default:
+          type: boolean
+
+    Announcement:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        author_id:
+          type: string
+          format: uuid
+        author_name:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        is_pinned:
+          type: boolean
+        is_read:
+          type: boolean
+        published_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    CreateAnnouncementRequest:
+      type: object
+      required: [title, body]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        body:
+          type: string
+          minLength: 1
+        is_pinned:
+          type: boolean
+          default: false
+        publish:
+          type: boolean
+          default: false
+
+    UpdateAnnouncementRequest:
+      type: object
+      required: [title, body]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
+        body:
+          type: string
+          minLength: 1
+        is_pinned:
           type: boolean
 
     CreateWidgetRequest:
