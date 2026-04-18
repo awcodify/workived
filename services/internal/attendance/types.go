@@ -25,6 +25,7 @@ type Record struct {
 	IsLate            bool       `json:"is_late"`
 	IsLeavingEarly    bool       `json:"is_leaving_early"`
 	IsOvertime        bool       `json:"is_overtime"`
+	IsCorrected       bool       `json:"is_corrected"`
 	Note              *string    `json:"note,omitempty"`
 	CreatedAt         time.Time  `json:"created_at"`
 	UpdatedAt         time.Time  `json:"updated_at"`
@@ -92,6 +93,7 @@ type WeekDay struct {
 	IsToday        bool       `json:"is_today"`
 	IsLeavingEarly bool       `json:"is_leaving_early,omitempty"`
 	IsOvertime     bool       `json:"is_overtime,omitempty"`
+	IsCorrected    bool       `json:"is_corrected,omitempty"`
 }
 
 // WeekCalendar contains 7 days (Monday–Sunday) for the week calendar view.

@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules, useDailyReport } from '@/lib/hooks/useAttendance'
+import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules, useDailyReport, useCorrections } from '@/lib/hooks/useAttendance'
 import { useMyEmployee } from '@/lib/hooks/useEmployees'
 import { LocationAnalyticsWidget } from '@/components/workived/attendance/LocationAnalyticsWidget'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
@@ -611,6 +611,9 @@ function AttendancePage() {
               </div>
             )}
 
+            {/* Corrections widget */}
+            <CorrectionsWidget onViewAll={() => setCorrectionsOpen(true)} />
+
             {/* Location Analytics Widget — admin only */}
             {role.canViewAll && (
               <LocationAnalyticsWidget className="mt-6" />
@@ -756,6 +759,21 @@ function AttendancePage() {
             </div>
           )}
 
+          {/* Guide row — above table only in list mode */}
+          {viewMode === 'list' && (
+            <div className="flex items-center gap-3 px-1" style={{ color: t.textMuted }}>
+              <span className="text-[11px]">↓ Click a row to see details and request a correction</span>
+              <span className="text-[11px] opacity-30">·</span>
+              <span
+                className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded"
+                style={{ background: `${colors.accent}15`, color: colors.accent }}
+              >
+                ✎ corrected
+              </span>
+              <span className="text-[11px]">= time was corrected via a correction request</span>
+            </div>
+          )}
+
           {/* Map view */}
           {viewMode === 'map' && role.canViewAll ? (
             <div
@@ -784,7 +802,7 @@ function AttendancePage() {
               style={{ borderColor: t.border }}
             >
               <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 flex-shrink-0"></div> {/* Avatar space */}
+                <div className="w-10 flex-shrink-0"></div>
                 <div className="flex-1 min-w-0 text-sm font-bold" style={{ color: t.text }}>Employee</div>
                 <div className="w-28 flex-shrink-0 text-sm font-bold text-center" style={{ color: t.text }}>Clock In</div>
                 <div className="w-28 flex-shrink-0 text-sm font-bold text-center" style={{ color: t.text }}>Clock Out</div>
@@ -849,6 +867,90 @@ function AttendancePage() {
 }
 
 // ── Subcomponents ──────────────────────────────────────────────
+
+// Corrections Widget — sidebar, shows 3 latest pending corrections
+function CorrectionsWidget({ onViewAll }: { onViewAll: () => void }) {
+  const { data: corrections = [], isLoading } = useCorrections()
+  const pending = corrections.filter((c) => c.status === 'pending')
+  const latest = pending.slice(0, 3)
+
+  if (isLoading) return null
+  if (corrections.length === 0) return null
+
+  return (
+    <div
+      className="mt-6 rounded-2xl p-4"
+      style={{ background: t.surface, border: `1px solid ${t.border}` }}
+      data-testid="corrections-widget"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: t.textMuted }}>
+            Corrections
+          </h3>
+          {pending.length > 0 && (
+            <span
+              className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
+              style={{ background: colors.warnDim, color: colors.warnText }}
+            >
+              {pending.length} pending
+            </span>
+          )}
+        </div>
+        <button
+          onClick={onViewAll}
+          data-testid="corrections-widget-view-all-btn"
+          className="text-[10px] font-bold uppercase px-2 py-1 rounded-md hover:bg-black/5 transition-colors"
+          style={{ color: colors.accent }}
+        >
+          View all
+        </button>
+      </div>
+
+      {latest.length === 0 ? (
+        <p className="text-xs text-center py-2" style={{ color: t.textMuted }}>No pending corrections</p>
+      ) : (
+        <div className="space-y-2">
+          {latest.map((c) => (
+            <button
+              key={c.id}
+              data-testid={`correction-widget-item-${c.id}`}
+              onClick={onViewAll}
+              className="w-full rounded-lg px-3 py-2.5 text-left hover:bg-black/5 transition-colors"
+              style={{ border: `1px solid ${t.border}` }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-bold truncate" style={{ color: t.text }}>{c.employee_name}</p>
+                  <p className="text-[10px] mt-0.5" style={{ color: t.textMuted }}>{c.date}</p>
+                </div>
+                <span
+                  className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full flex-shrink-0"
+                  style={{ background: colors.warnDim, color: colors.warnText }}
+                >
+                  pending
+                </span>
+              </div>
+              {c.reason && (
+                <p className="text-[10px] mt-1 truncate" style={{ color: t.textMuted }}>"{c.reason}"</p>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {pending.length > 3 && (
+        <button
+          onClick={onViewAll}
+          className="w-full mt-2 py-2 text-[11px] font-bold rounded-lg hover:bg-black/5 transition-colors"
+          style={{ color: colors.accent }}
+        >
+          +{pending.length - 3} more corrections →
+        </button>
+      )}
+    </div>
+  )
+}
 
 // Day Button for Horizontal Week Calendar
 interface DayButtonProps {
@@ -1043,7 +1145,7 @@ function EmployeeRow({ employee, date, tz, isMe, isExpanded, onClick, onRequestC
         </div>
 
         {/* Clock In */}
-        <div className="w-28 flex-shrink-0 flex justify-center">
+        <div className="w-28 flex-shrink-0 flex flex-col items-center gap-0.5">
           {clockInTime ? (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
               style={{ background: dayData.status === 'overtime' ? colors.accentDim : colors.okDim }}>
@@ -1060,10 +1162,13 @@ function EmployeeRow({ employee, date, tz, isMe, isExpanded, onClick, onRequestC
               <Clock size={14} style={{ color: t.textMuted, opacity: 0.4 }} />
             </div>
           )}
+          {dayData?.is_corrected && clockInTime && (
+            <span className="text-[9px] font-bold px-1 rounded" style={{ background: `${colors.accent}15`, color: colors.accent }}>✎ corrected</span>
+          )}
         </div>
 
         {/* Clock Out */}
-        <div className="w-28 flex-shrink-0 flex justify-center">
+        <div className="w-28 flex-shrink-0 flex flex-col items-center gap-0.5">
           {clockOutTime ? (
             <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ background: colors.ink100 }}>
               <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: colors.ink500 }} />
@@ -1081,6 +1186,9 @@ function EmployeeRow({ employee, date, tz, isMe, isExpanded, onClick, onRequestC
               <Clock size={14} style={{ color: t.textMuted, opacity: 0.4 }} />
             </div>
           )}
+          {dayData?.is_corrected && clockOutTime && (
+            <span className="text-[9px] font-bold px-1 rounded" style={{ background: `${colors.accent}15`, color: colors.accent }}>✎ corrected</span>
+          )}
         </div>
       </div>
 
@@ -1092,7 +1200,7 @@ function EmployeeRow({ employee, date, tz, isMe, isExpanded, onClick, onRequestC
           style={{ borderColor: t.border, background: isMe ? 'rgba(99,87,232,0.04)' : 'rgba(0,0,0,0.02)' }}
         >
           {/* Detail grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
             <div className="rounded-xl p-3" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
               <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Employee</p>
               <p className="text-sm font-semibold" style={{ color: t.text }}>{employee.employee_name}</p>
@@ -1103,25 +1211,35 @@ function EmployeeRow({ employee, date, tz, isMe, isExpanded, onClick, onRequestC
             </div>
             <div className="rounded-xl p-3" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
               <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Clock In</p>
-              <p className="text-sm font-semibold" style={{ color: t.text }}>
-                {dayData.clock_in_at ? formatDate(dayData.clock_in_at, tz, 'time') : '—'}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold" style={{ color: t.text }}>
+                  {dayData.clock_in_at ? formatDate(dayData.clock_in_at, tz, 'time') : '—'}
+                </p>
+                {dayData.is_corrected && dayData.clock_in_at && (
+                  <span className="text-[9px] font-bold px-1 rounded" style={{ background: `${colors.accent}15`, color: colors.accent }}>✎</span>
+                )}
+              </div>
             </div>
             <div className="rounded-xl p-3" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
               <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Clock Out</p>
-              <p className="text-sm font-semibold" style={{ color: t.text }}>
-                {dayData.clock_out_at ? formatDate(dayData.clock_out_at, tz, 'time') : '—'}
-              </p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-sm font-semibold" style={{ color: t.text }}>
+                  {dayData.clock_out_at ? formatDate(dayData.clock_out_at, tz, 'time') : '—'}
+                </p>
+                {dayData.is_corrected && dayData.clock_out_at && (
+                  <span className="text-[9px] font-bold px-1 rounded" style={{ background: `${colors.accent}15`, color: colors.accent }}>✎</span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Note */}
-          {dayData.note && (
-            <div className="rounded-xl px-3 py-2.5 mb-4" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
-              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Note</p>
-              <p className="text-sm" style={{ color: t.text }}>{dayData.note}</p>
-            </div>
-          )}
+          {/* Note — always show */}
+          <div className="rounded-xl px-3 py-2.5 mb-4" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+            <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Note</p>
+            <p className="text-sm" style={{ color: dayData.note ? t.text : t.textMuted }}>
+              {dayData.note ?? 'No note'}
+            </p>
+          </div>
 
           {/* Correction button — own row only */}
           {isMe && onRequestCorrection && (
@@ -1134,15 +1252,19 @@ function EmployeeRow({ employee, date, tz, isMe, isExpanded, onClick, onRequestC
                   e.stopPropagation()
                   onRequestCorrection(dayData)
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                style={{
-                  color: isPastWorkday ? t.textMuted : `${t.textMuted}60`,
-                  border: `1px solid ${isPastWorkday ? t.border : `${t.border}60`}`,
-                  cursor: isPastWorkday ? 'pointer' : 'not-allowed',
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold transition-all"
+                style={isPastWorkday ? {
+                  background: colors.accent,
+                  color: '#fff',
+                  cursor: 'pointer',
+                } : {
+                  background: `${t.border}`,
+                  color: `${t.textMuted}80`,
+                  cursor: 'not-allowed',
                 }}
               >
-                <Clock size={12} strokeWidth={2} />
-                Request correction
+                <Clock size={13} strokeWidth={2.5} />
+                Request attendance correction
               </button>
               {correctionDisabledReason && (
                 <div

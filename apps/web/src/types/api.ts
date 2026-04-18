@@ -383,6 +383,7 @@ export interface WeekDay {
   is_today: boolean
   is_leaving_early?: boolean
   is_overtime?: boolean
+  is_corrected?: boolean
 }
 
 export interface WeekCalendar {

@@ -644,6 +644,7 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 			weekDay.Note = rec.Note
 			weekDay.IsLeavingEarly = rec.IsLeavingEarly
 			weekDay.IsOvertime = rec.IsOvertime
+				weekDay.IsCorrected = rec.IsCorrected
 		} else if isHoliday {
 			// Public holiday with no attendance
 			weekDay.Status = "holiday"
@@ -826,6 +827,7 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 				weekDay.Note = rec.Note
 				weekDay.IsLeavingEarly = rec.IsLeavingEarly
 				weekDay.IsOvertime = rec.IsOvertime
+				weekDay.IsCorrected = rec.IsCorrected
 			} else if isHoliday {
 				// Public holiday with no attendance
 				weekDay.Status = "holiday"
@@ -1011,6 +1013,7 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 				weekDay.Note = rec.Note
 				weekDay.IsLeavingEarly = rec.IsLeavingEarly
 				weekDay.IsOvertime = rec.IsOvertime
+				weekDay.IsCorrected = rec.IsCorrected
 			} else if isHoliday {
 				// Public holiday with no attendance
 				weekDay.Status = "holiday"
