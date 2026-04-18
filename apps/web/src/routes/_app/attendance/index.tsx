@@ -23,6 +23,12 @@ export const Route = createFileRoute('/_app/attendance/')({
   component: AttendancePage,
 })
 
+function shiftDateISO(dateISO: string, days: number): string {
+  const d = new Date(dateISO + 'T12:00:00Z')
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().split('T')[0] ?? dateISO
+}
+
 // Check if a week start date is in the future
 function isWeekInFuture(weekStart: string, tz: string): boolean {
   try {
@@ -595,7 +601,10 @@ function AttendancePage() {
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setWeekOffset(weekOffset - 1)}
+                  onClick={() => {
+                    setWeekOffset(weekOffset - 1)
+                    setDate(shiftDateISO(date, -7))
+                  }}
                   data-testid="attendance-prev-week-btn"
                   className="p-2 rounded-lg hover:bg-black/5 transition-all"
                   style={{ color: t.textMuted }}
@@ -639,7 +648,12 @@ function AttendancePage() {
                 </div>
                 
                 <button
-                  onClick={() => setWeekOffset(weekOffset + 1)}
+                  onClick={() => {
+                    setWeekOffset(weekOffset + 1)
+                    const nextDate = shiftDateISO(date, 7)
+                    const todayStr = todayISO(tz)
+                    setDate(nextDate > todayStr ? todayStr : nextDate)
+                  }}
                   disabled={!canNavigateNext}
                   data-testid="attendance-next-week-btn"
                   className="p-2 rounded-lg hover:bg-black/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed"

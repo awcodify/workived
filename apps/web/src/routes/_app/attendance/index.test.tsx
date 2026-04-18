@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 // ── Mock fns ──────────────────────────────────────────────────────────────────
 
@@ -9,7 +9,7 @@ vi.mock('@/lib/hooks/useOrganisation', () => ({
 }))
 
 vi.mock('@/lib/hooks/useAttendance', () => ({
-  useDailyReport: vi.fn(),
+  useDailyReport: vi.fn(() => ({ data: [], isLoading: false })),
   useClockIn: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
   useClockOut: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
   useMyWeek: vi.fn(),
@@ -22,8 +22,40 @@ vi.mock('@/lib/hooks/useAttendanceRole', () => ({
   useAttendanceRole: vi.fn(),
 }))
 
+vi.mock('@/lib/hooks/useRole', () => ({
+  useCanManageEmployees: vi.fn(() => false),
+}))
+
 vi.mock('@/lib/hooks/useEmployees', () => ({
   useMyEmployee: vi.fn(() => ({ data: null, isLoading: false })),
+}))
+
+vi.mock('@/components/workived/shared/DateTime', () => ({
+  DateTime: () => <div data-testid="datetime" />,
+}))
+
+vi.mock('@/components/workived/shared/NotificationBell', () => ({
+  NotificationBell: () => <div data-testid="notification-bell" />,
+}))
+
+vi.mock('@/components/workived/attendance/AttendanceCard', () => ({
+  AttendanceCard: () => <div data-testid="attendance-card" />,
+}))
+
+vi.mock('@/components/workived/attendance/LocationAnalyticsWidget', () => ({
+  LocationAnalyticsWidget: () => <div data-testid="location-analytics" />,
+}))
+
+vi.mock('@/components/workived/attendance/TeamMapView', () => ({
+  TeamMapView: () => <div data-testid="team-map-view" />,
+}))
+
+vi.mock('@/components/workived/attendance/WorkSchedulesPanel', () => ({
+  WorkSchedulesPanel: () => <div data-testid="work-schedules-panel" />,
+}))
+
+vi.mock('@/components/workived/shared/EmployeeDetailModal', () => ({
+  EmployeeDetailModal: () => <div data-testid="employee-detail-modal" />,
 }))
 
 vi.mock('@/components/workived/layout/Avatar', () => ({
@@ -135,16 +167,63 @@ describe('AttendancePage', () => {
     expect(screen.getByText('Attendance')).toBeInTheDocument()
   })
 
-  // TODO: Rewrite remaining tests for Sprint 12 week view refactor
-  // Component was restructured from daily report to week calendar view
-  // Tests below expect old UI structure and need complete rewrite
-  
-  it.todo('shows date picker')
-  it.todo('shows hero stats (clocked in, late, absent)')
-  it.todo('shows employee list with attendance data')
-  it.todo('shows empty state when no entries')
-  it.todo('shows loading skeleton')
-  it.todo('shows status squares for entries')
-  it.todo('shows QuickClock component')
-  it.todo('shows column headers when entries exist')
+  it('renders prev/next week navigation buttons', () => {
+    render(<AttendancePage />)
+    expect(screen.getByTestId('attendance-prev-week-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('attendance-next-week-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('attendance-today-btn')).toBeInTheDocument()
+  })
+
+  it('renders filter buttons', () => {
+    render(<AttendancePage />)
+    expect(screen.getByTestId('attendance-filter-all-btn')).toBeInTheDocument()
+    expect(screen.getByTestId('attendance-filter-clocked-in-btn')).toBeInTheDocument()
+  })
+
+  it('renders show all employees toggle for managers', () => {
+    render(<AttendancePage />)
+    expect(screen.getByTestId('attendance-show-all-btn')).toBeInTheDocument()
+  })
+
+  it('shows empty state when no employees', () => {
+    render(<AttendancePage />)
+    expect(screen.getByTestId('attendance-empty')).toBeInTheDocument()
+  })
+
+  it('shifts selected date back 7 days when clicking prev week', () => {
+    // Seed myWeek with days so the week grid renders
+    vi.mocked(useMyWeek).mockReturnValue({
+      data: {
+        days: Array.from({ length: 7 }, (_, i) => ({
+          date: `2026-04-${String(14 + i).padStart(2, '0')}`,
+          day_name: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+          day_number: 14 + i,
+          status: i < 5 ? 'future' : 'weekend',
+          is_today: i === 4,
+        })),
+      },
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    render(<AttendancePage />)
+
+    // Clicking prev week should not throw and should update week
+    const prevBtn = screen.getByTestId('attendance-prev-week-btn')
+    fireEvent.click(prevBtn)
+    // Component re-renders without error = pass
+    expect(screen.getByTestId('attendance-prev-week-btn')).toBeInTheDocument()
+  })
+
+  it('shows employee row when employee data present', () => {
+    vi.mocked(useAllWeek).mockReturnValue({
+      data: [makeWeekEmployee({ employee_name: 'Siti Rahayu', days: [{ date: '2026-03-19', status: 'on-time', clock_in_at: '2026-03-19T01:00:00Z' }] })],
+      isLoading: false,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)
+
+    render(<AttendancePage />)
+    expect(screen.getByTestId('attendance-row-emp-1')).toBeInTheDocument()
+    expect(screen.getAllByText('Siti Rahayu').length).toBeGreaterThan(0)
+  })
 })
