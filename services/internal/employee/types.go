@@ -101,6 +101,38 @@ type ListFilters struct {
 	Limit        int
 }
 
+// ── Bulk Import ───────────────────────────────────────────────────────────────
+
+// ImportRow represents one parsed CSV row before validation.
+type ImportRow struct {
+	RowNum         int    `json:"row_num"`
+	FullName       string `json:"full_name"`
+	Email          string `json:"email"`
+	Department     string `json:"department"`
+	JobTitle       string `json:"job_title"`
+	EmploymentType string `json:"employment_type"`
+	StartDate      string `json:"start_date"`
+	Gender         string `json:"gender"`
+	Phone          string `json:"phone"`
+	EmployeeCode   string `json:"employee_code"`
+}
+
+// ImportRowResult is the outcome for a single row after import.
+type ImportRowResult struct {
+	RowNum  int    `json:"row_num"`
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+	Name    string `json:"name"`
+}
+
+// BulkImportResult summarises an import operation.
+type BulkImportResult struct {
+	Total     int               `json:"total"`
+	Succeeded int               `json:"succeeded"`
+	Failed    int               `json:"failed"`
+	Rows      []ImportRowResult `json:"rows"`
+}
+
 // WorkloadStatus represents an employee's current workload level.
 type WorkloadStatus string
 
