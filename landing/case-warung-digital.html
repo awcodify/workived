@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Case Study: Warung Digital Cut Admin Time by 80% — Workived</title>
+  <meta name="description" content="A 9-person food-tech startup in Surabaya went from WhatsApp chaos to structured ops in one weekend. Here's their story.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://workived.com/case-warung-digital">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://workived.com/case-warung-digital">
+  <meta property="og:title" content="Case Study: Warung Digital Cut Admin Time by 80%">
+  <meta property="og:description" content="A 9-person food-tech startup in Surabaya went from WhatsApp chaos to structured ops in one weekend.">
+  <meta property="og:image" content="https://workived.com/images/og-image.png">
+  <meta property="og:site_name" content="Workived">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Case Study: Warung Digital Cut Admin Time by 80%">
+  <meta name="twitter:description" content="A 9-person food-tech startup in Surabaya went from WhatsApp chaos to structured ops in one weekend.">
+  <meta name="twitter:image" content="https://workived.com/images/og-image.png">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FFFFFF">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/logo-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="images/logo-16.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --accent:#6357E8;--accent-dim:#EFEDFD;--accent-mid:#8F86F0;--accent-text:#4A3FBF;
+      --ink-900:#0F0E13;--ink-700:#1F1D2B;--ink-500:#72708A;--ink-300:#B0AEBE;
+      --ink-150:#DDDBE8;--ink-100:#EDECF4;--ink-50:#F6F5FC;--ink-0:#FFFFFF;
+      --dark:#0A0A12;--green:#10B981;--amber:#F59E0B;--pink:#EC4899;--blue:#818CF8;
+      --red:#EF4444;--orange:#D97706;--teal:#14B8A6;
+    }
+    html{scroll-behavior:smooth;}
+    body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--ink-0);color:var(--ink-900);-webkit-font-smoothing:antialiased;overflow-x:hidden;}
+
+    /* ─── NAV (copied from index.html) ─── */
+    .nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:16px 40px 0;display:flex;justify-content:center;pointer-events:none;transition:padding 0.5s cubic-bezier(0.4,0,0.2,1);}
+    .nav.scrolled{padding-top:10px;}
+    .nav-island{display:flex;align-items:center;gap:0;width:100%;max-width:1280px;padding:0 6px 0 0;height:56px;border-radius:100px;background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid transparent;box-shadow:none;pointer-events:auto;transition:all 0.5s cubic-bezier(0.4,0,0.2,1);}
+    .nav.scrolled .nav-island{max-width:840px;padding:0 6px 0 20px;background:rgba(255,255,255,0.78);backdrop-filter:blur(40px) saturate(200%);-webkit-backdrop-filter:blur(40px) saturate(200%);border-color:rgba(0,0,0,0.06);box-shadow:0 8px 40px rgba(0,0,0,0.08),0 1px 3px rgba(0,0,0,0.04);}
+    .nav-left{display:flex;align-items:center;gap:8px;text-decoration:none;flex-shrink:0;}
+    .nav-wordmark{font-size:18px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;transition:all 0.4s;overflow:hidden;white-space:nowrap;}
+    .nav.scrolled .nav-wordmark{width:0;opacity:0;margin:0;padding:0;}
+    .nav-center{display:flex;align-items:center;gap:2px;margin:0 auto;}
+    .nav-center a,.nav-center .nav-dropdown-trigger{font-size:13px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:all 0.2s;padding:6px 13px;border-radius:100px;white-space:nowrap;}
+    .nav-center a:hover,.nav-center .nav-dropdown-trigger:hover{color:var(--ink-900);background:rgba(0,0,0,0.04);}
+    .nav-center a.active{color:var(--accent);background:var(--accent-dim);}
+    .nav-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+    .nav-cta{padding:8px 20px;border-radius:100px;background:var(--ink-900);color:#fff!important;font-weight:700;font-size:13px;letter-spacing:-0.01em;transition:all 0.25s cubic-bezier(0.4,0,0.2,1);border:none;text-decoration:none;cursor:pointer;white-space:nowrap;}
+    .nav-cta:hover{background:var(--accent);box-shadow:0 4px 20px rgba(99,87,232,0.3);transform:scale(1.03);}
+    .nav-hamburger{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:8px;pointer-events:auto;}
+    .nav-hamburger span{width:20px;height:2px;background:var(--ink-700);border-radius:2px;transition:all 0.3s;}
+    .nav-dropdown{position:relative;}
+    .nav-dropdown-trigger{background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:inherit;}
+    .dd-chevron{width:14px;height:14px;transition:transform 0.3s;}
+    .nav-dropdown-panel{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:280px;padding-top:10px;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.15s,visibility 0.15s;z-index:100;}
+    .nav-dropdown:hover .nav-dropdown-panel{opacity:1;visibility:visible;pointer-events:auto;}
+    .nav-dropdown:hover .dd-chevron{transform:rotate(180deg);}
+    .dd-inner{background:var(--ink-0);border:1px solid var(--ink-100);border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.12);padding:8px;overflow:hidden;}
+    .dd-header{padding:16px 16px 12px;border-bottom:1px solid var(--ink-100);margin-bottom:4px;}
+    .dd-header-title{font-size:13px;font-weight:700;color:var(--ink-900);}
+    .dd-header-desc{font-size:12px;color:var(--ink-300);margin-top:2px;}
+    .dd-links{display:flex;flex-direction:column;gap:2px;}
+    .dd-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;text-decoration:none;transition:background 0.15s;}
+    .dd-link:hover{background:var(--ink-50);}
+    .dd-link-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .dd-link-icon.articles{background:#FFF8E6;color:#92400E;}
+    .dd-link-icon.about{background:#E8F5E9;color:#2E7D32;}
+    .dd-link-icon.casestudy{background:var(--accent-dim);color:var(--accent);}
+    .dd-link-text{display:flex;flex-direction:column;}
+    .dd-link-title{font-size:13px;font-weight:700;color:var(--ink-900);}
+    .dd-link-desc{font-size:11px;color:var(--ink-300);margin-top:1px;}
+    .mobile-menu{display:none;position:fixed;top:72px;left:0;right:0;bottom:0;background:var(--ink-0);z-index:999;padding:24px 28px;flex-direction:column;gap:4px;overflow-y:auto;}
+    .mobile-menu.open{display:flex;}
+    .mobile-menu a{font-size:16px;font-weight:700;color:var(--ink-700);text-decoration:none;padding:14px 0;border-bottom:1px solid var(--ink-100);transition:color 0.15s;}
+    .mobile-menu a:hover{color:var(--accent);}
+    .mobile-menu .nav-cta{margin-top:20px;text-align:center;border-radius:14px;padding:16px;font-size:15px;}
+    .mobile-section-label{font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-300);padding:20px 0 6px;}
+    .mobile-sub-link{padding-left:12px!important;font-size:15px!important;font-weight:600!important;color:var(--ink-500)!important;}
+
+    /* ─── SCROLL PROGRESS ─── */
+    .scroll-progress{position:fixed;top:0;left:0;height:3px;z-index:1001;background:linear-gradient(90deg,var(--teal),var(--accent),var(--green));width:0%;transition:width 0.1s linear;border-radius:0 2px 2px 0;}
+
+    /* ═══════════════════════════════════════
+       PAGE-SPECIFIC STYLES
+       Dynamic broken-grid storytelling:
+       - Narrow prose → wide bleed illustration
+       - Overlapping offset cards
+       - Mosaic layout
+       - Inline interruptions
+       ═══════════════════════════════════════ */
+
+    /* ─── INTRO ─── */
+    .intro{padding:clamp(130px,15vw,200px) 0 0;background:var(--ink-0);overflow:hidden;}
+    .intro-inner{padding:0 clamp(24px,5vw,80px);max-width:1200px;margin:0 auto;}
+    .intro-eyebrow{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--teal);margin-bottom:20px;}
+    .intro-eyebrow svg{color:var(--teal);}
+    .intro h1{font-size:clamp(32px,5vw,58px);font-weight:800;letter-spacing:-0.05em;line-height:1.1;color:var(--ink-900);max-width:700px;margin-bottom:20px;}
+    .intro h1 .hl{position:relative;display:inline;}
+    .intro h1 .hl::after{content:'';position:absolute;left:-4px;right:-4px;bottom:2px;height:12px;background:var(--accent-dim);border-radius:4px;z-index:-1;}
+    .intro-desc{font-size:clamp(15px,1.6vw,18px);line-height:1.75;color:var(--ink-500);max-width:560px;margin-bottom:48px;}
+
+    /* Ticker */
+    .ticker-wrap{position:relative;padding:40px 0 56px;overflow:hidden;}
+    .ticker-wrap::before,.ticker-wrap::after{content:'';position:absolute;top:0;bottom:0;width:80px;z-index:2;pointer-events:none;}
+    .ticker-wrap::before{left:0;background:linear-gradient(to right,var(--ink-0),transparent);}
+    .ticker-wrap::after{right:0;background:linear-gradient(to left,var(--ink-0),transparent);}
+    .ticker{display:flex;gap:16px;animation:ticker-scroll 30s linear infinite;width:max-content;}
+    @keyframes ticker-scroll{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+    .ticker:hover{animation-play-state:paused;}
+    .tick{display:flex;align-items:center;gap:12px;padding:14px 24px;border-radius:16px;background:var(--ink-50);border:1px solid var(--ink-100);white-space:nowrap;flex-shrink:0;transition:transform 0.2s,box-shadow 0.2s;}
+    .tick:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.06);}
+    .tick-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .tick-text{display:flex;flex-direction:column;}
+    .tick-val{font-size:18px;font-weight:800;letter-spacing:-0.03em;color:var(--ink-900);}
+    .tick-label{font-size:11px;font-weight:600;color:var(--ink-300);margin-top:1px;}
+
+    /* ─── CANVAS: the story area ─── */
+    .canvas{max-width:1100px;margin:0 auto;padding:0 clamp(24px,4vw,56px);}
+
+    /* ─── PROSE: Narrative text ─── */
+    .prose{max-width:800px;padding:clamp(48px,6vw,80px) 0;}
+    .prose.centered{margin:0 auto;text-align:center;}
+    .prose-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:16px;}
+    .prose-tag.t-red{background:#FEF2F2;color:#DC2626;}
+    .prose-tag.t-amber{background:#FFF8E6;color:#92400E;}
+    .prose-tag.t-green{background:#ECFDF5;color:#059669;}
+    .prose-tag.t-accent{background:var(--accent-dim);color:var(--accent-text);}
+    .prose h2{font-size:clamp(24px,3vw,38px);font-weight:800;letter-spacing:-0.04em;line-height:1.2;color:var(--ink-900);margin-bottom:16px;}
+    .prose p{font-size:17px;line-height:1.85;color:var(--ink-500);}
+    .prose p strong{color:var(--ink-700);}
+
+    /* ─── BLEED: SVG illustration that extends wider than text ─── */
+    .bleed{margin:0 calc(-1 * clamp(24px,5vw,80px));padding:clamp(24px,3vw,48px) clamp(24px,5vw,80px);position:relative;overflow:hidden;}
+    .bleed-inner{max-width:1200px;margin:0 auto;}
+
+    /* ─── MOSAIC: Broken-grid cards ─── */
+    .mosaic{display:grid;grid-template-columns:repeat(12,1fr);gap:20px;padding:clamp(32px,4vw,56px) 0;}
+    .m-card{border-radius:20px;padding:clamp(24px,3vw,36px);position:relative;overflow:hidden;transition:transform 0.3s,box-shadow 0.3s;min-width:0;}
+    .m-card:hover{transform:translateY(-3px);box-shadow:0 16px 48px rgba(0,0,0,0.08);}
+    .m-card.span-8{grid-column:span 8;}
+    .m-card.span-7{grid-column:span 7;}
+    .m-card.span-6{grid-column:span 6;}
+    .m-card.span-5{grid-column:span 5;}
+    .m-card.span-4{grid-column:span 4;}
+    .m-card.span-12{grid-column:span 12;}
+    .m-card.pull-up{margin-top:-40px;position:relative;z-index:2;}
+    .m-card.bg-white{background:#fff;border:1px solid var(--ink-100);}
+    .m-card.bg-tint{background:var(--ink-50);border:1px solid var(--ink-100);}
+    .m-card.bg-teal{background:linear-gradient(135deg,#0D9488,var(--teal));color:#fff;}
+    .m-card.bg-dark{background:var(--dark);color:#fff;}
+    .m-card.bg-accent{background:linear-gradient(135deg,var(--accent),#4338CA);color:#fff;}
+    .m-card.bg-warm{background:#FFFBEB;border:1px solid #FDE68A;}
+    .m-card.bg-red-soft{background:#FEF2F2;border:1px solid #FECACA;}
+    .mc-title{font-size:clamp(16px,2vw,22px);font-weight:800;letter-spacing:-0.03em;margin-bottom:8px;line-height:1.3;}
+    .mc-body{font-size:14px;line-height:1.7;opacity:0.7;}
+    .mc-num{font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-0.06em;line-height:1;}
+    .mc-label{font-size:12px;font-weight:600;opacity:0.6;margin-top:4px;}
+    .mc-svg{display:flex;align-items:center;justify-content:center;}
+
+    /* ─── INTERRUPTION: Full-width accent bar ─── */
+    .interrupt{padding:clamp(40px,6vw,72px) clamp(24px,5vw,80px);position:relative;overflow:hidden;}
+    .interrupt.bg-soft{background:var(--ink-50);}
+    .interrupt-inner{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:auto 1fr;gap:clamp(24px,4vw,56px);align-items:center;}
+    .interrupt-line{width:5px;border-radius:3px;align-self:stretch;background:linear-gradient(to bottom,var(--teal),var(--accent));}
+    .interrupt-text{max-width:720px;}
+    .interrupt-text blockquote{font-size:clamp(20px,2.8vw,30px);font-weight:700;letter-spacing:-0.03em;line-height:1.45;color:var(--ink-900);margin-bottom:20px;}
+    .interrupt-author{display:flex;align-items:center;gap:12px;}
+    .interrupt-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--teal),var(--accent));display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#fff;flex-shrink:0;}
+    .interrupt-name{font-size:14px;font-weight:700;color:var(--ink-900);}
+    .interrupt-role{font-size:12px;color:var(--ink-300);}
+
+    /* ─── INLINE VISUAL: Overlaps next to text ─── */
+    .overlap-row{display:grid;grid-template-columns:1fr 1fr;gap:0;align-items:center;padding:clamp(32px,5vw,64px) 0;}
+    .overlap-visual{position:relative;z-index:1;}
+    .overlap-visual svg{width:100%;display:block;}
+    .overlap-text{position:relative;z-index:2;padding:clamp(32px,4vw,56px);background:#fff;border-radius:20px;border:1px solid var(--ink-100);box-shadow:0 8px 40px rgba(0,0,0,0.05);margin-left:-60px;}
+
+    /* ─── STACK: Vertical card stack with offset ─── */
+    .stack-scene{position:relative;display:flex;flex-direction:column;gap:0;padding:clamp(32px,4vw,56px) 0;}
+    .stack-card{padding:clamp(24px,3vw,40px);border-radius:20px;position:relative;transition:transform 0.3s;}
+    .stack-card:hover{transform:scale(1.01);}
+    .stack-card + .stack-card{margin-top:-20px;z-index:1;}
+    .stack-card:nth-child(2){margin-left:40px;margin-right:-40px;}
+    .stack-card:nth-child(3){margin-left:80px;margin-right:-80px;}
+    .sc-row{display:flex;align-items:center;gap:16px;}
+    .sc-icon{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .sc-content{flex:1;}
+    .sc-title{font-size:15px;font-weight:700;color:var(--ink-900);}
+    .sc-desc{font-size:13px;color:var(--ink-500);margin-top:2px;}
+    .sc-badge{margin-left:auto;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;white-space:nowrap;}
+
+    /* ─── CTA ─── */
+    .story-cta{padding:clamp(80px,12vw,140px) clamp(24px,5vw,80px);text-align:center;position:relative;overflow:hidden;background:var(--ink-0);}
+    .cta-deco{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+    .cta-inner{position:relative;z-index:1;max-width:580px;margin:0 auto;}
+    .cta-inner h2{font-size:clamp(28px,4vw,44px);font-weight:800;letter-spacing:-0.05em;line-height:1.15;margin-bottom:16px;color:var(--ink-900);}
+    .cta-inner p{font-size:16px;line-height:1.7;color:var(--ink-500);margin-bottom:32px;}
+    .cta-btn{display:inline-flex;align-items:center;gap:10px;padding:16px 36px;border-radius:14px;background:var(--accent);color:#fff;font-size:16px;font-weight:700;text-decoration:none;transition:all 0.3s;border:none;cursor:pointer;}
+    .cta-btn:hover{background:var(--accent-text);transform:translateY(-2px);box-shadow:0 8px 30px rgba(99,87,232,0.35);}
+    .cta-btn svg{transition:transform 0.3s;}
+    .cta-btn:hover svg{transform:translateX(4px);}
+
+    /* ─── FOOTER ─── */
+    .footer{padding:48px clamp(24px,5vw,80px) 32px;border-top:1px solid var(--ink-100);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;max-width:1300px;margin:0 auto;}
+    .footer-left{display:flex;align-items:center;gap:10px;}
+    .footer-logo{font-size:16px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;}
+    .footer-copy{font-size:13px;color:var(--ink-300);}
+    .footer-links{display:flex;gap:24px;}
+    .footer-links a{font-size:13px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;}
+    .footer-links a:hover{color:var(--accent);}
+
+    /* ─── REVEAL ─── */
+    .reveal{opacity:0;transform:translateY(32px);transition:opacity 0.8s cubic-bezier(0.4,0,0.2,1),transform 0.8s cubic-bezier(0.4,0,0.2,1);}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+    .reveal-d1{transition-delay:0.1s;}.reveal-d2{transition-delay:0.2s;}.reveal-d3{transition-delay:0.3s;}.reveal-d4{transition-delay:0.4s;}
+
+    /* ─── RESPONSIVE ─── */
+    @media(max-width:900px){
+      .nav-center,.nav-right{display:none;}
+      .nav-hamburger{display:flex;}
+      .mosaic{grid-template-columns:1fr;}
+      .m-card.span-8,.m-card.span-7,.m-card.span-6,.m-card.span-5,.m-card.span-4,.m-card.span-12{grid-column:span 1;}
+      .m-card.pull-up{margin-top:0;}
+      .overlap-row{grid-template-columns:1fr;gap:0;}
+      .overlap-text{margin-left:0;margin-top:-24px;}
+      .overlap-visual{order:1;}.overlap-text{order:2;}
+      .stack-card:nth-child(2){margin-left:20px;margin-right:-20px;}
+      .stack-card:nth-child(3){margin-left:40px;margin-right:-40px;}
+      .interrupt-inner{grid-template-columns:1fr;gap:20px;}
+      .interrupt-line{width:100%;height:4px;}
+      .prose.shifted{margin-left:0;}
+    }
+    @media(max-width:480px){
+      .nav{padding:10px 12px 0;}
+      .nav-island{padding:0 12px;height:48px;justify-content:space-between;}
+      .nav-left{gap:0;}
+      .nav-wordmark{position:absolute;left:50%;transform:translateX(-50%);}
+      .nav.scrolled .nav-wordmark{width:auto;opacity:1;}
+      .nav.scrolled .nav-island{max-width:100%;}
+      .stack-card:nth-child(2),.stack-card:nth-child(3){margin-left:0;margin-right:0;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV (same as index) -->
+  <nav class="nav" id="nav">
+    <div class="nav-island">
+      <a href="index" class="nav-left" style="text-decoration:none;">
+        <svg width="28" height="28" viewBox="0 0 180 180" fill="none">
+          <rect width="180" height="180" rx="30" fill="#6357E8"/>
+          <text x="90" y="100" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+          <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
+        </svg>
+        <span class="nav-wordmark">Workived</span>
+      </a>
+      <div class="nav-center">
+        <a href="features">Features</a>
+        <a href="pricing">Pricing</a>
+        <a href="security">Security</a>
+        <a href="ai">AI</a>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-trigger">Resources <svg class="dd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="nav-dropdown-panel">
+            <div class="dd-inner">
+              <div class="dd-header">
+                <div class="dd-header-title">Resources</div>
+                <div class="dd-header-desc">Learn more about Workived and how we help small teams.</div>
+              </div>
+              <div class="dd-links">
+                <a href="articles" class="dd-link">
+                  <div class="dd-link-icon articles"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+                  <div class="dd-link-text"><span class="dd-link-title">Articles</span><span class="dd-link-desc">Guides & HR insights</span></div>
+                </a>
+                <a href="case-senja-studio" class="dd-link">
+                  <div class="dd-link-icon casestudy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></div>
+                  <div class="dd-link-text"><span class="dd-link-title">Case Studies</span><span class="dd-link-desc">Real stories, real results</span></div>
+                </a>
+                <a href="about" class="dd-link">
+                  <div class="dd-link-icon about"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                  <div class="dd-link-text"><span class="dd-link-title">About Us</span><span class="dd-link-desc">Our story & team</span></div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-right">
+        <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+      </div>
+      <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="features">Features</a>
+    <a href="pricing">Pricing</a>
+    <a href="security">Security</a>
+    <a href="ai">AI</a>
+    <div class="mobile-section-label">Resources</div>
+    <a href="articles" class="mobile-sub-link">Articles</a>
+    <a href="case-senja-studio" class="mobile-sub-link">Case Studies</a>
+    <a href="about" class="mobile-sub-link">About</a>
+    <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+  </div>
+
+  <div class="scroll-progress" id="scrollProgress"></div>
+
+  <!-- ═══════════════════════════════════════════════════
+       INTRO — Left-aligned with scrolling stat ticker
+       ═══════════════════════════════════════════════════ -->
+  <div class="intro">
+    <div class="intro-inner">
+      <div class="intro-eyebrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        Case Study · 4 min read
+      </div>
+      <h1>A weekend migration that saved <span class="hl">12 hours every week</span></h1>
+      <p class="intro-desc">Warung Digital is a 9-person food-tech startup in Surabaya. They were drowning in WhatsApp threads and Google Sheets. Then they found a simpler way.</p>
+    </div>
+
+    <!-- Auto-scrolling stat ticker -->
+    <div class="ticker-wrap">
+      <div class="ticker">
+        <div class="tick">
+          <div class="tick-icon" style="background:#ECFDF5;color:#059669;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">9 people</span><span class="tick-label">Team size</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:var(--accent-dim);color:var(--accent);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">Food-tech</span><span class="tick-label">Industry</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:#FFF8E6;color:#92400E;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">Surabaya</span><span class="tick-label">Location</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:#FEF2F2;color:#DC2626;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">12h / week</span><span class="tick-label">Wasted on admin</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:#ECFDF5;color:#059669;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">80% less</span><span class="tick-label">Admin time after</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:#F0F9FF;color:#0284C7;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">1 weekend</span><span class="tick-label">Total setup time</span></div>
+        </div>
+        <!-- Duplicate set for seamless loop -->
+        <div class="tick">
+          <div class="tick-icon" style="background:#ECFDF5;color:#059669;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">9 people</span><span class="tick-label">Team size</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:var(--accent-dim);color:var(--accent);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">Food-tech</span><span class="tick-label">Industry</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:#FFF8E6;color:#92400E;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">Surabaya</span><span class="tick-label">Location</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:#FEF2F2;color:#DC2626;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">12h / week</span><span class="tick-label">Wasted on admin</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:#ECFDF5;color:#059669;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">80% less</span><span class="tick-label">Admin time after</span></div>
+        </div>
+        <div class="tick">
+          <div class="tick-icon" style="background:#F0F9FF;color:#0284C7;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          </div>
+          <div class="tick-text"><span class="tick-val">1 weekend</span><span class="tick-label">Total setup time</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ACT 1 — THE PROBLEM
+       Narrow left-aligned prose → wide bleed illustration
+       ═══════════════════════════════════════════════════ -->
+  <div class="canvas">
+    <div class="prose reveal">
+      <div class="prose-tag t-red">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        The Problem
+      </div>
+      <h2>WhatsApp was their<br>HR system</h2>
+      <p>
+        Budi, the CTO, was also the unofficial HR manager. Leave requests came as WhatsApp messages — sometimes at midnight. Attendance was a shared Google Sheet that <strong>nobody updated on time</strong>. Expense receipts? Photos buried in chat threads that vanished after a week.
+      </p>
+    </div>
+  </div>
+
+  <!-- Wide bleed illustration: the WhatsApp chaos -->
+  <div class="bleed" style="background:var(--ink-50);">
+    <div class="bleed-inner reveal">
+      <svg viewBox="0 0 1100 380" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;display:block;">
+
+        <!-- ══════ LEFT: Frustrated person at desk ══════ -->
+        <g transform="translate(60,60)">
+          <!-- Desk -->
+          <rect x="0" y="220" width="200" height="8" rx="4" fill="var(--ink-200,#ddd)"/>
+          <rect x="20" y="228" width="6" height="60" rx="3" fill="var(--ink-200,#ddd)"/>
+          <rect x="174" y="228" width="6" height="60" rx="3" fill="var(--ink-200,#ddd)"/>
+          <!-- Laptop on desk -->
+          <rect x="50" y="186" width="100" height="36" rx="4" fill="var(--ink-100)"/>
+          <rect x="56" y="190" width="88" height="24" rx="2" fill="#fff"/>
+          <!-- Screen lines (spreadsheet) -->
+          <line x1="60" y1="196" x2="138" y2="196" stroke="var(--ink-100)" stroke-width="1"/>
+          <line x1="60" y1="201" x2="130" y2="201" stroke="var(--ink-100)" stroke-width="1"/>
+          <line x1="60" y1="206" x2="120" y2="206" stroke="var(--ink-100)" stroke-width="1"/>
+          <rect x="120" y="193" width="16" height="8" rx="2" fill="#FEF2F2" stroke="#FECACA" stroke-width="0.5"/>
+          <!-- Laptop base -->
+          <rect x="40" y="222" width="120" height="4" rx="2" fill="var(--ink-150,#ccc)"/>
+
+          <!-- Person (head + body) -->
+          <circle cx="100" cy="140" r="28" fill="#FFF8E6"/>
+          <!-- Hair -->
+          <path d="M72 138 Q72 112 100 112 Q128 112 128 138" fill="var(--ink-700)" />
+          <!-- Eyes (tired, looking down) -->
+          <ellipse cx="90" cy="144" rx="3" ry="2" fill="var(--ink-700)"/>
+          <ellipse cx="110" cy="144" rx="3" ry="2" fill="var(--ink-700)"/>
+          <!-- Dark circles under eyes -->
+          <path d="M86 148 Q90 150 94 148" stroke="var(--ink-300)" stroke-width="0.8" fill="none" opacity="0.5"/>
+          <path d="M106 148 Q110 150 114 148" stroke="var(--ink-300)" stroke-width="0.8" fill="none" opacity="0.5"/>
+          <!-- Frown -->
+          <path d="M92 156 Q100 152 108 156" stroke="var(--ink-500)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <!-- Body/shoulders -->
+          <path d="M60 200 Q60 172 100 168 Q140 172 140 200" fill="var(--accent-dim)"/>
+
+          <!-- Thought bubble: "Not again..." -->
+          <circle cx="148" cy="115" r="4" fill="#fff" stroke="var(--ink-100)" stroke-width="1"/>
+          <circle cx="160" cy="100" r="6" fill="#fff" stroke="var(--ink-100)" stroke-width="1"/>
+          <rect x="170" y="75" width="100" height="32" rx="16" fill="#fff" stroke="var(--ink-100)" stroke-width="1"/>
+          <text x="220" y="95" text-anchor="middle" fill="var(--ink-500)" font-size="11" font-style="italic" font-family="Plus Jakarta Sans">Not again...</text>
+
+          <!-- Coffee mug -->
+          <rect x="160" y="204" width="20" height="18" rx="3" fill="#fff" stroke="var(--ink-200,#ddd)" stroke-width="1"/>
+          <path d="M180 210 Q190 210 190 216 Q190 222 180 222" stroke="var(--ink-200,#ddd)" stroke-width="1" fill="none"/>
+          <!-- Steam -->
+          <path d="M166 200 Q168 194 166 188" stroke="var(--ink-200,#ddd)" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.4"/>
+          <path d="M172 198 Q174 192 172 186" stroke="var(--ink-200,#ddd)" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.3"/>
+        </g>
+
+        <!-- ══════ CENTER: Phone with WhatsApp chat ══════ -->
+        <g transform="translate(380,20)">
+          <!-- Phone body -->
+          <rect x="0" y="0" width="200" height="340" rx="24" fill="#1A1A1A"/>
+          <!-- Screen (white) clipped inside phone -->
+          <clipPath id="phoneScreen">
+            <rect x="6" y="6" width="188" height="328" rx="20"/>
+          </clipPath>
+          <g clip-path="url(#phoneScreen)">
+            <!-- White screen bg -->
+            <rect x="6" y="6" width="188" height="328" fill="#ECE5DD"/>
+            <!-- WhatsApp header bar -->
+            <rect x="6" y="6" width="188" height="48" fill="#075E54"/>
+            <!-- Back arrow -->
+            <path d="M22 30 L16 30 M16 30 L20 26 M16 30 L20 34" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <!-- Group icon circle -->
+            <circle cx="36" cy="30" r="10" fill="rgba(255,255,255,0.15)"/>
+            <path d="M32 32 Q32 28 36 28 Q40 28 40 32" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round"/>
+            <circle cx="36" cy="26" r="2.5" stroke="#fff" stroke-width="1" fill="none"/>
+            <!-- Group name + member count -->
+            <text x="52" y="28" fill="#fff" font-size="12" font-weight="700" font-family="Plus Jakarta Sans">HR Stuff</text>
+            <text x="52" y="39" fill="rgba(255,255,255,0.6)" font-size="8" font-family="Plus Jakarta Sans">9 members</text>
+
+            <!-- Chat area bg -->
+            <rect x="6" y="54" width="188" height="280" fill="#ECE5DD"/>
+
+            <!-- Green bubble (sent — right aligned) -->
+            <rect x="54" y="62" width="132" height="36" rx="10" fill="#DCF8C6"/>
+            <text x="64" y="78" fill="#333" font-size="9.5" font-family="Plus Jakarta Sans">Bos, izin cuti besok ya 🙏</text>
+            <text x="158" y="92" fill="#A5D6A7" font-size="7" font-family="Plus Jakarta Sans">11:47 PM</text>
+
+            <!-- White bubble (received — left aligned) -->
+            <rect x="14" y="106" width="148" height="42" rx="10" fill="#fff"/>
+            <text x="24" y="122" fill="#555" font-size="9.5" font-family="Plus Jakarta Sans">Saya juga mau WFH Jumat</text>
+            <text x="128" y="140" fill="#999" font-size="7" font-family="Plus Jakarta Sans">08:02 AM</text>
+
+            <!-- Green bubble -->
+            <rect x="58" y="156" width="128" height="36" rx="10" fill="#DCF8C6"/>
+            <text x="68" y="172" fill="#333" font-size="9.5" font-family="Plus Jakarta Sans">Klaim taxi kemarin 150rb</text>
+            <text x="158" y="186" fill="#A5D6A7" font-size="7" font-family="Plus Jakarta Sans">08:15 AM</text>
+
+            <!-- White bubble (multi-line) -->
+            <rect x="14" y="200" width="140" height="50" rx="10" fill="#fff"/>
+            <text x="24" y="216" fill="#555" font-size="9.5" font-family="Plus Jakarta Sans">Wait, udah diapprove</text>
+            <text x="24" y="229" fill="#555" font-size="9.5" font-family="Plus Jakarta Sans">belum yg kemarin?</text>
+            <text x="120" y="244" fill="#999" font-size="7" font-family="Plus Jakarta Sans">08:20 AM</text>
+
+            <!-- Green bubble (frustrated) -->
+            <rect x="42" y="258" width="144" height="42" rx="10" fill="#DCF8C6"/>
+            <text x="52" y="274" fill="#333" font-size="9.5" font-family="Plus Jakarta Sans">Eh tunggu, ini approve yg</text>
+            <text x="52" y="287" fill="#333" font-size="9.5" font-family="Plus Jakarta Sans">mana ya? 😅</text>
+
+            <!-- Typing indicator -->
+            <rect x="14" y="308" width="60" height="24" rx="12" fill="#fff"/>
+            <circle cx="30" cy="320" r="3" fill="#999" opacity="0.4"/>
+            <circle cx="42" cy="320" r="3" fill="#999" opacity="0.6"/>
+            <circle cx="54" cy="320" r="3" fill="#999" opacity="0.8"/>
+          </g>
+
+          <!-- Notification badge (outside clip so it overflows the phone) -->
+          <circle cx="188" cy="10" r="16" fill="#DC2626" stroke="#1A1A1A" stroke-width="2"/>
+          <text x="188" y="15" text-anchor="middle" fill="#fff" font-size="11" font-weight="800" font-family="Plus Jakarta Sans">47</text>
+        </g>
+
+        <!-- ══════ RIGHT: Floating chaos elements ══════ -->
+        <!-- Google Sheet falling apart -->
+        <g transform="translate(680,40)">
+          <rect x="0" y="0" width="180" height="120" rx="10" fill="#fff" stroke="var(--ink-100)" stroke-width="1" transform="rotate(-3 90 60)"/>
+          <!-- Sheet header -->
+          <rect x="4" y="4" width="172" height="22" rx="7" fill="#34A853" opacity="0.12" transform="rotate(-3 90 60)"/>
+          <text x="14" y="19" fill="#34A853" font-size="9" font-weight="700" font-family="Plus Jakarta Sans" transform="rotate(-3 90 60)">📊 Attendance Tracker</text>
+          <!-- Grid lines -->
+          <g transform="rotate(-3 90 60)" opacity="0.4">
+            <line x1="8" y1="34" x2="172" y2="34" stroke="var(--ink-100)" stroke-width="0.5"/>
+            <line x1="8" y1="48" x2="172" y2="48" stroke="var(--ink-100)" stroke-width="0.5"/>
+            <line x1="8" y1="62" x2="172" y2="62" stroke="var(--ink-100)" stroke-width="0.5"/>
+            <line x1="8" y1="76" x2="172" y2="76" stroke="var(--ink-100)" stroke-width="0.5"/>
+            <line x1="60" y1="28" x2="60" y2="90" stroke="var(--ink-100)" stroke-width="0.5"/>
+            <line x1="110" y1="28" x2="110" y2="90" stroke="var(--ink-100)" stroke-width="0.5"/>
+          </g>
+          <!-- Missing cells highlighted red -->
+          <rect x="62" y="49" width="46" height="12" rx="2" fill="#FEF2F2" stroke="#FECACA" stroke-width="0.5" transform="rotate(-3 90 60)"/>
+          <rect x="112" y="63" width="46" height="12" rx="2" fill="#FEF2F2" stroke="#FECACA" stroke-width="0.5" transform="rotate(-3 90 60)"/>
+          <rect x="62" y="77" width="46" height="12" rx="2" fill="#FEF2F2" stroke="#FECACA" stroke-width="0.5" transform="rotate(-3 90 60)"/>
+          <!-- "OUTDATED" stamp -->
+          <rect x="40" y="96" width="100" height="24" rx="4" fill="#DC2626" opacity="0.08" transform="rotate(-3 90 60)"/>
+          <text x="90" y="112" text-anchor="middle" fill="#DC2626" font-size="11" font-weight="800" letter-spacing="0.15em" font-family="Plus Jakarta Sans" transform="rotate(-3 90 60)">OUTDATED</text>
+        </g>
+
+        <!-- Floating notification pills -->
+        <g transform="translate(700,190)">
+          <!-- Notification 1 -->
+          <rect x="0" y="0" width="220" height="44" rx="12" fill="#fff" stroke="var(--ink-100)" stroke-width="1" filter="url(#shadow1)"/>
+          <circle cx="24" cy="22" r="12" fill="#25D366"/>
+          <text x="24" y="26" text-anchor="middle" fill="#fff" font-size="12" font-weight="800" font-family="Plus Jakarta Sans">W</text>
+          <text x="44" y="17" fill="var(--ink-700)" font-size="9" font-weight="700" font-family="Plus Jakarta Sans">HR Stuff 🏢</text>
+          <text x="44" y="31" fill="var(--ink-300)" font-size="8" font-family="Plus Jakarta Sans">Rina: receipt utk grab kemarin...</text>
+          <circle cx="204" cy="22" r="10" fill="#DC2626"/>
+          <text x="204" y="26" text-anchor="middle" fill="#fff" font-size="8" font-weight="800" font-family="Plus Jakarta Sans">12</text>
+        </g>
+
+        <g transform="translate(720,246)">
+          <!-- Notification 2 -->
+          <rect x="0" y="0" width="210" height="44" rx="12" fill="#fff" stroke="var(--ink-100)" stroke-width="1" filter="url(#shadow1)"/>
+          <circle cx="24" cy="22" r="12" fill="#25D366"/>
+          <text x="24" y="26" text-anchor="middle" fill="#fff" font-size="12" font-weight="800" font-family="Plus Jakarta Sans">W</text>
+          <text x="44" y="17" fill="var(--ink-700)" font-size="9" font-weight="700" font-family="Plus Jakarta Sans">Andi (direct)</text>
+          <text x="44" y="31" fill="var(--ink-300)" font-size="8" font-family="Plus Jakarta Sans">Bos, cuti saya approved ga?</text>
+          <circle cx="196" cy="22" r="10" fill="#DC2626"/>
+          <text x="196" y="26" text-anchor="middle" fill="#fff" font-size="8" font-weight="800" font-family="Plus Jakarta Sans">3</text>
+        </g>
+
+        <g transform="translate(690,302)">
+          <!-- Notification 3 -->
+          <rect x="0" y="0" width="200" height="44" rx="12" fill="#fff" stroke="var(--ink-100)" stroke-width="1" filter="url(#shadow1)"/>
+          <circle cx="24" cy="22" r="12" fill="#25D366"/>
+          <text x="24" y="26" text-anchor="middle" fill="#fff" font-size="12" font-weight="800" font-family="Plus Jakarta Sans">W</text>
+          <text x="44" y="17" fill="var(--ink-700)" font-size="9" font-weight="700" font-family="Plus Jakarta Sans">Sari (direct)</text>
+          <text x="44" y="31" fill="var(--ink-300)" font-size="8" font-family="Plus Jakarta Sans">Lembur kemarin catat dimana?</text>
+        </g>
+
+        <!-- Decorative red connecting lines showing chaos -->
+        <line x1="580" y1="200" x2="680" y2="212" stroke="#DC2626" stroke-width="0.8" opacity="0.15" stroke-dasharray="4 3"/>
+        <line x1="580" y1="260" x2="720" y2="268" stroke="#DC2626" stroke-width="0.8" opacity="0.15" stroke-dasharray="4 3"/>
+        <line x1="260" y1="180" x2="380" y2="150" stroke="#DC2626" stroke-width="0.8" opacity="0.1" stroke-dasharray="4 3"/>
+
+        <!-- Drop shadow filter -->
+        <defs>
+          <filter id="shadow1" x="-4%" y="-4%" width="108%" height="116%">
+            <feDropShadow dx="0" dy="2" stdDeviation="6" flood-color="#000" flood-opacity="0.06"/>
+          </filter>
+        </defs>
+      </svg>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ACT 2 — THE SEARCH
+       Mosaic broken-grid: pricing cards + text at different widths
+       ═══════════════════════════════════════════════════ -->
+  <div class="canvas">
+    <div class="prose reveal">
+      <div class="prose-tag t-amber">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        The Search
+      </div>
+      <h2>They didn't need enterprise software</h2>
+      <p>
+        Budi looked at BambooHR, Zoho People, even building something custom. All were <strong>overkill for 9 people</strong>. Pricing started at $6/user/month — $648/year for features they'd never touch.
+      </p>
+    </div>
+
+    <!-- Mosaic: pricing comparison cards at varying sizes -->
+    <div class="mosaic reveal">
+      <!-- Crossed-out expensive option -->
+      <div class="m-card span-4 bg-red-soft">
+        <div class="mc-title" style="color:#DC2626;text-decoration:line-through;opacity:0.5;">BambooHR</div>
+        <div class="mc-num" style="color:#DC2626;text-decoration:line-through;opacity:0.4;">$6</div>
+        <div class="mc-label" style="color:#DC2626;">/user/month</div>
+        <p class="mc-body" style="color:#DC2626;opacity:0.5;margin-top:12px;">200+ features they'd never use</p>
+      </div>
+
+      <!-- Crossed-out expensive option -->
+      <div class="m-card span-4 bg-red-soft">
+        <div class="mc-title" style="color:#DC2626;text-decoration:line-through;opacity:0.5;">Zoho People</div>
+        <div class="mc-num" style="color:#DC2626;text-decoration:line-through;opacity:0.4;">$8</div>
+        <div class="mc-label" style="color:#DC2626;">/user/month</div>
+        <p class="mc-body" style="color:#DC2626;opacity:0.5;margin-top:12px;">Enterprise tier overkill</p>
+      </div>
+
+      <!-- The winner — bigger, glowing -->
+      <div class="m-card span-4 bg-teal" style="border:none;">
+        <div class="mc-title" style="color:#fff;">Workived</div>
+        <div class="mc-num" style="color:#fff;">$0</div>
+        <div class="mc-label" style="color:rgba(255,255,255,0.7);">free up to 15 people</div>
+        <p class="mc-body" style="color:rgba(255,255,255,0.8);margin-top:12px;">Just right. Set up Saturday, done by lunch.</p>
+      </div>
+
+      <!-- Text card -->
+      <div class="m-card span-7 bg-warm">
+        <div class="mc-body" style="color:#92400E;font-size:15px;line-height:1.8;opacity:1;">
+          <strong style="font-size:17px;">He needed something a food-tech startup could set up on a Saturday afternoon</strong> — not something that needed a 3-week implementation project and a dedicated HR person they didn't have.
+        </div>
+      </div>
+
+      <!-- Small aside stat -->
+      <div class="m-card span-5 bg-white">
+        <div class="mc-svg">
+          <svg viewBox="0 0 200 120" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;">
+            <text x="100" y="30" text-anchor="middle" fill="var(--ink-300)" font-size="9" font-weight="700" font-family="Plus Jakarta Sans" letter-spacing="0.08em">ANNUAL COST COMPARISON</text>
+            <rect x="20" y="50" width="140" height="20" rx="4" fill="#FEF2F2"/>
+            <rect x="20" y="50" width="140" height="20" rx="4" fill="#DC2626" opacity="0.12"/>
+            <text x="150" y="64" text-anchor="end" fill="#DC2626" font-size="11" font-weight="800" font-family="Plus Jakarta Sans">$648/yr</text>
+            <text x="24" y="64" fill="#DC2626" font-size="9" font-weight="600" font-family="Plus Jakarta Sans">Others</text>
+            <rect x="20" y="80" width="16" height="20" rx="4" fill="#ECFDF5"/>
+            <rect x="20" y="80" width="16" height="20" rx="4" fill="#059669" opacity="0.15"/>
+            <text x="44" y="94" fill="#059669" font-size="11" font-weight="800" font-family="Plus Jakarta Sans">$0/yr</text>
+            <text x="82" y="94" fill="var(--ink-300)" font-size="9" font-weight="600" font-family="Plus Jakarta Sans">Workived</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       INTERRUPTION — Pull quote
+       ═══════════════════════════════════════════════════ -->
+  <div class="interrupt bg-soft">
+    <div class="interrupt-inner reveal">
+      <div class="interrupt-line"></div>
+      <div class="interrupt-text">
+        <blockquote>"I once approved the same leave twice because I couldn't find the original message. That's when I knew we needed a real system."</blockquote>
+        <div class="interrupt-author">
+          <div class="interrupt-avatar">B</div>
+          <div>
+            <div class="interrupt-name">Budi Hartono</div>
+            <div class="interrupt-role">CTO & Co-founder, Warung Digital</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ACT 3 — THE SETUP
+       Overlapping visual + text card with stacking steps
+       ═══════════════════════════════════════════════════ -->
+  <div class="canvas">
+    <div class="prose centered reveal">
+      <div class="prose-tag t-green">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        The Setup
+      </div>
+      <h2>Saturday morning.<br>Done before lunch.</h2>
+    </div>
+
+    <!-- Stacking cards: each step offsets right -->
+    <div class="stack-scene reveal">
+      <div class="stack-card" style="background:#fff;border:1px solid var(--ink-100);box-shadow:0 4px 20px rgba(0,0,0,0.04);">
+        <div class="sc-row">
+          <div class="sc-icon" style="background:var(--teal);color:#fff;font-size:16px;font-weight:800;">1</div>
+          <div class="sc-content">
+            <div class="sc-title">Create workspace</div>
+            <div class="sc-desc">Company name, timezone, currency — three fields</div>
+          </div>
+          <div class="sc-badge" style="background:#ECFDF5;color:#059669;">2 min</div>
+        </div>
+      </div>
+      <div class="stack-card" style="background:#fff;border:1px solid var(--ink-100);box-shadow:0 4px 20px rgba(0,0,0,0.04);">
+        <div class="sc-row">
+          <div class="sc-icon" style="background:var(--accent);color:#fff;font-size:16px;font-weight:800;">2</div>
+          <div class="sc-content">
+            <div class="sc-title">Add 2 departments</div>
+            <div class="sc-desc">Engineering and Operations — done</div>
+          </div>
+          <div class="sc-badge" style="background:var(--accent-dim);color:var(--accent-text);">1 min</div>
+        </div>
+      </div>
+      <div class="stack-card" style="background:linear-gradient(135deg,#ECFDF5,#F0FDF9);border:1px solid #A7F3D0;box-shadow:0 4px 20px rgba(0,0,0,0.04);">
+        <div class="sc-row">
+          <div class="sc-icon" style="background:#059669;color:#fff;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="sc-content">
+            <div class="sc-title" style="color:#059669;">Invite 8 teammates — everyone clocked in by noon</div>
+            <div class="sc-desc">3 min for invites. Monday: leave requests via app, not WhatsApp.</div>
+          </div>
+          <div class="sc-badge" style="background:#059669;color:#fff;">Done ✓</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Inline overlap: visual + quote overlapping -->
+    <div class="overlap-row reveal">
+      <div class="overlap-visual">
+        <svg viewBox="0 0 500 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- People joining visualization -->
+          <circle cx="120" cy="80" r="32" fill="var(--accent-dim)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="120" y="86" text-anchor="middle" fill="var(--accent)" font-size="18" font-weight="800" font-family="Plus Jakarta Sans">B</text>
+
+          <circle cx="200" cy="60" r="28" fill="#FFF8E6" stroke="#F59E0B" stroke-width="1.5"/>
+          <text x="200" y="66" text-anchor="middle" fill="#92400E" font-size="16" font-weight="800" font-family="Plus Jakarta Sans">S</text>
+
+          <circle cx="270" cy="90" r="26" fill="#ECFDF5" stroke="#10B981" stroke-width="1.5"/>
+          <text x="270" y="96" text-anchor="middle" fill="#059669" font-size="16" font-weight="800" font-family="Plus Jakarta Sans">A</text>
+
+          <circle cx="340" cy="55" r="24" fill="#FCE4EC" stroke="#EC4899" stroke-width="1.5"/>
+          <text x="340" y="61" text-anchor="middle" fill="#BE185D" font-size="14" font-weight="800" font-family="Plus Jakarta Sans">D</text>
+
+          <circle cx="400" cy="85" r="28" fill="#F0F9FF" stroke="#0284C7" stroke-width="1.5"/>
+          <text x="400" y="91" text-anchor="middle" fill="#0284C7" font-size="16" font-weight="800" font-family="Plus Jakarta Sans">R</text>
+
+          <circle cx="160" cy="160" r="24" fill="#FEF2F2" stroke="#F87171" stroke-width="1.5"/>
+          <text x="160" y="166" text-anchor="middle" fill="#DC2626" font-size="14" font-weight="800" font-family="Plus Jakarta Sans">Y</text>
+
+          <circle cx="250" cy="180" r="30" fill="#EDE9FE" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="250" y="186" text-anchor="middle" fill="var(--accent)" font-size="16" font-weight="800" font-family="Plus Jakarta Sans">M</text>
+
+          <circle cx="350" cy="165" r="22" fill="#ECFDF5" stroke="#10B981" stroke-width="1.5"/>
+          <text x="350" y="171" text-anchor="middle" fill="#059669" font-size="13" font-weight="800" font-family="Plus Jakarta Sans">N</text>
+
+          <!-- Connecting lines -->
+          <line x1="148" y1="92" x2="176" y2="72" stroke="var(--ink-100)" stroke-width="1" stroke-dasharray="4 4"/>
+          <line x1="224" y1="72" x2="248" y2="78" stroke="var(--ink-100)" stroke-width="1" stroke-dasharray="4 4"/>
+          <line x1="292" y1="100" x2="320" y2="68" stroke="var(--ink-100)" stroke-width="1" stroke-dasharray="4 4"/>
+          <line x1="364" y1="64" x2="380" y2="62" stroke="var(--ink-100)" stroke-width="1" stroke-dasharray="4 4"/>
+
+          <!-- "9 connected" badge -->
+          <rect x="160" y="240" width="180" height="36" rx="18" fill="var(--teal)" opacity="0.1"/>
+          <text x="250" y="263" text-anchor="middle" fill="#0D9488" font-size="13" font-weight="700" font-family="Plus Jakarta Sans">All 9 members connected</text>
+        </svg>
+      </div>
+      <div class="overlap-text">
+        <p style="font-size:17px;line-height:1.85;color:var(--ink-500);margin:0;">
+          The following Monday, <strong style="color:var(--ink-700);">leave requests went through the app</strong> instead of WhatsApp. Budi got push notifications, tapped "Approve" in 3 seconds, and moved on with his day.
+          <br><br>
+          No training needed. The team picked it up in minutes.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       ACT 4 — THE PAYOFF
+       Dark mosaic with numbers + bar chart card
+       ═══════════════════════════════════════════════════ -->
+  <div class="canvas">
+    <div class="prose reveal">
+      <div class="prose-tag t-accent">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        The Payoff
+      </div>
+      <h2>Budi stopped being the HR department</h2>
+      <p>
+        Three months later, the team runs itself. Leave balances are self-service. Expense claims get submitted with a photo and approved in under a minute. Attendance is automatic — <strong>no more chasing people</strong>.
+      </p>
+    </div>
+
+    <!-- Mosaic: results in a broken grid -->
+    <div class="mosaic">
+      <!-- Big time chart card -->
+      <div class="m-card span-7 bg-dark reveal">
+        <div class="mc-svg">
+          <svg viewBox="0 0 440 180" fill="none" xmlns="http://www.w3.org/2000/svg" style="width:100%;">
+            <text x="20" y="20" fill="rgba(255,255,255,0.4)" font-size="9" font-weight="700" font-family="Plus Jakarta Sans" letter-spacing="0.1em">WEEKLY ADMIN HOURS</text>
+            <text x="20" y="56" fill="rgba(255,255,255,0.5)" font-size="11" font-weight="600" font-family="Plus Jakarta Sans">Before</text>
+            <rect x="80" y="40" width="340" height="26" rx="6" fill="#DC2626" opacity="0.2"/>
+            <text x="410" y="58" text-anchor="end" fill="#F87171" font-size="14" font-weight="800" font-family="Plus Jakarta Sans">12 hrs</text>
+            <text x="20" y="100" fill="rgba(255,255,255,0.5)" font-size="11" font-weight="600" font-family="Plus Jakarta Sans">After</text>
+            <rect x="80" y="84" width="56" height="26" rx="6" fill="var(--teal)" opacity="0.3"/>
+            <text x="128" y="102" text-anchor="end" fill="var(--teal)" font-size="14" font-weight="800" font-family="Plus Jakarta Sans">2 hrs</text>
+            <rect x="160" y="130" width="160" height="32" rx="16" fill="var(--teal)" opacity="0.15"/>
+            <text x="240" y="150" text-anchor="middle" fill="var(--teal)" font-size="12" font-weight="700" font-family="Plus Jakarta Sans">10 hours saved / week</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Big stat: 80% -->
+      <div class="m-card span-5 bg-teal reveal reveal-d1" style="border:none;">
+        <div class="mc-num" style="font-size:clamp(48px,6vw,72px);">80%</div>
+        <div class="mc-label" style="color:rgba(255,255,255,0.7);font-size:14px;">less admin time</div>
+        <p class="mc-body" style="margin-top:12px;">From 12 to 2 hours per week. The rest goes back to building the product.</p>
+      </div>
+
+      <!-- 100% adoption -->
+      <div class="m-card span-4 bg-accent reveal reveal-d2" style="border:none;">
+        <div class="mc-num">100%</div>
+        <div class="mc-label" style="color:rgba(255,255,255,0.7);">team adoption</div>
+        <p class="mc-body">All 9 members active in week one. No training.</p>
+      </div>
+
+      <!-- $0 cost -->
+      <div class="m-card span-4 bg-white reveal reveal-d3">
+        <div class="mc-num" style="color:var(--green);">$0</div>
+        <div class="mc-label" style="color:var(--ink-500);">monthly cost</div>
+        <p class="mc-body" style="color:var(--ink-400);">Free tier. No credit card. No catch.</p>
+      </div>
+
+      <!-- 6 min setup + 520 hours -->
+      <div class="m-card span-4 bg-warm reveal reveal-d4">
+        <div class="mc-num" style="color:#92400E;">6 min</div>
+        <div class="mc-label" style="color:#92400E;opacity:0.7;">total setup time</div>
+        <p class="mc-body" style="color:#92400E;opacity:0.7;margin-top:8px;">Workspace + departments + invites</p>
+        <div style="margin-top:20px;padding-top:16px;border-top:1px solid #FDE68A;">
+          <div class="mc-title" style="color:#92400E;font-size:28px;font-weight:800;">520</div>
+          <div class="mc-label" style="color:#92400E;opacity:0.7;">hours/year back to building product</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       FINAL QUOTE
+       ═══════════════════════════════════════════════════ -->
+  <div class="interrupt" style="background:var(--ink-0);">
+    <div class="interrupt-inner reveal">
+      <div class="interrupt-line"></div>
+      <div class="interrupt-text">
+        <blockquote>"I used to dread Mondays because of all the admin catch-up. Now I just open Workived, glance at the dashboard, and start coding."</blockquote>
+        <div class="interrupt-author">
+          <div class="interrupt-avatar">B</div>
+          <div>
+            <div class="interrupt-name">Budi Hartono</div>
+            <div class="interrupt-role">CTO & Co-founder, Warung Digital</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════
+       CTA
+       ═══════════════════════════════════════════════════ -->
+  <div class="story-cta">
+    <div class="cta-deco">
+      <svg width="100%" height="100%" viewBox="0 0 1440 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="720" cy="500" r="300" fill="var(--accent)" opacity="0.03"/>
+        <circle cx="200" cy="100" r="150" fill="var(--teal)" opacity="0.025"/>
+        <circle cx="1200" cy="200" r="200" fill="var(--blue)" opacity="0.02"/>
+      </svg>
+    </div>
+    <div class="cta-inner reveal">
+      <h2>Your startup deserves<br>better than WhatsApp HR</h2>
+      <p>Workived is free for teams up to 25 people. Set up in minutes, not weeks. No credit card required.</p>
+      <a href="mailto:my@workived.com" class="cta-btn">
+        Get Early Access
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-left">
+      <span class="footer-logo">Workived</span>
+      <span class="footer-copy">© 2026</span>
+    </div>
+    <div class="footer-links">
+      <a href="features">Features</a>
+      <a href="pricing">Pricing</a>
+      <a href="security">Security</a>
+      <a href="articles">Articles</a>
+      <a href="about">About</a>
+    </div>
+  </footer>
+
+  <script>
+    /* Nav scroll */
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 40);
+      const h = document.documentElement.scrollHeight - window.innerHeight;
+      document.getElementById('scrollProgress').style.width = h > 0 ? (window.scrollY / h * 100) + '%' : '0%';
+    }, { passive: true });
+
+    /* Mobile menu */
+    const hamburger = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    hamburger?.addEventListener('click', () => {
+      const open = mobileMenu.classList.toggle('open');
+      hamburger.setAttribute('aria-expanded', open);
+      hamburger.classList.toggle('active', open);
+    });
+
+    /* Scroll reveal */
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  </script>
+</body>
+</html>

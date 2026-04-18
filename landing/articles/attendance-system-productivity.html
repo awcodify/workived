@@ -150,6 +150,30 @@
     .mobile-menu a.active{color:var(--accent);background:var(--accent-dim);}
     .mobile-menu .nav-cta{margin-top:8px;background:var(--accent);color:#fff!important;text-align:center;padding:14px 24px;border-radius:12px;}
     .mobile-menu .nav-cta:hover{background:var(--accent-text);}
+    .mobile-section-label{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink-300);padding:16px 16px 4px;}
+    .mobile-sub-link{padding-left:28px;font-size:14px;}
+    /* ─── DROPDOWN ─── */
+    .nav-dropdown{position:relative;}
+    .nav-dropdown-trigger{display:flex;align-items:center;gap:3px;cursor:pointer;background:none;border:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;padding:0;}
+    .nav-dropdown-trigger:hover{color:var(--ink-900);}
+    .nav-dropdown-trigger .dd-chevron{width:11px;height:11px;transition:transform 0.25s;color:var(--ink-300);}
+    .nav-dropdown:hover .nav-dropdown-trigger .dd-chevron{transform:rotate(180deg);color:var(--ink-500);}
+    .nav-dropdown-panel{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:260px;border-radius:14px;padding-top:10px;opacity:0;visibility:hidden;pointer-events:none;transition:opacity 0.15s,visibility 0.15s;}
+    .nav-dropdown:hover .nav-dropdown-panel{opacity:1;visibility:visible;pointer-events:auto;}
+    .dd-inner{background:#fff;border:1px solid var(--ink-100);border-radius:14px;box-shadow:0 8px 30px rgba(0,0,0,0.08),0 0 1px rgba(0,0,0,0.05);overflow:hidden;}
+    .dd-header{padding:14px 16px 10px;border-bottom:1px solid var(--ink-100);}
+    .dd-header-title{font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-300);}
+    .dd-header-desc{font-size:12px;color:var(--ink-500);margin-top:4px;line-height:1.4;}
+    .dd-links{padding:6px;}
+    .dd-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;text-decoration:none;transition:background 0.12s;}
+    .dd-link:hover{background:var(--ink-50);}
+    .dd-link-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .dd-link-icon.articles{background:rgba(236,72,153,0.08);color:var(--pink,#EC4899);}
+    .dd-link-icon.about{background:rgba(99,87,232,0.08);color:var(--accent);}
+    .dd-link-text{display:flex;flex-direction:column;gap:1px;}
+    .dd-link-title{font-size:13px;font-weight:600;color:var(--ink-900);}
+    .dd-link-desc{font-size:11px;color:var(--ink-300);}
+    .dd-link:hover .dd-link-title{color:var(--accent);}
     @media(max-width:700px){
       .nav{padding:0 20px;}.nav-links{display:none;}.nav-hamburger{display:flex;}
       .breadcrumb{padding:20px 20px 0;}
@@ -180,7 +204,27 @@
       <a href="../pricing">Pricing</a>
       <a href="../security">Security</a>
       <a href="../ai">AI</a>
-      <a href="../articles" class="active">Articles</a>
+      <div class="nav-dropdown">
+        <button class="nav-dropdown-trigger">Resources <svg class="dd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="nav-dropdown-panel">
+          <div class="dd-inner">
+            <div class="dd-header">
+              <div class="dd-header-title">Resources</div>
+              <div class="dd-header-desc">Learn more about Workived and how we help small teams.</div>
+            </div>
+            <div class="dd-links">
+              <a href="../articles" class="dd-link">
+                <div class="dd-link-icon articles"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+                <div class="dd-link-text"><span class="dd-link-title">Articles</span><span class="dd-link-desc">Guides & HR insights</span></div>
+              </a>
+              <a href="../about" class="dd-link">
+                <div class="dd-link-icon about"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                <div class="dd-link-text"><span class="dd-link-title">About Us</span><span class="dd-link-desc">Our story & team</span></div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
       <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
     </div>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
@@ -192,7 +236,9 @@
     <a href="../pricing">Pricing</a>
     <a href="../security">Security</a>
     <a href="../ai">AI</a>
-    <a href="../articles" class="active">Articles</a>
+    <div class="mobile-section-label">Resources</div>
+    <a href="../articles" class="mobile-sub-link">Articles</a>
+    <a href="../about" class="mobile-sub-link">About</a>
     <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
   </div>
 

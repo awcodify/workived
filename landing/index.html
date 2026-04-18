@@ -798,7 +798,10 @@
     @media (max-width: 640px) {
       .nav { padding: 10px 12px 0; }
       .nav-center, .nav-right { display: none; } .nav-hamburger { display: flex; }
-      .nav-island { padding: 0 6px 0 16px; height: 48px; }
+      .nav-island { padding: 0 12px; height: 48px; justify-content: space-between; }
+      .nav-left { gap: 0; }
+      .nav-wordmark { position: absolute; left: 50%; transform: translateX(-50%); }
+      .nav.scrolled .nav-wordmark { width: auto; opacity: 1; }
       .nav.scrolled .nav-island { max-width: 100%; }
       .hero-screenshots { min-height: 260px; }
       .scroll-hint { display: none; }
