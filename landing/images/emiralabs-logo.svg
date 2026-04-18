@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="120 44.519 29.91 47.412" width="250px" height="250px">
+  <path d="M 121.737 75.641 L 120 65.793 L 149.91 60.519 L 149.91 70.673 Z" style="stroke-width: 1px; fill: rgb(255,255,255);"/>
+  <path d="M 120 91.931 L 130 90.157 L 130 64.03 L 120 65.793 Z" style="fill: rgb(25, 166, 162);"/>
+  <path d="M 120 49.763 L 130 48 L 130 48.03 L 149.91 44.519 L 149.91 54.673 L 121.737 59.641 L 121.735 59.627 L 120 59.933 Z" style="fill: rgb(255,255,255);"/>
+  <path d="M 139.831 62.296 L 139.831 72.45 L 129.831 74.214 L 129.831 64.06 Z" style="fill: rgb(25, 166, 162);"/>
+  <path d="M 139.831 62.296 L 139.831 72.45 L 129.831 74.214 L 129.831 64.06 Z" style="fill: rgb(255,255,255); fill-opacity: 0.5;"/>
+  <path d="M 139.846 72.501 L 139.847 62.224 L 139.976 62.201 L 149.688 70.745 L 139.846 72.501 Z" style="stroke-width: 1px; fill: rgb(25, 166, 162); fill-opacity: 0.25;"/>
+  <path d="M 120 60 L 120.001 49.723 L 120.13 49.7 L 129.842 58.244 L 120 60 Z" style="fill-opacity: 0.5; stroke-width: 1px; fill: rgb(25, 166, 162);"/>
+  <path d="M 140.021 78.38 L 149.636 86.839 L 149.833 86.804 L 149.833 76.65 Z" style="fill: rgb(255,255,255); stroke-width: 1px;"/>
+  <path d="M 135.9 79.139 L 135.9 89.293 L 149.733 86.854 L 149.733 76.7 L 135.9 79.139 Z" style="stroke-width: 1px; fill: rgb(25, 166, 162);"/>
+  <path d="M 140 78.43 L 149.615 86.889 L 149.812 86.854 L 149.812 76.7 L 140 78.43 Z" style="fill: rgb(255,255,255); stroke-width: 1px; fill-opacity: 0.5;"/>
+</svg>  

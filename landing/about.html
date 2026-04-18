@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — Workived</title>
+  <meta name="description" content="The story behind Workived — born from frustration with enterprise HR costs. Built by EmiraLabs for small teams who deserve better tools.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://workived.com/about">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://workived.com/about">
+  <meta property="og:title" content="About — Workived">
+  <meta property="og:description" content="The story behind Workived — born from frustration with enterprise HR costs. Built by EmiraLabs for small teams who deserve better tools.">
+  <meta property="og:image" content="https://workived.com/images/og-image.png">
+  <meta property="og:site_name" content="Workived">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="About — Workived">
+  <meta name="twitter:description" content="The story behind Workived — born from frustration with enterprise HR costs. Built by EmiraLabs.">
+  <meta name="twitter:image" content="https://workived.com/images/og-image.png">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#FFFFFF">
+  <link rel="icon" type="image/png" sizes="32x32" href="images/logo-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="images/logo-16.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+    :root{
+      --accent:#000000;--accent-dim:#E8E8E8;--accent-mid:#333333;--accent-text:#000000;
+      --ink-900:#000000;--ink-700:#1A1A1A;--ink-500:#555555;--ink-300:#999999;
+      --ink-150:#D0D0D0;--ink-100:#E8E8E8;--ink-50:#F5F5F5;--ink-0:#FFFFFF;
+      --dark-bg:#000000;
+      /* newspaper palette — black & white */
+      --paper:#FFFFFF;--paper-warm:#F8F8F8;--paper-dark:#EEEEEE;
+      --rule:#CCCCCC;--rule-dark:#999999;
+      --serif:'Playfair Display',Georgia,'Times New Roman',serif;
+      --sans:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+      --mono:'DM Mono','Courier New',monospace;
+    }
+    html{scroll-behavior:smooth;overscroll-behavior-x:none;}
+    body{font-family:var(--sans);background:var(--paper);color:var(--ink-900);-webkit-font-smoothing:antialiased;margin:0;overflow-x:hidden;overscroll-behavior-x:none;}
+    /* paper texture overlay */
+    #page-wrap::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:9999;
+      background-image:
+        url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      background-size:400px 400px;
+    }
+    #page-wrap{position:relative;}
+
+    /* ─── NAV ─── */
+    .nav{position:fixed;top:0;left:0;right:0;z-index:1000;padding:0 40px;height:72px;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.85);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-bottom:1px solid var(--rule);transition:all 0.3s;}
+    .nav.scrolled{background:rgba(255,255,255,0.95);box-shadow:0 1px 8px rgba(0,0,0,0.06);}
+    .nav-left{display:flex;align-items:center;gap:14px;text-decoration:none;}
+    .nav-wordmark{font-size:22px;font-weight:800;color:var(--ink-900);letter-spacing:-0.04em;}
+    .nav-links{display:flex;align-items:center;gap:32px;}
+    .nav-links a{font-size:14px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;}
+    .nav-links a:hover{color:var(--ink-900);}
+    .nav-links a.active{color:#000;}
+    .nav-cta{padding:10px 24px;border-radius:10px;background:#000;color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;border:none;}
+    .nav-cta:hover{background:#333;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.25);}
+    .nav-hamburger{display:none;flex-direction:column;justify-content:center;align-items:center;width:40px;height:40px;gap:5px;background:none;border:none;cursor:pointer;padding:4px;border-radius:8px;transition:background 0.2s;}
+    .nav-hamburger:hover{background:var(--ink-50);}
+    .nav-hamburger span{display:block;width:22px;height:2px;background:var(--ink-700);border-radius:2px;transition:all 0.3s;}
+    .nav-hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+    .nav-hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0);}
+    .nav-hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+    .mobile-menu{display:none;position:fixed;inset:0;top:72px;background:rgba(255,255,255,0.97);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);z-index:999;padding:24px 24px 40px;flex-direction:column;gap:8px;border-top:1px solid var(--rule);}
+    .mobile-menu.open{display:flex;}
+    .mobile-menu a{font-size:16px;font-weight:600;color:var(--ink-700);text-decoration:none;padding:14px 16px;border-radius:12px;transition:background 0.2s,color 0.2s;}
+    .mobile-menu a:hover{background:#F5F5F5;color:#000;}
+    .mobile-menu a.active{color:#000;background:#E8E8E8;}
+    .mobile-menu .nav-cta{margin-top:8px;background:#000;color:#fff!important;text-align:center;padding:14px 24px;border-radius:12px;}
+
+    /* ─── MASTHEAD (newspaper header) ─── */
+    .masthead{
+      padding:120px 40px 0;
+      text-align:center;
+      position:relative;
+      overflow:hidden;
+    }
+    .masthead-date{
+      font-family:var(--mono);font-size:12px;letter-spacing:0.12em;
+      text-transform:uppercase;color:var(--ink-300);margin-bottom:16px;
+    }
+    .masthead-rule{
+      width:100%;max-width:1100px;margin:0 auto;
+      border:none;border-top:2px solid var(--ink-900);position:relative;
+    }
+    .masthead-rule::after{
+      content:'';display:block;width:100%;
+      border-top:1px solid var(--ink-900);margin-top:4px;
+    }
+    .masthead-title{
+      font-family:var(--serif);font-size:clamp(52px,8vw,96px);font-weight:900;
+      letter-spacing:-0.03em;line-height:1.0;
+      margin:20px 0 16px;color:var(--ink-900);
+    }
+    /* people silhouette row */
+    .people-row{display:flex;justify-content:center;gap:0;margin:0 auto;opacity:0.1;pointer-events:none;}
+    .people-row--bold{opacity:0.15;}
+    .people-row--subtle{opacity:0.07;}
+    .masthead-subtitle{
+      font-family:var(--serif);font-size:clamp(16px,2.2vw,22px);font-style:italic;
+      color:var(--ink-500);font-weight:400;max-width:600px;margin:0 auto 20px;
+      line-height:1.5;
+    }
+    .masthead-rule-bottom{
+      width:100%;max-width:1100px;margin:0 auto;
+      border:none;border-top:1px solid var(--ink-900);
+    }
+    .masthead-edition{
+      font-family:var(--mono);font-size:11px;letter-spacing:0.1em;
+      text-transform:uppercase;color:var(--ink-300);
+      margin-top:12px;padding-bottom:40px;
+    }
+
+    /* ─── BROADSHEET GRID ─── */
+    .broadsheet{
+      max-width:1100px;margin:0 auto;padding:0 40px;overflow:hidden;
+    }
+
+    /* ─── HEADLINE STORY ─── */
+    .headline-story{
+      display:grid;grid-template-columns:1fr 1fr;gap:0;
+      border-top:3px solid var(--ink-900);border-bottom:1px solid var(--rule);
+      position:relative;
+    }
+    .headline-story::before{
+      content:'';position:absolute;top:0;bottom:0;left:50%;
+      width:1px;background:var(--rule);
+    }
+    .col-story{padding:32px 36px 40px;}
+    .col-story:first-child{padding-left:0;}
+    .col-story:last-child{padding-right:0;}
+    .col-kicker{
+      font-family:var(--mono);font-size:11px;letter-spacing:0.14em;
+      text-transform:uppercase;color:var(--accent);font-weight:500;
+      margin-bottom:12px;display:block;
+    }
+    .col-headline{
+      font-family:var(--serif);font-size:clamp(24px,3vw,36px);font-weight:900;
+      letter-spacing:-0.02em;line-height:1.15;margin-bottom:16px;
+      color:var(--ink-900);
+    }
+    .col-body{
+      font-size:15px;line-height:1.85;color:var(--ink-500);
+      column-count:1;
+    }
+    /* inline illustrations */
+    .col-illo{display:block;margin:20px auto 12px;opacity:0.7;}
+    .col-illo svg{width:100%;max-width:220px;height:auto;}
+    .col-body p+p{margin-top:16px;text-indent:1.5em;}
+    .col-dropcap::first-letter{
+      font-family:var(--serif);float:left;font-size:64px;font-weight:900;
+      line-height:0.8;padding-right:10px;padding-top:6px;
+      color:var(--ink-900);
+    }
+    .col-byline{
+      font-family:var(--mono);font-size:11px;color:var(--ink-300);
+      letter-spacing:0.06em;margin-top:20px;text-transform:uppercase;
+    }
+
+    /* ─── CATALOG STRIP ─── */
+    .catalog-strip{
+      display:grid;grid-template-columns:repeat(4,1fr);
+      border-bottom:1px solid var(--rule);
+    }
+    .catalog-item{
+      padding:32px 24px;
+      border-right:1px solid var(--rule);
+      text-align:center;
+      position:relative;
+    }
+    .catalog-item:last-child{border-right:none;}
+    .catalog-num{
+      font-family:var(--serif);font-size:clamp(36px,4vw,56px);font-weight:900;
+      letter-spacing:-0.03em;color:var(--ink-900);line-height:1;
+    }
+    .catalog-label{
+      font-family:var(--mono);font-size:11px;letter-spacing:0.1em;
+      text-transform:uppercase;color:var(--ink-300);margin-top:8px;
+    }
+
+    /* ─── THREE COLUMN SECTION ─── */
+    .three-col{
+      display:grid;grid-template-columns:1fr 1.4fr 1fr;gap:0;
+      border-bottom:1px solid var(--rule);
+    }
+    .three-col .tcol{
+      padding:32px 28px;
+      border-right:1px solid var(--rule);
+    }
+    .three-col .tcol:last-child{border-right:none;}
+    .three-col .tcol:first-child{padding-left:0;}
+    .three-col .tcol:last-child{padding-right:0;}
+    .tcol-eyebrow{
+      font-family:var(--mono);font-size:10px;letter-spacing:0.14em;
+      text-transform:uppercase;color:var(--rule-dark);margin-bottom:12px;
+      display:flex;align-items:center;gap:8px;
+    }
+    .tcol-eyebrow::after{content:'';flex:1;height:1px;background:var(--rule);}
+    .tcol-heading{
+      font-family:var(--serif);font-size:20px;font-weight:700;
+      letter-spacing:-0.02em;line-height:1.25;margin-bottom:12px;
+      color:var(--ink-900);
+    }
+    .tcol-body{
+      font-size:14px;line-height:1.8;color:var(--ink-500);
+    }
+    .tcol-body p+p{margin-top:12px;}
+
+    /* ─── PULL QUOTE ─── */
+    .pull-quote-section{
+      border-bottom:1px solid var(--rule);
+      padding:56px 0;text-align:center;
+      position:relative;
+    }
+    .pull-quote-section::before{
+      content:'"';font-family:var(--serif);font-size:160px;font-weight:900;
+      color:#E0E0E0;position:absolute;top:-20px;left:50%;
+      transform:translateX(-50%);line-height:1;pointer-events:none;
+    }
+    .pull-quote{
+      font-family:var(--serif);font-size:clamp(22px,3.2vw,34px);
+      font-weight:400;font-style:italic;line-height:1.5;
+      max-width:760px;margin:0 auto;color:var(--ink-700);
+      position:relative;z-index:1;
+    }
+    .pull-attr{
+      font-family:var(--mono);font-size:12px;letter-spacing:0.1em;
+      text-transform:uppercase;color:var(--ink-300);margin-top:20px;
+    }
+
+    /* ─── SECTION ILLUSTRATIONS ─── */
+    .section-illo{
+      position:absolute;pointer-events:none;opacity:0.10;
+    }
+
+    /* ─── TIMELINE (vertical newspaper) ─── */
+    .timeline-section{
+      border-bottom:1px solid var(--rule);
+      padding:48px 0;position:relative;overflow:hidden;
+    }
+    .timeline-header{
+      font-family:var(--serif);font-size:28px;font-weight:900;
+      letter-spacing:-0.02em;margin-bottom:8px;
+      border-bottom:2px solid var(--ink-900);
+      padding-bottom:12px;display:inline-block;
+    }
+    .timeline{
+      margin-top:32px;position:relative;
+      padding-left:32px;
+    }
+    .timeline::before{
+      content:'';position:absolute;left:8px;top:0;bottom:0;
+      width:1px;background:var(--rule);
+    }
+    .tl-entry{position:relative;padding-bottom:36px;}
+    .tl-entry:last-child{padding-bottom:0;}
+    .tl-dot{
+      position:absolute;left:-28px;top:4px;width:12px;height:12px;
+      border-radius:50%;border:2px solid #000;background:#fff;
+    }
+    .tl-entry:first-child .tl-dot{
+      background:#000;box-shadow:0 0 0 4px #E0E0E0;
+    }
+    .tl-year{
+      font-family:var(--mono);font-size:12px;letter-spacing:0.1em;
+      text-transform:uppercase;color:var(--accent);font-weight:500;
+    }
+    .tl-title{
+      font-family:var(--serif);font-size:18px;font-weight:700;
+      letter-spacing:-0.01em;margin:4px 0 6px;color:var(--ink-900);
+    }
+    .tl-desc{
+      font-size:14px;line-height:1.7;color:var(--ink-500);max-width:500px;
+    }
+
+    /* ─── EMIRALABS COLOPHON ─── */
+    .colophon{
+      border-top:2px solid var(--ink-900);
+      border-bottom:1px solid var(--rule);
+      padding:40px 0;
+      display:grid;grid-template-columns:auto 1fr;gap:32px;
+      align-items:center;
+    }
+    .colophon-mark{
+      width:72px;height:72px;border-radius:14px;
+      background:var(--ink-900);
+      display:flex;align-items:center;justify-content:center;
+      padding:12px;overflow:hidden;
+    }
+    .colophon-mark img{width:100%;height:100%;object-fit:contain;filter:brightness(0) invert(1);}
+    .colophon-text{max-width:600px;}
+    .colophon-name{
+      font-family:var(--serif);font-size:20px;font-weight:900;
+      letter-spacing:-0.02em;color:var(--ink-900);margin-bottom:6px;
+    }
+    .colophon-name a{color:inherit;text-decoration:underline;}
+    .colophon-name a:hover{color:#333;}
+    .colophon-desc{
+      font-size:14px;line-height:1.7;color:var(--ink-500);
+    }
+    .colophon-desc a{color:#000;text-decoration:underline;font-weight:600;}
+    .colophon-desc a:hover{text-decoration:underline;}
+
+    /* ─── CTA BANNER ─── */
+    .cta-banner{
+      padding:64px 0 80px;text-align:center;
+    }
+    .cta-banner-rule{
+      width:120px;height:3px;background:#000;
+      margin:0 auto 28px;border-radius:2px;
+    }
+    .cta-banner h2{
+      font-family:var(--serif);font-size:clamp(28px,4vw,42px);font-weight:900;
+      letter-spacing:-0.03em;color:var(--ink-900);margin-bottom:14px;
+    }
+    .cta-banner p{
+      font-size:16px;color:var(--ink-500);margin-bottom:28px;max-width:440px;margin-left:auto;margin-right:auto;
+    }
+    .btn-primary{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:15px 32px;border-radius:12px;
+      background:#000;
+      color:#fff;font-size:15px;font-weight:700;
+      text-decoration:none;border:none;cursor:pointer;transition:all 0.25s;
+      box-shadow:0 4px 24px rgba(0,0,0,0.2);
+    }
+    .btn-primary:hover{
+      transform:translateY(-2px) scale(1.02);
+      box-shadow:0 8px 40px rgba(0,0,0,0.35);
+    }
+
+    /* ─── FOOTER ─── */
+    .footer{border-top:1px solid rgba(255,255,255,0.06);padding:48px 40px 32px;background:var(--dark-bg);}
+    .footer-inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;}
+    .footer-left{display:flex;align-items:center;gap:12px;}
+    .footer-wordmark{font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.03em;}
+    .footer-copy{font-size:13px;color:rgba(255,255,255,0.3);}
+    .footer-right{display:flex;align-items:center;gap:24px;}
+    .footer-link{font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);text-decoration:none;transition:color 0.2s;}
+    .footer-link:hover{color:#fff;}
+
+    /* ─── REVEAL ─── */
+    .reveal{opacity:0;transform:translateY(30px);transition:opacity 0.7s cubic-bezier(0.23,1,0.32,1),transform 0.7s cubic-bezier(0.23,1,0.32,1);}
+    .reveal.visible{opacity:1;transform:translateY(0);}
+    .reveal-d1{transition-delay:0.1s;}.reveal-d2{transition-delay:0.2s;}.reveal-d3{transition-delay:0.3s;}.reveal-d4{transition-delay:0.4s;}
+
+    /* ─── RESPONSIVE ─── */
+    @media(max-width:900px){
+      .headline-story{grid-template-columns:1fr;border-bottom:none;}
+      .headline-story::before{display:none;}
+      .col-story{padding:28px 0!important;border-bottom:1px solid var(--rule);}
+      .catalog-strip{grid-template-columns:repeat(2,1fr);}
+      .catalog-item:nth-child(2){border-right:none;}
+      .catalog-item:nth-child(2){border-bottom:1px solid var(--rule);}
+      .catalog-item:nth-child(1){border-bottom:1px solid var(--rule);}
+      .three-col{grid-template-columns:1fr;}
+      .three-col .tcol{padding:24px 0!important;border-right:none;border-bottom:1px solid var(--rule);}
+      .three-col .tcol:last-child{border-bottom:none;}
+      .colophon{grid-template-columns:1fr;text-align:center;justify-items:center;}
+    }
+    @media(max-width:640px){
+      .nav{padding:0 20px;}
+      .nav-links{display:none;}.nav-hamburger{display:flex;}
+      .broadsheet{padding:0 20px;}
+      .masthead{padding:100px 20px 0;}
+      .catalog-strip{grid-template-columns:1fr;}
+      .catalog-item{border-right:none;border-bottom:1px solid var(--rule);}
+      .catalog-item:last-child{border-bottom:none;}
+      .footer{padding:48px 20px 32px;}
+      .footer-inner{flex-direction:column;gap:16px;text-align:center;}
+      .footer-right{flex-wrap:wrap;justify-content:center;}
+    }
+  </style>
+</head>
+<body>
+<div id="page-wrap">
+
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <a href="index" class="nav-left" style="text-decoration:none;">
+      <svg width="36" height="36" viewBox="0 0 180 180" fill="none">
+        <rect width="180" height="180" rx="30" fill="#000000"/>
+        <text x="90" y="100" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+        <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
+      </svg>
+      <span class="nav-wordmark">Workived</span>
+    </a>
+    <div class="nav-links">
+      <a href="features">Features</a>
+      <a href="pricing">Pricing</a>
+      <a href="security">Security</a>
+      <a href="ai">AI</a>
+      <a href="articles">Articles</a>
+      <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="features">Features</a>
+    <a href="pricing">Pricing</a>
+    <a href="security">Security</a>
+    <a href="ai">AI</a>
+    <a href="articles">Articles</a>
+    <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+  </div>
+
+  <!-- ═══════ MASTHEAD ═══════ -->
+  <header class="masthead">
+    <p class="masthead-date">Est. 2024 &nbsp;·&nbsp; Jakarta &amp; Dubai &nbsp;·&nbsp; Vol. I, No. 1</p>
+    <hr class="masthead-rule">
+    <h1 class="masthead-title">The Workived<br>Chronicle</h1>
+    <p class="masthead-subtitle">A small team's field notes on building HR software<br>that doesn't cost a fortune</p>
+    <hr class="masthead-rule-bottom">
+    <p class="masthead-edition">About&ensp;·&ensp;Story&ensp;·&ensp;Catalog&ensp;·&ensp;Timeline</p>
+  </header>
+
+  <!-- ═══════ BROADSHEET ═══════ -->
+  <div class="broadsheet">
+
+    <!-- ─── HEADLINE: THE ORIGIN STORY ─── -->
+    <section class="headline-story reveal">
+      <div class="col-story">
+        <span class="col-kicker">Origin Story</span>
+        <h2 class="col-headline">Born From Frustration<br>With Enterprise Costs</h2>
+        <div class="col-body col-dropcap">
+          <p>We were a tiny team — spread between Jakarta and Dubai — drowning in spreadsheets, WhatsApp threads, and the kind of leave-tracking chaos that makes you question whether "HR" stands for "Highly Ridiculous."</p>
+          <p>Every solution we found wanted $12 per employee per month. For a 10-person team that's $1,440 a year — just to know who's on leave tomorrow. We refused. So we opened our laptops and started building.</p>
+        </div>
+        <!-- Inline illustration: person frustrated at desk with spreadsheet chaos -->
+        <div class="col-illo">
+          <svg viewBox="0 0 260 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- desk -->
+            <rect x="70" y="80" width="120" height="8" rx="2" fill="#CCCCCC" opacity="0.6"/>
+            <rect x="80" y="88" width="6" height="40" rx="1" fill="#CCCCCC" opacity="0.4"/>
+            <rect x="174" y="88" width="6" height="40" rx="1" fill="#CCCCCC" opacity="0.4"/>
+            <!-- person sitting (silhouette) -->
+            <circle cx="130" cy="38" r="16" fill="#555555" opacity="0.6"/>
+            <path d="M106 88 C106 62 116 52 130 52 C144 52 154 62 154 88" fill="#555555" opacity="0.45"/>
+            <!-- frustration lines -->
+            <line x1="150" y1="28" x2="162" y2="20" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+            <line x1="155" y1="36" x2="168" y2="32" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+            <line x1="148" y1="22" x2="156" y2="12" stroke="#000000" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+            <!-- laptop on desk -->
+            <rect x="110" y="64" width="40" height="26" rx="3" stroke="#999999" stroke-width="2" fill="none"/>
+            <rect x="104" y="80" width="52" height="4" rx="2" fill="#999999" opacity="0.5"/>
+            <!-- scattered spreadsheets -->
+            <rect x="4" y="40" width="42" height="55" rx="3" stroke="#999999" stroke-width="1.8" fill="none" transform="rotate(-10 25 67)"/>
+            <line x1="14" y1="55" x2="36" y2="52" stroke="#CCCCCC" stroke-width="1.2" transform="rotate(-10 25 53)"/>
+            <line x1="14" y1="63" x2="32" y2="60" stroke="#CCCCCC" stroke-width="1.2" transform="rotate(-10 23 61)"/>
+            <line x1="14" y1="71" x2="38" y2="68" stroke="#CCCCCC" stroke-width="1.2" transform="rotate(-10 26 69)"/>
+            <text x="20" y="85" font-family="monospace" font-size="8" font-weight="bold" fill="#999999" transform="rotate(-10 20 85)">.xlsx</text>
+            <rect x="210" y="45" width="42" height="55" rx="3" stroke="#999999" stroke-width="1.8" fill="none" transform="rotate(8 231 72)"/>
+            <line x1="220" y1="60" x2="242" y2="62" stroke="#CCCCCC" stroke-width="1.2" transform="rotate(8 231 61)"/>
+            <line x1="220" y1="68" x2="238" y2="70" stroke="#CCCCCC" stroke-width="1.2" transform="rotate(8 229 69)"/>
+            <text x="224" y="88" font-family="monospace" font-size="8" font-weight="bold" fill="#999999" transform="rotate(8 224 88)">.csv</text>
+            <!-- whatsapp bubble -->
+            <rect x="196" y="14" width="50" height="24" rx="12" stroke="#999999" stroke-width="1.5" fill="none"/>
+            <text x="221" y="30" text-anchor="middle" font-family="monospace" font-size="7" fill="#999999">who's off?</text>
+            <path d="M210 38 L206 46 L218 38" fill="none" stroke="#999999" stroke-width="1.2"/>
+          </svg>
+        </div>
+        <p class="col-byline">— The founding team, circa 2024</p>
+      </div>
+      <div class="col-story">
+        <span class="col-kicker">The Irony</span>
+        <h2 class="col-headline">We Built the Leave Feature While on Leave</h2>
+        <div class="col-body">
+          <p>Yes, really. The first working prototype of Workived's leave management module was coded during an actual holiday. There's something poetic about building a leave tracker while you're supposed to be off.</p>
+          <p>That prototype became the foundation of everything. Attendance came next, then expense claims, then the task board. Each feature was born from a real pain point, not a product roadmap dreamt up in a boardroom.</p>
+          <p>Now we use it daily — every clock-in, every leave request, every expense receipt. It's ours, and it's yours — free for almost everything. No hidden costs. No "contact sales." No enterprise pricing page designed to make you feel small.</p>
+        </div>
+        <!-- Inline illustration: person building blocks, stacking modules -->
+        <div class="col-illo">
+          <svg viewBox="0 0 260 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- stacked module blocks -->
+            <rect x="80" y="100" width="130" height="24" rx="4" stroke="#999999" stroke-width="2" fill="#EEEEEE" opacity="0.5"/>
+            <rect x="90" y="74" width="110" height="24" rx="4" stroke="#999999" stroke-width="2" fill="#EEEEEE" opacity="0.4"/>
+            <rect x="100" y="48" width="90" height="24" rx="4" stroke="#000000" stroke-width="2.5" fill="#E8E8E8" opacity="0.5"/>
+            <rect x="110" y="22" width="70" height="24" rx="4" stroke="#999999" stroke-width="2" fill="#EEEEEE" opacity="0.4"/>
+            <rect x="120" y="-2" width="50" height="24" rx="4" stroke="#999999" stroke-width="1.5" fill="#EEEEEE" opacity="0.3"/>
+            <text x="145" y="116" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#555555">attendance</text>
+            <text x="145" y="90" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#555555">claims</text>
+            <text x="145" y="64" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#000000">leave ✓</text>
+            <text x="145" y="38" text-anchor="middle" font-family="monospace" font-size="9" font-weight="bold" fill="#555555">tasks</text>
+            <text x="145" y="14" text-anchor="middle" font-family="monospace" font-size="8" fill="#999999">calendar</text>
+            <!-- person placing the block (silhouette) -->
+            <circle cx="42" cy="50" r="14" fill="#555555" opacity="0.5"/>
+            <path d="M22 88 C22 68 30 58 42 58 C54 58 62 68 62 88" fill="#555555" opacity="0.35"/>
+            <!-- arm reaching to stack -->
+            <line x1="56" y1="68" x2="98" y2="56" stroke="#555555" stroke-width="2.5" stroke-linecap="round" opacity="0.35"/>
+            <!-- arrow -->
+            <path d="M42 96 C42 120 65 126 80 122" stroke="#CCCCCC" stroke-width="1.5" fill="none" stroke-dasharray="4 3"/>
+            <polygon points="80,119 84,122 80,125" fill="#CCCCCC"/>
+            <text x="38" y="136" font-family="monospace" font-size="8" font-weight="bold" fill="#999999">2024</text>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── CATALOG STRIP: NUMBERS ─── -->
+    <section class="catalog-strip reveal">
+      <div class="catalog-item">
+        <div class="catalog-num">2</div>
+        <div class="catalog-label">Countries</div>
+      </div>
+      <div class="catalog-item">
+        <div class="catalog-num">9+</div>
+        <div class="catalog-label">Core Modules</div>
+      </div>
+      <div class="catalog-item">
+        <div class="catalog-num">0</div>
+        <div class="catalog-label">Hidden Fees</div>
+      </div>
+      <div class="catalog-item">
+        <div class="catalog-num">∞</div>
+        <div class="catalog-label">Leave Requests Filed</div>
+      </div>
+    </section>
+
+    <!-- ─── PULL QUOTE ─── -->
+    <section class="pull-quote-section reveal" style="overflow:hidden;">
+      <blockquote class="pull-quote">
+        We didn't set out to build an HR platform. We set out to stop losing track of who's in the office on Monday.
+      </blockquote>
+      <p class="pull-attr">— Internal Slack, 2024</p>
+    </section>
+
+    <!-- ─── THREE COLUMNS: WHAT WE BELIEVE ─── -->
+    <section class="three-col reveal" style="position:relative;overflow:hidden;">
+      <!-- Background illustration: people + geometric -->
+      <svg class="section-illo" style="left:0;bottom:-20px;width:200px;height:200px;" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="20" y="20" width="80" height="80" stroke="currentColor" stroke-width="1.5" rx="3"/>
+        <rect x="120" y="20" width="80" height="80" stroke="currentColor" stroke-width="1.5" rx="3"/>
+        <rect x="20" y="120" width="80" height="80" stroke="currentColor" stroke-width="1.5" rx="3"/>
+        <rect x="120" y="120" width="80" height="80" stroke="currentColor" stroke-width="1.5" rx="3" fill="currentColor" opacity="0.1"/>
+        <!-- person in cell 1 -->
+        <circle cx="60" cy="48" r="10" fill="currentColor" opacity="0.3"/>
+        <path d="M44 75 C44 60 50 55 60 55 C70 55 76 60 76 75" fill="currentColor" opacity="0.2"/>
+        <!-- checkmark in cell 2 -->
+        <path d="M145 45 L155 58 L180 35" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" opacity="0.3"/>
+        <!-- flag in cell 3 -->
+        <line x1="45" y1="135" x2="45" y2="185" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+        <path d="M45 135 L80 148 L45 160" fill="currentColor" opacity="0.15"/>
+      </svg>
+      <!-- People silhouette right side -->
+      <svg class="section-illo" style="right:0;top:10px;width:180px;height:180px;" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- 3 people standing -->
+        <circle cx="50" cy="60" r="16" fill="currentColor" opacity="0.5"/>
+        <path d="M28 110 C28 86 36 76 50 76 C64 76 72 86 72 110" fill="currentColor" opacity="0.35"/>
+        <circle cx="100" cy="48" r="20" fill="currentColor" opacity="0.5"/>
+        <path d="M72 110 C72 80 84 66 100 66 C116 66 128 80 128 110" fill="currentColor" opacity="0.35"/>
+        <circle cx="152" cy="55" r="17" fill="currentColor" opacity="0.5"/>
+        <path d="M128 110 C128 84 138 72 152 72 C166 72 176 84 176 110" fill="currentColor" opacity="0.35"/>
+        <!-- ground line -->
+        <line x1="20" y1="110" x2="180" y2="110" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+      </svg>
+      <div class="tcol">
+        <div class="tcol-eyebrow">Belief No. 01</div>
+        <h3 class="tcol-heading">Small Teams Deserve Real Tools</h3>
+        <div class="tcol-body">
+          <p>You shouldn't need 500 employees to afford proper attendance tracking. A 5-person startup deserves the same dignity as a Fortune 500 company — minus the procurement process.</p>
+        </div>
+      </div>
+      <div class="tcol">
+        <div class="tcol-eyebrow">Belief No. 02</div>
+        <h3 class="tcol-heading">Free Should Actually Mean Free</h3>
+        <div class="tcol-body">
+          <p>Our free tier isn't a demo or a trap. It covers up to 15 employees with full access to attendance, leave, claims, tasks, and more. We make money only when you grow past that — and even then, it's fair.</p>
+        </div>
+      </div>
+      <div class="tcol">
+        <div class="tcol-eyebrow">Belief No. 03</div>
+        <h3 class="tcol-heading">Built for Where We Work</h3>
+        <div class="tcol-body">
+          <p>Indonesia and UAE first. We know the labor laws, the holidays, the currencies. Workived isn't a Silicon Valley product awkwardly localized — it's built here, for here.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── TIMELINE ─── -->
+    <section class="timeline-section reveal">
+      <!-- Background illustration: clock with person walking through time -->
+      <svg class="section-illo" style="right:0;top:10px;width:280px;height:280px;" viewBox="0 0 320 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="160" cy="160" r="150" stroke="currentColor" stroke-width="2"/>
+        <circle cx="160" cy="160" r="120" stroke="currentColor" stroke-width="1"/>
+        <circle cx="160" cy="160" r="6" fill="currentColor"/>
+        <line x1="160" y1="160" x2="160" y2="55" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        <line x1="160" y1="160" x2="240" y2="160" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <!-- hour markers -->
+        <line x1="160" y1="15" x2="160" y2="35" stroke="currentColor" stroke-width="2.5"/>
+        <line x1="305" y1="160" x2="285" y2="160" stroke="currentColor" stroke-width="2.5"/>
+        <line x1="160" y1="305" x2="160" y2="285" stroke="currentColor" stroke-width="2.5"/>
+        <line x1="15" y1="160" x2="35" y2="160" stroke="currentColor" stroke-width="2.5"/>
+        <!-- smaller markers -->
+        <line x1="263" y1="57" x2="253" y2="67" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="263" y1="263" x2="253" y2="253" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="57" y1="263" x2="67" y2="253" stroke="currentColor" stroke-width="1.5"/>
+        <line x1="57" y1="57" x2="67" y2="67" stroke="currentColor" stroke-width="1.5"/>
+        <!-- person walking across clock face -->
+        <circle cx="120" cy="195" r="12" fill="currentColor" opacity="0.5"/>
+        <path d="M106 230 C106 212 111 205 120 205 C129 205 134 212 134 230" fill="currentColor" opacity="0.35"/>
+        <!-- walking legs -->
+        <line x1="114" y1="228" x2="106" y2="250" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+        <line x1="126" y1="228" x2="136" y2="248" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity="0.35"/>
+      </svg>
+      <h2 class="timeline-header">Dispatches</h2>
+      <div class="timeline">
+        <div class="tl-entry">
+          <div class="tl-dot"></div>
+          <div class="tl-year">2026 — Now</div>
+          <div class="tl-title">Growing in the open</div>
+          <div class="tl-desc">AI assistant, performance analytics, mobile app, and multi-currency support. Still free for small teams. Still built by a small team.</div>
+        </div>
+        <div class="tl-entry">
+          <div class="tl-dot"></div>
+          <div class="tl-year">August 2025</div>
+          <div class="tl-title">EmiraLabs is born — and so is the name</div>
+          <div class="tl-desc">We officially formed EmiraLabs and gave our internal HR tool a proper name: Workived. What started as a side project became the studio's first real product.</div>
+        </div>
+        <div class="tl-entry">
+          <div class="tl-dot"></div>
+          <div class="tl-year">Early 2025</div>
+          <div class="tl-title">First real users</div>
+          <div class="tl-desc">Teams in Jakarta and Dubai started using the tool daily. Bug reports came in faster than features — exactly how it should be.</div>
+        </div>
+        <div class="tl-entry">
+          <div class="tl-dot"></div>
+          <div class="tl-year">Mid 2024</div>
+          <div class="tl-title">The "while on leave" prototype</div>
+          <div class="tl-desc">Leave management, attendance tracking, and a team directory — built in a sprint fueled by frustration and too much coffee.</div>
+        </div>
+        <div class="tl-entry">
+          <div class="tl-dot"></div>
+          <div class="tl-year">Early 2024</div>
+          <div class="tl-title">The spreadsheet breaking point</div>
+          <div class="tl-desc">After one too many "who approved this leave?" messages, we decided enough was enough. The first commit was pushed that week.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── EMIRALABS COLOPHON ─── -->
+    <section class="colophon reveal">
+      <div class="colophon-mark"><img src="images/emiralabs-logo.svg" alt="EmiraLabs"></div>
+      <div class="colophon-text">
+        <h3 class="colophon-name">A product by <a href="https://emiralabs.com" target="_blank" rel="noopener noreferrer">EmiraLabs</a></h3>
+        <p class="colophon-desc">
+          Workived is designed and engineered by <strong>EmiraLabs</strong> — a small studio building practical software for the markets we live in. We're based between Jakarta and Dubai, and we believe the best tools come from people who actually use them every day.
+        </p>
+      </div>
+    </section>
+
+    <!-- ─── CTA ─── -->
+    <section class="cta-banner reveal" style="position:relative;overflow:hidden;">
+      <div class="cta-banner-rule"></div>
+      <h2>Try It — On the House</h2>
+      <p>Free for teams up to 15. No credit card. No "let's schedule a demo."</p>
+      <a href="mailto:my@workived.com" class="btn-primary">
+        Get Early Access &rarr;
+      </a>
+    </section>
+
+  </div><!-- /broadsheet -->
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        <svg width="28" height="28" viewBox="0 0 180 180" fill="none">
+          <rect width="180" height="180" rx="30" fill="#000000"/>
+          <text x="90" y="100" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+          <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
+        </svg>
+        <span class="footer-wordmark">Workived</span>
+        <span class="footer-copy">&copy; 2026</span>
+      </div>
+      <div class="footer-right">
+        <a href="features" class="footer-link">Features</a>
+        <a href="pricing" class="footer-link">Pricing</a>
+        <a href="security" class="footer-link">Security</a>
+        <a href="ai" class="footer-link">AI</a>
+        <a href="articles" class="footer-link">Articles</a>
+        <a href="mailto:my@workived.com" class="footer-link">my@workived.com</a>
+      </div>
+    </div>
+  </footer>
+</div><!-- /page-wrap -->
+
+  <script>
+  (() => {
+    'use strict';
+
+    // Nav scroll
+    const nav = document.getElementById('nav');
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('scrolled', window.scrollY > 50);
+    }, { passive: true });
+
+    // Mobile menu
+    const hamburger = document.getElementById('hamburger');
+    const mobileMenu = document.getElementById('mobileMenu');
+    hamburger.addEventListener('click', () => {
+      const open = hamburger.classList.toggle('open');
+      mobileMenu.classList.toggle('open', open);
+      hamburger.setAttribute('aria-expanded', open);
+      document.body.style.overflow = open ? 'hidden' : '';
+    });
+
+    // Reveal on scroll
+    const reveals = document.querySelectorAll('.reveal');
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); io.unobserve(e.target); } });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+    reveals.forEach(el => io.observe(el));
+  })();
+  </script>
+</body>
+</html>

@@ -64,41 +64,73 @@
       overflow-x: hidden;
     }
 
-    /* ─── NAV (frosted glass) ─── */
+    /* ─── NAV: Floating Island ─── */
     .nav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
-      padding: 0 40px; height: 72px;
-      display: flex; align-items: center; justify-content: space-between;
-      background: rgba(255,255,255,0.18);
-      backdrop-filter: blur(48px) saturate(180%);
-      -webkit-backdrop-filter: blur(48px) saturate(180%);
-      border-bottom: 1px solid rgba(255,255,255,0.25);
-      transition: all 0.3s;
+      padding: 16px 40px 0;
+      display: flex; justify-content: center;
+      pointer-events: none;
+      transition: padding 0.5s cubic-bezier(0.4,0,0.2,1);
     }
-    .nav.scrolled {
-      background: rgba(255,255,255,0.55);
-      border-bottom-color: rgba(0,0,0,0.06);
-      box-shadow: 0 1px 12px rgba(0,0,0,0.04);
+    .nav.scrolled { padding-top: 10px; }
+    .nav-island {
+      display: flex; align-items: center; gap: 0;
+      width: 100%; max-width: 1280px;
+      padding: 0 6px 0 0; height: 56px;
+      border-radius: 100px;
+      background: transparent;
+      backdrop-filter: none;
+      -webkit-backdrop-filter: none;
+      border: 1px solid transparent;
+      box-shadow: none;
+      pointer-events: auto;
+      transition: all 0.5s cubic-bezier(0.4,0,0.2,1);
     }
-    .nav-left { display: flex; align-items: center; gap: 14px; text-decoration: none; }
-    .nav-wordmark { font-size: 22px; font-weight: 800; color: var(--ink-900); letter-spacing: -0.04em; }
-    .nav-links { display: flex; align-items: center; gap: 32px; }
-    .nav-links a {
-      font-size: 14px; font-weight: 600; color: var(--ink-500);
-      text-decoration: none; transition: color 0.2s;
+    .nav.scrolled .nav-island {
+      max-width: 840px;
+      padding: 0 6px 0 20px;
+      background: rgba(255,255,255,0.78);
+      backdrop-filter: blur(40px) saturate(200%);
+      -webkit-backdrop-filter: blur(40px) saturate(200%);
+      border-color: rgba(0,0,0,0.06);
+      box-shadow: 0 8px 40px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.04);
     }
-    .nav-links a:hover { color: var(--ink-900); }
+    .nav-left { display: flex; align-items: center; gap: 8px; text-decoration: none; flex-shrink: 0; }
+    .nav-wordmark {
+      font-size: 18px; font-weight: 800; color: var(--ink-900); letter-spacing: -0.04em;
+      transition: all 0.4s; overflow: hidden; white-space: nowrap;
+    }
+    .nav.scrolled .nav-wordmark { width: 0; opacity: 0; margin: 0; padding: 0; }
+    .nav-center {
+      display: flex; align-items: center; gap: 2px;
+      margin: 0 auto;
+    }
+    .nav-center a, .nav-center .nav-dropdown-trigger {
+      font-size: 13px; font-weight: 600; color: var(--ink-500);
+      text-decoration: none; transition: all 0.2s;
+      padding: 6px 13px; border-radius: 100px; white-space: nowrap;
+    }
+    .nav-center a:hover, .nav-center .nav-dropdown-trigger:hover {
+      color: var(--ink-900); background: rgba(0,0,0,0.04);
+    }
+    .nav-center a.active { color: var(--accent); background: var(--accent-dim); }
+    .nav-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
     .nav-cta {
-      padding: 10px 24px; border-radius: 10px;
-      background: var(--accent); color: #fff !important;
-      font-weight: 700; font-size: 14px;
-      transition: all 0.2s; border: none;
+      padding: 8px 20px; border-radius: 100px;
+      background: var(--ink-900); color: #fff !important;
+      font-weight: 700; font-size: 13px; letter-spacing: -0.01em;
+      transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+      border: none; text-decoration: none; cursor: pointer; white-space: nowrap;
     }
-    .nav-cta:hover { background: var(--accent-text); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(99,87,232,0.4); }
+    .nav-cta:hover {
+      background: var(--accent);
+      box-shadow: 0 4px 20px rgba(99,87,232,0.3);
+      transform: scale(1.03);
+    }
 
-    /* ─── SCROLL PROGRESS ─── */
+    /* ─── SCROLL PROGRESS (inside island) ─── */
     .scroll-progress {
-      position: fixed; top: 72px; left: 0; height: 3px; z-index: 999;
+      position: fixed; top: 0; left: 0; height: 2px; z-index: 1001;
       background: linear-gradient(90deg, var(--accent), var(--blue), var(--accent-mid));
       width: 0%; transition: width 0.1s linear;
     }
@@ -107,7 +139,7 @@
     .hero {
       position: relative; min-height: 100vh;
       display: flex; align-items: center;
-      padding: 120px 40px 80px;
+      padding: 100px 40px 80px;
       overflow: hidden;
       background: var(--ink-0);
     }
@@ -672,22 +704,102 @@
     @media (max-width: 900px) {
       .counters-inner { grid-template-columns: repeat(2, 1fr); gap: 24px; }
     }
-    .nav-hamburger { display: none; flex-direction: column; justify-content: center; align-items: center; width: 40px; height: 40px; gap: 5px; background: none; border: none; cursor: pointer; padding: 4px; border-radius: 8px; transition: background 0.2s; }
-    .nav-hamburger:hover { background: var(--ink-50); }
-    .nav-hamburger span { display: block; width: 22px; height: 2px; background: var(--ink-700); border-radius: 2px; transition: all 0.3s; }
+    /* ─── DROPDOWN ─── */
+    .nav-dropdown { position: relative; }
+    .nav-dropdown-trigger {
+      display: flex; align-items: center; gap: 3px;
+      cursor: pointer; background: none; border: none; font-family: inherit;
+    }
+    .nav-dropdown-trigger .dd-chevron { width: 11px; height: 11px; transition: transform 0.25s; color: var(--ink-300); }
+    .nav-dropdown:hover .nav-dropdown-trigger .dd-chevron { transform: rotate(180deg); color: var(--ink-500); }
+    .nav-dropdown-panel {
+      position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+      width: 260px; border-radius: 14px;
+      padding-top: 10px;
+      opacity: 0; visibility: hidden; pointer-events: none;
+      transition: opacity 0.15s, visibility 0.15s;
+    }
+    .nav-dropdown:hover .nav-dropdown-panel {
+      opacity: 1; visibility: visible; pointer-events: auto;
+    }
+    .dd-inner {
+      background: #fff;
+      border: 1px solid var(--ink-100);
+      border-radius: 14px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.08), 0 0 1px rgba(0,0,0,0.05);
+      overflow: hidden;
+    }
+    .dd-header {
+      padding: 14px 16px 10px;
+      border-bottom: 1px solid var(--ink-100);
+    }
+    .dd-header-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-300); }
+    .dd-header-desc { font-size: 12px; color: var(--ink-500); margin-top: 4px; line-height: 1.4; }
+    .dd-links { padding: 6px; }
+    .dd-link {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 12px; border-radius: 10px;
+      text-decoration: none; transition: background 0.12s;
+    }
+    .dd-link:hover { background: var(--ink-50); }
+    .dd-link-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .dd-link-icon.articles { background: rgba(236,72,153,0.08); color: var(--pink); }
+    .dd-link-icon.about { background: rgba(99,87,232,0.08); color: var(--accent); }
+    .dd-link-text { display: flex; flex-direction: column; gap: 1px; }
+    .dd-link-title { font-size: 13px; font-weight: 600; color: var(--ink-900); }
+    .dd-link-desc { font-size: 11px; color: var(--ink-300); }
+    .dd-link:hover .dd-link-title { color: var(--accent); }
+
+    /* ─── HAMBURGER + MOBILE ─── */
+    .nav-hamburger {
+      display: none; flex-direction: column; justify-content: center; align-items: center;
+      width: 40px; height: 40px; gap: 5px;
+      background: none; border: none; cursor: pointer; padding: 4px;
+      border-radius: 100px; transition: background 0.2s;
+    }
+    .nav-hamburger:hover { background: rgba(0,0,0,0.04); }
+    .nav-hamburger span { display: block; width: 18px; height: 2px; background: var(--ink-700); border-radius: 2px; transition: all 0.3s; }
     .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
     .nav-hamburger.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
     .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-    .mobile-menu { display: none; position: fixed; inset: 0; top: 72px; background: rgba(255,255,255,0.97); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); z-index: 999; padding: 24px 24px 40px; flex-direction: column; gap: 8px; border-top: 1px solid var(--ink-100); }
+    .mobile-menu {
+      display: none; position: fixed; top: 80px; left: 16px; right: 16px; bottom: auto;
+      max-height: calc(100vh - 100px);
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(40px) saturate(200%); -webkit-backdrop-filter: blur(40px) saturate(200%);
+      z-index: 999; padding: 8px;
+      flex-direction: column; gap: 2px;
+      border-radius: 24px;
+      border: 1px solid rgba(0,0,0,0.06);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.04);
+      overflow-y: auto;
+    }
     .mobile-menu.open { display: flex; }
-    .mobile-menu a { font-size: 16px; font-weight: 600; color: var(--ink-700); text-decoration: none; padding: 14px 16px; border-radius: 12px; transition: background 0.2s, color 0.2s; }
-    .mobile-menu a:hover { background: var(--ink-50); color: var(--accent); }
+    .mobile-menu a {
+      font-size: 15px; font-weight: 500; color: var(--ink-700);
+      text-decoration: none; padding: 12px 16px; border-radius: 14px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .mobile-menu a:hover { background: rgba(0,0,0,0.03); color: var(--accent); }
     .mobile-menu a.active { color: var(--accent); background: var(--accent-dim); }
-    .mobile-menu .nav-cta { margin-top: 8px; background: var(--accent); color: #fff !important; text-align: center; padding: 14px 24px; border-radius: 12px; }
-    .mobile-menu .nav-cta:hover { background: var(--accent-text); }
+    .mobile-menu .nav-cta {
+      margin: 8px 8px 8px; background: var(--ink-900); color: #fff !important;
+      text-align: center; padding: 13px 24px; border-radius: 14px; font-weight: 700; font-size: 14px;
+    }
+    .mobile-menu .nav-cta:hover { background: var(--accent); }
+    .mobile-menu .mobile-section-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--ink-300); padding: 16px 16px 4px;
+    }
+    .mobile-menu .mobile-sub-link { padding-left: 28px; font-size: 14px; }
     @media (max-width: 640px) {
-      .nav { padding: 0 20px; }
-      .nav-links { display: none; } .nav-hamburger { display: flex; }
+      .nav { padding: 10px 12px 0; }
+      .nav-center, .nav-right { display: none; } .nav-hamburger { display: flex; }
+      .nav-island { padding: 0 6px 0 16px; height: 48px; }
+      .nav.scrolled .nav-island { max-width: 100%; }
       .hero-screenshots { min-height: 260px; }
       .scroll-hint { display: none; }
       .stack-back-left, .stack-back-right { display: none; }
@@ -707,33 +819,58 @@
 
   <!-- NAV -->
   <nav class="nav" id="nav">
-    <a href="index" class="nav-left" style="text-decoration:none;">
-      <svg width="36" height="36" viewBox="0 0 180 180" fill="none">
-        
-        <rect width="180" height="180" rx="30" fill="#6357E8"/>
-        <text x="90" y="100" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
-        <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
-      </svg>
-      <span class="nav-wordmark">Workived</span>
-    </a>
-    <div class="nav-links">
-      <a href="features">Features</a>
-      <a href="pricing">Pricing</a>
-      <a href="security">Security</a>
-      <a href="ai">AI</a>
-      <a href="articles">Articles</a>
-      <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+    <div class="nav-island">
+      <a href="index" class="nav-left" style="text-decoration:none;">
+        <svg width="28" height="28" viewBox="0 0 180 180" fill="none">
+          <rect width="180" height="180" rx="30" fill="#6357E8"/>
+          <text x="90" y="100" text-anchor="middle" dominant-baseline="middle" style="font-family:'Plus Jakarta Sans',sans-serif;font-size:108px;font-weight:800;fill:white">W</text>
+          <rect x="55" y="150" width="70" height="10" rx="5" fill="white" opacity="0.7"/>
+        </svg>
+        <span class="nav-wordmark">Workived</span>
+      </a>
+      <div class="nav-center">
+        <a href="features">Features</a>
+        <a href="pricing">Pricing</a>
+        <a href="security">Security</a>
+        <a href="ai">AI</a>
+        <div class="nav-dropdown">
+          <button class="nav-dropdown-trigger">Resources <svg class="dd-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
+          <div class="nav-dropdown-panel">
+            <div class="dd-inner">
+              <div class="dd-header">
+                <div class="dd-header-title">Resources</div>
+                <div class="dd-header-desc">Learn more about Workived and how we help small teams.</div>
+              </div>
+              <div class="dd-links">
+                <a href="articles" class="dd-link">
+                  <div class="dd-link-icon articles"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+                  <div class="dd-link-text"><span class="dd-link-title">Articles</span><span class="dd-link-desc">Guides & HR insights</span></div>
+                </a>
+                <a href="about" class="dd-link">
+                  <div class="dd-link-icon about"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+                  <div class="dd-link-text"><span class="dd-link-title">About Us</span><span class="dd-link-desc">Our story & team</span></div>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-right">
+        <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+      </div>
+      <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </div>
-    <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
-      <span></span><span></span><span></span>
-    </button>
   </nav>
   <div class="mobile-menu" id="mobileMenu">
     <a href="features">Features</a>
     <a href="pricing">Pricing</a>
     <a href="security">Security</a>
     <a href="ai">AI</a>
-    <a href="articles">Articles</a>
+    <div class="mobile-section-label">Resources</div>
+    <a href="articles" class="mobile-sub-link">Articles</a>
+    <a href="about" class="mobile-sub-link">About</a>
     <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
   </div>
 
@@ -788,7 +925,7 @@
           <div class="stack-card-bar">
             <div class="stack-dot"></div><div class="stack-dot"></div><div class="stack-dot"></div>
           </div>
-          <img src="../images/attendance.jpeg" alt="Attendance tracking" loading="eager">
+          <img src="../images/attendance.png" alt="Attendance tracking" loading="eager">
         </div>
         <div class="stack-card stack-front">
           <div class="stack-card-bar">
