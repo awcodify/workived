@@ -24,6 +24,13 @@ func WithCache(c *cache.Store) ServiceOption {
 	}
 }
 
+// WithLeaveRepo injects the leave provider so week views can show on_leave status.
+func WithLeaveRepo(lr LeaveInfoProvider) ServiceOption {
+	return func(s *Service) {
+		s.leaveRepo = lr
+	}
+}
+
 // ── Cached overrides ─────────────────────────────────────────────────────────
 
 func (s *Service) listWorkSchedulesCached(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error) {

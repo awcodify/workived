@@ -705,6 +705,76 @@ func (r *Repository) IsOnApprovedLeave(ctx context.Context, orgID, employeeID uu
 	return exists, nil
 }
 
+// ListApprovedLeaveDates returns all dates (YYYY-MM-DD) within startDate..endDate
+// on which the given employee has an approved leave request.
+func (r *Repository) ListApprovedLeaveDates(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) ([]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT generate_series(
+			GREATEST(start_date, $3::date),
+			LEAST(end_date,   $4::date),
+			interval '1 day'
+		)::date::text
+		FROM leave_requests
+		WHERE organisation_id = $1
+		  AND employee_id = $2
+		  AND status = 'approved'
+		  AND start_date <= $4::date
+		  AND end_date   >= $3::date
+	`, orgID, employeeID, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("list approved leave dates: %w", err)
+	}
+	defer rows.Close()
+	var dates []string
+	for rows.Next() {
+		var d string
+		if err := rows.Scan(&d); err != nil {
+			return nil, fmt.Errorf("scan leave date: %w", err)
+		}
+		dates = append(dates, d)
+	}
+	return dates, nil
+}
+
+// ListApprovedLeaveDatesBatch returns a map of employeeID → set of approved leave dates
+// within startDate..endDate, for the given list of employees.
+func (r *Repository) ListApprovedLeaveDatesBatch(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) (map[uuid.UUID]map[string]bool, error) {
+	if len(employeeIDs) == 0 {
+		return map[uuid.UUID]map[string]bool{}, nil
+	}
+	rows, err := r.db.Query(ctx, `
+		SELECT employee_id,
+		       generate_series(
+		           GREATEST(start_date, $3::date),
+		           LEAST(end_date,   $4::date),
+		           interval '1 day'
+		       )::date::text
+		FROM leave_requests
+		WHERE organisation_id = $1
+		  AND employee_id = ANY($2::uuid[])
+		  AND status = 'approved'
+		  AND start_date <= $4::date
+		  AND end_date   >= $3::date
+	`, orgID, employeeIDs, startDate, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("batch approved leave dates: %w", err)
+	}
+	defer rows.Close()
+	result := make(map[uuid.UUID]map[string]bool)
+	for rows.Next() {
+		var empID uuid.UUID
+		var d string
+		if err := rows.Scan(&empID, &d); err != nil {
+			return nil, fmt.Errorf("scan batch leave date: %w", err)
+		}
+		if result[empID] == nil {
+			result[empID] = make(map[string]bool)
+		}
+		result[empID][d] = true
+	}
+	return result, nil
+}
+
 // ── Holidays (delegated — reuses public_holidays table) ─────────────────────
 
 // ListHolidays returns public holidays in a date range, scoped to org + country.

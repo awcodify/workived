@@ -4,6 +4,7 @@ import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules, useDailyReport } from '@/lib/hooks/useAttendance'
+import { useMyEmployee } from '@/lib/hooks/useEmployees'
 import { LocationAnalyticsWidget } from '@/components/workived/attendance/LocationAnalyticsWidget'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
 import { TeamMapView } from '@/components/workived/attendance/TeamMapView'
@@ -15,7 +16,6 @@ import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/to
 import { ChevronLeft, ChevronRight, Clock, Check, ChevronDown, Map, List } from 'lucide-react'
 import { Skeleton } from '@/components/workived/shared/Skeleton'
 import { WorkSchedulesPanel } from '@/components/workived/attendance/WorkSchedulesPanel'
-import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
 import { CorrectionModal } from '@/components/workived/attendance/CorrectionModal'
 import { CorrectionsPanel } from '@/components/workived/attendance/CorrectionsPanel'
 
@@ -55,12 +55,12 @@ function AttendancePage() {
   
   // Work schedules panel and filter
   const [schedulesOpen, setSchedulesOpen] = useState(false)
-  const [scheduleFilter, setScheduleFilter] = useState<string | undefined>(undefined)
+  const [scheduleFilters, setScheduleFilters] = useState<string[]>([])
   const [scheduleDropdownOpen, setScheduleDropdownOpen] = useState(false)
   const { data: workSchedules = [] } = useWorkSchedules()
 
-  // Employee detail modal state
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
+  // Attendance detail expand (row click)
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
 
   // Correction modals
   const [correctionDay, setCorrectionDay] = useState<import('@/types/api').WeekDay | null>(null)
@@ -80,6 +80,8 @@ function AttendancePage() {
   const weekStart = useMemo(() => getMondayOfWeek(tz, weekOffset), [tz, weekOffset])
   
   // Conditionally fetch based on role to avoid 404 errors
+  const { data: myEmployee } = useMyEmployee()
+  const myEmployeeId = myEmployee?.id
   const { data: myWeek, isLoading: myWeekLoading } = useMyWeek(weekStart)
   const { data: teamWeek, isLoading: teamWeekLoading } = useTeamWeek(weekStart, role.canViewTeam)
   const { data: allWeek, isLoading: allWeekLoading } = useAllWeek(weekStart, role.canViewAll)
@@ -161,9 +163,18 @@ function AttendancePage() {
       })
     }
 
-    // Apply schedule filter
-    if (scheduleFilter) {
-      employees = employees.filter((emp: any) => emp.work_schedule_name === scheduleFilter)
+    // Apply schedule filter (multi-select)
+    if (scheduleFilters.length > 0) {
+      employees = employees.filter((emp: any) => scheduleFilters.includes(emp.work_schedule_name))
+    }
+
+    // Pin own profile to top when viewing team/all list
+    if (myEmployeeId && employees.length > 1) {
+      employees = [...employees].sort((a: any, b: any) => {
+        if (a.employee_id === myEmployeeId) return -1
+        if (b.employee_id === myEmployeeId) return 1
+        return 0
+      })
     }
 
     return employees
@@ -408,14 +419,14 @@ function AttendancePage() {
                 onClick={() => setScheduleDropdownOpen(!scheduleDropdownOpen)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all"
                 style={{
-                  background: scheduleFilter ? t.surface : 'transparent',
-                  color: scheduleFilter ? t.text : t.textMuted,
+                  background: scheduleFilters.length > 0 ? t.surface : 'transparent',
+                  color: scheduleFilters.length > 0 ? t.text : t.textMuted,
                   border: `1px solid ${t.border}`,
                 }}
               >
                 <Clock size={14} />
                 <span className="text-xs font-bold">
-                  {scheduleFilter || 'All schedules'}
+                  {scheduleFilters.length === 0 ? 'All schedules' : scheduleFilters.length === 1 ? scheduleFilters[0] : `${scheduleFilters.length} schedules`}
                 </span>
                 <ChevronDown 
                   size={14} 
@@ -437,7 +448,7 @@ function AttendancePage() {
                   {/* All schedules option */}
                   <button
                     onClick={() => {
-                      setScheduleFilter(undefined)
+                      setScheduleFilters([])
                       setScheduleDropdownOpen(false)
                     }}
                     className="w-full px-4 py-2.5 text-left hover:bg-black/5 transition-colors flex items-center justify-between"
@@ -445,7 +456,7 @@ function AttendancePage() {
                     <span className="text-sm font-semibold" style={{ color: t.text }}>
                       All schedules
                     </span>
-                    {!scheduleFilter && (
+                    {scheduleFilters.length === 0 && (
                       <Check size={14} style={{ color: colors.accent }} />
                     )}
                   </button>
@@ -463,8 +474,9 @@ function AttendancePage() {
                       <button
                         key={ws.id}
                         onClick={() => {
-                          setScheduleFilter(ws.name)
-                          setScheduleDropdownOpen(false)
+                          setScheduleFilters(prev =>
+                            prev.includes(ws.name) ? prev.filter(n => n !== ws.name) : [...prev, ws.name]
+                          )
                         }}
                         className="w-full px-4 py-2.5 text-left hover:bg-black/5 transition-colors"
                       >
@@ -487,7 +499,7 @@ function AttendancePage() {
                               {dayNames} • {ws.start_time.slice(0, 5)}–{ws.end_time.slice(0, 5)}
                             </p>
                           </div>
-                          {scheduleFilter === ws.name && (
+                          {scheduleFilters.includes(ws.name) && (
                             <Check size={14} style={{ color: colors.accent }} className="flex-shrink-0 mt-0.5" />
                           )}
                         </div>
@@ -563,13 +575,15 @@ function AttendancePage() {
                       .sort((a, b) => a - b)
                       .map((d) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][d])
                       .join(', ')
-                    const isSelected = scheduleFilter === ws.name
+                    const isSelected = scheduleFilters.includes(ws.name)
                     return (
                       <button
                         key={ws.id}
-                        onClick={() => setScheduleFilter(isSelected ? undefined : ws.name)}
+                        onClick={() => setScheduleFilters(prev =>
+                          prev.includes(ws.name) ? prev.filter(n => n !== ws.name) : [...prev, ws.name]
+                        )}
                         className="w-full rounded-lg px-3 py-2.5 text-left transition-all hover:bg-black/5"
-                        style={{ 
+                        style={{
                           border: `1px solid ${isSelected ? colors.accent : t.border}`,
                           background: isSelected ? `${colors.accent}10` : 'transparent',
                         }}
@@ -705,7 +719,6 @@ function AttendancePage() {
                   day={day}
                   isSelected={day.date === date}
                   onClick={() => setDate(day.date || todayISO(tz))}
-                  onRequestCorrection={() => setCorrectionDay(day)}
                 />
               ))}
             </div>
@@ -773,10 +786,8 @@ function AttendancePage() {
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 flex-shrink-0"></div> {/* Avatar space */}
                 <div className="flex-1 min-w-0 text-sm font-bold" style={{ color: t.text }}>Employee</div>
-                <div className="w-24 flex-shrink-0 text-sm font-bold hidden lg:block" style={{ color: t.text }}>Schedule</div>
                 <div className="w-28 flex-shrink-0 text-sm font-bold text-center" style={{ color: t.text }}>Clock In</div>
                 <div className="w-28 flex-shrink-0 text-sm font-bold text-center" style={{ color: t.text }}>Clock Out</div>
-                <div className="w-32 flex-shrink-0 text-sm font-bold hidden md:block" style={{ color: t.text }}>Note</div>
               </div>
             </div>
 
@@ -786,15 +797,22 @@ function AttendancePage() {
                 <AttendanceTableSkeleton />
               ) : (
                 <>
-                  {getEmployeeList().map((employee) => (
-                    <EmployeeRow
-                      key={employee.employee_id}
-                      employee={employee}
-                      date={date}
-                      tz={tz}
-                      onClick={() => setSelectedEmployeeId(employee.employee_id)}
-                    />
-                  ))}
+                  {getEmployeeList().map((employee) => {
+                    const isMe = myEmployeeId ? employee.employee_id === myEmployeeId : employee.employee_id === 'me'
+                    const isExpanded = expandedRowId === employee.employee_id
+                    return (
+                      <EmployeeRow
+                        key={employee.employee_id}
+                        employee={employee}
+                        date={date}
+                        tz={tz}
+                        isMe={isMe}
+                        isExpanded={isExpanded}
+                        onClick={() => setExpandedRowId(isExpanded ? null : employee.employee_id)}
+                        onRequestCorrection={isMe ? (day) => setCorrectionDay(day) : undefined}
+                      />
+                    )
+                  })}
                 </>
               )}
             </div>
@@ -814,14 +832,6 @@ function AttendancePage() {
 
       {schedulesOpen && (
         <WorkSchedulesPanel onClose={() => setSchedulesOpen(false)} />
-      )}
-
-      {selectedEmployeeId && (
-        <EmployeeDetailModal
-          employeeId={selectedEmployeeId}
-          onClose={() => setSelectedEmployeeId(null)}
-          canEdit={canManageEmployees}
-        />
       )}
 
       {correctionDay && (
@@ -845,11 +855,9 @@ interface DayButtonProps {
   day: import('@/types/api').WeekDay
   isSelected: boolean
   onClick: () => void
-  onRequestCorrection?: () => void
 }
 
-function DayButton({ day, isSelected, onClick, onRequestCorrection }: DayButtonProps) {
-  const isPast = day.status !== 'future' && day.status !== 'weekend'
+function DayButton({ day, isSelected, onClick }: DayButtonProps) {
   return (
     <div className="relative group">
       <button
@@ -877,18 +885,6 @@ function DayButton({ day, isSelected, onClick, onRequestCorrection }: DayButtonP
           {day.day_number || '—'}
         </span>
       </button>
-      {/* Correction shortcut — shown on hover for past work days */}
-      {isPast && !day.is_today && onRequestCorrection && (
-        <button
-          data-testid={`attendance-correction-shortcut-${day.date}`}
-          onClick={(e) => { e.stopPropagation(); onRequestCorrection() }}
-          className="absolute -top-1 -right-1 w-5 h-5 rounded-full items-center justify-center opacity-0 group-hover:opacity-100 transition-all hidden md:flex"
-          style={{ background: t.accent, color: t.accentText }}
-          title="Request correction"
-        >
-          <Clock size={10} strokeWidth={2.5} />
-        </button>
-      )}
     </div>
   )
 }
@@ -898,10 +894,13 @@ interface EmployeeRowProps {
   employee: any
   date: string
   tz: string
+  isMe?: boolean
+  isExpanded?: boolean
   onClick: () => void
+  onRequestCorrection?: (day: import('@/types/api').WeekDay) => void
 }
 
-function EmployeeRow({ employee, date, tz, onClick }: EmployeeRowProps) {
+function EmployeeRow({ employee, date, tz, isMe, isExpanded, onClick, onRequestCorrection }: EmployeeRowProps) {
   // Find attendance for selected date
   const dayData = employee.week?.days.find((d: any) => d.date === date)
   
@@ -984,36 +983,57 @@ function EmployeeRow({ employee, date, tz, onClick }: EmployeeRowProps) {
   
   const badge = getStatusBadge()
 
+  const isPastWorkday = dayData && !dayData.is_today && dayData.status !== 'future' && dayData.status !== 'weekend' && dayData.status !== 'holiday'
+  const correctionDisabledReason = !isPastWorkday
+    ? dayData?.status === 'future' ? 'Cannot request correction for future dates'
+      : dayData?.is_today ? 'Cannot request correction for today'
+      : dayData?.status === 'weekend' ? 'No correction needed for weekends'
+      : dayData?.status === 'holiday' ? 'No correction needed for holidays'
+      : null
+    : null
+
   return (
     <div
-      className="px-6 py-4 border-b transition-all hover:bg-black/[0.02] cursor-pointer"
+      className="border-b transition-all cursor-pointer"
       data-testid={`attendance-row-${employee.employee_id}`}
       style={{
         borderColor: t.border,
+        background: isMe ? 'rgba(99,87,232,0.06)' : undefined,
+        borderLeft: isMe ? `3px solid ${colors.accent}` : undefined,
       }}
-      onClick={onClick}
     >
-      <div className="flex items-center gap-3 min-w-0">
-        {/* Avatar */}
-        <div className="w-10 flex-shrink-0">
-          <Avatar id={employee.employee_id} name={employee.employee_name} size={40} />
+      {/* Main row */}
+      <div className="px-6 py-4 flex items-center gap-3 min-w-0 hover:bg-black/[0.02]" onClick={onClick}>
+        {/* Avatar — always show real name */}
+        <div className="w-10 flex-shrink-0 relative">
+          <Avatar
+            id={employee.employee_id}
+            name={employee.employee_name}
+            size={40}
+          />
+          {isMe && (
+            <span
+              className="absolute -bottom-1 -right-1 text-[8px] font-black px-1 rounded"
+              style={{ background: colors.accent, color: '#fff', lineHeight: '14px' }}
+            >
+              ME
+            </span>
+          )}
         </div>
 
-        {/* Employee Name + Status Badge */}
+        {/* Name + Status */}
         <div className="flex-1 min-w-0 flex items-center gap-2">
-          <span className="text-sm font-bold truncate" style={{ color: t.text }}>
+          <span
+            className="text-sm font-bold truncate"
+            style={{ color: isMe ? colors.accent : t.text }}
+          >
             {employee.employee_name}
           </span>
           {!dayData && (
-            <span className="text-xs italic flex-shrink-0" style={{ color: t.textMuted }}>
-              No data
-            </span>
+            <span className="text-xs italic flex-shrink-0" style={{ color: t.textMuted }}>No data</span>
           )}
           {badge && (
-            <div
-              className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full flex-shrink-0"
-              style={{ background: badge.bg }}
-            >
+            <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full flex-shrink-0" style={{ background: badge.bg }}>
               <div className="w-1.5 h-1.5 rounded-full" style={{ background: badge.dot }} />
               <span className="text-[10px] font-bold uppercase tracking-wide" style={{ color: badge.text }}>
                 {badge.label}
@@ -1022,46 +1042,22 @@ function EmployeeRow({ employee, date, tz, onClick }: EmployeeRowProps) {
           )}
         </div>
 
-        {/* Schedule */}
-        <div className="w-24 flex-shrink-0 hidden lg:block">
-          <span className="text-xs truncate block" style={{ color: t.textMuted }}>
-            {employee.work_schedule_name ?? '—'}
-          </span>
-        </div>
-
         {/* Clock In */}
         <div className="w-28 flex-shrink-0 flex justify-center">
           {clockInTime ? (
-            <div className="flex flex-col items-center gap-1">
-              <div 
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
-                style={{
-                  background: dayData.status === 'overtime' ? colors.accentDim : colors.okDim,
-                }}
-              >
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ 
-                  background: dayData.status === 'overtime' ? colors.accent : colors.ok 
-                }} />
-                <span className="text-xs font-bold whitespace-nowrap" style={{ 
-                  color: dayData.status === 'overtime' ? colors.accentText : colors.okText 
-                }}>
-                  {clockInTime}
-                </span>
-              </div>
-              <span className="text-[10px] font-medium" style={{ 
-                color: dayData.status === 'overtime' ? colors.accentText : colors.okText 
-              }}>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
+              style={{ background: dayData.status === 'overtime' ? colors.accentDim : colors.okDim }}>
+              <div className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ background: dayData.status === 'overtime' ? colors.accent : colors.ok }} />
+              <span className="text-xs font-bold whitespace-nowrap"
+                style={{ color: dayData.status === 'overtime' ? colors.accentText : colors.okText }}>
+                {clockInTime}
               </span>
             </div>
           ) : (
-            <div 
-              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg border"
-              style={{
-                background: t.surface,
-                borderColor: t.border,
-              }}
-            >
-              <Clock size={16} style={{ color: t.textMuted, opacity: 0.4 }} />
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border"
+              style={{ background: t.surface, borderColor: t.border }}>
+              <Clock size={14} style={{ color: t.textMuted, opacity: 0.4 }} />
             </div>
           )}
         </div>
@@ -1069,65 +1065,97 @@ function EmployeeRow({ employee, date, tz, onClick }: EmployeeRowProps) {
         {/* Clock Out */}
         <div className="w-28 flex-shrink-0 flex justify-center">
           {clockOutTime ? (
-            <div className="flex flex-col items-center gap-1">
-              <div 
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full"
-                style={{
-                  background: colors.ink100,
-                }}
-              >
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: colors.ink500 }} />
-                <span className="text-xs font-bold whitespace-nowrap" style={{ color: colors.ink700 }}>
-                  {clockOutTime}
-                </span>
-              </div>
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full" style={{ background: colors.ink100 }}>
+              <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: colors.ink500 }} />
+              <span className="text-xs font-bold whitespace-nowrap" style={{ color: colors.ink700 }}>{clockOutTime}</span>
             </div>
           ) : clockInTime ? (
-            <div 
-              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg border"
-              style={{
-                background: colors.warnDim,
-                borderColor: colors.warn,
-              }}
-            >
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border"
+              style={{ background: colors.warnDim, borderColor: colors.warn }}>
               <div className="w-2 h-2 rounded-full" style={{ background: colors.warn }} />
-              <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: colors.warnText }}>
-                Working
-              </span>
+              <span className="text-[10px] font-bold whitespace-nowrap" style={{ color: colors.warnText }}>Working</span>
             </div>
           ) : (
-            <div 
-              className="flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg border"
-              style={{
-                background: t.surface,
-                borderColor: t.border,
-              }}
-            >
-              <Clock size={16} style={{ color: t.textMuted, opacity: 0.4 }} />
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg border"
+              style={{ background: t.surface, borderColor: t.border }}>
+              <Clock size={14} style={{ color: t.textMuted, opacity: 0.4 }} />
             </div>
-          )}
-        </div>
-
-        {/* Note */}
-        <div className="w-32 flex-shrink-0 hidden md:block">
-          {dayData?.note ? (
-            <div 
-              className="w-full px-2.5 py-1.5 text-xs rounded-lg truncate"
-              style={{
-                background: t.surface,
-                border: `1px solid ${t.border}`,
-                color: t.text,
-              }}
-            >
-              {dayData.note}
-            </div>
-          ) : (
-            <span className="text-xs" style={{ color: t.textMuted }}>
-              No note
-            </span>
           )}
         </div>
       </div>
+
+      {/* Expanded detail */}
+      {isExpanded && dayData && (
+        <div
+          data-testid={`attendance-detail-${employee.employee_id}`}
+          className="px-6 pb-5 pt-3 border-t"
+          style={{ borderColor: t.border, background: isMe ? 'rgba(99,87,232,0.04)' : 'rgba(0,0,0,0.02)' }}
+        >
+          {/* Detail grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+            <div className="rounded-xl p-3" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Employee</p>
+              <p className="text-sm font-semibold" style={{ color: t.text }}>{employee.employee_name}</p>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Schedule</p>
+              <p className="text-sm font-semibold" style={{ color: t.text }}>{employee.work_schedule_name ?? '—'}</p>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Clock In</p>
+              <p className="text-sm font-semibold" style={{ color: t.text }}>
+                {dayData.clock_in_at ? formatDate(dayData.clock_in_at, tz, 'time') : '—'}
+              </p>
+            </div>
+            <div className="rounded-xl p-3" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Clock Out</p>
+              <p className="text-sm font-semibold" style={{ color: t.text }}>
+                {dayData.clock_out_at ? formatDate(dayData.clock_out_at, tz, 'time') : '—'}
+              </p>
+            </div>
+          </div>
+
+          {/* Note */}
+          {dayData.note && (
+            <div className="rounded-xl px-3 py-2.5 mb-4" style={{ background: t.surface, border: `1px solid ${t.border}` }}>
+              <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: t.textMuted }}>Note</p>
+              <p className="text-sm" style={{ color: t.text }}>{dayData.note}</p>
+            </div>
+          )}
+
+          {/* Correction button — own row only */}
+          {isMe && onRequestCorrection && (
+            <div className="relative group inline-block">
+              <button
+                data-testid={`attendance-correction-btn-${employee.employee_id}`}
+                disabled={!isPastWorkday}
+                onClick={(e) => {
+                  if (!isPastWorkday) return
+                  e.stopPropagation()
+                  onRequestCorrection(dayData)
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                style={{
+                  color: isPastWorkday ? t.textMuted : `${t.textMuted}60`,
+                  border: `1px solid ${isPastWorkday ? t.border : `${t.border}60`}`,
+                  cursor: isPastWorkday ? 'pointer' : 'not-allowed',
+                }}
+              >
+                <Clock size={12} strokeWidth={2} />
+                Request correction
+              </button>
+              {correctionDisabledReason && (
+                <div
+                  className="absolute bottom-full left-0 mb-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50"
+                  style={{ background: '#1a1a2e', color: '#fff' }}
+                >
+                  {correctionDisabledReason}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

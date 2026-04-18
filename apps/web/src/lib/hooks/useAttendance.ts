@@ -357,6 +357,7 @@ export function useApproveCorrection() {
     mutationFn: (id: string) => attendanceApi.approveCorrection(id).then((r) => r.data.data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: correctionKeys.all })
+      qc.invalidateQueries({ queryKey: attendanceKeys.all })
       toast.success('Correction approved')
     },
     onError: (err: AxiosError<ApiErrorResponse>) => {

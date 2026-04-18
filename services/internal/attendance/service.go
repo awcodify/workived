@@ -56,6 +56,12 @@ type EmployeeInfoProvider interface {
 	GetEmployeeScheduleNamesBatch(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID) (map[uuid.UUID]*string, error)
 }
 
+// LeaveInfoProvider is the narrow interface for leave data the attendance service needs.
+type LeaveInfoProvider interface {
+	ListApprovedLeaveDates(ctx context.Context, orgID, employeeID uuid.UUID, startDate, endDate string) ([]string, error)
+	ListApprovedLeaveDatesBatch(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) (map[uuid.UUID]map[string]bool, error)
+}
+
 // NowFunc can be replaced in tests to control time.
 type NowFunc func() time.Time
 
@@ -63,6 +69,7 @@ type Service struct {
 	repo         RepositoryInterface
 	orgRepo      OrgInfoProvider
 	employeeRepo EmployeeInfoProvider
+	leaveRepo    LeaveInfoProvider
 	now          NowFunc
 	log          zerolog.Logger
 	cache        *cache.Store
@@ -586,6 +593,18 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 		recordMap[records[i].Date] = &records[i]
 	}
 
+	// Build set of approved leave dates for this week
+	leaveSet := make(map[string]bool)
+	if s.leaveRepo != nil {
+		leaveDates, err := s.leaveRepo.ListApprovedLeaveDates(ctx, orgID, employeeID, start.Format("2006-01-02"), endDate.Format("2006-01-02"))
+		if err != nil {
+			s.log.Warn().Err(err).Msg("failed to fetch leave dates for week view")
+		}
+		for _, d := range leaveDates {
+			leaveSet[d] = true
+		}
+	}
+
 	// Generate 7 days
 	days := make([]WeekDay, 7)
 	for i := 0; i < 7; i++ {
@@ -631,6 +650,9 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 		} else if isWeekendDay {
 			// Weekend with no attendance
 			weekDay.Status = "weekend"
+		} else if leaveSet[dateStr] {
+			// Approved leave — no clock-in expected
+			weekDay.Status = "on_leave"
 		} else {
 			// No record on past working day
 			weekDay.Status = "absent"
@@ -740,6 +762,16 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 		recordsByEmployee[rec.EmployeeID][rec.Date] = rec
 	}
 
+	// Batch fetch approved leave dates for all employees
+	leaveDatesByEmployee := make(map[uuid.UUID]map[string]bool)
+	if s.leaveRepo != nil {
+		leaveDatesByEmployee, err = s.leaveRepo.ListApprovedLeaveDatesBatch(ctx, orgID, employeeIDs, start.Format("2006-01-02"), endDate.Format("2006-01-02"))
+		if err != nil {
+			s.log.Warn().Err(err).Msg("failed to fetch leave dates for team week view")
+			leaveDatesByEmployee = make(map[uuid.UUID]map[string]bool)
+		}
+	}
+
 	// Build week calendar for each employee
 	result := make([]TeamWeekEntry, 0, len(employeeIDs))
 	for _, employeeID := range employeeIDs {
@@ -753,6 +785,7 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 		if recordMap == nil {
 			recordMap = make(map[string]*Record)
 		}
+		leaveSet := leaveDatesByEmployee[employeeID]
 
 		// Generate 7 days for this employee
 		days := make([]WeekDay, 7)
@@ -799,6 +832,9 @@ func (s *Service) GetTeamWeek(ctx context.Context, orgID, managerEmployeeID uuid
 			} else if isWeekendDay {
 				// Weekend with no attendance
 				weekDay.Status = "weekend"
+			} else if leaveSet != nil && leaveSet[dateStr] {
+				// Approved leave — no clock-in expected
+				weekDay.Status = "on_leave"
 			} else {
 				// No record on past working day
 				weekDay.Status = "absent"
@@ -915,6 +951,16 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 		recordsByEmployee[rec.EmployeeID][rec.Date] = rec
 	}
 
+	// Batch fetch approved leave dates for all employees (GetAllWeek)
+	allLeaveDatesByEmployee := make(map[uuid.UUID]map[string]bool)
+	if s.leaveRepo != nil {
+		allLeaveDatesByEmployee, err = s.leaveRepo.ListApprovedLeaveDatesBatch(ctx, orgID, employeeIDs, start.Format("2006-01-02"), endDate.Format("2006-01-02"))
+		if err != nil {
+			s.log.Warn().Err(err).Msg("failed to fetch leave dates for all-week view")
+			allLeaveDatesByEmployee = make(map[uuid.UUID]map[string]bool)
+		}
+	}
+
 	// Build week calendar for each employee
 	result := make([]TeamWeekEntry, 0, len(employeeIDs))
 	for _, employeeID := range employeeIDs {
@@ -924,6 +970,7 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 		if recordMap == nil {
 			recordMap = make(map[string]*Record)
 		}
+		leaveSet := allLeaveDatesByEmployee[employeeID]
 
 		// Generate 7 days for this employee
 		days := make([]WeekDay, 7)
@@ -970,6 +1017,9 @@ func (s *Service) GetAllWeek(ctx context.Context, orgID uuid.UUID, startDate str
 			} else if isWeekendDay {
 				// Weekend with no attendance
 				weekDay.Status = "weekend"
+			} else if leaveSet != nil && leaveSet[dateStr] {
+				// Approved leave — no clock-in expected
+				weekDay.Status = "on_leave"
 			} else {
 				// No record on past working day
 				weekDay.Status = "absent"
@@ -1256,10 +1306,25 @@ func (s *Service) ApproveCorrection(ctx context.Context, orgID, reviewerEmployee
 		return nil, fmt.Errorf("approve correction: %w", err)
 	}
 
-	// Apply the corrected times to the attendance record if one exists.
+	// Apply the corrected times to the attendance record.
 	if c.RecordID != nil {
+		// Existing record: update in-place.
 		if err := s.repo.ApplyCorrection(ctx, orgID, *c.RecordID, c.RequestedClockIn, c.RequestedClockOut); err != nil {
 			s.log.Error().Err(err).Str("correction_id", correctionID.String()).Msg("failed to apply correction to record")
+		}
+	} else if c.RequestedClockIn != nil {
+		// No record yet (employee was absent) — create one from the corrected clock-in.
+		_, createErr := s.repo.Create(ctx, orgID, c.EmployeeID, c.Date, *c.RequestedClockIn, false, nil, nil, nil, nil)
+		if createErr != nil {
+			s.log.Error().Err(createErr).Str("correction_id", correctionID.String()).Msg("failed to create record from correction")
+		} else if c.RequestedClockOut != nil {
+			// Immediately apply clock-out on the newly created record.
+			newRec, getErr := s.repo.GetByEmployeeAndDate(ctx, orgID, c.EmployeeID, c.Date)
+			if getErr == nil {
+				if err := s.repo.ApplyCorrection(ctx, orgID, newRec.ID, nil, c.RequestedClockOut); err != nil {
+					s.log.Error().Err(err).Str("correction_id", correctionID.String()).Msg("failed to apply clock-out to created correction record")
+				}
+			}
 		}
 	}
 
