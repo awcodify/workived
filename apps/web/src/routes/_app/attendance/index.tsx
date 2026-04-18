@@ -16,6 +16,8 @@ import { ChevronLeft, ChevronRight, Clock, Check, ChevronDown, Map, List } from 
 import { Skeleton } from '@/components/workived/shared/Skeleton'
 import { WorkSchedulesPanel } from '@/components/workived/attendance/WorkSchedulesPanel'
 import { EmployeeDetailModal } from '@/components/workived/shared/EmployeeDetailModal'
+import { CorrectionModal } from '@/components/workived/attendance/CorrectionModal'
+import { CorrectionsPanel } from '@/components/workived/attendance/CorrectionsPanel'
 
 const t = moduleThemes.attendance
 
@@ -59,6 +61,10 @@ function AttendancePage() {
 
   // Employee detail modal state
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
+
+  // Correction modals
+  const [correctionDay, setCorrectionDay] = useState<import('@/types/api').WeekDay | null>(null)
+  const [correctionsOpen, setCorrectionsOpen] = useState(false)
 
   // Sprint 12: Show others toggle
   const [showOthers, setShowOthers] = useState(true)
@@ -357,6 +363,18 @@ function AttendancePage() {
 
       {/* Filters Row */}
       <div className="flex items-center justify-end gap-3 mb-6">
+          {/* Corrections button (manager/admin) */}
+          {(role.canViewTeam || role.canViewAll) && (
+            <button
+              data-testid="attendance-corrections-btn"
+              onClick={() => setCorrectionsOpen(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-xs font-bold"
+              style={{ background: t.surface, color: t.text, border: `1px solid ${t.border}` }}
+            >
+              <Clock size={14} />
+              Corrections
+            </button>
+          )}
           {/* Clock-in Filter */}
           <div className="flex items-center gap-2 p-1 rounded-lg" style={{ background: t.border }}>
             <button
@@ -687,6 +705,7 @@ function AttendancePage() {
                   day={day}
                   isSelected={day.date === date}
                   onClick={() => setDate(day.date || todayISO(tz))}
+                  onRequestCorrection={() => setCorrectionDay(day)}
                 />
               ))}
             </div>
@@ -804,6 +823,17 @@ function AttendancePage() {
           canEdit={canManageEmployees}
         />
       )}
+
+      {correctionDay && (
+        <CorrectionModal
+          day={correctionDay}
+          onClose={() => setCorrectionDay(null)}
+        />
+      )}
+
+      {correctionsOpen && (
+        <CorrectionsPanel onClose={() => setCorrectionsOpen(false)} />
+      )}
     </div>
   )
 }
@@ -812,37 +842,54 @@ function AttendancePage() {
 
 // Day Button for Horizontal Week Calendar
 interface DayButtonProps {
-  day: any
+  day: import('@/types/api').WeekDay
   isSelected: boolean
   onClick: () => void
+  onRequestCorrection?: () => void
 }
 
-function DayButton({ day, isSelected, onClick }: DayButtonProps) {
+function DayButton({ day, isSelected, onClick, onRequestCorrection }: DayButtonProps) {
+  const isPast = day.status !== 'future' && day.status !== 'weekend'
   return (
-    <button
-      onClick={onClick}
-      className="flex flex-col items-center px-2 py-3 rounded-lg transition-all w-full"
-      style={{
-        background: isSelected ? t.accent : 'transparent',
-        border: `1px solid ${isSelected ? t.accent : t.border}`,
-      }}
-    >
-      <span 
-        className="text-xs font-bold uppercase mb-1"
-        style={{ color: isSelected ? t.accentText : t.textMuted }}
-      >
-        {day.day_name?.substring(0, 2)}
-      </span>
-      <span 
-        className="text-2xl font-black"
-        style={{ 
-          color: isSelected ? t.accentText : t.text,
-          opacity: (day.status === 'weekend' || day.status === 'future') ? 0.3 : 1,
+    <div className="relative group">
+      <button
+        data-testid={`attendance-day-btn-${day.date}`}
+        onClick={onClick}
+        className="flex flex-col items-center px-2 py-3 rounded-lg transition-all w-full"
+        style={{
+          background: isSelected ? t.accent : 'transparent',
+          border: `1px solid ${isSelected ? t.accent : t.border}`,
         }}
       >
-        {day.day_number || '—'}
-      </span>
-    </button>
+        <span
+          className="text-xs font-bold uppercase mb-1"
+          style={{ color: isSelected ? t.accentText : t.textMuted }}
+        >
+          {day.day_name?.substring(0, 2)}
+        </span>
+        <span
+          className="text-2xl font-black"
+          style={{
+            color: isSelected ? t.accentText : t.text,
+            opacity: (day.status === 'weekend' || day.status === 'future') ? 0.3 : 1,
+          }}
+        >
+          {day.day_number || '—'}
+        </span>
+      </button>
+      {/* Correction shortcut — shown on hover for past work days */}
+      {isPast && !day.is_today && onRequestCorrection && (
+        <button
+          data-testid={`attendance-correction-shortcut-${day.date}`}
+          onClick={(e) => { e.stopPropagation(); onRequestCorrection() }}
+          className="absolute -top-1 -right-1 w-5 h-5 rounded-full items-center justify-center opacity-0 group-hover:opacity-100 transition-all hidden md:flex"
+          style={{ background: t.accent, color: t.accentText }}
+          title="Request correction"
+        >
+          <Clock size={10} strokeWidth={2.5} />
+        </button>
+      )}
+    </div>
   )
 }
 

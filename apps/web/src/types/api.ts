@@ -398,6 +398,33 @@ export interface TeamWeekEntry {
   week: WeekCalendar
 }
 
+export interface AttendanceCorrection {
+  id: string
+  organisation_id: string
+  employee_id: string
+  employee_name: string
+  record_id?: string
+  date: string
+  original_clock_in?: string
+  original_clock_out?: string
+  requested_clock_in?: string
+  requested_clock_out?: string
+  reason: string
+  status: 'pending' | 'approved' | 'rejected'
+  reviewed_by?: string
+  reviewed_at?: string
+  rejection_reason?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SubmitCorrectionRequest {
+  date: string
+  requested_clock_in?: string
+  requested_clock_out?: string
+  reason: string
+}
+
 // ── Shared ───────────────────────────────────────────────────
 // API uses cursor-based pagination
 export interface CursorMeta {

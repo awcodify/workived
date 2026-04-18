@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { useMemo } from 'react'
 import { attendanceApi } from '@/lib/api/attendance'
 import { useAttendanceRole } from './useAttendanceRole'
-import type { WeekCalendar, DailyEntry, AttendanceRecord, LocationAnalytics } from '@/types/api'
+import type { WeekCalendar, DailyEntry, AttendanceRecord, LocationAnalytics, AttendanceCorrection, SubmitCorrectionRequest } from '@/types/api'
 
 interface ApiErrorResponse {
   error?: { message?: string }
@@ -318,5 +318,64 @@ export function useLocationAnalytics(period: 'this_week' | 'this_month') {
     queryKey: attendanceKeys.locationAnalytics(period),
     queryFn: () => attendanceApi.getLocationAnalytics(period).then((r) => r.data.data),
     staleTime: 5 * 60 * 1000,
+  })
+}
+
+// ── Corrections ───────────────────────────────────────────────────────────────
+
+const correctionKeys = {
+  all: ['attendance', 'corrections'] as const,
+  list: (status?: string) => [...correctionKeys.all, 'list', status ?? 'all'] as const,
+}
+
+export function useCorrections(status?: string) {
+  return useQuery<AttendanceCorrection[]>({
+    queryKey: correctionKeys.list(status),
+    queryFn: () => attendanceApi.listCorrections(status).then((r) => r.data.data ?? []),
+    staleTime: 30_000,
+  })
+}
+
+export function useSubmitCorrection() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (data: SubmitCorrectionRequest) =>
+      attendanceApi.submitCorrection(data).then((r) => r.data.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: correctionKeys.all })
+      toast.success('Correction request submitted')
+    },
+    onError: (err: AxiosError<ApiErrorResponse>) => {
+      toast.error(err.response?.data?.error?.message ?? 'Failed to submit correction')
+    },
+  })
+}
+
+export function useApproveCorrection() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => attendanceApi.approveCorrection(id).then((r) => r.data.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: correctionKeys.all })
+      toast.success('Correction approved')
+    },
+    onError: (err: AxiosError<ApiErrorResponse>) => {
+      toast.error(err.response?.data?.error?.message ?? 'Failed to approve correction')
+    },
+  })
+}
+
+export function useRejectCorrection() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      attendanceApi.rejectCorrection(id, reason).then((r) => r.data.data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: correctionKeys.all })
+      toast.success('Correction rejected')
+    },
+    onError: (err: AxiosError<ApiErrorResponse>) => {
+      toast.error(err.response?.data?.error?.message ?? 'Failed to reject correction')
+    },
   })
 }

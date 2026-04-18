@@ -29,6 +29,11 @@ type ServiceInterface interface {
 	UpdateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID, req UpdateWorkScheduleRequest) (*WorkScheduleListItem, error)
 	DeactivateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) error
 	CountEmployeesBySchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (int, error)
+	// Corrections
+	SubmitCorrection(ctx context.Context, orgID, employeeID uuid.UUID, req SubmitCorrectionRequest) (*Correction, error)
+	GetCorrections(ctx context.Context, orgID uuid.UUID, f ListCorrectionsFilter) ([]Correction, error)
+	ApproveCorrection(ctx context.Context, orgID, reviewerEmployeeID, correctionID uuid.UUID) (*Correction, error)
+	RejectCorrection(ctx context.Context, orgID, reviewerEmployeeID, correctionID uuid.UUID, req ReviewCorrectionRequest) (*Correction, error)
 }
 
 // EmployeeLookupFunc resolves the authenticated user's employee ID from their user ID.
@@ -87,6 +92,12 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 
 	// Analytics (admin only)
 	att.GET("/analytics/locations", middleware.Require(middleware.PermAttendanceRead), h.LocationAnalytics)
+
+	// Corrections
+	att.POST("/corrections", middleware.Require(middleware.PermSelfAttendance), h.SubmitCorrection)
+	att.GET("/corrections", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.ListCorrections)
+	att.PATCH("/corrections/:correction_id/approve", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermTeamLeaveApprove), h.ApproveCorrection)
+	att.PATCH("/corrections/:correction_id/reject", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermTeamLeaveApprove), h.RejectCorrection)
 }
 
 func (h *Handler) ClockIn(c *gin.Context) {
@@ -551,4 +562,131 @@ func (h *Handler) CountEmployeesBySchedule(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"count": count}})
+}
+
+// ── Correction Handlers ───────────────────────────────────────────────────────
+
+func (h *Handler) SubmitCorrection(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "employee lookup for correction", map[string]string{
+			"org_id": orgID.String(), "user_id": userID.String(),
+		})
+		return
+	}
+
+	var req SubmitCorrectionRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.New(apperr.CodeValidation, "invalid request body")))
+		return
+	}
+
+	correction, err := h.service.SubmitCorrection(c.Request.Context(), orgID, employeeID, req)
+	if err != nil {
+		h.logAndRespondError(c, err, "submit attendance correction", map[string]string{
+			"org_id": orgID.String(), "employee_id": employeeID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"data": correction})
+}
+
+func (h *Handler) ListCorrections(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
+
+	f := ListCorrectionsFilter{
+		Status: c.Query("status"),
+	}
+
+	// Non-managers can only see their own corrections.
+	if !middleware.HasPermission(role, middleware.PermAttendanceRead) && !middleware.HasPermission(role, middleware.PermTeamLeaveApprove) {
+		employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+		if err != nil {
+			h.logAndRespondError(c, err, "employee lookup for list corrections", map[string]string{
+				"org_id": orgID.String(),
+			})
+			return
+		}
+		f.EmployeeID = &employeeID
+	}
+
+	corrections, err := h.service.GetCorrections(c.Request.Context(), orgID, f)
+	if err != nil {
+		h.logAndRespondError(c, err, "list attendance corrections", map[string]string{
+			"org_id": orgID.String(),
+		})
+		return
+	}
+
+	if corrections == nil {
+		corrections = []Correction{}
+	}
+	c.JSON(http.StatusOK, gin.H{"data": corrections})
+}
+
+func (h *Handler) ApproveCorrection(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	correctionID, err := uuid.Parse(c.Param("correction_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "invalid correction_id", "correction_id")))
+		return
+	}
+
+	reviewerID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "employee lookup for approve correction", map[string]string{
+			"org_id": orgID.String(),
+		})
+		return
+	}
+
+	correction, err := h.service.ApproveCorrection(c.Request.Context(), orgID, reviewerID, correctionID)
+	if err != nil {
+		h.logAndRespondError(c, err, "approve attendance correction", map[string]string{
+			"org_id": orgID.String(), "correction_id": correctionID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": correction})
+}
+
+func (h *Handler) RejectCorrection(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	correctionID, err := uuid.Parse(c.Param("correction_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "invalid correction_id", "correction_id")))
+		return
+	}
+
+	reviewerID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "employee lookup for reject correction", map[string]string{
+			"org_id": orgID.String(),
+		})
+		return
+	}
+
+	var req ReviewCorrectionRequest
+	_ = c.ShouldBindJSON(&req)
+
+	correction, err := h.service.RejectCorrection(c.Request.Context(), orgID, reviewerID, correctionID, req)
+	if err != nil {
+		h.logAndRespondError(c, err, "reject attendance correction", map[string]string{
+			"org_id": orgID.String(), "correction_id": correctionID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": correction})
 }

@@ -89,6 +89,18 @@ func (m *mockAttService) CountEmployeesBySchedule(_ context.Context, _, _ uuid.U
 func (m *mockAttService) LocationAnalyticsReport(_ context.Context, _ uuid.UUID, _ attendance.LocationAnalyticsFilters) (*attendance.LocationAnalytics, error) {
 	return &attendance.LocationAnalytics{Total: 0, Breakdown: []attendance.LocationBreakdownItem{}}, nil
 }
+func (m *mockAttService) SubmitCorrection(_ context.Context, _ uuid.UUID, _ uuid.UUID, req attendance.SubmitCorrectionRequest) (*attendance.Correction, error) {
+	return &attendance.Correction{ID: uuid.New(), Date: req.Date, Reason: req.Reason, Status: "pending"}, nil
+}
+func (m *mockAttService) GetCorrections(_ context.Context, _ uuid.UUID, _ attendance.ListCorrectionsFilter) ([]attendance.Correction, error) {
+	return []attendance.Correction{}, nil
+}
+func (m *mockAttService) ApproveCorrection(_ context.Context, _, _, correctionID uuid.UUID) (*attendance.Correction, error) {
+	return &attendance.Correction{ID: correctionID, Status: "approved"}, nil
+}
+func (m *mockAttService) RejectCorrection(_ context.Context, _, _, correctionID uuid.UUID, req attendance.ReviewCorrectionRequest) (*attendance.Correction, error) {
+	return &attendance.Correction{ID: correctionID, Status: "rejected", RejectionReason: req.RejectionReason}, nil
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -633,4 +645,50 @@ func TestHandler_DailyReport_OrgWideVisibility(t *testing.T) {
 	if len(resp["data"]) != 2 {
 		t.Errorf("Expected 2 employees in response, got %d", len(resp["data"]))
 	}
+}
+
+// ── Correction handler tests ───────────────────────────────────────────────────
+
+func TestHandler_SubmitCorrection(t *testing.T) {
+	clockIn := "2026-04-17T01:00:00Z"
+	body, _ := json.Marshal(map[string]interface{}{
+		"date":               "2026-04-17",
+		"requested_clock_in": clockIn,
+		"reason":             "Forgot to scan badge at entrance",
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/attendance/corrections", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	newAttRouterWithLookup(&mockAttService{}, defaultEmpLookup).ServeHTTP(w, req)
+
+	hAssertStatus(t, w, http.StatusCreated)
+}
+
+func TestHandler_ListCorrections(t *testing.T) {
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/attendance/corrections", nil)
+	newAttRouter(&mockAttService{}).ServeHTTP(w, req)
+
+	hAssertStatus(t, w, http.StatusOK)
+}
+
+func TestHandler_ApproveCorrection(t *testing.T) {
+	correctionID := uuid.New()
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/attendance/corrections/"+correctionID.String()+"/approve", nil)
+	newAttRouterWithLookup(&mockAttService{}, defaultEmpLookup).ServeHTTP(w, req)
+
+	hAssertStatus(t, w, http.StatusOK)
+}
+
+func TestHandler_RejectCorrection(t *testing.T) {
+	correctionID := uuid.New()
+	body, _ := json.Marshal(map[string]string{"rejection_reason": "Does not match CCTV footage"})
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPatch, "/api/v1/attendance/corrections/"+correctionID.String()+"/reject", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	newAttRouterWithLookup(&mockAttService{}, defaultEmpLookup).ServeHTTP(w, req)
+
+	hAssertStatus(t, w, http.StatusOK)
 }

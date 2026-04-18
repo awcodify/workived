@@ -2595,6 +2595,105 @@ paths:
                       count:
                         type: integer
 
+  /attendance/corrections:
+    get:
+      operationId: listAttendanceCorrections
+      summary: List attendance correction requests
+      tags: [Attendance]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected]
+      responses:
+        "200":
+          description: List of corrections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/AttendanceCorrection"
+    post:
+      operationId: submitAttendanceCorrection
+      summary: Submit an attendance correction request
+      tags: [Attendance]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitCorrectionRequest"
+      responses:
+        "201":
+          description: Correction submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AttendanceCorrection"
+
+  /attendance/corrections/{correction_id}/approve:
+    parameters:
+      - name: correction_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: approveAttendanceCorrection
+      summary: Approve a pending attendance correction
+      tags: [Attendance]
+      responses:
+        "200":
+          description: Correction approved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AttendanceCorrection"
+
+  /attendance/corrections/{correction_id}/reject:
+    parameters:
+      - name: correction_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+    patch:
+      operationId: rejectAttendanceCorrection
+      summary: Reject a pending attendance correction
+      tags: [Attendance]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                rejection_reason:
+                  type: string
+                  maxLength: 500
+      responses:
+        "200":
+          description: Correction rejected
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/AttendanceCorrection"
+
   /attendance/my/week:
     get:
       operationId: getMyWeek
@@ -5175,6 +5274,87 @@ components:
           description: Whether the current user has reacted with this emoji
 
     # ── Attendance ────────────────────────────────────────────────────────
+    AttendanceCorrection:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        organisation_id:
+          type: string
+          format: uuid
+        employee_id:
+          type: string
+          format: uuid
+        employee_name:
+          type: string
+        record_id:
+          type: string
+          format: uuid
+          nullable: true
+        date:
+          type: string
+          format: date
+        original_clock_in:
+          type: string
+          format: date-time
+          nullable: true
+        original_clock_out:
+          type: string
+          format: date-time
+          nullable: true
+        requested_clock_in:
+          type: string
+          format: date-time
+          nullable: true
+        requested_clock_out:
+          type: string
+          format: date-time
+          nullable: true
+        reason:
+          type: string
+        status:
+          type: string
+          enum: [pending, approved, rejected]
+        reviewed_by:
+          type: string
+          format: uuid
+          nullable: true
+        reviewed_at:
+          type: string
+          format: date-time
+          nullable: true
+        rejection_reason:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    SubmitCorrectionRequest:
+      type: object
+      required: [date, reason]
+      properties:
+        date:
+          type: string
+          format: date
+          description: Past date only (YYYY-MM-DD)
+        requested_clock_in:
+          type: string
+          format: date-time
+          nullable: true
+        requested_clock_out:
+          type: string
+          format: date-time
+          nullable: true
+        reason:
+          type: string
+          minLength: 10
+          maxLength: 500
+
     AttendanceRecord:
       type: object
       properties:

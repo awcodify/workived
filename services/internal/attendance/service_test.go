@@ -106,6 +106,25 @@ func (f *fakeRepo) GetLocationCounts(_ context.Context, _ uuid.UUID, _, _ string
 	return map[string]int{}, nil
 }
 
+func (f *fakeRepo) CreateCorrection(_ context.Context, orgID, empID uuid.UUID, date string, recordID *uuid.UUID, origIn, origOut, reqIn, reqOut *time.Time, reason string) (*attendance.Correction, error) {
+	return &attendance.Correction{ID: uuid.New(), OrganisationID: orgID, EmployeeID: empID, Date: date, Reason: reason, Status: "pending"}, nil
+}
+func (f *fakeRepo) GetCorrection(_ context.Context, orgID, correctionID uuid.UUID) (*attendance.Correction, error) {
+	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "pending"}, nil
+}
+func (f *fakeRepo) ListCorrections(_ context.Context, _ uuid.UUID, _ attendance.ListCorrectionsFilter) ([]attendance.Correction, error) {
+	return []attendance.Correction{}, nil
+}
+func (f *fakeRepo) ApproveCorrection(_ context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*attendance.Correction, error) {
+	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "approved", ReviewedBy: &reviewerID}, nil
+}
+func (f *fakeRepo) RejectCorrection(_ context.Context, orgID, correctionID, reviewerID uuid.UUID, reason *string, now time.Time) (*attendance.Correction, error) {
+	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "rejected", ReviewedBy: &reviewerID, RejectionReason: reason}, nil
+}
+func (f *fakeRepo) ApplyCorrection(_ context.Context, _ uuid.UUID, _ uuid.UUID, _, _ *time.Time) error {
+	return nil
+}
+
 type fakeOrgInfo struct {
 	tz    string
 	tzErr error
@@ -1496,3 +1515,115 @@ func TestService_DeactivateWorkSchedule_allowsNonDefault(t *testing.T) {
 		t.Error("expected deactivate to be called")
 	}
 }
+
+// ── Correction service tests ───────────────────────────────────────────────────
+
+func TestService_SubmitCorrection(t *testing.T) {
+	orgID := uuid.New()
+	empID := uuid.New()
+
+	base := func() *fakeRepo {
+		return &fakeRepo{
+			getDefaultSchedFn:         func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) { return nil, nil },
+			getScheduleForEmployeeFn:  func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) { return nil, nil },
+			listHolidaysFn:            func(_ context.Context, _ string, _, _ string) ([]attendance.PublicHoliday, error) { return nil, nil },
+			listActiveEmpsFn:          func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) { return nil, nil },
+			getEmployeeNameFn:         func(_ context.Context, _, _ uuid.UUID) (string, error) { return "Test", nil },
+			getByEmpDateFn:            func(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Record, error) { return nil, apperr.NotFound("attendance") },
+		}
+	}
+
+	clockIn := "2026-04-17T01:00:00Z"
+
+	tests := []struct {
+		name    string
+		req     attendance.SubmitCorrectionRequest
+		wantErr bool
+	}{
+		{
+			name:    "success",
+			req:     attendance.SubmitCorrectionRequest{Date: "2026-04-17", RequestedClockIn: &clockIn, Reason: "Forgot to clock in at office"},
+			wantErr: false,
+		},
+		{
+			name:    "future date rejected",
+			req:     attendance.SubmitCorrectionRequest{Date: "2099-01-01", RequestedClockIn: &clockIn, Reason: "Forgot to clock in at office"},
+			wantErr: true,
+		},
+		{
+			name:    "today rejected",
+			req:     attendance.SubmitCorrectionRequest{Date: "2026-04-18", RequestedClockIn: &clockIn, Reason: "Forgot to clock in at office"},
+			wantErr: true,
+		},
+		{
+			name:    "no times provided",
+			req:     attendance.SubmitCorrectionRequest{Date: "2026-04-17", Reason: "Forgot to clock in at office"},
+			wantErr: true,
+		},
+		{
+			name:    "invalid clock_in format",
+			req:     attendance.SubmitCorrectionRequest{Date: "2026-04-17", RequestedClockIn: strPtr("not-a-time"), Reason: "Forgot to clock in at office"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			svc := attendance.NewService(base(), &fakeOrgInfo{tz: "Asia/Jakarta", cc: "ID"}, &fakeEmployeeInfo{}, zerolog.Nop())
+			svc.SetNowFunc(func() time.Time { return time.Date(2026, 4, 18, 10, 0, 0, 0, time.UTC) })
+			_, err := svc.SubmitCorrection(context.Background(), orgID, empID, tt.req)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SubmitCorrection() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestService_ApproveCorrection(t *testing.T) {
+	orgID := uuid.New()
+	reviewerID := uuid.New()
+	correctionID := uuid.New()
+
+	repo := &fakeRepo{
+		getDefaultSchedFn:        func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) { return nil, nil },
+		getScheduleForEmployeeFn: func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) { return nil, nil },
+		listHolidaysFn:           func(_ context.Context, _ string, _, _ string) ([]attendance.PublicHoliday, error) { return nil, nil },
+		listActiveEmpsFn:         func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) { return nil, nil },
+		getEmployeeNameFn:        func(_ context.Context, _, _ uuid.UUID) (string, error) { return "", nil },
+	}
+
+	svc := attendance.NewService(repo, &fakeOrgInfo{tz: "UTC", cc: "ID"}, &fakeEmployeeInfo{}, zerolog.Nop())
+	c, err := svc.ApproveCorrection(context.Background(), orgID, reviewerID, correctionID)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if c.Status != "approved" {
+		t.Errorf("expected status=approved, got %s", c.Status)
+	}
+}
+
+func TestService_RejectCorrection(t *testing.T) {
+	orgID := uuid.New()
+	reviewerID := uuid.New()
+	correctionID := uuid.New()
+
+	repo := &fakeRepo{
+		getDefaultSchedFn:        func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) { return nil, nil },
+		getScheduleForEmployeeFn: func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) { return nil, nil },
+		listHolidaysFn:           func(_ context.Context, _ string, _, _ string) ([]attendance.PublicHoliday, error) { return nil, nil },
+		listActiveEmpsFn:         func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) { return nil, nil },
+		getEmployeeNameFn:        func(_ context.Context, _, _ uuid.UUID) (string, error) { return "", nil },
+	}
+
+	reason := "Times don't match badge records"
+	svc := attendance.NewService(repo, &fakeOrgInfo{tz: "UTC", cc: "ID"}, &fakeEmployeeInfo{}, zerolog.Nop())
+	c, err := svc.RejectCorrection(context.Background(), orgID, reviewerID, correctionID, attendance.ReviewCorrectionRequest{RejectionReason: &reason})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if c.Status != "rejected" {
+		t.Errorf("expected status=rejected, got %s", c.Status)
+	}
+}
+
+func strPtr(s string) *string { return &s }

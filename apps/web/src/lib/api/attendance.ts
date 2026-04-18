@@ -1,6 +1,8 @@
 import { apiClient } from './client'
 import type {
   AttendanceRecord,
+  AttendanceCorrection,
+  SubmitCorrectionRequest,
   DailyEntry,
   MonthlySummary,
   WeekCalendar,
@@ -62,4 +64,17 @@ export const attendanceApi = {
 
   getLocationAnalytics: (period: 'this_week' | 'this_month') =>
     apiClient.get<ApiResponse<import('@/types/api').LocationAnalytics>>('/api/v1/attendance/analytics/locations', { params: { period } }),
+
+  // Corrections
+  submitCorrection: (data: SubmitCorrectionRequest) =>
+    apiClient.post<ApiResponse<AttendanceCorrection>>('/api/v1/attendance/corrections', data),
+
+  listCorrections: (status?: string) =>
+    apiClient.get<ApiResponse<AttendanceCorrection[]>>('/api/v1/attendance/corrections', { params: status ? { status } : undefined }),
+
+  approveCorrection: (id: string) =>
+    apiClient.patch<ApiResponse<AttendanceCorrection>>(`/api/v1/attendance/corrections/${id}/approve`),
+
+  rejectCorrection: (id: string, rejection_reason?: string) =>
+    apiClient.patch<ApiResponse<AttendanceCorrection>>(`/api/v1/attendance/corrections/${id}/reject`, { rejection_reason }),
 }

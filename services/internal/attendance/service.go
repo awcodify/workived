@@ -33,6 +33,13 @@ type RepositoryInterface interface {
 	IsDefaultSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (bool, error)
 	CountEmployeesBySchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (int, error)
 	GetLocationCounts(ctx context.Context, orgID uuid.UUID, startDate, endDate string) (map[string]int, error)
+	// Corrections
+	CreateCorrection(ctx context.Context, orgID, employeeID uuid.UUID, date string, recordID *uuid.UUID, origIn, origOut, reqIn, reqOut *time.Time, reason string) (*Correction, error)
+	GetCorrection(ctx context.Context, orgID, correctionID uuid.UUID) (*Correction, error)
+	ListCorrections(ctx context.Context, orgID uuid.UUID, f ListCorrectionsFilter) ([]Correction, error)
+	ApproveCorrection(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*Correction, error)
+	RejectCorrection(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, rejectionReason *string, now time.Time) (*Correction, error)
+	ApplyCorrection(ctx context.Context, orgID uuid.UUID, recordID uuid.UUID, clockIn, clockOut *time.Time) error
 }
 
 // OrgInfoProvider is the narrow interface for org data the attendance service needs.
@@ -1161,4 +1168,123 @@ func (s *Service) countWorkingDays(ctx context.Context, orgID uuid.UUID, year, m
 
 func isNotFound(err error, _ **apperr.AppError) bool {
 	return apperr.IsCode(err, apperr.CodeNotFound)
+}
+
+// ── Attendance Corrections ────────────────────────────────────────────────────
+
+// SubmitCorrection allows an employee to request a correction to their attendance.
+func (s *Service) SubmitCorrection(ctx context.Context, orgID, employeeID uuid.UUID, req SubmitCorrectionRequest) (*Correction, error) {
+	// Only past dates allowed.
+	tz, err := s.orgRepo.GetOrgTimezone(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("get org timezone: %w", err)
+	}
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return nil, apperr.New(apperr.CodeValidation, "invalid org timezone")
+	}
+	today := s.now().In(loc).Format("2006-01-02")
+	if req.Date >= today {
+		return nil, apperr.New(apperr.CodeValidation, "corrections are only allowed for past dates")
+	}
+
+	// At least one of requested_clock_in or requested_clock_out must be provided.
+	if req.RequestedClockIn == nil && req.RequestedClockOut == nil {
+		return nil, apperr.New(apperr.CodeValidation, "at least one of requested_clock_in or requested_clock_out is required")
+	}
+
+	// Parse requested times (stored as UTC).
+	var reqIn, reqOut *time.Time
+	if req.RequestedClockIn != nil {
+		t, err := time.Parse(time.RFC3339, *req.RequestedClockIn)
+		if err != nil {
+			return nil, apperr.New(apperr.CodeValidation, "requested_clock_in must be RFC3339")
+		}
+		utc := t.UTC()
+		reqIn = &utc
+	}
+	if req.RequestedClockOut != nil {
+		t, err := time.Parse(time.RFC3339, *req.RequestedClockOut)
+		if err != nil {
+			return nil, apperr.New(apperr.CodeValidation, "requested_clock_out must be RFC3339")
+		}
+		utc := t.UTC()
+		reqOut = &utc
+	}
+
+	// Load existing record to populate original times (may not exist for missed clock-in).
+	var recordID *uuid.UUID
+	var origIn, origOut *time.Time
+	existing, err := s.repo.GetByEmployeeAndDate(ctx, orgID, employeeID, req.Date)
+	if err == nil {
+		recordID = &existing.ID
+		origIn = &existing.ClockInAt
+		origOut = existing.ClockOutAt
+	} else if !apperr.IsCode(err, apperr.CodeNotFound) {
+		return nil, fmt.Errorf("get attendance record: %w", err)
+	}
+
+	c, err := s.repo.CreateCorrection(ctx, orgID, employeeID, req.Date, recordID, origIn, origOut, reqIn, reqOut, req.Reason)
+	if err != nil {
+		return nil, fmt.Errorf("create correction: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("employee_id", employeeID.String()).
+		Str("correction_id", c.ID.String()).
+		Str("date", req.Date).
+		Msg("attendance.correction.submitted")
+
+	return c, nil
+}
+
+// GetCorrections returns corrections, optionally filtered. Employees only see their own.
+func (s *Service) GetCorrections(ctx context.Context, orgID uuid.UUID, f ListCorrectionsFilter) ([]Correction, error) {
+	corrections, err := s.repo.ListCorrections(ctx, orgID, f)
+	if err != nil {
+		return nil, fmt.Errorf("list corrections: %w", err)
+	}
+	return corrections, nil
+}
+
+// ApproveCorrection approves a pending correction and applies it to the attendance record.
+func (s *Service) ApproveCorrection(ctx context.Context, orgID, reviewerEmployeeID, correctionID uuid.UUID) (*Correction, error) {
+	now := s.now()
+	c, err := s.repo.ApproveCorrection(ctx, orgID, correctionID, reviewerEmployeeID, now)
+	if err != nil {
+		return nil, fmt.Errorf("approve correction: %w", err)
+	}
+
+	// Apply the corrected times to the attendance record if one exists.
+	if c.RecordID != nil {
+		if err := s.repo.ApplyCorrection(ctx, orgID, *c.RecordID, c.RequestedClockIn, c.RequestedClockOut); err != nil {
+			s.log.Error().Err(err).Str("correction_id", correctionID.String()).Msg("failed to apply correction to record")
+		}
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("correction_id", correctionID.String()).
+		Str("reviewer_id", reviewerEmployeeID.String()).
+		Msg("attendance.correction.approved")
+
+	return c, nil
+}
+
+// RejectCorrection rejects a pending correction.
+func (s *Service) RejectCorrection(ctx context.Context, orgID, reviewerEmployeeID, correctionID uuid.UUID, req ReviewCorrectionRequest) (*Correction, error) {
+	now := s.now()
+	c, err := s.repo.RejectCorrection(ctx, orgID, correctionID, reviewerEmployeeID, req.RejectionReason, now)
+	if err != nil {
+		return nil, fmt.Errorf("reject correction: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("correction_id", correctionID.String()).
+		Str("reviewer_id", reviewerEmployeeID.String()).
+		Msg("attendance.correction.rejected")
+
+	return c, nil
 }

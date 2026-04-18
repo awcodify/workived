@@ -512,6 +512,171 @@ func (r *Repository) GetEmployeeName(ctx context.Context, orgID, employeeID uuid
 	return name, nil
 }
 
+// ── Corrections ───────────────────────────────────────────────────────────────
+
+const correctionSelectCols = `
+    c.id, c.organisation_id, c.employee_id,
+    COALESCE(e.full_name, '') AS employee_name,
+    c.record_id, c.date::text,
+    c.original_clock_in, c.original_clock_out,
+    c.requested_clock_in, c.requested_clock_out,
+    c.reason, c.status,
+    c.reviewed_by, c.reviewed_at, c.rejection_reason,
+    c.created_at, c.updated_at`
+
+func scanCorrection(row interface {
+	Scan(dest ...any) error
+}) (*Correction, error) {
+	c := &Correction{}
+	err := row.Scan(
+		&c.ID, &c.OrganisationID, &c.EmployeeID,
+		&c.EmployeeName,
+		&c.RecordID, &c.Date,
+		&c.OriginalClockIn, &c.OriginalClockOut,
+		&c.RequestedClockIn, &c.RequestedClockOut,
+		&c.Reason, &c.Status,
+		&c.ReviewedBy, &c.ReviewedAt, &c.RejectionReason,
+		&c.CreatedAt, &c.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+// CreateCorrection inserts a new correction request.
+func (r *Repository) CreateCorrection(ctx context.Context, orgID, employeeID uuid.UUID, date string, recordID *uuid.UUID, origIn, origOut, reqIn, reqOut *time.Time, reason string) (*Correction, error) {
+	row := r.db.QueryRow(ctx, `
+		INSERT INTO attendance_corrections
+		    (organisation_id, employee_id, record_id, date,
+		     original_clock_in, original_clock_out,
+		     requested_clock_in, requested_clock_out, reason)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		RETURNING id, organisation_id, employee_id,
+		    (SELECT full_name FROM employees WHERE id = $2),
+		    record_id, date::text,
+		    original_clock_in, original_clock_out,
+		    requested_clock_in, requested_clock_out,
+		    reason, status,
+		    reviewed_by, reviewed_at, rejection_reason,
+		    created_at, updated_at
+	`, orgID, employeeID, recordID, date, origIn, origOut, reqIn, reqOut, reason)
+	return scanCorrection(row)
+}
+
+// GetCorrection returns a single correction by ID, scoped to org.
+func (r *Repository) GetCorrection(ctx context.Context, orgID, correctionID uuid.UUID) (*Correction, error) {
+	row := r.db.QueryRow(ctx, `
+		SELECT `+correctionSelectCols+`
+		FROM attendance_corrections c
+		LEFT JOIN employees e ON e.id = c.employee_id
+		WHERE c.organisation_id = $1 AND c.id = $2
+	`, orgID, correctionID)
+	c, err := scanCorrection(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apperr.NotFound("attendance correction")
+	}
+	return c, err
+}
+
+// ListCorrections returns corrections for an org, optionally filtered by status/employee.
+func (r *Repository) ListCorrections(ctx context.Context, orgID uuid.UUID, f ListCorrectionsFilter) ([]Correction, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT `+correctionSelectCols+`
+		FROM attendance_corrections c
+		LEFT JOIN employees e ON e.id = c.employee_id
+		WHERE c.organisation_id = $1
+		  AND ($2::varchar IS NULL OR c.status = $2)
+		  AND ($3::uuid IS NULL OR c.employee_id = $3)
+		ORDER BY c.created_at DESC
+		LIMIT 200
+	`, orgID, nullableStr(f.Status), f.EmployeeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var out []Correction
+	for rows.Next() {
+		c, err := scanCorrection(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *c)
+	}
+	return out, rows.Err()
+}
+
+// ApproveCorrection sets status=approved and records reviewer.
+func (r *Repository) ApproveCorrection(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*Correction, error) {
+	row := r.db.QueryRow(ctx, `
+		UPDATE attendance_corrections SET
+		    status = 'approved',
+		    reviewed_by = $3,
+		    reviewed_at = $4,
+		    updated_at = $4
+		WHERE organisation_id = $1 AND id = $2 AND status = 'pending'
+		RETURNING id, organisation_id, employee_id,
+		    (SELECT full_name FROM employees WHERE id = employee_id),
+		    record_id, date::text,
+		    original_clock_in, original_clock_out,
+		    requested_clock_in, requested_clock_out,
+		    reason, status,
+		    reviewed_by, reviewed_at, rejection_reason,
+		    created_at, updated_at
+	`, orgID, correctionID, reviewerID, now)
+	c, err := scanCorrection(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apperr.New(apperr.CodeConflict, "correction is not pending or does not exist")
+	}
+	return c, err
+}
+
+// RejectCorrection sets status=rejected and records reviewer + reason.
+func (r *Repository) RejectCorrection(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, rejectionReason *string, now time.Time) (*Correction, error) {
+	row := r.db.QueryRow(ctx, `
+		UPDATE attendance_corrections SET
+		    status = 'rejected',
+		    reviewed_by = $3,
+		    reviewed_at = $4,
+		    rejection_reason = $5,
+		    updated_at = $4
+		WHERE organisation_id = $1 AND id = $2 AND status = 'pending'
+		RETURNING id, organisation_id, employee_id,
+		    (SELECT full_name FROM employees WHERE id = employee_id),
+		    record_id, date::text,
+		    original_clock_in, original_clock_out,
+		    requested_clock_in, requested_clock_out,
+		    reason, status,
+		    reviewed_by, reviewed_at, rejection_reason,
+		    created_at, updated_at
+	`, orgID, correctionID, reviewerID, now, rejectionReason)
+	c, err := scanCorrection(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apperr.New(apperr.CodeConflict, "correction is not pending or does not exist")
+	}
+	return c, err
+}
+
+// ApplyCorrection updates the attendance_record with the corrected times.
+func (r *Repository) ApplyCorrection(ctx context.Context, orgID uuid.UUID, recordID uuid.UUID, clockIn, clockOut *time.Time) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE attendance_records SET
+		    clock_in_at  = COALESCE($3, clock_in_at),
+		    clock_out_at = $4,
+		    updated_at   = NOW()
+		WHERE organisation_id = $1 AND id = $2
+	`, orgID, recordID, clockIn, clockOut)
+	return err
+}
+
+func nullableStr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 func isUniqueViolation(err error) bool {
 	return err != nil && containsCode(err.Error(), "23505")
 }
