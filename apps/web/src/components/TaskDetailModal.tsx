@@ -486,8 +486,9 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   const [assigneeId, setAssigneeId] = useState(task?.assignee_id || '')
   const [priority, setPriority] = useState(task?.priority || 'medium')
   const initialDueParts = task?.due_date ? utcToZonedDateTime(task.due_date, orgTz) : null
-  const [dueDate, setDueDate] = useState(initialDueParts?.date ?? '')
-  const [dueTime, setDueTime] = useState(initialDueParts?.time ?? '00:00')
+  const [dueDatetime, setDueDatetime] = useState(
+    initialDueParts ? `${initialDueParts.date}T${initialDueParts.time}` : ''
+  )
   const [listId, setListId] = useState(initialListId || task?.task_list_id || '')
   const [commentText, setCommentText] = useState('')
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
@@ -512,8 +513,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
       setDescription(task.description || '')
       setAssigneeId(task.assignee_id || '')
       setPriority(task.priority || 'medium')
-      setDueDate(parts?.date ?? '')
-      setDueTime(parts?.time ?? '00:00')
+      setDueDatetime(parts ? `${parts.date}T${parts.time}` : '')
       setListId(task.task_list_id || '')
     }
   }, [task, orgTz])
@@ -620,9 +620,10 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   }, [onClose])
 
   // Auto-save helpers (only for edit mode)
-  const buildDueDateUTC = useCallback((date: string, time: string): string | undefined => {
-    if (!date) return undefined
-    return orgTimeToUTC(date, time, orgTz)
+  const buildDueDateUTC = useCallback((datetime: string): string | undefined => {
+    if (!datetime) return undefined
+    const [date, time] = datetime.split('T')
+    return orgTimeToUTC(date!, time ?? '00:00', orgTz)
   }, [orgTz])
 
   const autoSave = useCallback((field: string, value: any) => {
@@ -636,7 +637,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
       description: description.trim() || undefined,
       assignee_id: assigneeId || undefined,
       priority: priority as 'low' | 'medium' | 'high' | 'urgent',
-      due_date: buildDueDateUTC(dueDate, dueTime),
+      due_date: buildDueDateUTC(dueDatetime),
     }
 
     // Override with the specific field being changed
@@ -644,8 +645,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
     if (field === 'description') data.description = value.trim() || undefined
     if (field === 'assignee_id') data.assignee_id = value || undefined
     if (field === 'priority') data.priority = value
-    if (field === 'due_date') data.due_date = buildDueDateUTC(value, dueTime)
-    if (field === 'due_time') data.due_date = buildDueDateUTC(dueDate, value)
+    if (field === 'due_datetime') data.due_date = buildDueDateUTC(value)
 
     updateTaskMutation.mutate(
       { id: task!.id, data },
@@ -663,7 +663,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
         },
       }
     )
-  }, [isCreateMode, title, description, assigneeId, priority, dueDate, task, updateTaskMutation])
+  }, [isCreateMode, title, description, assigneeId, priority, dueDatetime, task, updateTaskMutation, buildDueDateUTC])
 
   const handleTitleChange = (value: string) => {
     setTitle(value)
@@ -693,14 +693,9 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
     autoSave('priority', value)
   }
 
-  const handleDueDateChange = (value: string) => {
-    setDueDate(value)
-    autoSave('due_date', value)
-  }
-
-  const handleDueTimeChange = (value: string) => {
-    setDueTime(value)
-    autoSave('due_time', value)
+  const handleDueDatetimeChange = (value: string) => {
+    setDueDatetime(value)
+    autoSave('due_datetime', value)
   }
 
   const handleDelete = () => {
@@ -724,7 +719,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
         description: description.trim() || undefined,
         assignee_id: assigneeId || undefined,
         priority: priority as 'low' | 'medium' | 'high' | 'urgent',
-        due_date: buildDueDateUTC(dueDate, dueTime) || undefined,
+        due_date: buildDueDateUTC(dueDatetime) || undefined,
       },
       {
         onSuccess: (newTask) => {
@@ -1239,37 +1234,20 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               >
                 📅 Due Date
               </label>
-              <div className="flex gap-2">
-                <input
-                  type="date"
-                  data-testid="task-due-date-input"
-                  value={dueDate}
-                  onChange={(e) => handleDueDateChange(e.target.value)}
-                  className="flex-1 rounded-lg px-3 py-2 text-xs outline-none font-medium"
-                  style={{
-                    background: `${colors.text}08`,
-                    border: `2px solid ${colors.text}20`,
-                    color: colors.text,
-                    fontFamily: typography.fontFamily,
-                    colorScheme: 'dark',
-                  }}
-                />
-                <input
-                  type="time"
-                  data-testid="task-due-time-input"
-                  value={dueTime}
-                  disabled={!dueDate}
-                  onChange={(e) => handleDueTimeChange(e.target.value)}
-                  className="w-28 rounded-lg px-3 py-2 text-xs outline-none font-medium"
-                  style={{
-                    background: dueDate ? `${colors.text}08` : `${colors.text}04`,
-                    border: `2px solid ${colors.text}20`,
-                    color: dueDate ? colors.text : `${colors.text}40`,
-                    fontFamily: typography.fontFamily,
-                    colorScheme: 'dark',
-                  }}
-                />
-              </div>
+              <input
+                type="datetime-local"
+                data-testid="task-due-datetime-input"
+                value={dueDatetime}
+                onChange={(e) => handleDueDatetimeChange(e.target.value)}
+                className="w-full rounded-lg px-3 py-2 text-xs outline-none font-medium"
+                style={{
+                  background: `${colors.text}08`,
+                  border: `2px solid ${colors.text}20`,
+                  color: colors.text,
+                  fontFamily: typography.fontFamily,
+                  colorScheme: 'dark',
+                }}
+              />
             </div>
           </div>
 

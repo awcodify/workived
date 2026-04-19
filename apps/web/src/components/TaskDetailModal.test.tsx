@@ -58,39 +58,32 @@ const baseProps = {
   onClose: vi.fn(),
 }
 
-describe('TaskDetailModal — due date + time picker in create mode', () => {
+describe('TaskDetailModal — due datetime picker in create mode', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(useFieldDefinitions).mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useFieldDefinitions>)
   })
 
-  it('renders date and time inputs', () => {
+  it('renders single datetime-local input', () => {
     render(<TaskDetailModal {...baseProps} />)
-    expect(screen.getByTestId('task-due-date-input')).toBeInTheDocument()
-    expect(screen.getByTestId('task-due-time-input')).toBeInTheDocument()
+    const input = screen.getByTestId('task-due-datetime-input') as HTMLInputElement
+    expect(input).toBeInTheDocument()
+    expect(input.type).toBe('datetime-local')
   })
 
-  it('time input is disabled until date is set', () => {
+  it('accepts a datetime value', () => {
     render(<TaskDetailModal {...baseProps} />)
-    const timeInput = screen.getByTestId('task-due-time-input') as HTMLInputElement
-    expect(timeInput.disabled).toBe(true)
+    const input = screen.getByTestId('task-due-datetime-input') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '2026-05-01T14:30' } })
+    expect(input.value).toBe('2026-05-01T14:30')
   })
 
-  it('time input enables after date is set', () => {
+  it('clears datetime value', () => {
     render(<TaskDetailModal {...baseProps} />)
-    const dateInput = screen.getByTestId('task-due-date-input') as HTMLInputElement
-    fireEvent.change(dateInput, { target: { value: '2026-05-01' } })
-    const timeInput = screen.getByTestId('task-due-time-input') as HTMLInputElement
-    expect(timeInput.disabled).toBe(false)
-  })
-
-  it('time input accepts value change', () => {
-    render(<TaskDetailModal {...baseProps} />)
-    const dateInput = screen.getByTestId('task-due-date-input') as HTMLInputElement
-    fireEvent.change(dateInput, { target: { value: '2026-05-01' } })
-    const timeInput = screen.getByTestId('task-due-time-input') as HTMLInputElement
-    fireEvent.change(timeInput, { target: { value: '14:30' } })
-    expect(timeInput.value).toBe('14:30')
+    const input = screen.getByTestId('task-due-datetime-input') as HTMLInputElement
+    fireEvent.change(input, { target: { value: '2026-05-01T14:30' } })
+    fireEvent.change(input, { target: { value: '' } })
+    expect(input.value).toBe('')
   })
 })
 
