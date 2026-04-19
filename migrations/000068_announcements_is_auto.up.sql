@@ -1,0 +1,3 @@
+ALTER TABLE announcements
+    ALTER COLUMN author_id DROP NOT NULL,
+    ADD COLUMN is_auto BOOLEAN NOT NULL DEFAULT FALSE;

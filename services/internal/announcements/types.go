@@ -6,15 +6,16 @@ import (
 	"github.com/google/uuid"
 )
 
-// Announcement is a company-wide message posted by an admin.
+// Announcement is a company-wide message posted by an admin or generated automatically.
 type Announcement struct {
 	ID             uuid.UUID  `json:"id"`
 	OrganisationID uuid.UUID  `json:"organisation_id"`
-	AuthorID       uuid.UUID  `json:"author_id"`
+	AuthorID       *uuid.UUID `json:"author_id,omitempty"`
 	AuthorName     string     `json:"author_name"`
 	Title          string     `json:"title"`
 	Body           string     `json:"body"`
 	IsPinned       bool       `json:"is_pinned"`
+	IsAuto         bool       `json:"is_auto"`
 	PublishedAt    *time.Time `json:"published_at,omitempty"`
 	IsRead         bool       `json:"is_read"` // computed per-employee
 	CreatedAt      time.Time  `json:"created_at"`

@@ -22,14 +22,14 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 const selectCols = `
 	a.id, a.organisation_id, a.author_id,
 	COALESCE(e.full_name, '') AS author_name,
-	a.title, a.body, a.is_pinned, a.published_at,
+	a.title, a.body, a.is_pinned, a.is_auto, a.published_at,
 	a.created_at, a.updated_at`
 
 func scan(row interface{ Scan(dest ...any) error }, isRead bool) (*Announcement, error) {
 	ann := &Announcement{IsRead: isRead}
 	err := row.Scan(
 		&ann.ID, &ann.OrganisationID, &ann.AuthorID, &ann.AuthorName,
-		&ann.Title, &ann.Body, &ann.IsPinned, &ann.PublishedAt,
+		&ann.Title, &ann.Body, &ann.IsPinned, &ann.IsAuto, &ann.PublishedAt,
 		&ann.CreatedAt, &ann.UpdatedAt,
 	)
 	if err != nil {
@@ -63,7 +63,7 @@ func (r *Repository) List(ctx context.Context, orgID, employeeID uuid.UUID) ([]A
 		ann := &Announcement{}
 		if err := rows.Scan(
 			&ann.ID, &ann.OrganisationID, &ann.AuthorID, &ann.AuthorName,
-			&ann.Title, &ann.Body, &ann.IsPinned, &ann.PublishedAt,
+			&ann.Title, &ann.Body, &ann.IsPinned, &ann.IsAuto, &ann.PublishedAt,
 			&ann.CreatedAt, &ann.UpdatedAt,
 			&isRead,
 		); err != nil {
@@ -96,7 +96,7 @@ func (r *Repository) ListAdmin(ctx context.Context, orgID uuid.UUID) ([]Announce
 		var isRead bool
 		if err := rows.Scan(
 			&ann.ID, &ann.OrganisationID, &ann.AuthorID, &ann.AuthorName,
-			&ann.Title, &ann.Body, &ann.IsPinned, &ann.PublishedAt,
+			&ann.Title, &ann.Body, &ann.IsPinned, &ann.IsAuto, &ann.PublishedAt,
 			&ann.CreatedAt, &ann.UpdatedAt,
 			&isRead,
 		); err != nil {
@@ -122,19 +122,31 @@ func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*Announc
 	return ann, err
 }
 
-// Create inserts a new announcement.
+// Create inserts a new announcement authored by a human employee.
 func (r *Repository) Create(ctx context.Context, orgID, authorID uuid.UUID, req CreateAnnouncementRequest, now time.Time) (*Announcement, error) {
 	var publishedAt *time.Time
 	if req.Publish {
 		publishedAt = &now
 	}
 	row := r.db.QueryRow(ctx, `
-		INSERT INTO announcements (organisation_id, author_id, title, body, is_pinned, published_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO announcements (organisation_id, author_id, title, body, is_pinned, is_auto, published_at)
+		VALUES ($1, $2, $3, $4, $5, FALSE, $6)
 		RETURNING id, organisation_id, author_id,
 		    (SELECT full_name FROM employees WHERE id = $2),
-		    title, body, is_pinned, published_at, created_at, updated_at
+		    title, body, is_pinned, is_auto, published_at, created_at, updated_at
 	`, orgID, authorID, req.Title, req.Body, req.IsPinned, publishedAt)
+	return scan(row, false)
+}
+
+// CreateAuto inserts a system-generated announcement (no human author).
+func (r *Repository) CreateAuto(ctx context.Context, orgID uuid.UUID, title, body string, now time.Time) (*Announcement, error) {
+	row := r.db.QueryRow(ctx, `
+		INSERT INTO announcements (organisation_id, author_id, title, body, is_pinned, is_auto, published_at)
+		VALUES ($1, NULL, $2, $3, FALSE, TRUE, $4)
+		RETURNING id, organisation_id, author_id,
+		    NULL::text,
+		    title, body, is_pinned, is_auto, published_at, created_at, updated_at
+	`, orgID, title, body, now)
 	return scan(row, false)
 }
 
@@ -149,7 +161,7 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, author_id,
 		    (SELECT full_name FROM employees WHERE id = author_id),
-		    title, body, is_pinned, published_at, created_at, updated_at
+		    title, body, is_pinned, is_auto, published_at, created_at, updated_at
 	`, orgID, id, req.Title, req.Body, req.IsPinned)
 	ann, err := scan(row, false)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -167,7 +179,7 @@ func (r *Repository) Publish(ctx context.Context, orgID, id uuid.UUID, now time.
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, author_id,
 		    (SELECT full_name FROM employees WHERE id = author_id),
-		    title, body, is_pinned, published_at, created_at, updated_at
+		    title, body, is_pinned, is_auto, published_at, created_at, updated_at
 	`, orgID, id, now)
 	ann, err := scan(row, false)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -183,7 +195,7 @@ func (r *Repository) SetPinned(ctx context.Context, orgID, id uuid.UUID, pinned 
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, author_id,
 		    (SELECT full_name FROM employees WHERE id = author_id),
-		    title, body, is_pinned, published_at, created_at, updated_at
+		    title, body, is_pinned, is_auto, published_at, created_at, updated_at
 	`, orgID, id, pinned)
 	ann, err := scan(row, pinned)
 	if errors.Is(err, pgx.ErrNoRows) {

@@ -1187,11 +1187,12 @@ export interface QueryResult {
 export interface Announcement {
   id: string
   organisation_id: string
-  author_id: string
+  author_id?: string
   author_name: string
   title: string
   body: string
   is_pinned: boolean
+  is_auto: boolean
   is_read: boolean
   published_at: string | null
   created_at: string

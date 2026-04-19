@@ -142,15 +142,25 @@ func main() {
 	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log))
 	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender), claims.WithTasksService(tasksSvc))
 	leaveSvc := leave.NewService(leaveRepo, cachedOrgInfo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender), leave.WithTasksService(tasksSvc), leave.WithCache(cacheStore))
-	// Org service created after leave — needs leave callback for post-invite balance init
+	annSvc := announcements.NewService(annRepo, log)
+	// Org service created after leave and announcements — needs both callbacks for post-invite hooks
 	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender), organisation.WithCache(cacheStore),
-		organisation.WithOnEmployeeJoined(leaveSvc.InitBalancesForEmployee))
+		organisation.WithOnEmployeeJoined(leaveSvc.InitBalancesForEmployee),
+		organisation.WithOnEmployeeJoined(func(ctx context.Context, orgID, employeeID uuid.UUID) {
+			emp, err := empRepo.GetByID(ctx, orgID, employeeID)
+			if err != nil {
+				log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("welcome announcement: failed to get employee")
+				return
+			}
+			if err := annSvc.CreateWelcomeAnnouncement(ctx, orgID, emp.FullName); err != nil {
+				log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("welcome announcement: failed to create")
+			}
+		}))
 	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log), admin.WithCache(cacheStore))
 	setupSvc := setup.NewService(setupRepo, log)
 	calendarSvc := calendar.NewService(calendarRepo, orgRepo, log)
 	reportsSvc := reports.NewService(reportsRepo, log)
 	dashboardSvc := dashboard.NewService(dashboardRepo, dashboard.WithLogger(log), dashboard.WithCache(cacheStore))
-	annSvc := announcements.NewService(annRepo, log)
 
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	authHandler := auth.NewHandler(authSvc)

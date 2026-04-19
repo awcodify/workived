@@ -15,6 +15,7 @@ type RepositoryInterface interface {
 	ListAdmin(ctx context.Context, orgID uuid.UUID) ([]Announcement, error)
 	GetByID(ctx context.Context, orgID, id uuid.UUID) (*Announcement, error)
 	Create(ctx context.Context, orgID, authorID uuid.UUID, req CreateAnnouncementRequest, now time.Time) (*Announcement, error)
+	CreateAuto(ctx context.Context, orgID uuid.UUID, title, body string, now time.Time) (*Announcement, error)
 	Update(ctx context.Context, orgID, id uuid.UUID, req UpdateAnnouncementRequest) (*Announcement, error)
 	Publish(ctx context.Context, orgID, id uuid.UUID, now time.Time) (*Announcement, error)
 	SetPinned(ctx context.Context, orgID, id uuid.UUID, pinned bool) (*Announcement, error)
@@ -154,4 +155,19 @@ func (s *Service) CountUnread(ctx context.Context, orgID, employeeID uuid.UUID) 
 		return 0, fmt.Errorf("count unread: %w", err)
 	}
 	return count, nil
+}
+
+// CreateWelcomeAnnouncement posts an auto-generated welcome announcement when an employee joins.
+func (s *Service) CreateWelcomeAnnouncement(ctx context.Context, orgID uuid.UUID, employeeName string) error {
+	title := "👋 Welcome " + employeeName + " to the team!"
+	body := employeeName + " has joined the organisation. Say hello and make them feel welcome!"
+	_, err := s.repo.CreateAuto(ctx, orgID, title, body, s.now())
+	if err != nil {
+		return fmt.Errorf("create welcome announcement: %w", err)
+	}
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("employee_name", employeeName).
+		Msg("announcement.welcome.created")
+	return nil
 }

@@ -17,6 +17,7 @@ type fakeRepo struct {
 	listAdminFn   func(ctx context.Context, orgID uuid.UUID) ([]announcements.Announcement, error)
 	getByIDFn     func(ctx context.Context, orgID, id uuid.UUID) (*announcements.Announcement, error)
 	createFn      func(ctx context.Context, orgID, authorID uuid.UUID, req announcements.CreateAnnouncementRequest, now time.Time) (*announcements.Announcement, error)
+	createAutoFn  func(ctx context.Context, orgID uuid.UUID, title, body string, now time.Time) (*announcements.Announcement, error)
 	updateFn      func(ctx context.Context, orgID, id uuid.UUID, req announcements.UpdateAnnouncementRequest) (*announcements.Announcement, error)
 	publishFn     func(ctx context.Context, orgID, id uuid.UUID, now time.Time) (*announcements.Announcement, error)
 	setPinnedFn   func(ctx context.Context, orgID, id uuid.UUID, pinned bool) (*announcements.Announcement, error)
@@ -47,7 +48,13 @@ func (f *fakeRepo) Create(ctx context.Context, orgID, authorID uuid.UUID, req an
 	if f.createFn != nil {
 		return f.createFn(ctx, orgID, authorID, req, now)
 	}
-	return &announcements.Announcement{ID: uuid.New(), OrganisationID: orgID, AuthorID: authorID, Title: req.Title, Body: req.Body}, nil
+	return &announcements.Announcement{ID: uuid.New(), OrganisationID: orgID, AuthorID: &authorID, Title: req.Title, Body: req.Body}, nil
+}
+func (f *fakeRepo) CreateAuto(ctx context.Context, orgID uuid.UUID, title, body string, now time.Time) (*announcements.Announcement, error) {
+	if f.createAutoFn != nil {
+		return f.createAutoFn(ctx, orgID, title, body, now)
+	}
+	return &announcements.Announcement{ID: uuid.New(), OrganisationID: orgID, Title: title, Body: body, IsAuto: true}, nil
 }
 func (f *fakeRepo) Update(ctx context.Context, orgID, id uuid.UUID, req announcements.UpdateAnnouncementRequest) (*announcements.Announcement, error) {
 	if f.updateFn != nil {
@@ -211,6 +218,27 @@ func TestService_Delete(t *testing.T) {
 	}
 	if !deleted {
 		t.Error("expected Delete to be called on repo")
+	}
+}
+
+func TestService_CreateWelcomeAnnouncement(t *testing.T) {
+	orgID := uuid.New()
+	var gotTitle, gotBody string
+	repo := &fakeRepo{
+		createAutoFn: func(_ context.Context, _ uuid.UUID, title, body string, _ time.Time) (*announcements.Announcement, error) {
+			gotTitle, gotBody = title, body
+			return &announcements.Announcement{ID: uuid.New(), IsAuto: true}, nil
+		},
+	}
+	svc := announcements.NewService(repo, zerolog.Nop())
+	if err := svc.CreateWelcomeAnnouncement(context.Background(), orgID, "Budi Santoso"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if gotTitle != "👋 Welcome Budi Santoso to the team!" {
+		t.Errorf("unexpected title: %q", gotTitle)
+	}
+	if gotBody == "" {
+		t.Error("expected non-empty body")
 	}
 }
 
