@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AxiosError } from 'axios'
+import { toast } from 'sonner'
 import { claimsApi } from '@/lib/api/claims'
 import type {
   CreateCategoryInput,
@@ -160,6 +162,9 @@ export function useCancelClaim() {
     onSuccess: (_, id) => {
       qc.invalidateQueries({ queryKey: claimsKeys.claims() })
       qc.invalidateQueries({ queryKey: claimsKeys.claim(id) })
+    },
+    onError: (err: AxiosError<{ error?: { message?: string } }>) => {
+      toast.error(err.response?.data?.error?.message ?? 'Failed to cancel claim')
     },
   })
 }

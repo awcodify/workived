@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { AxiosError } from 'axios'
+import { toast } from 'sonner'
 import { leaveApi } from '@/lib/api/leave'
 import { useCanManageLeave } from '@/lib/hooks/useRole'
 import type {
@@ -256,11 +258,11 @@ export function useCancelRequest() {
 
       return { prevMyRequests }
     },
-    onError: (_err, _vars, context) => {
-      // Rollback on error
+    onError: (err: AxiosError<{ error?: { message?: string } }>, _vars, context) => {
       if (context?.prevMyRequests) {
         qc.setQueryData(leaveKeys.myRequests(), context.prevMyRequests)
       }
+      toast.error(err.response?.data?.error?.message ?? 'Failed to cancel request')
     },
     onSettled: () => {
       // Refetch to ensure consistency
