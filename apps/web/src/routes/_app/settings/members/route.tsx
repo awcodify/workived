@@ -8,7 +8,7 @@ import { z } from 'zod/v4'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useInvitations, useInviteMember, useRevokeInvitation, useMembers, useUpdateMemberRole } from '@/lib/hooks/useInvitations'
 import { useCanInvite } from '@/lib/hooks/useRole'
-import { moduleBackgrounds, colors, typography } from '@/design/tokens'
+import { colors, typography, radius } from '@/design/tokens'
 
 const C = {
   err: colors.err,
@@ -17,10 +17,10 @@ const C = {
   ok: colors.ok,
   okDim: colors.okDim,
   okText: colors.okText,
+  warn: colors.warn,
   accent: colors.accent,
   accentDim: colors.accentDim,
 }
-import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
 import type { ApiError, MemberRole, MemberWithProfile, PendingInvitation, InviteResponse } from '@/types/api'
 import { AxiosError } from 'axios'
 
@@ -49,54 +49,30 @@ const inviteSchema = z.object({
 
 type InviteForm = z.infer<typeof inviteSchema>
 
-// ── Shared style constants (matches company page) ──────────────────────────────
+// ── Page palette (matches company settings / landing dark-bg) ──────────────────
 
-const S = {
-  text:       '#FFFFFF',
-  textMuted:  'rgba(255,255,255,0.55)',
-  textDim:    'rgba(255,255,255,0.35)',
-  divider:    'rgba(255,255,255,0.08)',
-  inputBg:    'rgba(255,255,255,0.07)',
-  inputBorder:'rgba(255,255,255,0.12)',
-}
-
-// ── Sidebar navigation ─────────────────────────────────────────────────────────
-
-const NAV_ITEMS = [
-  { id: 'invite', label: 'Invite' },
-  { id: 'team', label: 'Team members' },
-  { id: 'pending', label: 'Pending invitations' },
-]
-
-function SideNav() {
-  return (
-    <nav className="hidden md:flex flex-col gap-1 w-[180px] shrink-0 sticky top-8 self-start">
-      {NAV_ITEMS.map((item) => (
-        <a
-          key={item.id}
-          href={`#${item.id}`}
-          className="px-3 py-2 rounded-lg text-sm transition-colors hover:bg-white/5"
-          style={{ color: S.textMuted, fontWeight: 500 }}
-        >
-          {item.label}
-        </a>
-      ))}
-    </nav>
-  )
-}
+const pageBg    = '#0A0A12'
+const surfaceBg = 'rgba(255,255,255,0.035)'
+const cardBg    = 'rgba(255,255,255,0.055)'
+const text      = '#FFFFFF'
+const textSec   = 'rgba(255,255,255,0.50)'
+const textDim   = 'rgba(255,255,255,0.28)'
+const border    = 'rgba(255,255,255,0.06)'
+const inputBg   = 'rgba(255,255,255,0.05)'
+const inputBdr  = 'rgba(255,255,255,0.10)'
 
 // ── Shared components ──────────────────────────────────────────────────────────
 
 function Divider() {
-  return <div style={{ height: 1, background: S.divider }} />
+  return <div style={{ height: 1, background: border }} />
 }
 
 function SectionTitle({ id, children, description }: { id?: string; children: React.ReactNode; description?: string }) {
   return (
     <div id={id} className="scroll-mt-8">
-      <h2 style={{ fontSize: 16, fontWeight: 700, color: S.text, letterSpacing: '-0.02em' }}>{children}</h2>
+      <h2 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: text, letterSpacing: typography.h3.tracking }}>{children}</h2>
       {description && (
-        <p style={{ fontSize: 14, color: S.textMuted, marginTop: 4, lineHeight: 1.5 }}>{description}</p>
+        <p style={{ fontSize: typography.body.size, color: textSec, marginTop: 6, lineHeight: 1.5 }}>{description}</p>
       )}
     </div>
   )
@@ -104,15 +80,15 @@ function SectionTitle({ id, children, description }: { id?: string; children: Re
 
 function Banner({ variant, message, children }: { variant: 'success' | 'error' | 'warning' | 'info'; message?: string; children?: React.ReactNode }) {
   const styles = {
-    success: { bg: 'rgba(18,160,92,0.1)', border: 'rgba(18,160,92,0.3)', color: '#34D399' },
-    error:   { bg: 'rgba(212,64,64,0.1)', border: 'rgba(212,64,64,0.3)', color: '#F87171' },
-    warning: { bg: 'rgba(201,123,42,0.1)', border: 'rgba(201,123,42,0.3)', color: '#FBBF24' },
-    info:    { bg: 'rgba(99,87,232,0.1)', border: 'rgba(99,87,232,0.3)', color: '#A5B4FC' },
+    success: { bg: 'rgba(18,160,92,0.12)', bdr: C.ok, fg: '#6EE7B7' },
+    error:   { bg: 'rgba(212,64,64,0.12)', bdr: C.err, fg: '#FCA5A5' },
+    warning: { bg: 'rgba(201,123,42,0.12)', bdr: C.warn, fg: '#FCD34D' },
+    info:    { bg: 'rgba(99,87,232,0.12)', bdr: C.accent, fg: colors.accentMid },
   }
   const s = styles[variant]
   return (
-    <div role="alert" aria-live="polite" className="px-4 py-3 rounded-lg text-sm"
-      style={{ background: s.bg, borderLeft: `3px solid ${s.border}`, color: s.color }}>
+    <div role="alert" aria-live="polite" className="px-4 py-3"
+      style={{ background: s.bg, borderLeft: `3px solid ${s.bdr}`, color: s.fg, borderRadius: radius.lg, fontSize: typography.label.size, fontWeight: typography.label.weight, fontFamily: typography.fontFamily }}>
       {message ?? children}
     </div>
   )
@@ -168,12 +144,12 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
               type="email"
               placeholder="colleague@company.com"
               data-testid="members-invite-email-input"
-              className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
-              style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text }}
+              className="w-full px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-white/20"
+              style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.lg, fontSize: typography.body.size, fontFamily: typography.fontFamily }}
               {...form.register('email')}
             />
             {form.formState.errors.email && (
-              <p style={{ fontSize: 13, color: C.err, marginTop: 4, fontWeight: 500 }}>
+              <p style={{ fontSize: typography.label.size, color: C.err, marginTop: 6, fontWeight: typography.label.weight }}>
                 {form.formState.errors.email.message}
               </p>
             )}
@@ -181,8 +157,8 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
 
           <select
             data-testid="members-invite-role-select"
-            className="w-full px-3.5 py-2.5 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none"
-            style={{ background: S.inputBg, border: `1px solid ${S.inputBorder}`, color: S.text }}
+            className="w-full px-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-white/20 appearance-none"
+            style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.lg, fontSize: typography.body.size, fontFamily: typography.fontFamily }}
             {...form.register('role')}
           >
             {ROLES.map((r) => (
@@ -196,8 +172,8 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
             type="submit"
             disabled={inviteMember.isPending}
             data-testid="members-invite-submit-btn"
-            className="px-5 py-2.5 rounded-lg text-sm font-semibold transition-all disabled:opacity-50 whitespace-nowrap"
-            style={{ background: C.accent, color: '#FFFFFF' }}
+            className="px-5 py-2.5 transition-all disabled:opacity-50 whitespace-nowrap"
+            style={{ background: C.accent, color: '#FFFFFF', borderRadius: radius.lg, fontSize: typography.body.size, fontWeight: 600, fontFamily: typography.fontFamily }}
           >
             {inviteMember.isPending ? 'Sending...' : 'Send invite'}
           </button>
@@ -207,11 +183,11 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
       {lastInvite && (
         <Banner variant="success">
           <div className="flex items-center justify-between gap-3">
-            <span className="font-medium">Invitation sent to {lastInvite.email}</span>
+            <span style={{ fontWeight: 600 }}>Invitation sent to {lastInvite.email}</span>
             <button
               onClick={() => handleCopyLink(lastInvite.invite_url, lastInvite.id)}
-              className="px-3 py-1 rounded text-xs font-bold shrink-0 transition-all hover:opacity-80"
-              style={{ background: 'rgba(18,160,92,0.25)', color: '#34D399' }}
+              className="px-3 py-1 shrink-0 transition-all hover:opacity-80"
+              style={{ background: 'rgba(18,160,92,0.25)', color: '#6EE7B7', borderRadius: radius.md, fontSize: typography.caption.size, fontWeight: 600 }}
             >
               {copiedId === lastInvite.id ? 'Copied!' : 'Copy link'}
             </button>
@@ -220,16 +196,16 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
       )}
 
       <Banner variant="info">
-        <div style={{ lineHeight: 1.6 }}>
+        <div style={{ lineHeight: 1.7 }}>
           <div style={{ marginBottom: 8 }}>
             <strong style={{ display: 'block', marginBottom: 2 }}>Workspace Member</strong>
-            <span style={{ fontSize: 13, opacity: 0.9 }}>Can log in and access Workived.</span>
+            <span style={{ fontSize: typography.label.size, opacity: 0.9 }}>Can log in and access Workived.</span>
           </div>
           <div style={{ marginBottom: 8 }}>
             <strong style={{ display: 'block', marginBottom: 2 }}>Employee</strong>
-            <span style={{ fontSize: 13, opacity: 0.9 }}>Has an HR profile for attendance, leave, and claims.</span>
+            <span style={{ fontSize: typography.label.size, opacity: 0.9 }}>Has an HR profile for attendance, leave, and claims.</span>
           </div>
-          <div style={{ fontSize: 13, opacity: 0.9 }}>
+          <div style={{ fontSize: typography.label.size, opacity: 0.9 }}>
             One person can be both. <a href="/people" style={{ textDecoration: 'underline', fontWeight: 600 }}>Add employees in People</a> after inviting.
           </div>
         </div>
@@ -260,32 +236,32 @@ function TeamMembersSection({
           Team members
         </SectionTitle>
 
-        <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center gap-1 p-1" style={{ background: inputBg, borderRadius: radius.lg }}>
           <button
             onClick={() => setFilter('all')}
-            className="px-3 py-1.5 rounded-md text-xs font-semibold transition-all"
+            className="px-3 py-1.5 transition-all"
             style={
               filter === 'all'
-                ? { background: 'rgba(255,255,255,0.12)', color: S.text }
-                : { color: S.textDim }
+                ? { background: cardBg, color: text, borderRadius: radius.md, fontSize: typography.label.size, fontWeight: 600 }
+                : { color: textDim, borderRadius: radius.md, fontSize: typography.label.size, fontWeight: 600 }
             }
           >
             All
           </button>
           <button
             onClick={() => setFilter('missing_hr')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 transition-all"
             style={
               filter === 'missing_hr'
-                ? { background: 'rgba(255,255,255,0.12)', color: S.text }
-                : { color: S.textDim }
+                ? { background: cardBg, color: text, borderRadius: radius.md, fontSize: typography.label.size, fontWeight: 600 }
+                : { color: textDim, borderRadius: radius.md, fontSize: typography.label.size, fontWeight: 600 }
             }
           >
             Missing HR
             {missingCount > 0 && (
               <span
-                className="px-1.5 py-0.5 rounded text-xs font-bold"
-                style={{ background: 'rgba(212,64,64,0.25)', color: '#F87171', fontSize: 10 }}
+                className="px-1.5 py-0.5"
+                style={{ background: 'rgba(212,64,64,0.25)', color: '#FCA5A5', fontSize: typography.tiny.size, fontWeight: 600, borderRadius: radius.sm }}
               >
                 {missingCount}
               </span>
@@ -297,22 +273,22 @@ function TeamMembersSection({
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+            <div key={i} className="h-14 animate-pulse" style={{ background: cardBg, borderRadius: radius.lg }} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <p style={{ fontSize: 14, color: S.textDim }}>
+        <p style={{ fontSize: typography.body.size, color: textDim }}>
           {filter === 'missing_hr' ? 'All members have an HR profile.' : 'No members yet.'}
         </p>
       ) : (
         <div className="flex flex-col gap-1">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_100px_120px] gap-4 px-4 py-2">
-            <span style={{ fontSize: 11, fontWeight: 600, color: S.textDim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Member</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: S.textDim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Role</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: S.textDim, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>HR Profile</span>
+          <div className="grid grid-cols-[1fr_100px_120px] gap-4 px-4 py-2.5">
+            <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking }}>Member</span>
+            <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking }}>Role</span>
+            <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking, textAlign: 'right' }}>HR Profile</span>
           </div>
-          <div style={{ height: 1, background: S.divider }} />
+          <div style={{ height: 1, background: border }} />
           {filtered.map((m) => (
             <MemberRow key={m.id} member={m} isFreePlan={isFreePlan} />
           ))}
@@ -362,16 +338,17 @@ function MemberRow({ member, isFreePlan = false }: { member: MemberWithProfile; 
 
   return (
     <div
-      className="grid grid-cols-[1fr_100px_120px] gap-4 items-center px-4 py-3 rounded-lg transition-colors hover:bg-white/[0.03]"
+      className="grid grid-cols-[1fr_100px_120px] gap-4 items-center px-4 py-3.5 transition-colors hover:bg-white/[0.03]"
+      style={{ borderRadius: radius.lg }}
       data-testid={`members-row-${member.id}`}
     >
       {/* Name + email */}
       <div className="min-w-0">
-        <p style={{ fontSize: 14, fontWeight: 600, color: S.text }} className="truncate">
+        <p style={{ fontSize: typography.body.size, fontWeight: 600, color: text }} className="truncate">
           {member.full_name}
-          {isOwnProfile && <span style={{ color: S.textDim, marginLeft: 6, fontWeight: 400 }}>(You)</span>}
+          {isOwnProfile && <span style={{ color: textDim, marginLeft: 6, fontWeight: 400 }}>(You)</span>}
         </p>
-        <p style={{ fontSize: 12, color: S.textDim }} className="truncate">{member.email}</p>
+        <p style={{ fontSize: typography.label.size, color: textDim }} className="truncate">{member.email}</p>
       </div>
 
       {/* Role */}
@@ -379,17 +356,17 @@ function MemberRow({ member, isFreePlan = false }: { member: MemberWithProfile; 
         <button
           onClick={() => canChangeRole && setShowRoleDropdown(!showRoleDropdown)}
           disabled={!canChangeRole || updateMemberRole.isPending}
-          className={`text-xs font-medium px-2 py-0.5 rounded ${canChangeRole ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
-          style={{ background: 'rgba(155,143,247,0.15)', color: '#9B8FF7' }}
+          className={`px-2.5 py-1 ${canChangeRole ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}`}
+          style={{ background: 'rgba(155,143,247,0.15)', color: '#9B8FF7', borderRadius: radius.md, fontSize: typography.label.size, fontWeight: 600 }}
         >
           {member.role}
-          {canChangeRole && <span style={{ marginLeft: 4 }}>▾</span>}
+          {canChangeRole && <span style={{ marginLeft: 4 }}>&#9662;</span>}
         </button>
 
         {showRoleDropdown && (
           <div
-            className="absolute top-full left-0 mt-1 py-1 rounded-lg shadow-lg z-10 min-w-[180px]"
-            style={{ background: 'rgba(30,30,35,0.98)', border: `1px solid ${S.inputBorder}` }}
+            className="absolute top-full left-0 mt-1 py-1 shadow-lg z-10 min-w-[200px]"
+            style={{ background: '#12121C', border: `1px solid ${inputBdr}`, borderRadius: radius.lg }}
           >
             {ROLES.filter((r) => r.value !== 'owner').map((role) => {
               const isDisabled = role.isPro && isFreePlan
@@ -399,13 +376,13 @@ function MemberRow({ member, isFreePlan = false }: { member: MemberWithProfile; 
                   key={role.value}
                   onClick={() => !isDisabled && handleRoleChange(role.value)}
                   disabled={isDisabled}
-                  className={`w-full px-4 py-2 text-left text-xs transition-colors ${
+                  className={`w-full px-4 py-2.5 text-left transition-colors ${
                     isDisabled ? 'cursor-not-allowed opacity-40' : isCurrent ? 'cursor-default' : 'hover:bg-white/5'
                   }`}
-                  style={{ color: isCurrent ? '#9B8FF7' : 'rgba(255,255,255,0.85)', fontWeight: isCurrent ? 600 : 500 }}
+                  style={{ color: isCurrent ? '#9B8FF7' : 'rgba(255,255,255,0.85)', fontWeight: isCurrent ? 600 : 500, fontSize: typography.label.size }}
                 >
                   <div>{role.label}{role.isPro && isFreePlan ? ' (Pro)' : ''}</div>
-                  <div style={{ fontSize: 10, color: S.textDim, marginTop: 2 }}>{role.description}</div>
+                  <div style={{ fontSize: typography.caption.size, color: textDim, marginTop: 3 }}>{role.description}</div>
                 </button>
               )
             })}
@@ -416,24 +393,24 @@ function MemberRow({ member, isFreePlan = false }: { member: MemberWithProfile; 
       {/* HR status */}
       <div className="flex justify-end">
         {hrStatus === 'active' && (
-          <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: colors.ok }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: colors.ok, display: 'inline-block' }} />
+          <span className="flex items-center gap-1.5" style={{ color: colors.ok, fontSize: typography.label.size, fontWeight: 600 }}>
+            <span style={{ width: 7, height: 7, borderRadius: 2, background: colors.ok, display: 'inline-block' }} />
             Linked
           </span>
         )}
         {hrStatus === 'archived' && (
-          <span className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: S.textDim }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'inline-block' }} />
+          <span className="flex items-center gap-1.5" style={{ color: textDim, fontSize: typography.label.size, fontWeight: 600 }}>
+            <span style={{ width: 7, height: 7, borderRadius: 2, background: 'rgba(255,255,255,0.2)', display: 'inline-block' }} />
             Archived
           </span>
         )}
         {hrStatus === null && (
           <a
             href={`/people/new?user_id=${member.user_id}`}
-            className="text-xs font-semibold transition-opacity hover:opacity-80"
-            style={{ color: 'rgba(155,143,247,0.8)' }}
+            className="transition-opacity hover:opacity-80"
+            style={{ color: 'rgba(155,143,247,0.8)', fontSize: typography.label.size, fontWeight: 600 }}
           >
-            Add →
+            Add &rarr;
           </a>
         )}
       </div>
@@ -460,8 +437,8 @@ function PendingInvitationsSection() {
         <SectionTitle id="pending">Pending invitations</SectionTitle>
         <button
           onClick={() => refetch()}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:bg-white/5"
-          style={{ color: S.textMuted }}
+          className="px-3 py-1.5 transition-all hover:bg-white/5"
+          style={{ color: textSec, borderRadius: radius.lg, fontSize: typography.label.size, fontWeight: 600 }}
         >
           Refresh
         </button>
@@ -470,20 +447,20 @@ function PendingInvitationsSection() {
       {isLoading ? (
         <div className="flex flex-col gap-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-12 rounded-lg animate-pulse" style={{ background: 'rgba(255,255,255,0.04)' }} />
+            <div key={i} className="h-14 animate-pulse" style={{ background: cardBg, borderRadius: radius.lg }} />
           ))}
         </div>
       ) : !invitations?.length ? (
-        <p style={{ fontSize: 14, color: S.textDim }}>No pending invitations.</p>
+        <p style={{ fontSize: typography.body.size, color: textDim }}>No pending invitations.</p>
       ) : (
         <div className="flex flex-col gap-1">
           {/* Table header */}
-          <div className="grid grid-cols-[1fr_80px_auto] gap-4 px-4 py-2">
-            <span style={{ fontSize: 11, fontWeight: 600, color: S.textDim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Email</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: S.textDim, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Role</span>
-            <span style={{ fontSize: 11, fontWeight: 600, color: S.textDim, textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</span>
+          <div className="grid grid-cols-[1fr_80px_auto] gap-4 px-4 py-2.5">
+            <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking }}>Email</span>
+            <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking }}>Role</span>
+            <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking, textAlign: 'right' }}>Actions</span>
           </div>
-          <div style={{ height: 1, background: S.divider }} />
+          <div style={{ height: 1, background: border }} />
           {invitations.map((inv: PendingInvitation) => (
             <InvitationRow
               key={inv.id}
@@ -516,15 +493,15 @@ function InvitationRow({
   const isExpired = new Date(invitation.expires_at) < new Date()
 
   return (
-    <div className="grid grid-cols-[1fr_80px_auto] gap-4 items-center px-4 py-3 rounded-lg transition-colors hover:bg-white/[0.03]" data-testid={`members-invitation-row-${invitation.id}`}>
+    <div className="grid grid-cols-[1fr_80px_auto] gap-4 items-center px-4 py-3.5 transition-colors hover:bg-white/[0.03]" style={{ borderRadius: radius.lg }} data-testid={`members-invitation-row-${invitation.id}`}>
       {/* Email + expiry */}
       <div className="min-w-0">
-        <p style={{ fontSize: 14, fontWeight: 600, color: S.text }} className="truncate">{invitation.email}</p>
-        <div className="flex items-center gap-2 mt-0.5">
+        <p style={{ fontSize: typography.body.size, fontWeight: 600, color: text }} className="truncate">{invitation.email}</p>
+        <div className="flex items-center gap-2 mt-1">
           {isExpired ? (
-            <span style={{ fontSize: 12, color: C.err, fontWeight: 500 }}>Expired</span>
+            <span style={{ fontSize: typography.label.size, color: C.err, fontWeight: 500 }}>Expired</span>
           ) : (
-            <span style={{ fontSize: 12, color: S.textDim }}>
+            <span style={{ fontSize: typography.label.size, color: textDim }}>
               Expires {new Date(invitation.expires_at).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
             </span>
           )}
@@ -533,8 +510,8 @@ function InvitationRow({
 
       {/* Role */}
       <span
-        className="text-xs font-medium px-2 py-0.5 rounded w-fit"
-        style={{ background: 'rgba(155,143,247,0.15)', color: '#9B8FF7' }}
+        className="px-2.5 py-1 w-fit"
+        style={{ background: 'rgba(155,143,247,0.15)', color: '#9B8FF7', borderRadius: radius.md, fontSize: typography.label.size, fontWeight: 600 }}
       >
         {invitation.role}
       </span>
@@ -544,8 +521,8 @@ function InvitationRow({
         {!isExpired && (
           <button
             onClick={() => onCopyLink(invitation.invite_url, invitation.id)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:bg-white/5"
-            style={{ color: S.textMuted }}
+            className="px-3 py-1.5 transition-all hover:bg-white/5"
+            style={{ color: textSec, borderRadius: radius.lg, fontSize: typography.label.size, fontWeight: 600 }}
           >
             {copiedId === invitation.id ? 'Copied!' : 'Copy link'}
           </button>
@@ -554,8 +531,8 @@ function InvitationRow({
           onClick={() => onRevoke(invitation.id)}
           disabled={revoking}
           data-testid={`members-revoke-btn-${invitation.id}`}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all disabled:opacity-50 hover:bg-white/5"
-          style={{ color: C.err }}
+          className="px-3 py-1.5 transition-all disabled:opacity-50 hover:bg-white/5"
+          style={{ color: C.err, borderRadius: radius.lg, fontSize: typography.label.size, fontWeight: 600 }}
         >
           Revoke
         </button>
@@ -573,43 +550,42 @@ function MembersPage() {
   const isFreePlan = org?.plan === 'free'
 
   return (
-    <div className="min-h-screen flex flex-col" data-testid="members-page" style={{ background: moduleBackgrounds.settings }}>
-      {/* Header */}
-      <div className="px-11 pt-10 pb-2">
-        <WorkivedLogo size={32} showWordmark variant="light" />
-      </div>
+    <div className="min-h-screen relative" data-testid="members-page" style={{ background: pageBg, fontFamily: typography.fontFamily }}>
+      {/* Radial glow */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(99,87,232,0.14) 0%, transparent 60%)' }} />
 
-      <main className="flex-1 px-11 py-7 pb-32">
-        {/* Title */}
-        <div className="mb-8">
-          <h1
-            style={{
-              fontSize: typography.h1.size,
-              fontWeight: typography.h1.weight,
-              letterSpacing: typography.h1.tracking,
-              color: colors.ink0,
-            }}
-          >
-            Workspace Members
-          </h1>
-          <p style={{ fontSize: 14, color: S.textMuted, marginTop: 4, lineHeight: 1.5 }}>
-            Manage who can access {org?.name ?? 'your workspace'}.
-          </p>
-        </div>
+      {/* Accent line at top */}
+      <div className="h-[2px]" style={{ background: `linear-gradient(90deg, ${C.accent}, transparent 70%)` }} />
 
-        {/* Two-column layout: sidebar + content */}
-        <div className="flex gap-12">
-          <SideNav />
-
-          <div className="flex-1 flex flex-col gap-8">
-            <InviteSection isFreePlan={isFreePlan} />
-            <Divider />
-            <TeamMembersSection members={members} isLoading={loadingMembers} isFreePlan={isFreePlan} />
-            <Divider />
-            <PendingInvitationsSection />
+      <div className="w-full px-6 md:px-11 pt-12 pb-24 relative z-10">
+        {/* Header */}
+        {org && (
+          <div className="flex flex-col items-center gap-3 mb-10">
+            <div className="w-10 h-10 flex items-center justify-center" style={{ background: C.accent, color: '#FFFFFF', borderRadius: radius.lg, fontSize: typography.body.size, fontWeight: 800 }}>
+              {org.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="text-center">
+              <p style={{ color: text, fontSize: typography.h3.size, fontWeight: typography.h3.weight, letterSpacing: typography.h3.tracking }}>{org.name}</p>
+              <p style={{ color: textDim, fontSize: typography.label.size }}>Workspace members</p>
+            </div>
           </div>
+        )}
+
+        {/* All sections stacked */}
+        <div className="flex flex-col gap-10">
+          <section className="p-7" style={{ background: surfaceBg, border: `1px solid ${border}`, borderRadius: radius.xl }}>
+            <InviteSection isFreePlan={isFreePlan} />
+          </section>
+
+          <section className="p-7" style={{ background: surfaceBg, border: `1px solid ${border}`, borderRadius: radius.xl }}>
+            <TeamMembersSection members={members} isLoading={loadingMembers} isFreePlan={isFreePlan} />
+          </section>
+
+          <section className="p-7" style={{ background: surfaceBg, border: `1px solid ${border}`, borderRadius: radius.xl }}>
+            <PendingInvitationsSection />
+          </section>
         </div>
-      </main>
+      </div>
     </div>
   )
 }
