@@ -241,10 +241,16 @@ export function useTodayAttendance(weekStart: string, today: string) {
         // Ensure required fields are present
         if (!emp.employee_id || !emp.employee_name || !dayData.status) return null
         
+        // Skip weekend/holiday/future - they shouldn't appear in Team Pulse
+        // These are non-working days, not absences
+        if (dayData.status === 'weekend' || dayData.status === 'holiday' || dayData.status === 'future') {
+          return null
+        }
+        
         // Map week status to daily status format
-        // Week: "on-time" | "late" | "absent" | "weekend" | "future" | "on_leave" | "overtime"
-        // Daily: "present" | "late" | "absent" | "on_leave"
-        let mappedStatus: 'present' | 'late' | 'absent' | 'on_leave'
+        // Week: "on-time" | "late" | "absent" | "on_leave" | "overtime"
+        // Daily: "present" | "late" | "absent" | "on_leave" | "overtime"
+        let mappedStatus: 'present' | 'late' | 'absent' | 'on_leave' | 'overtime'
         if (dayData.status === 'on-time') {
           mappedStatus = 'present'
         } else if (dayData.status === 'late') {
@@ -252,9 +258,9 @@ export function useTodayAttendance(weekStart: string, today: string) {
         } else if (dayData.status === 'on_leave') {
           mappedStatus = 'on_leave'
         } else if (dayData.status === 'overtime') {
-          mappedStatus = 'present' // Overtime shows as present in overview
+          mappedStatus = 'overtime'
         } else {
-          // "absent", "weekend", "future" → all map to "absent"
+          // Only "absent" should reach here now
           mappedStatus = 'absent'
         }
         
@@ -265,6 +271,7 @@ export function useTodayAttendance(weekStart: string, today: string) {
           clock_in_at: dayData.clock_in_at ?? null,
           clock_out_at: dayData.clock_out_at ?? null,
           is_late: dayData.is_late ?? false,
+          is_overtime: dayData.is_overtime ?? false,
           note: dayData.note ?? null,
         }
       })

@@ -120,7 +120,7 @@ function RegisterPage() {
           >
             {invite_token
               ? "Create an account to accept your invitation and get started with your team."
-              : "Free for up to 25 employees. Set up your workspace in under 2 minutes."}
+              : "Free for up to 15 employees. Set up your workspace in under 2 minutes."}
           </p>
         </div>
 

@@ -163,11 +163,25 @@ function OverviewPage() {
     return holidays.filter((h) => h.date > todayStr).slice(0, 3)
   }, [holidays, todayStr])
 
+  // Check if today is a holiday
+  const todayHoliday = useMemo(() => {
+    if (!holidays) return null
+    return holidays.find((h) => h.date === todayStr)
+  }, [holidays, todayStr])
+
+  // Check if today is a weekend
+  const isWeekend = useMemo(() => {
+    const today = new Date()
+    const dayOfWeek = today.getDay()
+    return dayOfWeek === 0 || dayOfWeek === 6 // 0 = Sunday, 6 = Saturday
+  }, [])
+
   const totalEmployees = employees?.data?.length ?? 0
   const present = daily?.filter((e) => e.status === 'present').length ?? 0
   const late = daily?.filter((e) => e.status === 'late').length ?? 0
   const absent = daily?.filter((e) => e.status === 'absent').length ?? 0
   const onLeaveFromAttendance = daily?.filter((e) => e.status === 'on_leave').length ?? 0
+  const overtime = daily?.filter((e) => e.status === 'overtime').length ?? 0
 
   // Use only real attendance data, no simulation
   const enrichedEntries = useMemo(() => {
@@ -767,9 +781,12 @@ function OverviewPage() {
               present={present}
               late={late}
               onLeaveCount={onLeaveCount}
+              overtime={overtime}
               trueAbsent={trueAbsent}
               totalEmployees={totalEmployees}
               onLeaveEntries={onLeaveEntries}
+              todayHoliday={todayHoliday}
+              isWeekend={isWeekend}
             />
           )}
         </div>
@@ -814,9 +831,10 @@ type TeamMember = {
   attendance: {
     employee_id: string
     employee_name: string
-    status: 'present' | 'late' | 'absent' | 'on_leave'
+    status: 'present' | 'late' | 'absent' | 'on_leave' | 'overtime'
     clock_in_at?: string
     clock_out_at?: string
+    is_overtime?: boolean
     note?: string
   } | null
 }
@@ -824,6 +842,7 @@ type TeamMember = {
 function getStatusCategory(m: TeamMember): string {
   const att = m.attendance
   if (m.isOnLeave || att?.status === 'on_leave') return 'On Leave'
+  if (att?.status === 'overtime') return 'Overtime'
   if (att?.status === 'late') return 'Late'
   if (att?.status === 'present') return 'On Time'
   if (att?.status === 'absent') return 'Absent'
@@ -831,22 +850,26 @@ function getStatusCategory(m: TeamMember): string {
   return 'Not Clocked In'
 }
 
-function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, totalEmployees, onLeaveEntries }: {
+function TeamPulseCard({ teamMembers, present, late, onLeaveCount, overtime, trueAbsent, totalEmployees, onLeaveEntries, todayHoliday, isWeekend }: {
   teamMembers: TeamMember[]
   present: number
   late: number
   onLeaveCount: number
+  overtime: number
   trueAbsent: number
   totalEmployees: number
   onLeaveEntries: { employee_id: string; policy_name: string }[]
+  todayHoliday: import('@/types/api').PublicHoliday | null | undefined
+  isWeekend: boolean
 }) {
   const t = useModuleTheme('overview')
   const [hovered, setHovered] = useState<string | null>(null)
-  const pending = Math.max(0, totalEmployees - present - late - trueAbsent - onLeaveCount)
+  const pending = Math.max(0, totalEmployees - present - late - trueAbsent - onLeaveCount - overtime)
 
   const segments = [
     { label: 'On Time', value: present, color: colors.ok },
     { label: 'Late', value: late, color: colors.warn },
+    { label: 'Overtime', value: overtime, color: '#3B82F6' },
     { label: 'On Leave', value: onLeaveCount, color: colors.accent },
     { label: 'Absent', value: trueAbsent, color: colors.err },
     { label: 'Pending', value: pending, color: colors.ink150, legendColor: t.textMuted },
@@ -875,6 +898,52 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
           View all
         </Link>
       </div>
+
+      {/* Holiday Badge */}
+      {todayHoliday && (
+        <div style={{ 
+          margin: '12px 24px 0 24px', 
+          padding: '10px 14px', 
+          borderRadius: 10,
+          background: colors.accentDim,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span style={{ fontSize: 16 }}>🎉</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: colors.accent, margin: 0, lineHeight: 1.4 }}>
+              Public Holiday
+            </p>
+            <p style={{ fontSize: 11, color: colors.accentText, margin: 0, lineHeight: 1.3 }}>
+              {todayHoliday.name}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Weekend Badge */}
+      {isWeekend && !todayHoliday && (
+        <div style={{ 
+          margin: '12px 24px 0 24px', 
+          padding: '10px 14px', 
+          borderRadius: 10,
+          background: colors.okDim,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+        }}>
+          <span style={{ fontSize: 16 }}>🏖️</span>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: colors.okText, margin: 0, lineHeight: 1.4 }}>
+              Weekend
+            </p>
+            <p style={{ fontSize: 11, color: colors.okText, margin: 0, lineHeight: 1.3, opacity: 0.7 }}>
+              Most team members are off today
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Chart + Legend row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '16px 24px 0 24px' }}>
@@ -925,7 +994,7 @@ function TeamPulseCard({ teamMembers, present, late, onLeaveCount, trueAbsent, t
             const seg = segments.find((s) => s.label === category)
             const statusColor = seg?.legendColor ?? seg?.color ?? colors.ink300
             const att = m.attendance
-            const isPresent = att?.status === 'present' || att?.status === 'late'
+            const isPresent = att?.status === 'present' || att?.status === 'late' || att?.status === 'overtime'
             const isMatch = !hovered || category === hovered
             const leaveEntry = m.isOnLeave ? onLeaveEntries.find((e) => e.employee_id === m.id) : null
 

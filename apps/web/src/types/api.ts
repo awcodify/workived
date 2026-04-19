@@ -338,10 +338,12 @@ export interface AttendanceRecord {
 export interface DailyEntry {
   employee_id: string
   employee_name: string
-  status: 'present' | 'late' | 'absent' | 'on_leave'
+  status: 'present' | 'late' | 'absent' | 'on_leave' | 'overtime'
   clock_in_at?: string
   clock_out_at?: string
   note?: string
+  is_late?: boolean
+  is_overtime?: boolean
   clock_in_latitude?: number
   clock_in_longitude?: number
   clock_in_photo_url?: string

@@ -421,7 +421,7 @@ function SetupOrgPage() {
             </form>
 
             <p className="text-center mt-6" style={{ fontSize: 13, color: colors.ink300 }}>
-              Free for up to 25 employees. No credit card required.
+              Free for up to 15 employees. No credit card required.
             </p>
           </div>
         </div>
