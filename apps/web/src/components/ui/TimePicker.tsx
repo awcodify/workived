@@ -1,4 +1,5 @@
 import React, { forwardRef, useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { Clock } from 'lucide-react'
 import { colors } from '@/design/tokens'
 
@@ -61,6 +62,7 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
     const displayValue = isControlled ? String(value) : internalValue
 
     const [hh, mi] = useMemo(() => splitTime(displayValue), [displayValue])
+    const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number; direction: 'down' | 'up' } | null>(null)
 
     React.useImperativeHandle(ref, () => hiddenRef.current!)
 
@@ -162,6 +164,21 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
       return () => document.removeEventListener('keydown', handler)
     }, [open])
 
+    // Calculate dropdown position for portal
+    useEffect(() => {
+      if (!open || !containerRef.current) { setDropdownPos(null); return }
+      const rect = containerRef.current.getBoundingClientRect()
+      const dropdownHeight = 220
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const fitsBelow = spaceBelow >= dropdownHeight
+      if (fitsBelow || spaceBelow >= spaceAbove) {
+        setDropdownPos({ top: rect.bottom + 4, left: rect.left, width: rect.width, direction: 'down' })
+      } else {
+        setDropdownPos({ top: rect.top - 4, left: rect.left, width: rect.width, direction: 'up' })
+      }
+    }, [open])
+
     const inputId = id || `time-picker-${Math.random().toString(36).substr(2, 9)}`
 
     return (
@@ -185,7 +202,7 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
           data-testid={props['data-testid']}
           name={props.name}
         />
-        <div className={`relative ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+        <div className={`relative ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`} style={{ color: style?.color }}>
           {/* Segmented input container */}
           <div
             data-testid={props['data-testid'] ? `${props['data-testid']}-segments` : undefined}
@@ -227,7 +244,7 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
           </div>
           <div
             className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-            style={{ opacity: 0.6 }}
+            style={{ opacity: 0.6, color: 'inherit' }}
             onClick={(e) => {
               e.stopPropagation()
               if (!disabled) setOpen(o => !o)
@@ -236,12 +253,18 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
             <Clock size={16} />
           </div>
 
-          {/* Time dropdown — dual columns */}
-          {open && !disabled && (
+          {/* Time dropdown — dual columns (portal) */}
+          {open && !disabled && dropdownPos && createPortal(
             <div
               data-testid="time-picker-dropdown"
-              className="absolute z-50 mt-1 left-0 right-0 flex"
+              className="flex"
               style={{
+                position: 'fixed',
+                top: dropdownPos.direction === 'down' ? dropdownPos.top : undefined,
+                bottom: dropdownPos.direction === 'up' ? (window.innerHeight - dropdownPos.top) : undefined,
+                left: dropdownPos.left,
+                width: dropdownPos.width,
+                zIndex: 9999,
                 background: colors.ink0,
                 border: `1px solid ${colors.ink150}`,
                 borderRadius: 12,
@@ -249,6 +272,7 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
                 height: 220,
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
               }}
+              onMouseDown={(e) => e.stopPropagation()}
             >
               {/* Hour column */}
               <div
@@ -320,7 +344,8 @@ export const TimePicker = forwardRef<HTMLInputElement, TimePickerProps>(
                   )
                 })}
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
         {error && errorMessage && (

@@ -558,85 +558,89 @@ function AuditLogsPage() {
 
         {/* Filter panel (collapsible) */}
         {showFilters && (
-          <div className="mb-4 p-4 flex flex-wrap gap-3 items-end" style={{ background: surfaceBg, border: `1px solid ${border}`, borderRadius: radius.xl }}>
-            <div className="flex-1 min-w-[140px]">
-              <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>Resource</label>
-              <select
-                value={filters.resource_type || ''}
-                onChange={(e) => handleFilterChange('resource_type', e.target.value)}
-                className="w-full px-3 py-2 appearance-none focus:outline-none"
-                style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
-              >
-                <option value="">All</option>
-                <option value="employee">Employee</option>
-                <option value="leave">Leave</option>
-                <option value="claim">Claim</option>
-                <option value="task">Task</option>
-                <option value="department">Department</option>
-                <option value="organisation">Organisation</option>
-              </select>
+          <div className="mb-4 p-4 flex flex-col gap-3" style={{ background: surfaceBg, border: `1px solid ${border}`, borderRadius: radius.xl }}>
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="flex-1 min-w-[140px]">
+                <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>Resource</label>
+                <select
+                  value={filters.resource_type || ''}
+                  onChange={(e) => handleFilterChange('resource_type', e.target.value)}
+                  className="w-full px-3 py-2 appearance-none focus:outline-none"
+                  style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
+                >
+                  <option value="">All</option>
+                  <option value="employee">Employee</option>
+                  <option value="leave">Leave</option>
+                  <option value="claim">Claim</option>
+                  <option value="task">Task</option>
+                  <option value="department">Department</option>
+                  <option value="organisation">Organisation</option>
+                </select>
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>Action</label>
+                <select
+                  value={filters.action || ''}
+                  onChange={(e) => handleFilterChange('action', e.target.value)}
+                  className="w-full px-3 py-2 appearance-none focus:outline-none"
+                  style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
+                >
+                  <option value="">All</option>
+                  <option value="created">Created</option>
+                  <option value="updated">Updated</option>
+                  <option value="deleted">Deleted</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="completed">Completed</option>
+                  <option value="deactivated">Deactivated</option>
+                </select>
+              </div>
+              <div className="flex-1 min-w-[140px]">
+                <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>Who</label>
+                <select
+                  value={filters.actor_name || ''}
+                  onChange={(e) => handleFilterChange('actor_name', e.target.value)}
+                  className="w-full px-3 py-2 appearance-none focus:outline-none"
+                  style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
+                >
+                  <option value="">Anyone</option>
+                  {uniqueActors.map((actor) => (
+                    <option key={actor} value={actor}>{actor}</option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="flex-1 min-w-[140px]">
-              <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>Action</label>
-              <select
-                value={filters.action || ''}
-                onChange={(e) => handleFilterChange('action', e.target.value)}
-                className="w-full px-3 py-2 appearance-none focus:outline-none"
-                style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
-              >
-                <option value="">All</option>
-                <option value="created">Created</option>
-                <option value="updated">Updated</option>
-                <option value="deleted">Deleted</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="completed">Completed</option>
-                <option value="deactivated">Deactivated</option>
-              </select>
+            <div className="flex flex-wrap gap-3 items-end">
+              <div className="flex-1 min-w-[130px]">
+                <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>From</label>
+                <DatePicker
+                  value={filters.start_date || ''}
+                  onChange={(e) => handleFilterChange('start_date', e.target.value)}
+                  className="w-full px-3 py-2 focus:outline-none"
+                  style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
+                />
+              </div>
+              <div className="flex-1 min-w-[130px]">
+                <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>To</label>
+                <DatePicker
+                  value={filters.end_date || ''}
+                  onChange={(e) => handleFilterChange('end_date', e.target.value)}
+                  className="w-full px-3 py-2 focus:outline-none"
+                  style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
+                />
+              </div>
+              {hasActiveFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="flex items-center gap-1.5 px-3 py-2 transition-colors hover:brightness-125"
+                  style={{ color: textSec, fontSize: typography.label.size }}
+                >
+                  <X size={14} />
+                  Clear
+                </button>
+              )}
             </div>
-            <div className="flex-1 min-w-[140px]">
-              <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>Who</label>
-              <select
-                value={filters.actor_name || ''}
-                onChange={(e) => handleFilterChange('actor_name', e.target.value)}
-                className="w-full px-3 py-2 appearance-none focus:outline-none"
-                style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
-              >
-                <option value="">Anyone</option>
-                {uniqueActors.map((actor) => (
-                  <option key={actor} value={actor}>{actor}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex-1 min-w-[130px]">
-              <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>From</label>
-              <DatePicker
-                value={filters.start_date || ''}
-                onChange={(e) => handleFilterChange('start_date', e.target.value)}
-                className="w-full px-3 py-2 focus:outline-none"
-                style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
-              />
-            </div>
-            <div className="flex-1 min-w-[130px]">
-              <label className="block mb-1.5" style={{ color: textDim, fontSize: typography.caption.size, fontWeight: 600 }}>To</label>
-              <DatePicker
-                value={filters.end_date || ''}
-                onChange={(e) => handleFilterChange('end_date', e.target.value)}
-                className="w-full px-3 py-2 focus:outline-none"
-                style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, borderRadius: radius.md, fontSize: typography.label.size }}
-              />
-            </div>
-            {hasActiveFilters && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center gap-1.5 px-3 py-2 transition-colors hover:brightness-125"
-                style={{ color: textSec, fontSize: typography.label.size }}
-              >
-                <X size={14} />
-                Clear
-              </button>
-            )}
           </div>
         )}
 

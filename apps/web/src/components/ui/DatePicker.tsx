@@ -1,4 +1,5 @@
 import React, { forwardRef, useRef, useState, useEffect, useCallback, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { colors } from '@/design/tokens'
 
@@ -32,15 +33,16 @@ function formatDate(y: number, m: number, d: number) {
 function parseDate(str: string) {
   const m = str.match(/^(\d{4})-(\d{2})-(\d{2})$/)
   if (!m) return null
-  const y = parseInt(m[1], 10)
-  const mo = parseInt(m[2], 10) - 1
-  const d = parseInt(m[3], 10)
+  const y = parseInt(m[1]!, 10)
+  const mo = parseInt(m[2]!, 10) - 1
+  const d = parseInt(m[3]!, 10)
   if (mo < 0 || mo > 11 || d < 1 || d > getDaysInMonth(y, mo)) return null
   return { year: y, month: mo, day: d }
 }
 
 function splitDate(val: string): [string, string, string] {
-  const parts = val.split('-')
+  const dateOnly = val.split('T')[0]!
+  const parts = dateOnly.split('-')
   return [parts[0] || '', parts[1] || '', parts[2] || '']
 }
 
@@ -85,6 +87,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     const displayValue = isControlled ? String(value) : internalValue
 
     const [yy, mm, dd] = useMemo(() => splitDate(displayValue), [displayValue])
+    const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; direction: 'down' | 'up' } | null>(null)
 
     React.useImperativeHandle(ref, () => hiddenRef.current!)
 
@@ -203,6 +206,21 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
       return () => document.removeEventListener('keydown', handler)
     }, [open])
 
+    // Calculate dropdown position for portal
+    useEffect(() => {
+      if (!open || !containerRef.current) { setDropdownPos(null); return }
+      const rect = containerRef.current.getBoundingClientRect()
+      const calendarHeight = 360 // approximate height of calendar dropdown
+      const spaceBelow = window.innerHeight - rect.bottom
+      const spaceAbove = rect.top
+      const fitsBelow = spaceBelow >= calendarHeight
+      if (fitsBelow || spaceBelow >= spaceAbove) {
+        setDropdownPos({ top: rect.bottom + 4, left: rect.left, direction: 'down' })
+      } else {
+        setDropdownPos({ top: rect.top - 4, left: rect.left, direction: 'up' })
+      }
+    }, [open])
+
     const inputId = id || `date-picker-${Math.random().toString(36).substr(2, 9)}`
 
     const daysInMonth = getDaysInMonth(viewYear, viewMonth)
@@ -238,7 +256,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           data-testid={props['data-testid']}
           name={props.name}
         />
-        <div className={`relative ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+        <div className={`relative ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`} style={{ color: style?.color }}>
           {/* Segmented input container */}
           <div
             data-testid={props['data-testid'] ? `${props['data-testid']}-segments` : undefined}
@@ -296,7 +314,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
           </div>
           <div
             className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer"
-            style={{ opacity: 0.6 }}
+            style={{ opacity: 0.6, color: 'inherit' }}
             onClick={(e) => {
               e.stopPropagation()
               if (!disabled) setOpen(o => !o)
@@ -305,12 +323,16 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
             <Calendar size={16} />
           </div>
 
-          {/* Calendar dropdown */}
-          {open && !disabled && (
+          {/* Calendar dropdown (portal) */}
+          {open && !disabled && dropdownPos && createPortal(
             <div
               data-testid="date-picker-calendar"
-              className="absolute z-50 mt-1 left-0"
               style={{
+                position: 'fixed',
+                top: dropdownPos.direction === 'down' ? dropdownPos.top : undefined,
+                bottom: dropdownPos.direction === 'up' ? (window.innerHeight - dropdownPos.top) : undefined,
+                left: dropdownPos.left,
+                zIndex: 9999,
                 background: colors.ink0,
                 border: `1px solid ${colors.ink150}`,
                 borderRadius: 12,
@@ -319,6 +341,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                 padding: 12,
                 fontFamily: "'Plus Jakarta Sans', sans-serif",
               }}
+              onMouseDown={(e) => e.stopPropagation()}
             >
               {/* Header */}
               <div className="flex items-center justify-between mb-2">
@@ -432,7 +455,8 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
                   Today
                 </button>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
         {error && errorMessage && (
