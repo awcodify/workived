@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
-import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, AlertCircle, HelpCircle } from 'lucide-react'
+import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, HelpCircle } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useThemeStore } from '@/lib/stores/theme'
 import { useTourStore } from '@/lib/stores/tour'
@@ -317,12 +317,6 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
                     />
                   ) : undefined
                 }
-              />
-              <MenuItem
-                icon={AlertCircle}
-                label="Known Issues"
-                testId="settings-menu-known-issues-link"
-                onClick={() => { setIsOpen(false); navigate({ to: '/known-issues' }) }}
               />
               <MenuItem
                 icon={HelpCircle}
