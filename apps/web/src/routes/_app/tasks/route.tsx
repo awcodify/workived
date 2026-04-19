@@ -654,9 +654,20 @@ function TasksPage() {
           {/* Avatar-based Assignee Selector */}
           {(() => {
             const maxVisibleAvatars = 5
-            const visibleEmployees = employees.slice(0, maxVisibleAvatars)
-            const remainingCount = Math.max(0, employees.length - maxVisibleAvatars)
-            const remainingEmployees = employees.slice(maxVisibleAvatars)
+            // If selected assignee is outside visible range, move them into it
+            const orderedEmployees = (() => {
+              if (!selectedAssignee) return employees
+              const idx = employees.findIndex(e => e.id === selectedAssignee)
+              if (idx < maxVisibleAvatars || idx === -1) return employees
+              // Move selected employee to end of visible list
+              const copy = [...employees]
+              const selected = copy.splice(idx, 1)[0]!
+              copy.splice(maxVisibleAvatars - 1, 0, selected)
+              return copy
+            })()
+            const visibleEmployees = orderedEmployees.slice(0, maxVisibleAvatars)
+            const remainingCount = Math.max(0, orderedEmployees.length - maxVisibleAvatars)
+            const remainingEmployees = orderedEmployees.slice(maxVisibleAvatars)
             
             // Calculate workload stats for remaining employees
             const remainingStats = remainingEmployees.reduce((acc, emp) => {
@@ -734,7 +745,9 @@ function TasksPage() {
                     
                     {/* Tooltip with employee list and workload */}
                     <div
-                      className="absolute right-0 top-full mt-2 z-[100] min-w-[240px] max-w-[280px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none group-hover:pointer-events-auto"
+                      className="absolute right-0 top-full pt-2 z-[100] min-w-[240px] max-w-[280px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all pointer-events-none group-hover:pointer-events-auto"
+                    >
+                    <div
                       style={{
                         background: 'white',
                         border: '1px solid #DFE1E6',
@@ -817,6 +830,7 @@ function TasksPage() {
                         })}
                       </div>
                     </div>
+                    </div>
                   </div>
                 )}
 
@@ -867,19 +881,6 @@ function TasksPage() {
               Fields
             </button>
           )}
-
-          <button
-            onClick={() => updateSearchParam('showCompleted', !showCompleted)}
-            className="flex items-center gap-2 px-3 py-2 rounded-md text-xs font-medium transition-all"
-            style={{
-              background: !showCompleted ? '#0052CC' : 'white',
-              color: !showCompleted ? 'white' : '#64748B',
-              border: '1px solid #DFE1E6',
-              fontFamily: typography.fontFamily,
-            }}
-          >
-            {showCompleted ? '✓ Done' : 'Hide Done'}
-          </button>
 
           </> /* end board-only filters */}
 
