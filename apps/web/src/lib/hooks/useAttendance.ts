@@ -394,3 +394,17 @@ export function useCancelCorrection() {
     },
   })
 }
+
+// ── Notification Hooks ────────────────────────────────────────────────────────
+// Reuses the same query key as useCorrections({ status: 'pending' }) so the
+// overview page and the corrections panel share cache — no extra API call when
+// both are mounted.
+export function useCorrectionNotificationCount() {
+  return useQuery({
+    queryKey: correctionKeys.list('pending', false),
+    queryFn: () => attendanceApi.listCorrections('pending', false).then((r) => r.data.data ?? []),
+    staleTime: 60 * 1000,
+    refetchInterval: 60 * 1000,
+    select: (data) => data?.length ?? 0,
+  })
+}

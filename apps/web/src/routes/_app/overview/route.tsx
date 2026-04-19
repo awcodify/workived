@@ -3,16 +3,17 @@ import { useState, useMemo } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
-import { useTodayAttendance } from '@/lib/hooks/useAttendance'
+import { useTodayAttendance, useCorrectionNotificationCount } from '@/lib/hooks/useAttendance'
 import { useMyBalances, useCalendar, useHolidays, useLeaveNotificationCount } from '@/lib/hooks/useLeave'
 import { useMyClaimBalances, useClaimNotificationCount } from '@/lib/hooks/useClaims'
 import { useCanManageLeave, useCanManageClaims } from '@/lib/hooks/useRole'
+import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
 import { todayISO, getMondayOfWeek } from '@/lib/utils/date'
 import { formatMoney } from '@/lib/utils/money'
 import { useModuleTheme, useModuleBackground, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
-import { Users, CalendarDays, Receipt, AlertCircle, ChevronRight } from 'lucide-react'
+import { Users, CalendarDays, Receipt, AlertCircle, ChevronRight, Clock } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { BalanceCardSkeleton, TeamMemberSkeleton, ListSkeleton } from '@/components/workived/shared/Skeleton'
@@ -136,11 +137,15 @@ function OverviewPage() {
   // Notification counts for pending approvals
   const canManageLeave = useCanManageLeave()
   const canManageClaims = useCanManageClaims()
+  const attendanceRole = useAttendanceRole()
+  const canApproveCorrections = attendanceRole.canViewTeam || attendanceRole.canViewAll
   const { data: leaveNotifCount } = useLeaveNotificationCount()
   const { data: claimNotifCount } = useClaimNotificationCount()
+  const { data: correctionNotifCount } = useCorrectionNotificationCount()
   const pendingLeave = canManageLeave ? (leaveNotifCount ?? 0) : 0
   const pendingClaims = canManageClaims ? (claimNotifCount ?? 0) : 0
-  const totalPending = pendingLeave + pendingClaims
+  const pendingCorrections = canApproveCorrections ? (correctionNotifCount ?? 0) : 0
+  const totalPending = pendingLeave + pendingClaims + pendingCorrections
 
   // Who's on leave today
   const todayStr = useMemo(() => {
@@ -402,6 +407,29 @@ function OverviewPage() {
                       <Receipt size={16} style={{ color: colors.ok }} />
                       <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
                         {pendingClaims} claim{pendingClaims > 1 ? 's' : ''} to review
+                      </span>
+                    </div>
+                    <ChevronRight size={16} style={{ color: t.textMuted }} />
+                  </Link>
+                )}
+                {pendingCorrections > 0 && (
+                  <Link
+                    to="/attendance"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '12px 16px', borderRadius: 12,
+                      background: t.surfaceHover,
+                      textDecoration: 'none',
+                      transition: 'background 0.15s',
+                      border: `1px solid ${t.border}`,
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = t.surface }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = t.surfaceHover }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <Clock size={16} style={{ color: colors.warn }} />
+                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
+                        {pendingCorrections} attendance correction{pendingCorrections > 1 ? 's' : ''}
                       </span>
                     </div>
                     <ChevronRight size={16} style={{ color: t.textMuted }} />
