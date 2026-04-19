@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import React, { useState } from 'react'
-import { Plus, Pin, PinOff, Send, Trash2, Pencil, Megaphone, X, ChevronRight } from 'lucide-react'
+import { Plus, Pin, PinOff, Send, Trash2, Pencil, Megaphone, X, ChevronRight, ChevronDown } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { AnnouncementModal } from '@/components/workived/announcements/AnnouncementModal'
@@ -22,14 +22,12 @@ export const Route = createFileRoute('/_app/announcements')({
   component: AnnouncementsPage,
 })
 
-type ViewTab = 'feed' | 'manage'
-
 export function AnnouncementsPage() {
   const isAdmin = useCanEditOrgSettings()
-  const [tab, setTab] = useState<ViewTab>('feed')
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Announcement | undefined>()
   const [viewing, setViewing] = useState<Announcement | undefined>()
+  const [showDrafts, setShowDrafts] = useState(false)
 
   const { data: feed = [], isLoading: feedLoading } = useAnnouncements()
   const { data: all = [], isLoading: adminLoading } = useAnnouncementsAdmin()
@@ -38,6 +36,9 @@ export function AnnouncementsPage() {
   const publishMut = usePublishAnnouncement()
   const pinMut = usePinAnnouncement()
   const markReadMut = useMarkAnnouncementRead()
+
+  // For admins, get draft announcements
+  const drafts = isAdmin ? all.filter((a) => !a.published_at) : []
 
   function openAnnouncement(ann: Announcement) {
     if (!ann.is_read) markReadMut.mutate(ann.id)
@@ -76,31 +77,9 @@ export function AnnouncementsPage() {
           </div>
         </div>
 
-        {/* Tabs + New button on same row */}
-        <div className="flex items-center justify-between mt-5">
-          {isAdmin ? (
-            <div className="flex gap-2">
-              <button
-                data-testid="announcements-tab-feed"
-                onClick={() => setTab('feed')}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                style={tab === 'feed' ? { background: t.accent, color: t.accentText } : { background: 'rgba(0,0,0,0.06)', color: t.textMuted }}
-              >
-                Employee view
-              </button>
-              <button
-                data-testid="announcements-tab-manage"
-                onClick={() => setTab('manage')}
-                className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
-                style={tab === 'manage' ? { background: t.accent, color: t.accentText } : { background: 'rgba(0,0,0,0.06)', color: t.textMuted }}
-              >
-                Manage
-              </button>
-            </div>
-          ) : (
-            <div />
-          )}
-          {isAdmin && (
+        {/* New button */}
+        {isAdmin && (
+          <div className="flex justify-end mt-5">
             <button
               data-testid="announcements-new-btn"
               onClick={() => { setEditing(undefined); setModalOpen(true) }}
@@ -110,66 +89,72 @@ export function AnnouncementsPage() {
               <Plus className="w-3.5 h-3.5" />
               New
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Content — full width */}
+      {/* Content */}
       <div className="space-y-3">
-        {tab === 'feed' ? (
-          <>
-            {feedLoading && (
-              <div data-testid="announcements-skeleton" className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-28 rounded-2xl bg-black/5 animate-pulse" />
+        {/* Drafts section (admin only) */}
+        {isAdmin && drafts.length > 0 && (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowDrafts(!showDrafts)}
+              className="flex items-center gap-2 mb-3 text-sm font-semibold transition-colors"
+              style={{ color: t.textMuted }}
+            >
+              <ChevronDown
+                className={`w-4 h-4 transition-transform ${showDrafts ? '' : '-rotate-90'}`}
+              />
+              Drafts ({drafts.length})
+            </button>
+            {showDrafts && (
+              <div className="space-y-3">
+                {drafts.map((ann) => (
+                  <AnnouncementCard
+                    key={ann.id}
+                    ann={ann}
+                    isAdmin={isAdmin}
+                    onView={() => openAnnouncement(ann)}
+                    onEdit={() => { setEditing(ann); setModalOpen(true) }}
+                    onDelete={() => deleteMut.mutate(ann.id)}
+                    onPublish={() => publishMut.mutate(ann.id)}
+                    onPin={() => pinMut.mutate({ id: ann.id, pin: !ann.is_pinned })}
+                  />
                 ))}
               </div>
             )}
-
-            {!feedLoading && feed.length === 0 && (
-              <div data-testid="announcements-empty" className="text-center py-24" style={{ color: t.textMuted }}>
-                <Megaphone className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                <p className="text-sm font-medium">No announcements yet</p>
-              </div>
-            )}
-
-            {feed.map((ann) => (
-              <AnnouncementCard
-                key={ann.id}
-                ann={ann}
-                onClick={() => openAnnouncement(ann)}
-              />
-            ))}
-          </>
-        ) : (
-          <>
-            {adminLoading && (
-              <div data-testid="announcements-admin-skeleton" className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="h-28 rounded-2xl bg-black/5 animate-pulse" />
-                ))}
-              </div>
-            )}
-
-            {!adminLoading && all.length === 0 && (
-              <div data-testid="announcements-admin-empty" className="text-center py-24" style={{ color: t.textMuted }}>
-                <Megaphone className="w-10 h-10 mx-auto mb-3 opacity-20" />
-                <p className="text-sm font-medium">No announcements yet.</p>
-              </div>
-            )}
-
-            {all.map((ann) => (
-              <AdminAnnouncementRow
-                key={ann.id}
-                ann={ann}
-                onEdit={() => { setEditing(ann); setModalOpen(true) }}
-                onDelete={() => deleteMut.mutate(ann.id)}
-                onPublish={() => publishMut.mutate(ann.id)}
-                onPin={() => pinMut.mutate({ id: ann.id, pin: !ann.is_pinned })}
-              />
-            ))}
-          </>
+          </div>
         )}
+
+        {/* Published announcements */}
+        {feedLoading && (
+          <div data-testid="announcements-skeleton" className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-28 rounded-2xl bg-black/5 animate-pulse" />
+            ))}
+          </div>
+        )}
+
+        {!feedLoading && feed.length === 0 && (
+          <div data-testid="announcements-empty" className="text-center py-24" style={{ color: t.textMuted }}>
+            <Megaphone className="w-10 h-10 mx-auto mb-3 opacity-20" />
+            <p className="text-sm font-medium">No announcements yet</p>
+          </div>
+        )}
+
+        {feed.map((ann) => (
+          <AnnouncementCard
+            key={ann.id}
+            ann={ann}
+            isAdmin={isAdmin}
+            onView={() => openAnnouncement(ann)}
+            onEdit={() => { setEditing(ann); setModalOpen(true) }}
+            onDelete={() => deleteMut.mutate(ann.id)}
+            onPublish={() => publishMut.mutate(ann.id)}
+            onPin={() => pinMut.mutate({ id: ann.id, pin: !ann.is_pinned })}
+          />
+        ))}
       </div>
 
       {/* Detail view modal */}
@@ -187,36 +172,63 @@ export function AnnouncementsPage() {
   )
 }
 
-function AnnouncementCard({ ann, onClick }: { ann: Announcement; onClick: () => void }) {
+function AnnouncementCard({
+  ann,
+  isAdmin,
+  onView,
+  onEdit,
+  onDelete,
+  onPublish,
+  onPin,
+}: {
+  ann: Announcement
+  isAdmin?: boolean
+  onView: () => void
+  onEdit?: () => void
+  onDelete?: () => void
+  onPublish?: () => void
+  onPin?: () => void
+}) {
   const date = ann.published_at
     ? new Date(ann.published_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
     : null
+  const isDraft = !ann.published_at
 
   return (
     <div
       data-testid={`announcement-row-${ann.id}`}
-      onClick={onClick}
-      className="group rounded-2xl cursor-pointer transition-all hover:shadow-md"
+      className="group rounded-2xl transition-all hover:shadow-md relative"
       style={{
         background: t.surface,
         border: ann.is_pinned ? `2px solid ${t.accent}` : `1px solid ${t.border}`,
-        opacity: ann.is_read ? 0.75 : 1,
+        opacity: ann.is_read && !isDraft ? 0.75 : 1,
       }}
     >
-      {ann.is_pinned && (
-        <div
-          className="flex items-center gap-1.5 px-5 pt-3 pb-0 text-xs font-bold"
-          style={{ color: t.accent }}
-        >
-          <Pin className="w-3 h-3" />
-          Pinned
-        </div>
-      )}
       <div className="flex items-start justify-between gap-4 px-5 py-4">
-        <div className="flex-1 min-w-0">
+        <div
+          className="flex-1 min-w-0 cursor-pointer"
+          onClick={onView}
+        >
+          {ann.is_pinned && (
+            <div
+              className="flex items-center gap-1.5 mb-2 text-xs font-bold"
+              style={{ color: t.accent }}
+            >
+              <Pin className="w-3 h-3" />
+              Pinned
+            </div>
+          )}
           <div className="flex items-center gap-2 mb-1">
+            {isDraft && isAdmin && (
+              <span
+                className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                style={{ background: 'rgba(0,0,0,0.06)', color: t.textMuted }}
+              >
+                Draft
+              </span>
+            )}
             <h3 className="font-bold text-sm" style={{ color: t.text }}>{ann.title}</h3>
-            {!ann.is_read && (
+            {!ann.is_read && !isDraft && (
               <span
                 data-testid={`announcement-unread-dot-${ann.id}`}
                 className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -230,10 +242,58 @@ function AnnouncementCard({ ann, onClick }: { ann: Announcement; onClick: () => 
             {date && <span className="text-xs" style={{ color: t.textMuted }}>{date}</span>}
           </div>
         </div>
-        <ChevronRight
-          className="w-4 h-4 shrink-0 mt-0.5 opacity-30 group-hover:opacity-60 transition-opacity"
-          style={{ color: t.text }}
-        />
+        
+        {isAdmin ? (
+          <div className="flex items-center gap-1 shrink-0">
+            {isDraft && onPublish && (
+              <button
+                data-testid={`announcement-publish-btn-${ann.id}`}
+                onClick={onPublish}
+                title="Publish"
+                className="p-2 rounded-lg hover:bg-green-50 text-green-600 transition-colors"
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onPin && (
+              <button
+                data-testid={`announcement-pin-btn-${ann.id}`}
+                onClick={onPin}
+                title={ann.is_pinned ? 'Unpin' : 'Pin'}
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: t.accent }}
+              >
+                {ann.is_pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
+              </button>
+            )}
+            {onEdit && (
+              <button
+                data-testid={`announcement-edit-btn-${ann.id}`}
+                onClick={onEdit}
+                title="Edit"
+                className="p-2 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                data-testid={`announcement-delete-btn-${ann.id}`}
+                onClick={onDelete}
+                title="Delete"
+                className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <ChevronRight
+            className="w-4 h-4 shrink-0 mt-0.5 opacity-30 group-hover:opacity-60 transition-opacity cursor-pointer"
+            style={{ color: t.text }}
+            onClick={onView}
+          />
+        )}
       </div>
     </div>
   )
@@ -291,85 +351,6 @@ function AnnouncementDetailModal({ ann, onClose }: { ann: Announcement; onClose:
         {/* Body */}
         <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
           <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: t.text }}>{ann.body}</p>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function AdminAnnouncementRow({
-  ann,
-  onEdit,
-  onDelete,
-  onPublish,
-  onPin,
-}: {
-  ann: Announcement
-  onEdit: () => void
-  onDelete: () => void
-  onPublish: () => void
-  onPin: () => void
-}) {
-  const isDraft = !ann.published_at
-
-  return (
-    <div
-      data-testid={`announcement-admin-row-${ann.id}`}
-      className="rounded-2xl"
-      style={{ background: t.surface, border: `1px solid ${t.border}` }}
-    >
-      <div className="flex items-start justify-between gap-4 px-5 py-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1.5">
-            {isDraft ? (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: 'rgba(0,0,0,0.06)', color: t.textMuted }}>Draft</span>
-            ) : (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-green-100 text-green-700">Published</span>
-            )}
-            {ann.is_pinned && (
-              <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ background: `rgba(180,80,20,0.10)`, color: t.accent }}>Pinned</span>
-            )}
-          </div>
-          <h3 className="font-bold text-sm" style={{ color: t.text }}>{ann.title}</h3>
-          <p className="text-xs line-clamp-1 mt-0.5" style={{ color: t.textMuted }}>{ann.body}</p>
-        </div>
-
-        <div className="flex items-center gap-1 shrink-0">
-          {isDraft && (
-            <button
-              data-testid={`announcement-publish-btn-${ann.id}`}
-              onClick={onPublish}
-              title="Publish"
-              className="p-2 rounded-lg hover:bg-green-50 text-green-600 transition-colors"
-            >
-              <Send className="w-3.5 h-3.5" />
-            </button>
-          )}
-          <button
-            data-testid={`announcement-pin-btn-${ann.id}`}
-            onClick={onPin}
-            title={ann.is_pinned ? 'Unpin' : 'Pin'}
-            className="p-2 rounded-lg transition-colors"
-            style={{ color: t.accent }}
-          >
-            {ann.is_pinned ? <PinOff className="w-3.5 h-3.5" /> : <Pin className="w-3.5 h-3.5" />}
-          </button>
-          <button
-            data-testid={`announcement-edit-btn-${ann.id}`}
-            onClick={onEdit}
-            title="Edit"
-            className="p-2 rounded-lg hover:bg-blue-50 text-blue-500 transition-colors"
-          >
-            <Pencil className="w-3.5 h-3.5" />
-          </button>
-          <button
-            data-testid={`announcement-delete-btn-${ann.id}`}
-            onClick={onDelete}
-            title="Delete"
-            className="p-2 rounded-lg hover:bg-red-50 text-red-500 transition-colors"
-          >
-            <Trash2 className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
     </div>
