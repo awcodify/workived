@@ -21,7 +21,7 @@ interface AllIssuesFilters {
   cursor: string
 }
 
-type SortKey = 'title' | 'list_name' | 'assignee_name' | 'due_date' | 'priority' | 'completed_at' | 'created_at'
+type SortKey = 'title' | 'list_name' | 'assignee_name' | 'due_date' | 'priority' | 'completed_at' | 'created_at' | `field:${string}`
 type SortDir = 'asc' | 'desc'
 
 const PRIORITY_ORDER: Record<string, number> = { urgent: 0, high: 1, medium: 2, low: 3 }
@@ -69,31 +69,45 @@ function formatFieldCellValue(fd: FieldDefinition, task: TaskWithDetails, employ
   }
 }
 
-function sortTasks(tasks: TaskWithDetails[], key: SortKey, dir: SortDir): TaskWithDetails[] {
+function sortTasks(tasks: TaskWithDetails[], key: SortKey, dir: SortDir, fieldDefs: FieldDefinition[] = []): TaskWithDetails[] {
   return [...tasks].sort((a, b) => {
     let cmp = 0
-    switch (key) {
-      case 'title':
-        cmp = a.title.localeCompare(b.title)
-        break
-      case 'list_name':
-        cmp = (a.list_name ?? '').localeCompare(b.list_name ?? '')
-        break
-      case 'assignee_name':
-        cmp = (a.assignee_name ?? '').localeCompare(b.assignee_name ?? '')
-        break
-      case 'due_date':
-        cmp = (a.due_date ?? '').localeCompare(b.due_date ?? '')
-        break
-      case 'priority':
-        cmp = (PRIORITY_ORDER[a.priority ?? 'medium'] ?? 2) - (PRIORITY_ORDER[b.priority ?? 'medium'] ?? 2)
-        break
-      case 'completed_at':
-        cmp = (a.completed_at ?? '').localeCompare(b.completed_at ?? '')
-        break
-      case 'created_at':
-        cmp = (a.created_at ?? '').localeCompare(b.created_at ?? '')
-        break
+    if (key.startsWith('field:')) {
+      const fieldId = key.slice(6)
+      const fd = fieldDefs.find((f) => f.id === fieldId)
+      const aFv = a.field_values?.find((f) => f.field_id === fieldId)
+      const bFv = b.field_values?.find((f) => f.field_id === fieldId)
+      if (fd?.field_type === 'number' || fd?.field_type === 'rating') {
+        cmp = (aFv?.value_number ?? -Infinity) - (bFv?.value_number ?? -Infinity)
+      } else {
+        const aStr = aFv?.value_text ?? aFv?.value_date ?? ''
+        const bStr = bFv?.value_text ?? bFv?.value_date ?? ''
+        cmp = aStr.localeCompare(bStr)
+      }
+    } else {
+      switch (key) {
+        case 'title':
+          cmp = a.title.localeCompare(b.title)
+          break
+        case 'list_name':
+          cmp = (a.list_name ?? '').localeCompare(b.list_name ?? '')
+          break
+        case 'assignee_name':
+          cmp = (a.assignee_name ?? '').localeCompare(b.assignee_name ?? '')
+          break
+        case 'due_date':
+          cmp = (a.due_date ?? '').localeCompare(b.due_date ?? '')
+          break
+        case 'priority':
+          cmp = (PRIORITY_ORDER[a.priority ?? 'medium'] ?? 2) - (PRIORITY_ORDER[b.priority ?? 'medium'] ?? 2)
+          break
+        case 'completed_at':
+          cmp = (a.completed_at ?? '').localeCompare(b.completed_at ?? '')
+          break
+        case 'created_at':
+          cmp = (a.created_at ?? '').localeCompare(b.created_at ?? '')
+          break
+      }
     }
     return dir === 'asc' ? cmp : -cmp
   })
@@ -194,7 +208,7 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
   const hasMore  = meta?.has_more ?? false
   const nextCursor = meta?.next_cursor
 
-  const sorted = useMemo(() => sortTasks(tasks, sortKey, sortDir), [tasks, sortKey, sortDir])
+  const sorted = useMemo(() => sortTasks(tasks, sortKey, sortDir, fieldDefs), [tasks, sortKey, sortDir, fieldDefs])
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -411,13 +425,14 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
                 <SortHeader label="Priority"    sortKey="priority"     current={sortKey} dir={sortDir} onSort={handleSort} />
                 <SortHeader label="Completed"   sortKey="completed_at" current={sortKey} dir={sortDir} onSort={handleSort} />
                 {visibleCustomFields.map((fd) => (
-                  <th
+                  <SortHeader
                     key={fd.id}
-                    className="text-left px-3 py-2.5 text-xs font-bold whitespace-nowrap"
-                    style={{ color: '#94A3B8', fontFamily: typography.fontFamily, borderBottom: '2px solid #E2E8F0' }}
-                  >
-                    {fd.name}
-                  </th>
+                    label={fd.name}
+                    sortKey={`field:${fd.id}`}
+                    current={sortKey}
+                    dir={sortDir}
+                    onSort={handleSort}
+                  />
                 ))}
               </tr>
             </thead>

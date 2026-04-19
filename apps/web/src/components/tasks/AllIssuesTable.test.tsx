@@ -235,6 +235,32 @@ describe('AllIssuesTable', () => {
     expect(screen.getByText('← Prev')).toBeDisabled()
   })
 
+  it('sorts by number custom field when column header clicked', async () => {
+    const fd: FieldDefinition = {
+      id: 'fd-sp', organisation_id: 'org-1', name: 'Story Points', field_type: 'number',
+      description: '', sort_order: 0, is_active: true,
+      created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
+    }
+    const tasks = [
+      makeTask({ id: 't-1', title: 'Task A', field_values: [{ field_id: 'fd-sp', field_name: 'Story Points', field_type: 'number', value_number: 8 }] }),
+      makeTask({ id: 't-2', title: 'Task B', field_values: [{ field_id: 'fd-sp', field_name: 'Story Points', field_type: 'number', value_number: 2 }] }),
+    ]
+    setupMocks(tasks, [fd])
+    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+
+    fireEvent.click(screen.getByText('Story Points'))
+    await waitFor(() => {
+      const rows = screen.getAllByRole('row').slice(1)
+      expect(rows[0]).toHaveTextContent('Task A') // desc: 8 first
+    })
+
+    fireEvent.click(screen.getByText('Story Points'))
+    await waitFor(() => {
+      const rows = screen.getAllByRole('row').slice(1)
+      expect(rows[0]).toHaveTextContent('Task B') // asc: 2 first
+    })
+  })
+
   it('shows task count', () => {
     setupMocks([makeTask(), makeTask({ id: 't-2', title: 'Task 2' })])
     render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
