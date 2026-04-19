@@ -4,7 +4,7 @@ import { useMyEmployee } from '@/lib/hooks/useEmployees'
 import { useAuthStore } from '@/lib/stores/auth'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { StatusSquare } from '@/components/workived/layout/StatusSquare'
-import { moduleBackgrounds, moduleThemes, colors, typography } from '@/design/tokens'
+import { moduleThemes, colors, typography } from '@/design/tokens'
 import {
   ArrowLeft,
   Mail,
@@ -178,7 +178,7 @@ function MyProfilePage() {
       <div
         className="min-h-screen px-6 py-8 md:px-11 md:py-10"
         data-testid="profile-skeleton"
-        style={{ background: moduleBackgrounds.people, paddingBottom: '160px' }}
+        style={{ background: colors.ink50, paddingBottom: '160px' }}
       >
         <div className="max-w-3xl mx-auto">
           <div className="animate-pulse space-y-4">
@@ -236,7 +236,7 @@ function MyProfilePage() {
       <div
         className="min-h-screen px-6 py-8 md:px-11 md:py-10"
         data-testid="profile-error"
-        style={{ background: moduleBackgrounds.people, paddingBottom: '160px' }}
+        style={{ background: colors.ink50, paddingBottom: '160px' }}
       >
         <div className="max-w-3xl mx-auto">
           <Link
@@ -297,7 +297,7 @@ function MyProfilePage() {
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       data-testid="profile-page"
-      style={{ background: moduleBackgrounds.people, paddingBottom: '160px' }}
+      style={{ background: colors.ink50, paddingBottom: '160px' }}
     >
       <div className="max-w-3xl mx-auto">
         {/* Back link */}
