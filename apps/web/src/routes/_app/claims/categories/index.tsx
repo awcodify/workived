@@ -57,9 +57,9 @@ function CategoriesPage() {
 
   return (
     <div
-      className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
+      className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       data-testid="claims-categories-page"
-      style={{ background: moduleBackgrounds.claims }}
+      style={{ background: moduleBackgrounds.claims, paddingBottom: '160px' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">

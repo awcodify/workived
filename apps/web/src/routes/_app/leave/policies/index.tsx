@@ -48,9 +48,9 @@ function PoliciesPage() {
 
   return (
     <div
-      className="min-h-screen px-6 py-8 md:px-11 md:py-10 pb-28"
+      className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       data-testid="leave-policies-page"
-      style={{ background: moduleBackgrounds.leave }}
+      style={{ background: moduleBackgrounds.leave, paddingBottom: '160px' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
