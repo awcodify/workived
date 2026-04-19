@@ -20,6 +20,21 @@ vi.mock('@/lib/hooks/useOrganisation', () => ({
   useOrganisation: () => ({ data: { timezone: 'Asia/Jakarta' } }),
 }))
 
+vi.mock('@/components/ui', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/components/ui')>()
+  return {
+    ...actual,
+    DateTimePicker: ({ value, onChange }: { value?: string; onChange?: (v: string) => void }) => (
+      <input
+        type="datetime-local"
+        data-testid="task-due-datetime-input"
+        value={value ?? ''}
+        onChange={(e) => onChange?.(e.target.value)}
+      />
+    ),
+  }
+})
+
 vi.mock('./RichTextEditor', () => ({
   RichTextEditor: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
     <textarea data-testid="rich-text-editor" value={value} onChange={(e) => onChange(e.target.value)} />

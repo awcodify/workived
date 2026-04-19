@@ -21,6 +21,7 @@ import {
   useSetFieldValue,
   useClearFieldValue,
 } from '@/lib/hooks/useTasks'
+import { DatePicker, DateTimePicker } from '@/components/ui'
 
 // ── Utility Functions ────────────────────────────────────────────────────────
 
@@ -237,8 +238,7 @@ function FieldInput({
 
     case 'date':
       return wrapper(
-        <input
-          type="date"
+        <DatePicker
           data-testid={`field-input-date-${fd.id}`}
           value={isCreateMode
             ? (createValue as string ?? '')
@@ -248,6 +248,7 @@ function FieldInput({
             if (e.target.value) save(e.target.value)
             else if (isCreateMode ? hasValue : current) clear()
           }}
+          className=""
         />
       )
 
@@ -622,8 +623,9 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   // Auto-save helpers (only for edit mode)
   const buildDueDateUTC = useCallback((datetime: string): string | undefined => {
     if (!datetime) return undefined
-    const [date, time] = datetime.split('T')
-    return orgTimeToUTC(date!, time ?? '00:00', orgTz)
+    const [date, timeFull] = datetime.split('T')
+    const time = (timeFull ?? '00:00').slice(0, 5) // strip seconds if present (HH:MM)
+    return orgTimeToUTC(date!, time, orgTz)
   }, [orgTz])
 
   const autoSave = useCallback((field: string, value: any) => {
@@ -1234,18 +1236,30 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               >
                 📅 Due Date
               </label>
-              <input
-                type="datetime-local"
-                data-testid="task-due-datetime-input"
+              <DateTimePicker
                 value={dueDatetime}
-                onChange={(e) => handleDueDatetimeChange(e.target.value)}
-                className="w-full rounded-lg px-3 py-2 text-xs outline-none font-medium"
-                style={{
-                  background: `${colors.text}08`,
-                  border: `2px solid ${colors.text}20`,
-                  color: colors.text,
-                  fontFamily: typography.fontFamily,
-                  colorScheme: 'dark',
+                onChange={handleDueDatetimeChange}
+                dateProps={{
+                  'data-testid': 'task-due-date-input',
+                  className: 'rounded-lg px-3 py-2 text-xs outline-none font-medium',
+                  style: {
+                    background: `${colors.text}08`,
+                    border: `2px solid ${colors.text}20`,
+                    color: colors.text,
+                    fontFamily: typography.fontFamily,
+                    colorScheme: 'light',
+                  }
+                }}
+                timeProps={{
+                  'data-testid': 'task-due-time-input',
+                  className: 'rounded-lg px-3 py-2 text-xs outline-none font-medium',
+                  style: {
+                    background: `${colors.text}08`,
+                    border: `2px solid ${colors.text}20`,
+                    color: colors.text,
+                    fontFamily: typography.fontFamily,
+                    colorScheme: 'light',
+                  }
                 }}
               />
             </div>
