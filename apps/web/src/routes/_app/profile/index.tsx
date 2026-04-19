@@ -282,8 +282,9 @@ function MyProfilePage() {
     if (!employee.start_date) return null
     const start = new Date(employee.start_date)
     const now = new Date()
-    const years = now.getFullYear() - start.getFullYear()
-    const months = now.getMonth() - start.getMonth() + years * 12
+    let months = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth())
+    // If we haven't reached the start day yet this month, subtract one
+    if (now.getDate() < start.getDate()) months--
     if (months < 1) return 'Just started'
     if (months < 12) return `${months}mo`
     const y = Math.floor(months / 12)
