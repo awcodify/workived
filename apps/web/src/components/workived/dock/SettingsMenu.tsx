@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
 import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, AlertCircle, HelpCircle } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
@@ -17,6 +18,7 @@ interface SettingsMenuProps {
 
 export function SettingsMenu({ currentModule }: SettingsMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
@@ -32,44 +34,120 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
     : currentModule === 'people' ? peopleDockTheme
     : dockThemes[currentModule]
 
-  // Menu needs opaque background for text readability but same blur/border/shadow as dock
-  // Dock uses extremely low opacity (rgba(0,0,0,0.04) = 4%) which works for icons
-  // Menu needs much higher opacity for readable text - aim for frosted glass look
   const isDarkDock = theme.bg.includes('20,20,25')
-  const menuBg = isDarkDock 
-    ? 'rgba(30,30,35,0.80)'  // Dark frosted glass - 80% opacity lets blur show
-    : 'rgba(245,245,245,0.90)'  // Light frosted glass - 90% opacity for dark text contrast
   
-  const menuColors = {
-    text: isDarkDock ? 'rgba(255,255,255,0.95)' : '#0F0E13',
-    textMuted: isDarkDock ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)',
-    hoverBg: isDarkDock ? 'rgba(255,255,255,0.10)' : 'rgba(0,0,0,0.05)',
-    iconBg: isDarkDock ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.08)',
+  const menuStyle = isDarkDock ? {
+    bg: theme.bg,
+    text: 'rgba(255,255,255,0.92)',
+    textMuted: 'rgba(255,255,255,0.50)',
+    hoverBg: 'rgba(255,255,255,0.08)',
+    iconColor: theme.icon,
+    divider: theme.border,
+    avatarBg: 'rgba(255,255,255,0.10)',
+    logoutText: '#F87171',
+    logoutHover: 'rgba(248,113,113,0.10)',
+    badgeBg: '#6357E8',
+  } : {
+    bg: theme.bg,
+    text: '#0F0E13',
+    textMuted: 'rgba(0,0,0,0.45)',
+    hoverBg: 'rgba(0,0,0,0.05)',
+    iconColor: theme.icon,
+    divider: theme.border,
+    avatarBg: 'rgba(0,0,0,0.04)',
+    logoutText: '#DC2626',
+    logoutHover: 'rgba(220,38,38,0.06)',
+    badgeBg: '#6357E8',
   }
 
-  // Close menu when clicking outside
+  // Close menu when clicking outside (check both button and portal menu)
   useEffect(() => {
+    if (!isOpen) return
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node
+      if (
+        menuRef.current && !menuRef.current.contains(target) &&
+        buttonRef.current && !buttonRef.current.contains(target)
+      ) {
         setIsOpen(false)
       }
     }
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside)
-      return () => document.removeEventListener('mousedown', handleClickOutside)
-    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [isOpen])
+
+  // Position the portal menu above the settings button
+  // Compute position synchronously on open to avoid a flash at (0,0)
+  const getPosition = useCallback(() => {
+    if (!buttonRef.current) return { bottom: 0, right: 0 }
+    const rect = buttonRef.current.getBoundingClientRect()
+    return {
+      bottom: window.innerHeight - rect.top + 12,
+      right: window.innerWidth - rect.right,
+    }
+  }, [])
+
+  const [menuPos, setMenuPos] = useState(getPosition)
+
+  // Re-calculate whenever the menu opens or window resizes
+  useEffect(() => {
+    if (!isOpen) return
+    setMenuPos(getPosition())
+    const onResize = () => setMenuPos(getPosition())
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [isOpen, getPosition])
 
   const handleLogout = async () => {
     await logout()
     navigate({ to: '/login', search: { redirect: undefined } })
   }
 
+  const MenuItem = ({
+    icon: Icon,
+    label,
+    onClick,
+    testId,
+    badge,
+    destructive,
+  }: {
+    icon: React.ElementType
+    label: string
+    onClick: () => void
+    testId: string
+    badge?: React.ReactNode
+    destructive?: boolean
+  }) => (
+    <button
+      role="menuitem"
+      onClick={onClick}
+      className="w-full px-3 py-2.5 flex items-center gap-3 transition-all text-left group/item rounded-lg mx-0"
+      data-testid={testId}
+      style={{ color: destructive ? menuStyle.logoutText : menuStyle.text }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = destructive ? menuStyle.logoutHover : menuStyle.hoverBg
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = 'transparent'
+      }}
+    >
+      <Icon
+        size={17}
+        style={{ color: destructive ? menuStyle.logoutText : menuStyle.iconColor }}
+        className="transition-transform group-hover/item:scale-110 flex-shrink-0"
+      />
+      <span className="text-[13px] font-medium flex-1">{label}</span>
+      {badge}
+    </button>
+  )
+
   return (
-    <div className="relative" ref={menuRef} data-tour="dock-settings" data-testid="settings-menu-container">
-      {/* Settings Button */}
+    <div data-tour="dock-settings" data-testid="settings-menu-container">
+      {/* Settings Button — stays inside the dock */}
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Settings menu"
         aria-expanded={isOpen}
@@ -119,244 +197,170 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
         </div>
       </button>
 
-      {/* Dropdown Menu */}
-      {isOpen && (
+      {/* Dropdown Menu — rendered via Portal so it escapes the dock's filter stacking context */}
+      {isOpen && createPortal(
         <div
+          ref={menuRef}
           role="menu"
-          className="absolute bottom-full mb-3 right-0 rounded-2xl overflow-hidden border backdrop-blur-3xl"
+          className="fixed z-[60] rounded-2xl border"
           data-testid="settings-menu-dropdown"
           style={{
-            minWidth: 200,
-            background: menuBg,
+            bottom: menuPos.bottom,
+            right: menuPos.right,
+            minWidth: 240,
             borderColor: theme.border,
-            filter: 'drop-shadow(0 8px 32px rgba(0, 0, 0, 0.4)) drop-shadow(0 4px 16px rgba(0, 0, 0, 0.2))',
-            animation: 'slideUpFade 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
+            animation: 'settingsSlideUp 0.2s ease-out',
           }}
         >
-          {/* User Info */}
-          {user && (
-            <div
-              className="px-3 py-3 border-b"
-              data-testid="settings-menu-user-info"
-              style={{ 
-                borderColor: theme.border
-              }}
-            >
-              <div className="flex items-center gap-2.5">
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ 
-                    background: menuColors.iconBg,
-                  }}
-                >
-                  <User
-                    size={16}
-                    style={{ color: menuColors.text }}
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p
-                    className="text-xs font-semibold leading-tight truncate"
-                    style={{ color: menuColors.text }}
+          {/* Backdrop blur layer — separate from shadow so both work */}
+          <div
+            className="absolute inset-0 rounded-2xl backdrop-blur-3xl"
+            style={{ background: menuStyle.bg }}
+          />
+
+          {/* Content layer — sits above the blur */}
+          <div className="relative">
+            {/* User Info Header */}
+            {user && (
+              <div
+                className="px-4 py-3.5 border-b"
+                data-testid="settings-menu-user-info"
+                style={{ borderColor: menuStyle.divider }}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{ background: menuStyle.avatarBg }}
                   >
-                    {user.full_name}
-                  </p>
-                  <p
-                    className="text-[10px] leading-tight mt-0.5 truncate opacity-70"
-                    style={{ color: menuColors.textMuted }}
-                  >
-                    {user.email}
-                  </p>
+                    <User size={18} style={{ color: menuStyle.iconColor }} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p
+                      className="text-sm font-bold leading-tight truncate"
+                      style={{ color: menuStyle.text }}
+                    >
+                      {user.full_name}
+                    </p>
+                    <p
+                      className="text-[11px] leading-tight mt-0.5 truncate"
+                      style={{ color: menuStyle.textMuted }}
+                    >
+                      {user.email}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Profile & Settings Links */}
-          <button
-            role="menuitem"
-            onClick={() => { setIsOpen(false); navigate({ to: '/profile' }) }}
-            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            data-testid="settings-menu-profile-link"
-            style={{ color: menuColors.text }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = menuColors.hoverBg
-            }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <User size={16} className="transition-transform group-hover/item:scale-110" />
-            <span className="text-xs font-medium">My profile</span>
-          </button>
-          <button
-            role="menuitem"
-            onClick={() => { setIsOpen(false); navigate({ to: '/settings/company' }) }}
-            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            data-testid="settings-menu-company-link"
-            style={{ color: menuColors.text }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = menuColors.hoverBg
-            }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <Building2 size={16} className="transition-transform group-hover/item:scale-110" />
-            <span className="text-xs font-medium">Company settings</span>
-          </button>
-          {hasOrg && (
-          <button
-            role="menuitem"
-            onClick={() => { setIsOpen(false); navigate({ to: '/settings/members' }) }}
-            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            data-testid="settings-menu-members-link"
-            style={{ color: menuColors.text }}
-            onMouseEnter={(e) => { 
-              e.currentTarget.style.background = menuColors.hoverBg
-            }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <Users size={16} className="transition-transform group-hover/item:scale-110" />
-            <span className="text-xs font-medium">Team members</span>
-          </button>
-          )}
-          {hasOrg && (
-          <button
-            role="menuitem"
-            onClick={() => { setIsOpen(false); navigate({ to: '/settings/audit-logs' }) }}
-            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            data-testid="settings-menu-audit-logs-link"
-            style={{ color: menuColors.text }}
-            onMouseEnter={(e) => { 
-              e.currentTarget.style.background = menuColors.hoverBg
-            }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <FileText size={16} className="transition-transform group-hover/item:scale-110" />
-            <span className="text-xs font-medium">Audit logs</span>
-          </button>
-          )}
-
-          {/* Divider */}
-          <div className="my-1" style={{ height: 1, background: theme.border }} />
-
-          {/* Theme Toggle */}
-          <button
-            role="menuitem"
-            onClick={() => { toggleTheme() }}
-            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            data-testid="settings-menu-theme-toggle"
-            style={{ color: menuColors.text }}
-            onMouseEnter={(e) => { 
-              e.currentTarget.style.background = menuColors.hoverBg
-            }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            {currentTheme === 'light' ? (
-              <>
-                <Moon size={16} className="transition-transform group-hover/item:scale-110" />
-                <span className="text-xs font-medium">Dark mode (beta)</span>
-              </>
-            ) : (
-              <>
-                <Sun size={16} className="transition-transform group-hover/item:scale-110" />
-                <span className="text-xs font-medium">Light mode (beta)</span>
-              </>
             )}
-          </button>
 
-          {/* What's New */}
-          <button
-            role="menuitem"
-            onClick={() => { setIsOpen(false); navigate({ to: '/changelog' }) }}
-            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            data-testid="settings-menu-changelog-link"
-            style={{ color: menuColors.text }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = menuColors.hoverBg
-            }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <div className="relative">
-              <Sparkles size={16} className="transition-transform group-hover/item:scale-110" />
-              {hasUnread && (
-                <div
-                  className="absolute -top-1 -right-1"
-                  style={{
-                    width: 6,
-                    height: 6,
-                    borderRadius: '50%',
-                    background: '#6357E8',
-                  }}
+            {/* Navigation Section */}
+            <div className="p-1.5">
+              <MenuItem
+                icon={User}
+                label="My profile"
+                testId="settings-menu-profile-link"
+                onClick={() => { setIsOpen(false); navigate({ to: '/profile' }) }}
+              />
+              <MenuItem
+                icon={Building2}
+                label="Company settings"
+                testId="settings-menu-company-link"
+                onClick={() => { setIsOpen(false); navigate({ to: '/settings/company' }) }}
+              />
+              {hasOrg && (
+                <MenuItem
+                  icon={Users}
+                  label="Team members"
+                  testId="settings-menu-members-link"
+                  onClick={() => { setIsOpen(false); navigate({ to: '/settings/members' }) }}
+                />
+              )}
+              {hasOrg && (
+                <MenuItem
+                  icon={FileText}
+                  label="Audit logs"
+                  testId="settings-menu-audit-logs-link"
+                  onClick={() => { setIsOpen(false); navigate({ to: '/settings/audit-logs' }) }}
                 />
               )}
             </div>
-            <span className="text-xs font-medium">What's New</span>
-          </button>
 
-          {/* Known Issues */}
-          <button
-            role="menuitem"
-            onClick={() => { setIsOpen(false); navigate({ to: '/known-issues' }) }}
-            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            data-testid="settings-menu-known-issues-link"
-            style={{ color: menuColors.text }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = menuColors.hoverBg
-            }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <AlertCircle size={16} className="transition-transform group-hover/item:scale-110" />
-            <span className="text-xs font-medium">Known Issues</span>
-          </button>
+            {/* Divider */}
+            <div className="mx-3" style={{ height: 1, background: menuStyle.divider }} />
 
-          {/* Replay Tour */}
-          <button
-            role="menuitem"
-            onClick={() => {
-              setIsOpen(false)
-              useTourStore.getState().resetTour()
-              navigate({ to: '/overview' })
-              setTimeout(() => useTourStore.getState().startTour(), 500)
-            }}
-            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            data-testid="settings-menu-tour-link"
-            style={{ color: menuColors.text }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = menuColors.hoverBg
-            }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <HelpCircle size={16} className="transition-transform group-hover/item:scale-110" />
-            <span className="text-xs font-medium">Replay tour</span>
-          </button>
+            {/* Preferences Section */}
+            <div className="p-1.5">
+              <MenuItem
+                icon={currentTheme === 'light' ? Moon : Sun}
+                label={currentTheme === 'light' ? 'Dark mode' : 'Light mode'}
+                testId="settings-menu-theme-toggle"
+                onClick={toggleTheme}
+                badge={
+                  <span
+                    className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                    style={{ background: menuStyle.hoverBg, color: menuStyle.textMuted }}
+                  >
+                    Beta
+                  </span>
+                }
+              />
+              <MenuItem
+                icon={Sparkles}
+                label="What's New"
+                testId="settings-menu-changelog-link"
+                onClick={() => { setIsOpen(false); navigate({ to: '/changelog' }) }}
+                badge={
+                  hasUnread ? (
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0"
+                      style={{ background: menuStyle.badgeBg }}
+                    />
+                  ) : undefined
+                }
+              />
+              <MenuItem
+                icon={AlertCircle}
+                label="Known Issues"
+                testId="settings-menu-known-issues-link"
+                onClick={() => { setIsOpen(false); navigate({ to: '/known-issues' }) }}
+              />
+              <MenuItem
+                icon={HelpCircle}
+                label="Replay tour"
+                testId="settings-menu-tour-link"
+                onClick={() => {
+                  setIsOpen(false)
+                  useTourStore.getState().resetTour()
+                  navigate({ to: '/overview' })
+                  setTimeout(() => useTourStore.getState().startTour(), 500)
+                }}
+              />
+            </div>
 
-          {/* Divider */}
-          <div className="my-1" style={{ height: 1, background: theme.border }} />
+            {/* Divider */}
+            <div className="mx-3" style={{ height: 1, background: menuStyle.divider }} />
 
-          {/* Logout Button */}
-          <button
-            role="menuitem"
-            onClick={handleLogout}
-            className="w-full px-3 py-2.5 flex items-center gap-2.5 transition-all text-left group/item"
-            data-testid="settings-menu-logout-btn"
-            style={{ color: menuColors.text }}
-            onMouseEnter={(e) => { 
-              e.currentTarget.style.background = menuColors.hoverBg
-            }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-          >
-            <LogOut size={16} className="transition-transform group-hover/item:scale-110" />
-            <span className="text-xs font-medium">Logout</span>
-          </button>
-        </div>
+            {/* Logout */}
+            <div className="p-1.5">
+              <MenuItem
+                icon={LogOut}
+                label="Logout"
+                testId="settings-menu-logout-btn"
+                onClick={handleLogout}
+                destructive
+              />
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       <style>{`
-        @keyframes slideUpFade {
+        @keyframes settingsSlideUp {
           from {
-            opacity: 0;
-            transform: translateY(8px);
+            transform: translateY(6px);
           }
           to {
-            opacity: 1;
             transform: translateY(0);
           }
         }
