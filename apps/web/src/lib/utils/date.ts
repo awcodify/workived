@@ -11,6 +11,26 @@ export function formatDate(
   }).format(new Date(utcDate))
 }
 
+/**
+ * Convert a naive time string (HH:MM) on a given date, interpreted as org timezone, to UTC ISO string.
+ * Use this when a user picks a time on a clock widget — the displayed time is in org tz, not browser tz.
+ */
+export function orgTimeToUTC(date: string, time: string, tz: string): string {
+  // Treat the input as UTC temporarily to compute the org tz offset at this moment
+  const ref = new Date(`${date}T${time}:00Z`)
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false,
+  })
+  const parts = fmt.formatToParts(ref)
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? '00'
+  const orgApparent = new Date(`${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get('second')}Z`)
+  const offsetMs = orgApparent.getTime() - ref.getTime()
+  return new Date(ref.getTime() - offsetMs).toISOString()
+}
+
 export function formatDateLocal(date: string): string {
   return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(new Date(date))
 }

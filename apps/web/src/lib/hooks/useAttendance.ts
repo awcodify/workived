@@ -325,13 +325,13 @@ export function useLocationAnalytics(period: 'this_week' | 'this_month') {
 
 const correctionKeys = {
   all: ['attendance', 'corrections'] as const,
-  list: (status?: string) => [...correctionKeys.all, 'list', status ?? 'all'] as const,
+  list: (status?: string, mine?: boolean) => [...correctionKeys.all, 'list', status ?? 'all', mine ? 'mine' : 'all'] as const,
 }
 
-export function useCorrections(status?: string) {
+export function useCorrections(status?: string, mine?: boolean) {
   return useQuery<AttendanceCorrection[]>({
-    queryKey: correctionKeys.list(status),
-    queryFn: () => attendanceApi.listCorrections(status).then((r) => r.data.data ?? []),
+    queryKey: correctionKeys.list(status, mine),
+    queryFn: () => attendanceApi.listCorrections(status, mine).then((r) => r.data.data ?? []),
     staleTime: 30_000,
   })
 }
@@ -377,6 +377,20 @@ export function useRejectCorrection() {
     },
     onError: (err: AxiosError<ApiErrorResponse>) => {
       toast.error(err.response?.data?.error?.message ?? 'Failed to reject correction')
+    },
+  })
+}
+
+export function useCancelCorrection() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => attendanceApi.cancelCorrection(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: correctionKeys.all })
+      toast.success('Correction cancelled')
+    },
+    onError: (err: AxiosError<ApiErrorResponse>) => {
+      toast.error(err.response?.data?.error?.message ?? 'Failed to cancel correction')
     },
   })
 }

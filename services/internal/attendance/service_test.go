@@ -112,15 +112,22 @@ func (f *fakeRepo) CreateCorrection(_ context.Context, orgID, empID uuid.UUID, d
 func (f *fakeRepo) GetCorrection(_ context.Context, orgID, correctionID uuid.UUID) (*attendance.Correction, error) {
 	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "pending"}, nil
 }
+func (f *fakeRepo) GetPendingCorrectionByDate(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Correction, error) {
+	return nil, apperr.NotFound("pending correction")
+}
 func (f *fakeRepo) ListCorrections(_ context.Context, _ uuid.UUID, _ attendance.ListCorrectionsFilter) ([]attendance.Correction, error) {
 	return []attendance.Correction{}, nil
 }
 func (f *fakeRepo) ApproveCorrection(_ context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*attendance.Correction, error) {
 	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "approved", ReviewedBy: &reviewerID}, nil
 }
+func (f *fakeRepo) ApproveCorrectionTx(_ context.Context, orgID, correctionID, reviewerID uuid.UUID, _ time.Time) (*attendance.Correction, error) {
+	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "approved", ReviewedBy: &reviewerID}, nil
+}
 func (f *fakeRepo) RejectCorrection(_ context.Context, orgID, correctionID, reviewerID uuid.UUID, reason *string, now time.Time) (*attendance.Correction, error) {
 	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "rejected", ReviewedBy: &reviewerID, RejectionReason: reason}, nil
 }
+func (f *fakeRepo) CancelCorrection(_ context.Context, _, _, _ uuid.UUID) error { return nil }
 func (f *fakeRepo) ApplyCorrection(_ context.Context, _ uuid.UUID, _ uuid.UUID, _, _ *time.Time) error {
 	return nil
 }

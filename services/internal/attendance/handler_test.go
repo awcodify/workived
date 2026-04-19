@@ -101,6 +101,7 @@ func (m *mockAttService) ApproveCorrection(_ context.Context, _, _, correctionID
 func (m *mockAttService) RejectCorrection(_ context.Context, _, _, correctionID uuid.UUID, req attendance.ReviewCorrectionRequest) (*attendance.Correction, error) {
 	return &attendance.Correction{ID: correctionID, Status: "rejected", RejectionReason: req.RejectionReason}, nil
 }
+func (m *mockAttService) CancelCorrection(_ context.Context, _, _, _ uuid.UUID) error { return nil }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

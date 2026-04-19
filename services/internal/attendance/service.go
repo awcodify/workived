@@ -36,9 +36,12 @@ type RepositoryInterface interface {
 	// Corrections
 	CreateCorrection(ctx context.Context, orgID, employeeID uuid.UUID, date string, recordID *uuid.UUID, origIn, origOut, reqIn, reqOut *time.Time, reason string) (*Correction, error)
 	GetCorrection(ctx context.Context, orgID, correctionID uuid.UUID) (*Correction, error)
+	GetPendingCorrectionByDate(ctx context.Context, orgID, employeeID uuid.UUID, date string) (*Correction, error)
 	ListCorrections(ctx context.Context, orgID uuid.UUID, f ListCorrectionsFilter) ([]Correction, error)
 	ApproveCorrection(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*Correction, error)
+	ApproveCorrectionTx(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*Correction, error)
 	RejectCorrection(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, rejectionReason *string, now time.Time) (*Correction, error)
+	CancelCorrection(ctx context.Context, orgID, correctionID, employeeID uuid.UUID) error
 	ApplyCorrection(ctx context.Context, orgID uuid.UUID, recordID uuid.UUID, clockIn, clockOut *time.Time) error
 }
 
@@ -1246,6 +1249,13 @@ func (s *Service) SubmitCorrection(ctx context.Context, orgID, employeeID uuid.U
 		return nil, apperr.New(apperr.CodeValidation, "at least one of requested_clock_in or requested_clock_out is required")
 	}
 
+	// Block if there is already a pending correction for this date.
+	if existing, err := s.repo.GetPendingCorrectionByDate(ctx, orgID, employeeID, req.Date); err == nil && existing != nil {
+		return nil, apperr.New(apperr.CodeConflict, "a pending correction already exists for this date — wait for it to be reviewed before submitting a new one")
+	} else if err != nil && !apperr.IsCode(err, apperr.CodeNotFound) {
+		return nil, fmt.Errorf("check pending correction: %w", err)
+	}
+
 	// Parse requested times (stored as UTC).
 	var reqIn, reqOut *time.Time
 	if req.RequestedClockIn != nil {
@@ -1301,27 +1311,23 @@ func (s *Service) GetCorrections(ctx context.Context, orgID uuid.UUID, f ListCor
 	return corrections, nil
 }
 
-// ApproveCorrection approves a pending correction and applies it to the attendance record.
+// ApproveCorrection approves a pending correction and atomically applies it to the attendance record.
 func (s *Service) ApproveCorrection(ctx context.Context, orgID, reviewerEmployeeID, correctionID uuid.UUID) (*Correction, error) {
 	now := s.now()
-	c, err := s.repo.ApproveCorrection(ctx, orgID, correctionID, reviewerEmployeeID, now)
+
+	// For existing records: approve + apply in one transaction so they cannot diverge.
+	c, err := s.repo.ApproveCorrectionTx(ctx, orgID, correctionID, reviewerEmployeeID, now)
 	if err != nil {
 		return nil, fmt.Errorf("approve correction: %w", err)
 	}
 
-	// Apply the corrected times to the attendance record.
-	if c.RecordID != nil {
-		// Existing record: update in-place.
-		if err := s.repo.ApplyCorrection(ctx, orgID, *c.RecordID, c.RequestedClockIn, c.RequestedClockOut); err != nil {
-			s.log.Error().Err(err).Str("correction_id", correctionID.String()).Msg("failed to apply correction to record")
-		}
-	} else if c.RequestedClockIn != nil {
-		// No record yet (employee was absent) — create one from the corrected clock-in.
+	// For absent days (no existing record): correction created new attendance record inside the tx
+	// only covers clock-in; handle clock-out separately if needed.
+	if c.RecordID == nil && c.RequestedClockIn != nil {
 		_, createErr := s.repo.Create(ctx, orgID, c.EmployeeID, c.Date, *c.RequestedClockIn, false, nil, nil, nil, nil)
 		if createErr != nil {
 			s.log.Error().Err(createErr).Str("correction_id", correctionID.String()).Msg("failed to create record from correction")
 		} else if c.RequestedClockOut != nil {
-			// Immediately apply clock-out on the newly created record.
 			newRec, getErr := s.repo.GetByEmployeeAndDate(ctx, orgID, c.EmployeeID, c.Date)
 			if getErr == nil {
 				if err := s.repo.ApplyCorrection(ctx, orgID, newRec.ID, nil, c.RequestedClockOut); err != nil {
@@ -1338,6 +1344,21 @@ func (s *Service) ApproveCorrection(ctx context.Context, orgID, reviewerEmployee
 		Msg("attendance.correction.approved")
 
 	return c, nil
+}
+
+// CancelCorrection lets the submitting employee cancel their own pending correction.
+func (s *Service) CancelCorrection(ctx context.Context, orgID, employeeID, correctionID uuid.UUID) error {
+	if err := s.repo.CancelCorrection(ctx, orgID, correctionID, employeeID); err != nil {
+		return fmt.Errorf("cancel correction: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("correction_id", correctionID.String()).
+		Str("employee_id", employeeID.String()).
+		Msg("attendance.correction.cancelled")
+
+	return nil
 }
 
 // RejectCorrection rejects a pending correction.

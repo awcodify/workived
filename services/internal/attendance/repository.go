@@ -3,6 +3,7 @@ package attendance
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -321,18 +322,39 @@ func (r *Repository) ListActiveEmployees(ctx context.Context, orgID uuid.UUID, d
 	return emps, rows.Err()
 }
 
+// weekRecordQuery is a reusable CTE fragment that merges attendance_records with
+// the latest approved correction for each record. Pending corrections are excluded —
+// they must not affect the displayed clock times until approved.
+const weekRecordCTE = `
+	WITH approved_corrections AS (
+		SELECT DISTINCT ON (record_id)
+		    record_id,
+		    requested_clock_in,
+		    requested_clock_out
+		FROM attendance_corrections
+		WHERE status = 'approved'
+		  AND record_id IS NOT NULL
+		ORDER BY record_id, created_at DESC
+	)
+`
+
 // ListByEmployeeMonth returns attendance records for a single employee in a given month.
+// Clock times reflect the latest approved correction (if any); pending corrections are ignored.
 func (r *Repository) ListByEmployeeMonth(ctx context.Context, orgID, employeeID uuid.UUID, year, month int) ([]Record, error) {
-	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, employee_id, date::text,
-		       clock_in_at, clock_out_at, is_late, is_leaving_early, is_overtime, is_corrected, note,
-		       created_at, updated_at
-		FROM attendance_records
-		WHERE organisation_id = $1
-		  AND employee_id = $2
-		  AND EXTRACT(YEAR FROM date) = $3
-		  AND EXTRACT(MONTH FROM date) = $4
-		ORDER BY date ASC
+	rows, err := r.db.Query(ctx, weekRecordCTE+`
+		SELECT ar.id, ar.organisation_id, ar.employee_id, ar.date::text,
+		       COALESCE(ac.requested_clock_in,  ar.clock_in_at)  AS clock_in_at,
+		       COALESCE(ac.requested_clock_out, ar.clock_out_at) AS clock_out_at,
+		       ar.is_late, ar.is_leaving_early, ar.is_overtime,
+		       ar.is_corrected OR (ac.record_id IS NOT NULL)     AS is_corrected,
+		       ar.note, ar.created_at, ar.updated_at
+		FROM attendance_records ar
+		LEFT JOIN approved_corrections ac ON ac.record_id = ar.id
+		WHERE ar.organisation_id = $1
+		  AND ar.employee_id = $2
+		  AND EXTRACT(YEAR FROM ar.date) = $3
+		  AND EXTRACT(MONTH FROM ar.date) = $4
+		ORDER BY ar.date ASC
 	`, orgID, employeeID, year, month)
 	if err != nil {
 		return nil, err
@@ -355,23 +377,26 @@ func (r *Repository) ListByEmployeeMonth(ctx context.Context, orgID, employeeID 
 }
 
 // ListByEmployeesDateRange returns attendance records for multiple employees within a date range.
-// This is optimized for batch lookups (e.g., team week attendance view).
-// startDate and endDate must be in YYYY-MM-DD format.
+// Clock times reflect the latest approved correction (if any); pending corrections are ignored.
 func (r *Repository) ListByEmployeesDateRange(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) ([]Record, error) {
 	if len(employeeIDs) == 0 {
 		return []Record{}, nil
 	}
 
-	rows, err := r.db.Query(ctx, `
-		SELECT id, organisation_id, employee_id, date::text,
-		       clock_in_at, clock_out_at, is_late, is_leaving_early, is_overtime, is_corrected, note,
-		       created_at, updated_at
-		FROM attendance_records
-		WHERE organisation_id = $1
-		  AND employee_id = ANY($2)
-		  AND date >= $3::date
-		  AND date <= $4::date
-		ORDER BY employee_id, date ASC
+	rows, err := r.db.Query(ctx, weekRecordCTE+`
+		SELECT ar.id, ar.organisation_id, ar.employee_id, ar.date::text,
+		       COALESCE(ac.requested_clock_in,  ar.clock_in_at)  AS clock_in_at,
+		       COALESCE(ac.requested_clock_out, ar.clock_out_at) AS clock_out_at,
+		       ar.is_late, ar.is_leaving_early, ar.is_overtime,
+		       ar.is_corrected OR (ac.record_id IS NOT NULL)     AS is_corrected,
+		       ar.note, ar.created_at, ar.updated_at
+		FROM attendance_records ar
+		LEFT JOIN approved_corrections ac ON ac.record_id = ar.id
+		WHERE ar.organisation_id = $1
+		  AND ar.employee_id = ANY($2)
+		  AND ar.date >= $3::date
+		  AND ar.date <= $4::date
+		ORDER BY ar.employee_id, ar.date ASC
 	`, orgID, employeeIDs, startDate, endDate)
 	if err != nil {
 		return nil, err
@@ -564,6 +589,25 @@ func (r *Repository) CreateCorrection(ctx context.Context, orgID, employeeID uui
 	return scanCorrection(row)
 }
 
+// GetPendingCorrectionByDate returns a pending correction for a specific employee + date, or NotFound.
+func (r *Repository) GetPendingCorrectionByDate(ctx context.Context, orgID, employeeID uuid.UUID, date string) (*Correction, error) {
+	row := r.db.QueryRow(ctx, `
+		SELECT `+correctionSelectCols+`
+		FROM attendance_corrections c
+		LEFT JOIN employees e ON e.id = c.employee_id
+		WHERE c.organisation_id = $1
+		  AND c.employee_id = $2
+		  AND c.date = $3::date
+		  AND c.status = 'pending'
+		LIMIT 1
+	`, orgID, employeeID, date)
+	c, err := scanCorrection(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apperr.NotFound("pending correction")
+	}
+	return c, err
+}
+
 // GetCorrection returns a single correction by ID, scoped to org.
 func (r *Repository) GetCorrection(ctx context.Context, orgID, correctionID uuid.UUID) (*Correction, error) {
 	row := r.db.QueryRow(ctx, `
@@ -632,6 +676,60 @@ func (r *Repository) ApproveCorrection(ctx context.Context, orgID, correctionID,
 	return c, err
 }
 
+// ApproveCorrectionTx atomically approves a correction AND applies the corrected times
+// to the attendance record within a single transaction. If either step fails, both roll back.
+func (r *Repository) ApproveCorrectionTx(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*Correction, error) {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("begin tx: %w", err)
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck
+
+	row := tx.QueryRow(ctx, `
+		UPDATE attendance_corrections SET
+		    status = 'approved',
+		    reviewed_by = $3,
+		    reviewed_at = $4,
+		    updated_at = $4
+		WHERE organisation_id = $1 AND id = $2 AND status = 'pending'
+		RETURNING id, organisation_id, employee_id,
+		    (SELECT full_name FROM employees WHERE id = employee_id),
+		    record_id, date::text,
+		    original_clock_in, original_clock_out,
+		    requested_clock_in, requested_clock_out,
+		    reason, status,
+		    reviewed_by, reviewed_at, rejection_reason,
+		    created_at, updated_at
+	`, orgID, correctionID, reviewerID, now)
+	c, err := scanCorrection(row)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, apperr.New(apperr.CodeConflict, "correction is not pending or does not exist")
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply corrected times to attendance record within the same transaction.
+	if c.RecordID != nil {
+		_, err = tx.Exec(ctx, `
+			UPDATE attendance_records SET
+			    clock_in_at  = COALESCE($3, clock_in_at),
+			    clock_out_at = $4,
+			    is_corrected = TRUE,
+			    updated_at   = NOW()
+			WHERE organisation_id = $1 AND id = $2
+		`, orgID, *c.RecordID, c.RequestedClockIn, c.RequestedClockOut)
+		if err != nil {
+			return nil, fmt.Errorf("apply correction to record: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("commit tx: %w", err)
+	}
+	return c, nil
+}
+
 // RejectCorrection sets status=rejected and records reviewer + reason.
 func (r *Repository) RejectCorrection(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, rejectionReason *string, now time.Time) (*Correction, error) {
 	row := r.db.QueryRow(ctx, `
@@ -656,6 +754,26 @@ func (r *Repository) RejectCorrection(ctx context.Context, orgID, correctionID, 
 		return nil, apperr.New(apperr.CodeConflict, "correction is not pending or does not exist")
 	}
 	return c, err
+}
+
+// CancelCorrection cancels a pending correction. Only the employee who submitted it can cancel it.
+func (r *Repository) CancelCorrection(ctx context.Context, orgID, correctionID, employeeID uuid.UUID) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE attendance_corrections SET
+		    status     = 'cancelled',
+		    updated_at = NOW()
+		WHERE organisation_id = $1
+		  AND id               = $2
+		  AND employee_id      = $3
+		  AND status           = 'pending'
+	`, orgID, correctionID, employeeID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return apperr.New(apperr.CodeNotFound, "pending correction not found or already reviewed")
+	}
+	return nil
 }
 
 // ApplyCorrection updates the attendance_record with the corrected times.

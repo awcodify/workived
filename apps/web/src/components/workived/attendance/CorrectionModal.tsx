@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
 import { useSubmitCorrection } from '@/lib/hooks/useAttendance'
+import { orgTimeToUTC, formatDate } from '@/lib/utils/date'
 import { moduleThemes } from '@/design/tokens'
 import { X, Clock } from 'lucide-react'
 import type { WeekDay } from '@/types/api'
@@ -23,9 +24,10 @@ type CorrectionForm = z.infer<typeof correctionSchema>
 interface CorrectionModalProps {
   day: WeekDay
   onClose: () => void
+  tz?: string
 }
 
-export function CorrectionModal({ day, onClose }: CorrectionModalProps) {
+export function CorrectionModal({ day, onClose, tz = 'UTC' }: CorrectionModalProps) {
   const { mutate: submit, isPending } = useSubmitCorrection()
   const [submitted, setSubmitted] = useState(false)
 
@@ -36,7 +38,7 @@ export function CorrectionModal({ day, onClose }: CorrectionModalProps) {
   const onSubmit = (data: CorrectionForm) => {
     const toISO = (localTime: string) => {
       if (!localTime) return undefined
-      return new Date(`${day.date}T${localTime}:00`).toISOString()
+      return orgTimeToUTC(day.date, localTime, tz)
     }
 
     submit(
@@ -119,13 +121,13 @@ export function CorrectionModal({ day, onClose }: CorrectionModalProps) {
                 <div>
                   <p className="text-[10px] font-bold uppercase" style={{ color: t.textMuted }}>Clock In</p>
                   <p className="text-sm font-bold" style={{ color: t.text }}>
-                    {day.clock_in_at ? new Date(day.clock_in_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    {day.clock_in_at ? formatDate(day.clock_in_at, tz, 'time') : '—'}
                   </p>
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase" style={{ color: t.textMuted }}>Clock Out</p>
                   <p className="text-sm font-bold" style={{ color: t.text }}>
-                    {day.clock_out_at ? new Date(day.clock_out_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}
+                    {day.clock_out_at ? formatDate(day.clock_out_at, tz, 'time') : '—'}
                   </p>
                 </div>
               </div>

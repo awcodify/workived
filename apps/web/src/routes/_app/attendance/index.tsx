@@ -3,7 +3,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
-import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules, useDailyReport, useCorrections } from '@/lib/hooks/useAttendance'
+import { useMyWeek, useTeamWeek, useAllWeek, useWorkSchedules, useDailyReport } from '@/lib/hooks/useAttendance'
 import { useMyEmployee } from '@/lib/hooks/useEmployees'
 import { LocationAnalyticsWidget } from '@/components/workived/attendance/LocationAnalyticsWidget'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
@@ -11,7 +11,6 @@ import { TeamMapView } from '@/components/workived/attendance/TeamMapView'
 import { useCanManageEmployees } from '@/lib/hooks/useRole'
 import { todayISO, formatDate, getMondayOfWeek } from '@/lib/utils/date'
 import { Avatar } from '@/components/workived/layout/Avatar'
-import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
 import { moduleBackgrounds, moduleThemes, typography, colors } from '@/design/tokens'
 import { ChevronLeft, ChevronRight, Clock, Check, ChevronDown, Map, List } from 'lucide-react'
 import { Skeleton } from '@/components/workived/shared/Skeleton'
@@ -62,12 +61,10 @@ function AttendancePage() {
   // Attendance detail expand (row click)
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null)
 
-  // Correction modals
+  // Correction modal (submit new correction)
   const [correctionDay, setCorrectionDay] = useState<import('@/types/api').WeekDay | null>(null)
-  const [correctionsOpen, setCorrectionsOpen] = useState(false)
 
   // Sprint 12: Show others toggle
-  const [showOthers, setShowOthers] = useState(true)
   
   // Filter by clock-in status
   const [clockInFilter, setClockInFilter] = useState<'all' | 'clocked-in'>('all')
@@ -135,24 +132,16 @@ function AttendancePage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [scheduleDropdownOpen])
 
-  // Get employee list based on toggle and role
+  // Get employee list based on role
   const getEmployeeList = () => {
-    // If toggle is off or no team/all data, show empty (can add "my" later if needed)
     let employees = []
-    
-    if (!showOthers) {
-      // Show only my attendance as a single-item array
-      employees = myWeek ? [{ employee_id: 'me', employee_name: 'Me', week: myWeek }] : []
+
+    if (role.canViewAll) {
+      employees = allWeek ?? []
+    } else if (role.canViewTeam) {
+      employees = teamWeek ?? []
     } else {
-      // Show all employees based on role
-      if (role.canViewAll) {
-        employees = allWeek ?? []
-      } else if (role.canViewTeam) {
-        employees = teamWeek ?? []
-      } else {
-        // Default: show only my week
-        employees = myWeek ? [{ employee_id: 'me', employee_name: 'Me', week: myWeek }] : []
-      }
+      employees = myWeek ? [{ employee_id: 'me', employee_name: 'Me', week: myWeek }] : []
     }
 
     // Apply clock-in filter for selected date
@@ -354,8 +343,8 @@ function AttendancePage() {
           </div>
         </div>
         
-        {/* Right side: DateTime and Notification */}
-        <div className="flex items-center gap-4">
+        {/* Right side: DateTime + Notification */}
+        <div className="flex items-center gap-3">
           <DateTime
             textColor={t.text}
             textMutedColor={t.textMuted}
@@ -372,256 +361,9 @@ function AttendancePage() {
       </div>
       </div>
 
-      {/* Filters Row */}
-      <div className="flex items-center justify-end gap-3 mb-6">
-          {/* Corrections button (manager/admin) */}
-          {(role.canViewTeam || role.canViewAll) && (
-            <button
-              data-testid="attendance-corrections-btn"
-              onClick={() => setCorrectionsOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all text-xs font-bold"
-              style={{ background: t.surface, color: t.text, border: `1px solid ${t.border}` }}
-            >
-              <Clock size={14} />
-              Corrections
-            </button>
-          )}
-          {/* Clock-in Filter */}
-          <div className="flex items-center gap-2 p-1 rounded-lg" style={{ background: t.border }}>
-            <button
-              onClick={() => setClockInFilter('all')}
-              data-testid="attendance-filter-all-btn"
-              className="px-4 py-2 text-xs font-bold rounded-md transition-all"
-              style={{
-                background: clockInFilter === 'all' ? t.surface : 'transparent',
-                color: clockInFilter === 'all' ? t.text : t.textMuted,
-              }}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setClockInFilter('clocked-in')}
-              data-testid="attendance-filter-clocked-in-btn"
-              className="px-4 py-2 text-xs font-bold rounded-md transition-all"
-              style={{
-                background: clockInFilter === 'clocked-in' ? t.surface : 'transparent',
-                color: clockInFilter === 'clocked-in' ? t.text : t.textMuted,
-              }}
-            >
-              Clocked In
-            </button>
-          </div>
-
-          {/* Schedule Filter */}
-          {workSchedules.length > 1 && (
-            <div className="relative" data-schedule-dropdown>
-              <button
-                onClick={() => setScheduleDropdownOpen(!scheduleDropdownOpen)}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-lg transition-all"
-                style={{
-                  background: scheduleFilters.length > 0 ? t.surface : 'transparent',
-                  color: scheduleFilters.length > 0 ? t.text : t.textMuted,
-                  border: `1px solid ${t.border}`,
-                }}
-              >
-                <Clock size={14} />
-                <span className="text-xs font-bold">
-                  {scheduleFilters.length === 0 ? 'All schedules' : scheduleFilters.length === 1 ? scheduleFilters[0] : `${scheduleFilters.length} schedules`}
-                </span>
-                <ChevronDown 
-                  size={14} 
-                  style={{ 
-                    transition: 'transform 0.2s',
-                    transform: scheduleDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)'
-                  }} 
-                />
-              </button>
-
-              {scheduleDropdownOpen && (
-                <div
-                  className="absolute top-full right-0 mt-2 rounded-lg shadow-lg z-50 py-1 min-w-[220px]"
-                  style={{
-                    background: t.surface,
-                    border: `1px solid ${t.border}`,
-                  }}
-                >
-                  {/* All schedules option */}
-                  <button
-                    onClick={() => {
-                      setScheduleFilters([])
-                      setScheduleDropdownOpen(false)
-                    }}
-                    className="w-full px-4 py-2.5 text-left hover:bg-black/5 transition-colors flex items-center justify-between"
-                  >
-                    <span className="text-sm font-semibold" style={{ color: t.text }}>
-                      All schedules
-                    </span>
-                    {scheduleFilters.length === 0 && (
-                      <Check size={14} style={{ color: colors.accent }} />
-                    )}
-                  </button>
-
-                  <div className="h-px my-1" style={{ background: t.border }} />
-
-                  {/* Individual schedules */}
-                  {workSchedules.map((ws) => {
-                    const dayNames = [...ws.work_days]
-                      .sort((a, b) => a - b)
-                      .map((d) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][d])
-                      .join(', ')
-                    
-                    return (
-                      <button
-                        key={ws.id}
-                        onClick={() => {
-                          setScheduleFilters(prev =>
-                            prev.includes(ws.name) ? prev.filter(n => n !== ws.name) : [...prev, ws.name]
-                          )
-                        }}
-                        className="w-full px-4 py-2.5 text-left hover:bg-black/5 transition-colors"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-sm font-semibold" style={{ color: t.text }}>
-                                {ws.name}
-                              </span>
-                              {ws.is_default && (
-                                <span
-                                  className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded"
-                                  style={{ background: `${colors.accent}20`, color: colors.accent }}
-                                >
-                                  Default
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px]" style={{ color: t.textMuted }}>
-                              {dayNames} • {ws.start_time.slice(0, 5)}–{ws.end_time.slice(0, 5)}
-                            </p>
-                          </div>
-                          {scheduleFilters.includes(ws.name) && (
-                            <Check size={14} style={{ color: colors.accent }} className="flex-shrink-0 mt-0.5" />
-                          )}
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Show All Employees Toggle */}
-          {(role.canViewTeam || role.canViewAll) && (
-          <button
-            onClick={() => setShowOthers(!showOthers)}
-            data-testid="attendance-show-all-btn"
-            className="flex items-center gap-3 px-5 py-2.5 rounded-lg transition-all"
-            style={{
-              background: showOthers ? t.accent : t.surface,
-              color: showOthers ? t.accentText : t.text,
-              border: `1px solid ${t.border}`,
-            }}
-          >
-            <span className="text-sm font-bold">
-              Show All Employees
-            </span>
-            <div
-              className="w-11 h-6 rounded-full relative transition-all"
-              style={{
-                background: showOthers ? t.accentText : t.border,
-              }}
-            >
-              <div
-                className="absolute top-0.5 w-5 h-5 rounded-full shadow transition-all"
-                style={{
-                  background: showOthers ? t.accent : t.surface,
-                  left: showOthers ? '22px' : '2px',
-                }}
-              />
-            </div>
-          </button>
-          )}
-      </div>
-
       {/* 2-Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-6">
-        {/* LEFT COLUMN: Attendance Card */}
-        <div>
-          <div className="sticky top-6">
-            <AttendanceCard variant="light" />
-
-            {/* Schedule list */}
-            {workSchedules.length > 0 && (
-              <div
-                className="mt-6 rounded-2xl p-4"
-                style={{ background: t.surface, border: `1px solid ${t.border}` }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: t.textMuted }}>
-                    Work Schedules
-                  </h3>
-                  <button
-                    onClick={() => setSchedulesOpen(true)}
-                    className="text-[10px] font-bold uppercase px-2 py-1 rounded-md hover:bg-black/5 transition-colors"
-                    style={{ color: colors.accent }}
-                  >
-                    Manage
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {workSchedules.map((ws) => {
-                    const dayNames = [...ws.work_days]
-                      .sort((a, b) => a - b)
-                      .map((d) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][d])
-                      .join(', ')
-                    const isSelected = scheduleFilters.includes(ws.name)
-                    return (
-                      <button
-                        key={ws.id}
-                        onClick={() => setScheduleFilters(prev =>
-                          prev.includes(ws.name) ? prev.filter(n => n !== ws.name) : [...prev, ws.name]
-                        )}
-                        className="w-full rounded-lg px-3 py-2.5 text-left transition-all hover:bg-black/5"
-                        style={{
-                          border: `1px solid ${isSelected ? colors.accent : t.border}`,
-                          background: isSelected ? `${colors.accent}10` : 'transparent',
-                        }}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-semibold" style={{ color: isSelected ? colors.accent : t.text }}>
-                            {ws.name}
-                          </span>
-                          {ws.is_default && (
-                            <span
-                              className="text-[9px] font-bold uppercase px-1 py-0.5 rounded"
-                              style={{ background: `${colors.accent}20`, color: colors.accent }}
-                            >
-                              Default
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-[11px] mt-0.5" style={{ color: t.textMuted }}>
-                          {dayNames} &middot; {ws.start_time.slice(0, 5)}&ndash;{ws.end_time.slice(0, 5)}
-                        </p>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Corrections widget */}
-            <CorrectionsWidget onViewAll={() => setCorrectionsOpen(true)} />
-
-            {/* Location Analytics Widget — admin only */}
-            {role.canViewAll && (
-              <LocationAnalyticsWidget className="mt-6" />
-            )}
-          </div>
-        </div>
-
-        {/* RIGHT COLUMN: Week Calendar + Employee Table (Wider) */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6">
+        {/* LEFT COLUMN: Week Calendar + Employee Table */}
         <div className="space-y-6">
           {/* Week Calendar Navigation */}
           <div 
@@ -727,124 +469,253 @@ function AttendancePage() {
             </div>
           </div>
 
-          {/* Map / List toggle (admin only, desktop only) */}
-          {role.canViewAll && (
-            <div className="flex items-center justify-end">
-              <div className="flex items-center gap-1 p-1 rounded-lg" style={{ background: t.border }}>
-                <button
-                  onClick={() => setViewMode('list')}
-                  data-testid="attendance-view-list-btn"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all"
-                  style={{
-                    background: viewMode === 'list' ? t.surface : 'transparent',
-                    color: viewMode === 'list' ? t.text : t.textMuted,
-                  }}
-                >
-                  <List size={13} />
-                  List
-                </button>
-                <button
-                  onClick={() => setViewMode('map')}
-                  data-testid="attendance-view-map-btn"
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-md transition-all"
-                  style={{
-                    background: viewMode === 'map' ? t.surface : 'transparent',
-                    color: viewMode === 'map' ? t.text : t.textMuted,
-                  }}
-                >
-                  <Map size={13} />
-                  Map
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Guide row — above table only in list mode */}
-          {viewMode === 'list' && (
-            <div className="flex items-center gap-3 px-1" style={{ color: t.textMuted }}>
-              <span className="text-[11px]">↓ Click a row to see details and request a correction</span>
-              <span className="text-[11px] opacity-30">·</span>
-              <span
-                className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded"
-                style={{ background: `${colors.accent}15`, color: colors.accent }}
-              >
-                ✎ corrected
-              </span>
-              <span className="text-[11px]">= time was corrected via a correction request</span>
-            </div>
-          )}
-
-          {/* Map view */}
-          {viewMode === 'map' && role.canViewAll ? (
-            <div
-              className="p-5"
-              style={{
-                background: t.surface,
-                borderRadius: 16,
-                border: `1px solid ${t.border}`,
-              }}
-            >
-              <TeamMapView entries={dailyEntries} date={date} timezone={tz} />
-            </div>
-          ) : (
-          /* Employee Attendance Table */
+          {/* Table + Map unified card */}
           <div
             className="overflow-hidden"
-            style={{
-              background: t.surface,
-              borderRadius: 16,
-              border: `1px solid ${t.border}`,
-            }}
+            style={{ background: t.surface, borderRadius: 16, border: `1px solid ${t.border}` }}
           >
-            {/* Table Header */}
-            <div
-              className="px-6 py-4 border-b"
-              style={{ borderColor: t.border }}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-10 flex-shrink-0"></div>
-                <div className="flex-1 min-w-0 text-sm font-bold" style={{ color: t.text }}>Employee</div>
-                <div className="w-28 flex-shrink-0 text-sm font-bold text-center" style={{ color: t.text }}>Clock In</div>
-                <div className="w-28 flex-shrink-0 text-sm font-bold text-center" style={{ color: t.text }}>Clock Out</div>
-              </div>
-            </div>
+            {/* Header: guide left · filters + toggle right */}
+            <div className="px-4 py-3 border-b flex items-center gap-3" style={{ borderColor: t.border }}>
+              {/* Guide text */}
+              <p className="text-[11px] flex-1" style={{ color: t.textMuted }}>
+                Click on an employee to see attendance detail or request a correction
+              </p>
 
-            {/* Table Body */}
-            <div>
-              {isLoading ? (
-                <AttendanceTableSkeleton />
-              ) : (
-                <>
-                  {getEmployeeList().map((employee) => {
-                    const isMe = myEmployeeId ? employee.employee_id === myEmployeeId : employee.employee_id === 'me'
-                    const isExpanded = expandedRowId === employee.employee_id
-                    return (
-                      <EmployeeRow
-                        key={employee.employee_id}
-                        employee={employee}
-                        date={date}
-                        tz={tz}
-                        isMe={isMe}
-                        isExpanded={isExpanded}
-                        onClick={() => setExpandedRowId(isExpanded ? null : employee.employee_id)}
-                        onRequestCorrection={isMe ? (day) => setCorrectionDay(day) : undefined}
-                      />
-                    )
-                  })}
-                </>
+              {/* Right: schedule + clock-in filters (list mode only) + List/Map toggle */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {viewMode === 'list' && (
+                  <>
+                    {/* Schedule filter */}
+                    {workSchedules.length > 1 && (
+                      <div className="relative" data-schedule-dropdown>
+                        <button
+                          onClick={() => setScheduleDropdownOpen(!scheduleDropdownOpen)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                          style={{
+                            background: scheduleFilters.length > 0 ? `${colors.accent}15` : 'transparent',
+                            color: scheduleFilters.length > 0 ? colors.accent : t.textMuted,
+                            border: `1px solid ${scheduleFilters.length > 0 ? colors.accent : t.border}`,
+                          }}
+                        >
+                          <Clock size={12} />
+                          {scheduleFilters.length === 0 ? 'Schedule' : scheduleFilters.length === 1 ? scheduleFilters[0] : `${scheduleFilters.length} schedules`}
+                          <ChevronDown size={12} style={{ transform: scheduleDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                        </button>
+                        {scheduleDropdownOpen && (
+                          <div
+                            className="absolute top-full right-0 mt-1 rounded-lg shadow-lg z-50 py-1 min-w-[200px]"
+                            style={{ background: t.surface, border: `1px solid ${t.border}` }}
+                          >
+                            <button
+                              onClick={() => { setScheduleFilters([]); setScheduleDropdownOpen(false) }}
+                              className="w-full px-4 py-2 text-left flex items-center justify-between hover:bg-black/5"
+                            >
+                              <span className="text-xs font-semibold" style={{ color: t.text }}>All schedules</span>
+                              {scheduleFilters.length === 0 && <Check size={13} style={{ color: colors.accent }} />}
+                            </button>
+                            <div className="h-px my-1" style={{ background: t.border }} />
+                            {workSchedules.map((ws) => (
+                              <button
+                                key={ws.id}
+                                onClick={() => setScheduleFilters(prev =>
+                                  prev.includes(ws.name) ? prev.filter(n => n !== ws.name) : [...prev, ws.name]
+                                )}
+                                className="w-full px-4 py-2 text-left flex items-center justify-between hover:bg-black/5"
+                              >
+                                <span className="text-xs font-semibold" style={{ color: t.text }}>{ws.name}</span>
+                                {scheduleFilters.includes(ws.name) && <Check size={13} style={{ color: colors.accent }} />}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Clock-in filter */}
+                    <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: t.border }}>
+                      <button
+                        onClick={() => setClockInFilter('all')}
+                        data-testid="attendance-filter-all-btn"
+                        className="px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                        style={{
+                          background: clockInFilter === 'all' ? t.surface : 'transparent',
+                          color: clockInFilter === 'all' ? t.text : t.textMuted,
+                        }}
+                      >
+                        All
+                      </button>
+                      <button
+                        onClick={() => setClockInFilter('clocked-in')}
+                        data-testid="attendance-filter-clocked-in-btn"
+                        className="px-3 py-1.5 text-xs font-bold rounded-md transition-all"
+                        style={{
+                          background: clockInFilter === 'clocked-in' ? t.surface : 'transparent',
+                          color: clockInFilter === 'clocked-in' ? t.text : t.textMuted,
+                        }}
+                      >
+                        Clocked In
+                      </button>
+                    </div>
+                  </>
+                )}
+
+              {/* List/Map toggle — admin only, always visible */}
+              {role.canViewAll && (
+                <div className="flex items-center gap-1 p-0.5 rounded-lg" style={{ background: t.border }}>
+                  <button
+                    onClick={() => setViewMode('list')}
+                    data-testid="attendance-view-list-btn"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-md transition-all"
+                    style={{
+                      background: viewMode === 'list' ? t.surface : 'transparent',
+                      color: viewMode === 'list' ? t.text : t.textMuted,
+                    }}
+                  >
+                    <List size={12} />
+                    List
+                  </button>
+                  <button
+                    onClick={() => setViewMode('map')}
+                    data-testid="attendance-view-map-btn"
+                    className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold rounded-md transition-all"
+                    style={{
+                      background: viewMode === 'map' ? t.surface : 'transparent',
+                      color: viewMode === 'map' ? t.text : t.textMuted,
+                    }}
+                  >
+                    <Map size={12} />
+                    Map
+                  </button>
+                </div>
               )}
+              </div>
             </div>
 
-            {/* Empty State */}
-            {!isLoading && getEmployeeList().length === 0 && (
-              <div className="px-6 py-12 text-center" data-testid="attendance-empty">
-                <p className="text-sm font-bold" style={{ color: t.textMuted }}>
-                  No employees to display
-                </p>
+            {viewMode === 'map' && role.canViewAll ? (
+              <div className="p-5">
+                <TeamMapView entries={dailyEntries} date={date} timezone={tz} />
               </div>
+            ) : (
+              <>
+                {/* Column labels */}
+                <div className="px-6 py-3 border-b" style={{ borderColor: t.border }}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 flex-shrink-0"></div>
+                    <div className="flex-1 min-w-0 text-xs font-bold uppercase tracking-wide" style={{ color: t.textMuted }}>Employee</div>
+                    <div className="w-28 flex-shrink-0 text-xs font-bold uppercase tracking-wide text-center" style={{ color: t.textMuted }}>Clock In</div>
+                    <div className="w-28 flex-shrink-0 text-xs font-bold uppercase tracking-wide text-center" style={{ color: t.textMuted }}>Clock Out</div>
+                  </div>
+                </div>
+
+                {/* Table Body */}
+                <div>
+                  {isLoading ? (
+                    <AttendanceTableSkeleton />
+                  ) : (
+                    <>
+                      {getEmployeeList().map((employee) => {
+                        const isMe = myEmployeeId ? employee.employee_id === myEmployeeId : employee.employee_id === 'me'
+                        const isExpanded = expandedRowId === employee.employee_id
+                        return (
+                          <EmployeeRow
+                            key={employee.employee_id}
+                            employee={employee}
+                            date={date}
+                            tz={tz}
+                            isMe={isMe}
+                            isExpanded={isExpanded}
+                            onClick={() => setExpandedRowId(isExpanded ? null : employee.employee_id)}
+                            onRequestCorrection={isMe ? (day) => setCorrectionDay(day) : undefined}
+                          />
+                        )
+                      })}
+                    </>
+                  )}
+                </div>
+
+                {/* Empty State */}
+                {!isLoading && getEmployeeList().length === 0 && (
+                  <div className="px-6 py-12 text-center" data-testid="attendance-empty">
+                    <p className="text-sm font-bold" style={{ color: t.textMuted }}>No employees to display</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
-          )}
+        </div>
+
+        {/* RIGHT COLUMN: Work Schedules + Corrections + Location Analytics */}
+        <div>
+          <div className="sticky top-6 space-y-6">
+            {/* Work Schedules */}
+            {workSchedules.length > 0 && (
+              <div
+                className="rounded-2xl p-4"
+                style={{ background: t.surface, border: `1px solid ${t.border}` }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: t.textMuted }}>
+                    Work Schedules
+                  </h3>
+                  <button
+                    onClick={() => setSchedulesOpen(true)}
+                    data-testid="attendance-schedules-manage-btn"
+                    className="text-[10px] font-bold uppercase px-2 py-1 rounded-md hover:bg-black/5 transition-colors"
+                    style={{ color: colors.accent }}
+                  >
+                    Manage
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {workSchedules.map((ws) => {
+                    const dayNames = [...ws.work_days]
+                      .sort((a, b) => a - b)
+                      .map((d) => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'][d])
+                      .join(', ')
+                    const isSelected = scheduleFilters.includes(ws.name)
+                    return (
+                      <button
+                        key={ws.id}
+                        onClick={() => setScheduleFilters(prev =>
+                          prev.includes(ws.name) ? prev.filter(n => n !== ws.name) : [...prev, ws.name]
+                        )}
+                        className="w-full rounded-lg px-3 py-2.5 text-left transition-all hover:bg-black/5"
+                        style={{
+                          border: `1px solid ${isSelected ? colors.accent : t.border}`,
+                          background: isSelected ? `${colors.accent}10` : 'transparent',
+                        }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold" style={{ color: isSelected ? colors.accent : t.text }}>
+                            {ws.name}
+                          </span>
+                          {ws.is_default && (
+                            <span
+                              className="text-[9px] font-bold uppercase px-1 py-0.5 rounded"
+                              style={{ background: `${colors.accent}20`, color: colors.accent }}
+                            >
+                              Default
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] mt-0.5" style={{ color: t.textMuted }}>
+                          {dayNames} &middot; {ws.start_time.slice(0, 5)}&ndash;{ws.end_time.slice(0, 5)}
+                        </p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Corrections inline panel */}
+            <CorrectionsPanel tz={tz} />
+
+            {/* Location Analytics — admin only */}
+            {role.canViewAll && (
+              <LocationAnalyticsWidget />
+            )}
+          </div>
         </div>
       </div>
 
@@ -856,101 +727,14 @@ function AttendancePage() {
         <CorrectionModal
           day={correctionDay}
           onClose={() => setCorrectionDay(null)}
+          tz={tz}
         />
-      )}
-
-      {correctionsOpen && (
-        <CorrectionsPanel onClose={() => setCorrectionsOpen(false)} />
       )}
     </div>
   )
 }
 
 // ── Subcomponents ──────────────────────────────────────────────
-
-// Corrections Widget — sidebar, shows 3 latest pending corrections
-function CorrectionsWidget({ onViewAll }: { onViewAll: () => void }) {
-  const { data: corrections = [], isLoading } = useCorrections()
-  const pending = corrections.filter((c) => c.status === 'pending')
-  const latest = pending.slice(0, 3)
-
-  if (isLoading) return null
-  if (corrections.length === 0) return null
-
-  return (
-    <div
-      className="mt-6 rounded-2xl p-4"
-      style={{ background: t.surface, border: `1px solid ${t.border}` }}
-      data-testid="corrections-widget"
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: t.textMuted }}>
-            Corrections
-          </h3>
-          {pending.length > 0 && (
-            <span
-              className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
-              style={{ background: colors.warnDim, color: colors.warnText }}
-            >
-              {pending.length} pending
-            </span>
-          )}
-        </div>
-        <button
-          onClick={onViewAll}
-          data-testid="corrections-widget-view-all-btn"
-          className="text-[10px] font-bold uppercase px-2 py-1 rounded-md hover:bg-black/5 transition-colors"
-          style={{ color: colors.accent }}
-        >
-          View all
-        </button>
-      </div>
-
-      {latest.length === 0 ? (
-        <p className="text-xs text-center py-2" style={{ color: t.textMuted }}>No pending corrections</p>
-      ) : (
-        <div className="space-y-2">
-          {latest.map((c) => (
-            <button
-              key={c.id}
-              data-testid={`correction-widget-item-${c.id}`}
-              onClick={onViewAll}
-              className="w-full rounded-lg px-3 py-2.5 text-left hover:bg-black/5 transition-colors"
-              style={{ border: `1px solid ${t.border}` }}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  <p className="text-xs font-bold truncate" style={{ color: t.text }}>{c.employee_name}</p>
-                  <p className="text-[10px] mt-0.5" style={{ color: t.textMuted }}>{c.date}</p>
-                </div>
-                <span
-                  className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full flex-shrink-0"
-                  style={{ background: colors.warnDim, color: colors.warnText }}
-                >
-                  pending
-                </span>
-              </div>
-              {c.reason && (
-                <p className="text-[10px] mt-1 truncate" style={{ color: t.textMuted }}>"{c.reason}"</p>
-              )}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {pending.length > 3 && (
-        <button
-          onClick={onViewAll}
-          className="w-full mt-2 py-2 text-[11px] font-bold rounded-lg hover:bg-black/5 transition-colors"
-          style={{ color: colors.accent }}
-        >
-          +{pending.length - 3} more corrections →
-        </button>
-      )}
-    </div>
-  )
-}
 
 // Day Button for Horizontal Week Calendar
 interface DayButtonProps {

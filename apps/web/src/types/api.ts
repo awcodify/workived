@@ -411,7 +411,7 @@ export interface AttendanceCorrection {
   requested_clock_in?: string
   requested_clock_out?: string
   reason: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
   reviewed_by?: string
   reviewed_at?: string
   rejection_reason?: string

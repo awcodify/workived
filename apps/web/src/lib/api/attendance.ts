@@ -69,12 +69,17 @@ export const attendanceApi = {
   submitCorrection: (data: SubmitCorrectionRequest) =>
     apiClient.post<ApiResponse<AttendanceCorrection>>('/api/v1/attendance/corrections', data),
 
-  listCorrections: (status?: string) =>
-    apiClient.get<ApiResponse<AttendanceCorrection[]>>('/api/v1/attendance/corrections', { params: status ? { status } : undefined }),
+  listCorrections: (status?: string, mine?: boolean) =>
+    apiClient.get<ApiResponse<AttendanceCorrection[]>>('/api/v1/attendance/corrections', {
+      params: { ...(status ? { status } : {}), ...(mine ? { mine: 'true' } : {}) },
+    }),
 
   approveCorrection: (id: string) =>
     apiClient.patch<ApiResponse<AttendanceCorrection>>(`/api/v1/attendance/corrections/${id}/approve`),
 
   rejectCorrection: (id: string, rejection_reason?: string) =>
     apiClient.patch<ApiResponse<AttendanceCorrection>>(`/api/v1/attendance/corrections/${id}/reject`, { rejection_reason }),
+
+  cancelCorrection: (id: string) =>
+    apiClient.patch(`/api/v1/attendance/corrections/${id}/cancel`),
 }

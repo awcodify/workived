@@ -34,6 +34,7 @@ type ServiceInterface interface {
 	GetCorrections(ctx context.Context, orgID uuid.UUID, f ListCorrectionsFilter) ([]Correction, error)
 	ApproveCorrection(ctx context.Context, orgID, reviewerEmployeeID, correctionID uuid.UUID) (*Correction, error)
 	RejectCorrection(ctx context.Context, orgID, reviewerEmployeeID, correctionID uuid.UUID, req ReviewCorrectionRequest) (*Correction, error)
+	CancelCorrection(ctx context.Context, orgID, employeeID, correctionID uuid.UUID) error
 }
 
 // EmployeeLookupFunc resolves the authenticated user's employee ID from their user ID.
@@ -98,6 +99,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	att.GET("/corrections", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermSelfAttendance), h.ListCorrections)
 	att.PATCH("/corrections/:correction_id/approve", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermTeamLeaveApprove), h.ApproveCorrection)
 	att.PATCH("/corrections/:correction_id/reject", middleware.RequireAny(middleware.PermAttendanceRead, middleware.PermTeamLeaveApprove), h.RejectCorrection)
+	att.PATCH("/corrections/:correction_id/cancel", middleware.Require(middleware.PermSelfAttendance), h.CancelCorrection)
 }
 
 func (h *Handler) ClockIn(c *gin.Context) {
@@ -605,10 +607,21 @@ func (h *Handler) ListCorrections(c *gin.Context) {
 	}
 
 	// Non-managers can only see their own corrections.
-	if !middleware.HasPermission(role, middleware.PermAttendanceRead) && !middleware.HasPermission(role, middleware.PermTeamLeaveApprove) {
+	isManager := middleware.HasPermission(role, middleware.PermAttendanceRead) || middleware.HasPermission(role, middleware.PermTeamLeaveApprove)
+	if !isManager {
 		employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 		if err != nil {
 			h.logAndRespondError(c, err, "employee lookup for list corrections", map[string]string{
+				"org_id": orgID.String(),
+			})
+			return
+		}
+		f.EmployeeID = &employeeID
+	} else if c.Query("mine") == "true" {
+		// Managers can opt-in to see only their own corrections.
+		employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+		if err != nil {
+			h.logAndRespondError(c, err, "employee lookup for mine corrections", map[string]string{
 				"org_id": orgID.String(),
 			})
 			return
@@ -689,4 +702,32 @@ func (h *Handler) RejectCorrection(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": correction})
+}
+
+func (h *Handler) CancelCorrection(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	correctionID, err := uuid.Parse(c.Param("correction_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(apperr.NewField(apperr.CodeValidation, "invalid correction_id", "correction_id")))
+		return
+	}
+
+	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "employee lookup for cancel correction", map[string]string{
+			"org_id": orgID.String(),
+		})
+		return
+	}
+
+	if err := h.service.CancelCorrection(c.Request.Context(), orgID, employeeID, correctionID); err != nil {
+		h.logAndRespondError(c, err, "cancel attendance correction", map[string]string{
+			"org_id": orgID.String(), "correction_id": correctionID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "correction cancelled"})
 }

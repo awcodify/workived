@@ -1,4 +1,4 @@
-import { formatDate, formatDateLocal, todayISO, getMondayOfWeek, formatRelativeDueDate } from '@/lib/utils/date'
+import { formatDate, formatDateLocal, todayISO, getMondayOfWeek, formatRelativeDueDate, orgTimeToUTC } from '@/lib/utils/date'
 
 describe('formatDate', () => {
   const utcDate = '2025-06-15T10:30:00Z'
@@ -30,6 +30,25 @@ describe('formatDate', () => {
     const lateUtc = '2025-06-15T22:00:00Z'
     const result = formatDate(lateUtc, 'Asia/Jakarta', 'date')
     expect(result).toBe('Jun 16, 2025')
+  })
+})
+
+describe('orgTimeToUTC', () => {
+  it('converts org-tz time to UTC (Jakarta UTC+7)', () => {
+    // 07:00 in Jakarta (UTC+7) = 00:00 UTC
+    const result = orgTimeToUTC('2026-04-17', '07:00', 'Asia/Jakarta')
+    expect(result).toBe('2026-04-17T00:00:00.000Z')
+  })
+
+  it('converts org-tz time to UTC (Dubai UTC+4)', () => {
+    // 07:00 in Dubai (UTC+4) = 03:00 UTC
+    const result = orgTimeToUTC('2026-04-17', '07:00', 'Asia/Dubai')
+    expect(result).toBe('2026-04-17T03:00:00.000Z')
+  })
+
+  it('handles midnight crossing (22:00 Jakarta = 15:00 UTC prev day)', () => {
+    const result = orgTimeToUTC('2026-04-17', '22:00', 'Asia/Jakarta')
+    expect(result).toBe('2026-04-17T15:00:00.000Z')
   })
 })
 
