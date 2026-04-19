@@ -4,6 +4,8 @@ import { ApprovalTaskView } from './ApprovalTaskView'
 import { ReactionPicker } from './ReactionPicker'
 import { Dropdown, type DropdownOption } from './workived/shared/Dropdown'
 import { typography, colors } from '@/design/tokens'
+import { orgTimeToUTC, utcToZonedDateTime } from '@/lib/utils/date'
+import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import type { TaskWithDetails, Employee, EmployeeWorkload, TaskPriority, FieldDefinition, FieldValueWithDefinition } from '@/types/api'
 import {
   useUpdateTask,
@@ -447,6 +449,8 @@ interface TaskDetailModalProps {
 export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, employees, taskLists, getEmployeeWorkload, onClose }: TaskDetailModalProps) {
   const isCreateMode = mode === 'create'
   const isApprovalTask = task?.approval_type && task?.approval_id && !task?.completed_at
+  const { data: org } = useOrganisation()
+  const orgTz = org?.timezone ?? 'UTC'
 
   // If it's an approval task, show the approval view
   if (isApprovalTask && task) {
@@ -481,8 +485,9 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   const [description, setDescription] = useState(task?.description || '')
   const [assigneeId, setAssigneeId] = useState(task?.assignee_id || '')
   const [priority, setPriority] = useState(task?.priority || 'medium')
-  // Extract YYYY-MM-DD from ISO datetime for date input
-  const [dueDate, setDueDate] = useState(task?.due_date ? task.due_date.split('T')[0] : '')
+  const initialDueParts = task?.due_date ? utcToZonedDateTime(task.due_date, orgTz) : null
+  const [dueDate, setDueDate] = useState(initialDueParts?.date ?? '')
+  const [dueTime, setDueTime] = useState(initialDueParts?.time ?? '00:00')
   const [listId, setListId] = useState(initialListId || task?.task_list_id || '')
   const [commentText, setCommentText] = useState('')
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
@@ -502,16 +507,16 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   // Sync form state when task prop changes (e.g., after auto-save refetch)
   useEffect(() => {
     if (task) {
-      // Extract YYYY-MM-DD from ISO datetime (e.g., '2026-03-06T00:00:00Z' -> '2026-03-06')
-      const dueDateValue = task.due_date ? task.due_date.split('T')[0] : ''
+      const parts = task.due_date ? utcToZonedDateTime(task.due_date, orgTz) : null
       setTitle(task.title || '')
       setDescription(task.description || '')
       setAssigneeId(task.assignee_id || '')
       setPriority(task.priority || 'medium')
-      setDueDate(dueDateValue)
+      setDueDate(parts?.date ?? '')
+      setDueTime(parts?.time ?? '00:00')
       setListId(task.task_list_id || '')
     }
-  }, [task])
+  }, [task, orgTz])
   
   // Build hierarchical comment structure from flat list
   const comments = useMemo(() => {
@@ -615,6 +620,11 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   }, [onClose])
 
   // Auto-save helpers (only for edit mode)
+  const buildDueDateUTC = useCallback((date: string, time: string): string | undefined => {
+    if (!date) return undefined
+    return orgTimeToUTC(date, time, orgTz)
+  }, [orgTz])
+
   const autoSave = useCallback((field: string, value: any) => {
     if (isCreateMode) return // Don't auto-save in create mode
     if (!title.trim() || !task) return // Don't save if title is empty or no task
@@ -626,7 +636,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
       description: description.trim() || undefined,
       assignee_id: assigneeId || undefined,
       priority: priority as 'low' | 'medium' | 'high' | 'urgent',
-      due_date: dueDate || undefined,
+      due_date: buildDueDateUTC(dueDate, dueTime),
     }
 
     // Override with the specific field being changed
@@ -634,7 +644,8 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
     if (field === 'description') data.description = value.trim() || undefined
     if (field === 'assignee_id') data.assignee_id = value || undefined
     if (field === 'priority') data.priority = value
-    if (field === 'due_date') data.due_date = value || undefined
+    if (field === 'due_date') data.due_date = buildDueDateUTC(value, dueTime)
+    if (field === 'due_time') data.due_date = buildDueDateUTC(dueDate, value)
 
     updateTaskMutation.mutate(
       { id: task!.id, data },
@@ -687,6 +698,11 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
     autoSave('due_date', value)
   }
 
+  const handleDueTimeChange = (value: string) => {
+    setDueTime(value)
+    autoSave('due_time', value)
+  }
+
   const handleDelete = () => {
     if (!task) return
     if (!confirm('Are you sure you want to delete this task?')) return
@@ -708,7 +724,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
         description: description.trim() || undefined,
         assignee_id: assigneeId || undefined,
         priority: priority as 'low' | 'medium' | 'high' | 'urgent',
-        due_date: dueDate || undefined,
+        due_date: buildDueDateUTC(dueDate, dueTime) || undefined,
       },
       {
         onSuccess: (newTask) => {
@@ -1223,19 +1239,37 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               >
                 📅 Due Date
               </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => handleDueDateChange(e.target.value)}
-                className="w-full rounded-lg px-3 py-2 text-xs outline-none font-medium"
-                style={{
-                  background: `${colors.text}08`,
-                  border: `2px solid ${colors.text}20`,
-                  color: colors.text,
-                  fontFamily: typography.fontFamily,
-                  colorScheme: 'dark',
-                }}
-              />
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  data-testid="task-due-date-input"
+                  value={dueDate}
+                  onChange={(e) => handleDueDateChange(e.target.value)}
+                  className="flex-1 rounded-lg px-3 py-2 text-xs outline-none font-medium"
+                  style={{
+                    background: `${colors.text}08`,
+                    border: `2px solid ${colors.text}20`,
+                    color: colors.text,
+                    fontFamily: typography.fontFamily,
+                    colorScheme: 'dark',
+                  }}
+                />
+                <input
+                  type="time"
+                  data-testid="task-due-time-input"
+                  value={dueTime}
+                  disabled={!dueDate}
+                  onChange={(e) => handleDueTimeChange(e.target.value)}
+                  className="w-28 rounded-lg px-3 py-2 text-xs outline-none font-medium"
+                  style={{
+                    background: dueDate ? `${colors.text}08` : `${colors.text}04`,
+                    border: `2px solid ${colors.text}20`,
+                    color: dueDate ? colors.text : `${colors.text}40`,
+                    fontFamily: typography.fontFamily,
+                    colorScheme: 'dark',
+                  }}
+                />
+              </div>
             </div>
           </div>
 

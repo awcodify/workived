@@ -16,6 +16,10 @@ vi.mock('@/lib/hooks/useTasks', () => ({
   useClearFieldValue:   () => ({ mutate: vi.fn(), isPending: false }),
 }))
 
+vi.mock('@/lib/hooks/useOrganisation', () => ({
+  useOrganisation: () => ({ data: { timezone: 'Asia/Jakarta' } }),
+}))
+
 vi.mock('./RichTextEditor', () => ({
   RichTextEditor: ({ value, onChange }: { value: string; onChange: (v: string) => void }) => (
     <textarea data-testid="rich-text-editor" value={value} onChange={(e) => onChange(e.target.value)} />
@@ -53,6 +57,42 @@ const baseProps = {
   getEmployeeWorkload: () => undefined,
   onClose: vi.fn(),
 }
+
+describe('TaskDetailModal — due date + time picker in create mode', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(useFieldDefinitions).mockReturnValue({ data: [], isLoading: false } as ReturnType<typeof useFieldDefinitions>)
+  })
+
+  it('renders date and time inputs', () => {
+    render(<TaskDetailModal {...baseProps} />)
+    expect(screen.getByTestId('task-due-date-input')).toBeInTheDocument()
+    expect(screen.getByTestId('task-due-time-input')).toBeInTheDocument()
+  })
+
+  it('time input is disabled until date is set', () => {
+    render(<TaskDetailModal {...baseProps} />)
+    const timeInput = screen.getByTestId('task-due-time-input') as HTMLInputElement
+    expect(timeInput.disabled).toBe(true)
+  })
+
+  it('time input enables after date is set', () => {
+    render(<TaskDetailModal {...baseProps} />)
+    const dateInput = screen.getByTestId('task-due-date-input') as HTMLInputElement
+    fireEvent.change(dateInput, { target: { value: '2026-05-01' } })
+    const timeInput = screen.getByTestId('task-due-time-input') as HTMLInputElement
+    expect(timeInput.disabled).toBe(false)
+  })
+
+  it('time input accepts value change', () => {
+    render(<TaskDetailModal {...baseProps} />)
+    const dateInput = screen.getByTestId('task-due-date-input') as HTMLInputElement
+    fireEvent.change(dateInput, { target: { value: '2026-05-01' } })
+    const timeInput = screen.getByTestId('task-due-time-input') as HTMLInputElement
+    fireEvent.change(timeInput, { target: { value: '14:30' } })
+    expect(timeInput.value).toBe('14:30')
+  })
+})
 
 describe('TaskDetailModal — date custom field in create mode', () => {
   beforeEach(() => {

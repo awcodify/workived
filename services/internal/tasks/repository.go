@@ -25,20 +25,26 @@ func NewRepository(db *pgxpool.Pool, log zerolog.Logger) *Repository {
 	return &Repository{db: db, log: log}
 }
 
-// parseDateString parses a date string in "YYYY-MM-DD" format to *time.Time
-// Returns nil if input is nil or empty string
-// Uses UTC for deterministic date extraction regardless of server timezone
+// parseDateString parses a due-date string to *time.Time.
+// Accepts:
+//   - RFC3339 datetime (e.g. "2026-03-06T17:00:00Z") — stored as-is (already UTC)
+//   - Date-only "YYYY-MM-DD" — stored as midnight UTC (backward-compatible)
+//
+// Returns nil if input is nil or empty.
 func parseDateString(dateStr *string) (*time.Time, error) {
 	if dateStr == nil || *dateStr == "" {
 		return nil, nil
 	}
-	// Parse in UTC to ensure the date is always what the user intended
-	// When PostgreSQL extracts DATE from time.Time, UTC ensures correct date
-	parsed, err := time.ParseInLocation("2006-01-02", *dateStr, time.UTC)
-	if err != nil {
-		return nil, fmt.Errorf("invalid date format, expected YYYY-MM-DD: %w", err)
+	// Try RFC3339 first (includes time component from frontend timezone conversion)
+	if t, err := time.Parse(time.RFC3339, *dateStr); err == nil {
+		return &t, nil
 	}
-	return &parsed, nil
+	// Fall back to date-only (midnight UTC)
+	t, err := time.ParseInLocation("2006-01-02", *dateStr, time.UTC)
+	if err != nil {
+		return nil, fmt.Errorf("invalid due_date format, expected YYYY-MM-DD or RFC3339: %w", err)
+	}
+	return &t, nil
 }
 
 // ── Task Lists ───────────────────────────────────────────────────────────────

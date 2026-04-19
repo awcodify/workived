@@ -31,6 +31,26 @@ export function orgTimeToUTC(date: string, time: string, tz: string): string {
   return new Date(ref.getTime() - offsetMs).toISOString()
 }
 
+/**
+ * Extract date (YYYY-MM-DD) and time (HH:MM) from a UTC ISO string, expressed in orgTimezone.
+ * Used to populate the date+time pickers when editing an existing task.
+ */
+export function utcToZonedDateTime(utcStr: string, timezone: string): { date: string; time: string } {
+  const d = new Date(utcStr)
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit',
+    hour12: false,
+  })
+  const parts = fmt.formatToParts(d)
+  const get = (type: string) => parts.find(p => p.type === type)?.value ?? '00'
+  return {
+    date: `${get('year')}-${get('month')}-${get('day')}`,
+    time: `${get('hour')}:${get('minute')}`,
+  }
+}
+
 export function formatDateLocal(date: string): string {
   return new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(new Date(date))
 }

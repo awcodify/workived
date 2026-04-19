@@ -104,7 +104,7 @@ type CreateTaskRequest struct {
 	Description  *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
 	AssigneeID   *uuid.UUID `json:"assignee_id,omitempty"`
 	Priority     string     `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
-	DueDate      *string    `json:"due_date,omitempty"` // YYYY-MM-DD format
+	DueDate      *string    `json:"due_date,omitempty"` // YYYY-MM-DD or RFC3339 datetime
 	ApprovalType *string    `json:"approval_type,omitempty" binding:"omitempty,oneof=leave claim"`
 	ApprovalID   *uuid.UUID `json:"approval_id,omitempty"`
 }
