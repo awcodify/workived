@@ -21,7 +21,7 @@ import {
   useSetFieldValue,
   useClearFieldValue,
 } from '@/lib/hooks/useTasks'
-import { DatePicker, DateTimePicker } from '@/components/ui'
+import { DatePicker } from '@/components/ui'
 
 // ── Utility Functions ────────────────────────────────────────────────────────
 
@@ -1236,30 +1236,19 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               >
                 📅 Due Date
               </label>
-              <DateTimePicker
+              <input
+                type="datetime-local"
+                data-testid="task-due-datetime-input"
                 value={dueDatetime}
-                onChange={handleDueDatetimeChange}
-                dateProps={{
-                  'data-testid': 'task-due-date-input',
-                  className: 'rounded-lg px-3 py-2 text-xs outline-none font-medium',
-                  style: {
-                    background: `${colors.text}08`,
-                    border: `2px solid ${colors.text}20`,
-                    color: colors.text,
-                    fontFamily: typography.fontFamily,
-                    colorScheme: 'light',
-                  }
-                }}
-                timeProps={{
-                  'data-testid': 'task-due-time-input',
-                  className: 'rounded-lg px-3 py-2 text-xs outline-none font-medium',
-                  style: {
-                    background: `${colors.text}08`,
-                    border: `2px solid ${colors.text}20`,
-                    color: colors.text,
-                    fontFamily: typography.fontFamily,
-                    colorScheme: 'light',
-                  }
+                onChange={(e) => handleDueDatetimeChange(e.target.value)}
+                onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                className="w-full rounded-lg px-3 py-2 text-xs outline-none font-medium cursor-pointer"
+                style={{
+                  background: `${colors.text}08`,
+                  border: `2px solid ${colors.text}20`,
+                  color: colors.text,
+                  fontFamily: typography.fontFamily,
+                  colorScheme: 'light',
                 }}
               />
             </div>
