@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Megaphone, Pin } from 'lucide-react'
+import { Megaphone, Pin, X } from 'lucide-react'
 import { colors } from '@/design/tokens'
 import { useAnnouncements, useMarkAnnouncementRead, useAnnouncementUnreadCount } from '@/lib/hooks/useAnnouncements'
+import type { Announcement } from '@/types/api'
 
 interface NotificationBellProps {
   surfaceColor?: string
@@ -20,6 +21,7 @@ export function NotificationBell({
   textMutedColor = '#7F8C8D',
 }: NotificationBellProps) {
   const [showDropdown, setShowDropdown] = useState(false)
+  const [viewing, setViewing] = useState<Announcement | undefined>()
   const dropdownRef = useRef<HTMLDivElement>(null)
   const { data: unreadCount = 0 } = useAnnouncementUnreadCount()
   const { data: announcements = [] } = useAnnouncements()
@@ -173,6 +175,7 @@ export function NotificationBell({
                   onClick={() => {
                     if (!ann.is_read) markReadMut.mutate(ann.id)
                     setShowDropdown(false)
+                    setViewing(ann)
                   }}
                   style={{
                     padding: '10px 16px',
@@ -253,6 +256,119 @@ export function NotificationBell({
               </Link>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Announcement Detail Modal */}
+      {viewing && (
+        <div
+          data-testid="announcement-detail-modal"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            background: 'rgba(0,0,0,0.5)',
+          }}
+          onClick={(e) => e.target === e.currentTarget && setViewing(undefined)}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 512,
+              borderRadius: 16,
+              boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+              overflow: 'hidden',
+              background: surfaceColor,
+              border: `1px solid ${borderColor}`,
+            }}
+          >
+            {/* Modal header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+                gap: 16,
+                padding: '24px 24px 16px',
+                borderBottom: `1px solid ${borderColor}`,
+              }}
+            >
+              <div style={{ flex: 1, minWidth: 0 }}>
+                {viewing.is_pinned && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      marginBottom: 8,
+                      color: accentColor,
+                    }}
+                  >
+                    <Pin size={12} />
+                    Pinned
+                  </div>
+                )}
+                <h2 style={{ fontWeight: 800, fontSize: 18, lineHeight: 1.3, margin: 0, color: textColor }}>
+                  {viewing.title}
+                </h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6 }}>
+                  <span style={{ fontSize: 12, fontWeight: 500, color: textMutedColor }}>
+                    {viewing.author_name}
+                  </span>
+                  {viewing.published_at && (
+                    <>
+                      <span style={{ fontSize: 12, color: borderColor }}>·</span>
+                      <span style={{ fontSize: 12, color: textMutedColor }}>
+                        {new Date(viewing.published_at).toLocaleDateString(undefined, {
+                          weekday: 'long',
+                          month: 'long',
+                          day: 'numeric',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <button
+                data-testid="announcement-detail-close-btn"
+                onClick={() => setViewing(undefined)}
+                style={{
+                  padding: 6,
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'transparent',
+                  color: textMutedColor,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'opacity 0.2s',
+                }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div style={{ padding: '20px 24px', maxHeight: '60vh', overflowY: 'auto' }}>
+              <p
+                style={{
+                  fontSize: 14,
+                  lineHeight: 1.6,
+                  whiteSpace: 'pre-wrap',
+                  margin: 0,
+                  color: textColor,
+                }}
+              >
+                {viewing.body}
+              </p>
+            </div>
+          </div>
         </div>
       )}
     </div>
