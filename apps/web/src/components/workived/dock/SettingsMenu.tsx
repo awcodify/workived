@@ -7,6 +7,9 @@ import { useThemeStore } from '@/lib/stores/theme'
 import { useTourStore } from '@/lib/stores/tour'
 import { useHasOrg } from '@/lib/hooks/useRole'
 import { useChangelogUnread } from '@/lib/hooks/useChangelog'
+import { useLeaveNotificationCount } from '@/lib/hooks/useLeave'
+import { useClaimNotificationCount } from '@/lib/hooks/useClaims'
+import { useCorrectionNotificationCount } from '@/lib/hooks/useAttendance'
 import { dockThemes, useDockTheme } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 
@@ -25,6 +28,10 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
   const { theme: currentTheme, toggleTheme } = useThemeStore()
   const hasOrg = useHasOrg()
   const { hasUnread } = useChangelogUnread()
+  const { data: leaveCount } = useLeaveNotificationCount()
+  const { data: claimCount } = useClaimNotificationCount()
+  const { data: attendanceCount } = useCorrectionNotificationCount()
+  const pendingApprovalCount = (leaveCount ?? 0) + (claimCount ?? 0) + (attendanceCount ?? 0)
   
   // Use themed dock for overview/people, static for others
   const overviewDockTheme = useDockTheme('overview')
@@ -182,6 +189,19 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
               transition: 'all 0.2s ease',
             }}
           />
+          {/* Pending approvals badge on More button */}
+          {pendingApprovalCount > 0 && !isOpen && (
+            <div
+              className="absolute -top-1 -right-0.5 min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center text-[9px] font-bold"
+              style={{
+                background: '#D44040',
+                color: '#FFFFFF',
+                boxShadow: '0 2px 8px rgba(212, 64, 64, 0.4)',
+              }}
+            >
+              {pendingApprovalCount > 9 ? '9+' : pendingApprovalCount}
+            </div>
+          )}
           <span
             className={cn(
               "hidden md:block text-[9px] font-bold tracking-wider uppercase transition-all duration-300",
@@ -272,6 +292,14 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
                 label="Approvals"
                 testId="settings-menu-approvals-link"
                 onClick={() => { setIsOpen(false); navigate({ to: '/approvals', search: { filter: 'all' } }) }}
+                badge={pendingApprovalCount > 0 ? (
+                  <span
+                    className="min-w-[20px] h-5 px-1.5 rounded-full flex items-center justify-center text-[10px] font-bold"
+                    style={{ background: '#D44040', color: '#FFFFFF' }}
+                  >
+                    {pendingApprovalCount > 99 ? '99+' : pendingApprovalCount}
+                  </span>
+                ) : undefined}
               />
             </div>
 
