@@ -5,6 +5,7 @@ import { useCustomHolidays, useCreateCustomHoliday, useDeleteCustomHoliday } fro
 import { useCanManageLeave } from '@/lib/hooks/useRole'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
 import type { CreateCustomHolidayInput } from '@/types/api'
+import { DatePicker } from '@/components/ui'
 
 const t = moduleThemes.calendar
 
@@ -130,15 +131,9 @@ function CustomHolidaysPage() {
           </h3>
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1">
-              <label
-                className="block text-xs font-semibold mb-1.5"
-                style={{ color: t.textMuted }}
-              >
-                Date
-              </label>
-              <input
+              <DatePicker
                 data-testid="holidays-date-input"
-                type="date"
+                label="Date"
                 value={formData.date}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                 className="w-full px-3 py-2.5 text-sm"
@@ -149,6 +144,7 @@ function CustomHolidaysPage() {
                   color: t.text,
                   outline: 'none',
                 }}
+                containerStyle={{ color: t.textMuted }}
               />
             </div>
             <div className="flex-[2]">

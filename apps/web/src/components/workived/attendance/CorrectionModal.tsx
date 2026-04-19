@@ -7,6 +7,7 @@ import { orgTimeToUTC, formatDate } from '@/lib/utils/date'
 import { moduleThemes } from '@/design/tokens'
 import { X, Clock } from 'lucide-react'
 import type { WeekDay } from '@/types/api'
+import { TimePicker } from '@/components/ui'
 
 const t = moduleThemes.attendance
 
@@ -135,12 +136,9 @@ export function CorrectionModal({ day, onClose, tz = 'UTC' }: CorrectionModalPro
 
             {/* Requested clock-in */}
             <div>
-              <label className="block text-xs font-bold mb-1.5" style={{ color: t.textMuted }}>
-                Corrected Clock In (optional)
-              </label>
-              <input
+              <TimePicker
                 data-testid="correction-clock-in-input"
-                type="time"
+                label="Corrected Clock In (optional)"
                 {...register('requested_clock_in')}
                 className="w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all outline-none"
                 style={{
@@ -148,20 +146,17 @@ export function CorrectionModal({ day, onClose, tz = 'UTC' }: CorrectionModalPro
                   border: `1px solid ${errors.requested_clock_in ? '#EF4444' : '#E5E7EB'}`,
                   color: t.text,
                 }}
+                containerStyle={{ color: t.textMuted }}
+                error={!!errors.requested_clock_in}
+                errorMessage={errors.requested_clock_in?.message as string}
               />
-              {errors.requested_clock_in && (
-                <p className="text-xs mt-1" style={{ color: '#EF4444' }}>{errors.requested_clock_in.message}</p>
-              )}
             </div>
 
             {/* Requested clock-out */}
             <div>
-              <label className="block text-xs font-bold mb-1.5" style={{ color: t.textMuted }}>
-                Corrected Clock Out (optional)
-              </label>
-              <input
+              <TimePicker
                 data-testid="correction-clock-out-input"
-                type="time"
+                label="Corrected Clock Out (optional)"
                 {...register('requested_clock_out')}
                 className="w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all outline-none"
                 style={{
@@ -169,6 +164,7 @@ export function CorrectionModal({ day, onClose, tz = 'UTC' }: CorrectionModalPro
                   border: '1px solid #E5E7EB',
                   color: t.text,
                 }}
+                containerStyle={{ color: t.textMuted }}
               />
             </div>
 

@@ -24,6 +24,7 @@ import { useForm } from 'react-hook-form'
 import { RequestListItem, EmployeeRequestGroup, type RequestData } from '@/components/workived/shared/requests'
 import { createClaimRequestConfig, claimRequestTheme } from '@/components/workived/claims/ClaimRequestConfig'
 import { RequestTableSkeleton } from '@/components/workived/shared/Skeleton'
+import { DatePicker } from '@/components/ui'
 
 const t = moduleThemes.claims
 
@@ -1092,16 +1093,9 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
 
           {/* Claim Date */}
           <div className="mb-4">
-            <label
-              htmlFor="claim_date"
-              className="block mb-2 text-sm font-semibold"
-              style={{ color: t.text }}
-            >
-              Claim Date *
-            </label>
-            <input
+            <DatePicker
               id="claim_date"
-              type="date"
+              label="Claim Date *"
               data-testid="claims-date-input"
               max={new Date().toISOString().split('T')[0]}
               {...register('claim_date', { 
@@ -1113,6 +1107,8 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
                   return selectedDate <= today || 'Claim date cannot be in the future'
                 }
               })}
+              error={!!errors.claim_date}
+              errorMessage={errors.claim_date?.message as string}
               className="w-full px-3 py-2.5 text-sm focus:outline-none focus:ring-2"
               style={{
                 background: t.input,
@@ -1120,12 +1116,8 @@ function NewClaimModal({ categoryId, onClose }: NewClaimModalProps) {
                 borderRadius: 10,
                 color: t.text,
               }}
+              containerStyle={{ color: t.text }}
             />
-            {errors.claim_date && (
-              <p className="text-xs mt-1" style={{ color: colors.errText }}>
-                {errors.claim_date.message}
-              </p>
-            )}
           </div>
 
           {/* Description */}

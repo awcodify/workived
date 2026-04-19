@@ -12,6 +12,7 @@ import { moduleThemes, colors } from '@/design/tokens'
 import { X, Plus, Pencil, Trash2, Clock, AlertTriangle } from 'lucide-react'
 import { attendanceApi } from '@/lib/api/attendance'
 import type { WorkScheduleListItem } from '@/types/api'
+import { TimePicker } from '@/components/ui'
 
 const t = moduleThemes.attendance
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -289,12 +290,24 @@ function ScheduleFormModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: t.textMuted }}>Start Time</label>
-              <input data-testid="work-schedule-start-time-input" type="time" className="form-input-dark w-full" style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }} {...form.register('start_time')} />
+              <TimePicker
+                data-testid="work-schedule-start-time-input"
+                label="Start Time"
+                className="form-input-dark w-full"
+                style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                containerStyle={{ color: t.textMuted }}
+                {...form.register('start_time')}
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5" style={{ color: t.textMuted }}>End Time</label>
-              <input data-testid="work-schedule-end-time-input" type="time" className="form-input-dark w-full" style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }} {...form.register('end_time')} />
+              <TimePicker
+                data-testid="work-schedule-end-time-input"
+                label="End Time"
+                className="form-input-dark w-full"
+                style={{ background: t.input, border: `1px solid ${t.inputBorder}`, color: t.text }}
+                containerStyle={{ color: t.textMuted }}
+                {...form.register('end_time')}
+              />
             </div>
           </div>
 

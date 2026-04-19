@@ -14,6 +14,7 @@ import { ArrowLeft, Check } from 'lucide-react'
 import axios from 'axios'
 import { AccessModeStep } from '@/components/workived/people/AccessModeStep'
 import { PhotoUpload } from '@/components/workived/people/PhotoUpload'
+import { DatePicker } from '@/components/ui'
 
 const t = moduleThemes.people
 
@@ -356,8 +357,7 @@ function NewEmployeePage() {
                 <span className="text-sm font-medium mb-1.5 block" style={{ color: t.text }}>
                   Start date <span style={{ color: colors.err }}>*</span>
                 </span>
-                <input
-                  type="date"
+                <DatePicker
                   data-testid="people-start-date-input"
                   className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
                   style={{
@@ -366,12 +366,9 @@ function NewEmployeePage() {
                     color: t.text,
                   }}
                   {...form.register('start_date')}
+                  error={!!form.formState.errors.start_date}
+                  errorMessage={form.formState.errors.start_date?.message as string}
                 />
-                {form.formState.errors.start_date && (
-                  <p className="text-xs mt-1.5" style={{ color: colors.err }}>
-                    {form.formState.errors.start_date.message}
-                  </p>
-                )}
               </label>
             </div>
 

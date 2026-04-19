@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Clock, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import type { WorkScheduleTemplate, CustomScheduleInput } from '@/types/api'
 import { colors } from '@/design/tokens'
+import { TimePicker } from '@/components/ui'
 
 interface WorkScheduleStepProps {
   templates: WorkScheduleTemplate[]
@@ -190,12 +191,9 @@ export function WorkScheduleStep({
 
           <div className="mb-6 grid gap-5 sm:grid-cols-2">
             <div>
-              <label className="mb-2 block text-sm font-semibold" style={{ color: colors.ink700 }}>
-                Start Time
-              </label>
-              <input
+              <TimePicker
                 data-testid="work-schedule-custom-start-time-input"
-                type="time"
+                label="Start Time"
                 value={customSchedule.start_time}
                 onChange={(e) =>
                   setCustomSchedule({ ...customSchedule, start_time: e.target.value })
@@ -207,15 +205,13 @@ export function WorkScheduleStep({
                   background: colors.ink0,
                   color: colors.ink900,
                 }}
+                containerStyle={{ color: colors.ink700 }}
               />
             </div>
             <div>
-              <label className="mb-2 block text-sm font-semibold" style={{ color: colors.ink700 }}>
-                End Time
-              </label>
-              <input
+              <TimePicker
                 data-testid="work-schedule-custom-end-time-input"
-                type="time"
+                label="End Time"
                 value={customSchedule.end_time}
                 onChange={(e) =>
                   setCustomSchedule({ ...customSchedule, end_time: e.target.value })
@@ -227,6 +223,7 @@ export function WorkScheduleStep({
                   background: colors.ink0,
                   color: colors.ink900,
                 }}
+                containerStyle={{ color: colors.ink700 }}
               />
             </div>
           </div>

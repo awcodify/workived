@@ -5,6 +5,7 @@ import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
 import { moduleBackgrounds, colors, typography } from '@/design/tokens'
 import { Download, X, Calendar, User, FileText } from 'lucide-react'
 import type { AuditLog, AuditLogFilters } from '@/types/api'
+import { DatePicker } from '@/components/ui'
 
 export const Route = createFileRoute('/_app/settings/audit-logs')({
   component: AuditLogsPage,
@@ -456,8 +457,7 @@ function FilterSidebar({
               </button>
             )}
           </div>
-          <input
-            type="date"
+          <DatePicker
             value={filters.start_date || ''}
             onChange={(e) => onChange('start_date', e.target.value)}
             className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"
@@ -480,8 +480,7 @@ function FilterSidebar({
               </button>
             )}
           </div>
-          <input
-            type="date"
+          <DatePicker
             value={filters.end_date || ''}
             onChange={(e) => onChange('end_date', e.target.value)}
             className="w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-1 focus:ring-white/20"

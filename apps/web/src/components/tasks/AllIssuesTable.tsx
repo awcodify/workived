@@ -7,6 +7,7 @@ import { useState, useMemo } from 'react'
 import { typography } from '@/design/tokens'
 import type { TaskWithDetails, Employee, FieldDefinition, TaskPriority } from '@/types/api'
 import { useAllTasks, useFieldDefinitions } from '@/lib/hooks/useTasks'
+import { DatePicker } from '@/components/ui'
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -294,18 +295,18 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
         {/* Completed date range */}
         <div className="flex items-center gap-1">
           <span className="text-xs font-semibold" style={{ color: '#94A3B8', fontFamily: typography.fontFamily }}>Completed:</span>
-          <input
-            type="date"
+          <DatePicker
             value={filters.completed_after}
             onChange={(e) => setFilter('completed_after', e.target.value)}
             style={{ ...inputStyle, colorScheme: 'light' }}
+            className=""
           />
           <span className="text-xs" style={{ color: '#94A3B8' }}>–</span>
-          <input
-            type="date"
+          <DatePicker
             value={filters.completed_before}
             onChange={(e) => setFilter('completed_before', e.target.value)}
             style={{ ...inputStyle, colorScheme: 'light' }}
+            className=""
           />
         </div>
 

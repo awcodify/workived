@@ -28,6 +28,7 @@ import {
   History,
 } from 'lucide-react'
 import { Skeleton } from './Skeleton'
+import { DatePicker } from '@/components/ui'
 import type { Employee } from '@/types/api'
 
 const t = moduleThemes.attendance
@@ -599,12 +600,9 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                         fullWidth
                       />
                       <div>
-                        <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
-                          Start Date
-                        </label>
-                        <input
+                        <DatePicker
                           data-testid="employee-detail-start-date-input"
-                          type="date"
+                          label="Start Date"
                           value={formData.start_date}
                           onChange={(e) => updateFormData({ start_date: e.target.value })}
                           className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
@@ -613,15 +611,13 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                             border: `1px solid ${t.inputBorder}`,
                             color: t.text,
                           }}
+                          containerStyle={{ color: t.textMuted }}
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium mb-1.5" style={{ color: t.textMuted }}>
-                          End Date
-                        </label>
-                        <input
+                        <DatePicker
                           data-testid="employee-detail-end-date-input"
-                          type="date"
+                          label="End Date"
                           value={formData.end_date}
                           onChange={(e) => updateFormData({ end_date: e.target.value })}
                           className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
@@ -630,6 +626,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                             border: `1px solid ${t.inputBorder}`,
                             color: t.text,
                           }}
+                          containerStyle={{ color: t.textMuted }}
                         />
                       </div>
                       {employee.base_salary && (
