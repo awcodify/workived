@@ -6,6 +6,7 @@ import { SettingsMenu } from './SettingsMenu'
 import { useEnabledFeatures } from '@/lib/hooks/useFeatures'
 import { useLeaveNotificationCount } from '@/lib/hooks/useLeave'
 import { useClaimNotificationCount } from '@/lib/hooks/useClaims'
+import { useCorrectionNotificationCount } from '@/lib/hooks/useAttendance'
 import { useEffect, useState } from 'react'
 
 type ModuleKey = keyof typeof dockThemes
@@ -58,10 +59,11 @@ export function Dock() {
   // approvals, so the badge count is always accurate from the server.
   const { data: leaveCount } = useLeaveNotificationCount()
   const { data: claimCount } = useClaimNotificationCount()
+  const { data: attendanceCount } = useCorrectionNotificationCount()
 
   const notificationCounts = {
     people: 0,
-    attendance: 0,
+    attendance: attendanceCount ?? 0,
     leave: leaveCount ?? 0,
     claims: claimCount ?? 0,
     tasks: 0,
