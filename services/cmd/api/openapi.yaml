@@ -6303,6 +6303,8 @@ components:
         author_id:
           type: string
           format: uuid
+          nullable: true
+          description: "Author employee ID; null for auto-generated announcements"
         author_name:
           type: string
         title:
@@ -6311,6 +6313,9 @@ components:
           type: string
         is_pinned:
           type: boolean
+        is_auto:
+          type: boolean
+          description: "True if announcement was automatically generated (e.g. welcome message)"
         is_read:
           type: boolean
         published_at:

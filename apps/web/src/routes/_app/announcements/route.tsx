@@ -99,6 +99,7 @@ export function AnnouncementsPage() {
         {isAdmin && drafts.length > 0 && (
           <div className="mb-6">
             <button
+              data-testid="announcements-drafts-toggle"
               onClick={() => setShowDrafts(!showDrafts)}
               className="flex items-center gap-2 mb-3 text-sm font-semibold transition-colors"
               style={{ color: t.textMuted }}
