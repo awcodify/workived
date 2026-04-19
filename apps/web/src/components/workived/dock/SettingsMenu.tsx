@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
-import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, HelpCircle, MoreHorizontal } from 'lucide-react'
+import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, HelpCircle, MoreHorizontal, ClipboardCheck } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useThemeStore } from '@/lib/stores/theme'
 import { useTourStore } from '@/lib/stores/tour'
@@ -266,6 +266,12 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
                 label="My documents"
                 testId="settings-menu-documents-link"
                 onClick={() => { setIsOpen(false); navigate({ to: '/my-documents' }) }}
+              />
+              <MenuItem
+                icon={ClipboardCheck}
+                label="Approvals"
+                testId="settings-menu-approvals-link"
+                onClick={() => { setIsOpen(false); navigate({ to: '/approvals', search: { filter: 'all' } }) }}
               />
             </div>
 

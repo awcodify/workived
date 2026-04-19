@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useState, useMemo, useEffect } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
@@ -76,6 +76,197 @@ function useGreeting() {
   if (hour < 12) return 'Good morning,'
   if (hour < 17) return 'Good afternoon,'
   return 'Good evening,'
+}
+
+// ── Pending Approvals Card with popover ─────────────────────────
+
+interface PendingRowConfig {
+  key: string
+  icon: typeof CalendarDays
+  iconColor: string
+  label: string
+  modulePath: string
+  filterKey: 'leave' | 'claims' | 'attendance'
+  moduleLabel: string
+}
+
+function PendingApprovalsCard({
+  pendingLeave,
+  pendingClaims,
+  pendingCorrections,
+  totalPending,
+}: {
+  pendingLeave: number
+  pendingClaims: number
+  pendingCorrections: number
+  totalPending: number
+}) {
+  const t = useModuleTheme('overview')
+  const navigate = useNavigate()
+  const [openPopover, setOpenPopover] = useState<string | null>(null)
+  const popoverRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (popoverRef.current && !popoverRef.current.contains(e.target as Node)) {
+        setOpenPopover(null)
+      }
+    }
+    if (openPopover) document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [openPopover])
+
+  const rows: PendingRowConfig[] = []
+  if (pendingLeave > 0) {
+    rows.push({
+      key: 'leave',
+      icon: CalendarDays,
+      iconColor: colors.accent,
+      label: `${pendingLeave} leave request${pendingLeave > 1 ? 's' : ''}`,
+      modulePath: '/leave',
+      filterKey: 'leave',
+      moduleLabel: 'Leave',
+    })
+  }
+  if (pendingClaims > 0) {
+    rows.push({
+      key: 'claims',
+      icon: Receipt,
+      iconColor: colors.ok,
+      label: `${pendingClaims} claim${pendingClaims > 1 ? 's' : ''} to review`,
+      modulePath: '/claims',
+      filterKey: 'claims',
+      moduleLabel: 'Claims',
+    })
+  }
+  if (pendingCorrections > 0) {
+    rows.push({
+      key: 'attendance',
+      icon: Clock,
+      iconColor: colors.warn,
+      label: `${pendingCorrections} attendance correction${pendingCorrections > 1 ? 's' : ''}`,
+      modulePath: '/attendance',
+      filterKey: 'attendance',
+      moduleLabel: 'Attendance',
+    })
+  }
+
+  return (
+    <div style={{
+      border: `1px solid ${t.border}`,
+      borderRadius: 18,
+      boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
+      padding: '22px 28px',
+      background: t.surface,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 10,
+          background: colors.errDim,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <AlertCircle size={17} style={{ color: colors.err }} />
+        </div>
+        <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: t.text, letterSpacing: typography.h3.tracking, marginBottom: 0, flex: 1 }}>
+          Pending Approvals
+        </h3>
+        <Link
+          to="/approvals"
+          search={{ filter: 'all' }}
+          style={{ fontSize: 12, fontWeight: 600, color: colors.accent, textDecoration: 'none' }}
+        >
+          See all →
+        </Link>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map((row) => {
+          const Icon = row.icon
+          const isOpen = openPopover === row.key
+
+          return (
+            <div key={row.key} style={{ position: 'relative' }} ref={isOpen ? popoverRef : undefined}>
+              <button
+                onClick={() => setOpenPopover(isOpen ? null : row.key)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  width: '100%',
+                  padding: '12px 16px', borderRadius: 12,
+                  background: isOpen ? t.surface : t.surfaceHover,
+                  transition: 'background 0.15s',
+                  border: `1px solid ${isOpen ? colors.accent : t.border}`,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                }}
+                onMouseEnter={(e) => { if (!isOpen) e.currentTarget.style.background = t.surface }}
+                onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = t.surfaceHover }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <Icon size={16} style={{ color: row.iconColor }} />
+                  <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
+                    {row.label}
+                  </span>
+                </div>
+                <ChevronRight
+                  size={16}
+                  style={{
+                    color: t.textMuted,
+                    transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.15s',
+                  }}
+                />
+              </button>
+
+              {isOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    right: 0,
+                    top: '100%',
+                    marginTop: 4,
+                    zIndex: 30,
+                    background: '#FFFFFF',
+                    borderRadius: 10,
+                    border: `1px solid ${colors.ink100}`,
+                    boxShadow: '0 4px 16px rgba(0,0,0,0.10)',
+                    overflow: 'hidden',
+                    minWidth: 200,
+                  }}
+                >
+                  <button
+                    onClick={() => {
+                      setOpenPopover(null)
+                      navigate({ to: row.modulePath as any })
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors"
+                    style={{ fontSize: 13, fontWeight: 500, color: t.text }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = colors.ink50 }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <Icon size={14} style={{ color: row.iconColor }} />
+                    Go to {row.moduleLabel}
+                  </button>
+                  <div style={{ height: 1, background: colors.ink100 }} />
+                  <button
+                    onClick={() => {
+                      setOpenPopover(null)
+                      navigate({ to: '/approvals', search: { filter: row.filterKey } })
+                    }}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-left transition-colors"
+                    style={{ fontSize: 13, fontWeight: 500, color: t.text }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = colors.ink50 }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+                  >
+                    <AlertCircle size={14} style={{ color: colors.accent }} />
+                    Review in Approvals
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 // ── Page ────────────────────────────────────────────────────────
@@ -485,97 +676,12 @@ function OverviewPage() {
 
           {/* Pending Approvals Card (managers only) */}
           {totalPending > 0 && (
-            <div style={{
-              border: `1px solid ${t.border}`,
-              borderRadius: 18,
-              boxShadow: '0 1px 8px 0 rgba(0,0,0,0.04)',
-              padding: '22px 28px',
-              background: t.surface,
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <div style={{
-                  width: 32, height: 32, borderRadius: 10,
-                  background: colors.errDim,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <AlertCircle size={17} style={{ color: colors.err }} />
-                </div>
-                <h3 style={{ fontSize: typography.h3.size, fontWeight: typography.h3.weight, color: t.text, letterSpacing: typography.h3.tracking, marginBottom: 0 }}>
-                  Pending Approvals
-                </h3>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {pendingLeave > 0 && (
-                  <Link
-                    to="/leave"
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', borderRadius: 12,
-                      background: t.surfaceHover,
-                      textDecoration: 'none',
-                      transition: 'background 0.15s',
-                      border: `1px solid ${t.border}`,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = t.surface }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = t.surfaceHover }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <CalendarDays size={16} style={{ color: colors.accent }} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
-                        {pendingLeave} leave request{pendingLeave > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <ChevronRight size={16} style={{ color: t.textMuted }} />
-                  </Link>
-                )}
-                {pendingClaims > 0 && (
-                  <Link
-                    to="/claims"
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', borderRadius: 12,
-                      background: t.surfaceHover,
-                      textDecoration: 'none',
-                      transition: 'background 0.15s',
-                      border: `1px solid ${t.border}`,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = t.surface }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = t.surfaceHover }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Receipt size={16} style={{ color: colors.ok }} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
-                        {pendingClaims} claim{pendingClaims > 1 ? 's' : ''} to review
-                      </span>
-                    </div>
-                    <ChevronRight size={16} style={{ color: t.textMuted }} />
-                  </Link>
-                )}
-                {pendingCorrections > 0 && (
-                  <Link
-                    to="/attendance"
-                    style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                      padding: '12px 16px', borderRadius: 12,
-                      background: t.surfaceHover,
-                      textDecoration: 'none',
-                      transition: 'background 0.15s',
-                      border: `1px solid ${t.border}`,
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = t.surface }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = t.surfaceHover }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <Clock size={16} style={{ color: colors.warn }} />
-                      <span style={{ fontSize: 14, fontWeight: 600, color: t.text }}>
-                        {pendingCorrections} attendance correction{pendingCorrections > 1 ? 's' : ''}
-                      </span>
-                    </div>
-                    <ChevronRight size={16} style={{ color: t.textMuted }} />
-                  </Link>
-                )}
-              </div>
-            </div>
+            <PendingApprovalsCard
+              pendingLeave={pendingLeave}
+              pendingClaims={pendingClaims}
+              pendingCorrections={pendingCorrections}
+              totalPending={totalPending}
+            />
           )}
 
           {/* Annual Leave Balance Card */}

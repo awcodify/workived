@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { AlertCircle, X, Settings } from 'lucide-react'
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
+import { AlertCircle, X, Settings, ArrowUpRight } from 'lucide-react'
 import { useMyBalances, useAllRequests, useMyRequests, useAllBalances, useApproveRequest, useRejectRequest, useCancelRequest, useSubmitRequest, usePolicies } from '@/lib/hooks/useLeave'
 import { useMyEmployee } from '@/lib/hooks/useEmployees'
 import { DateTime } from '@/components/workived/shared/DateTime'
@@ -37,7 +37,7 @@ function LeaveDashboard() {
   // If employee has no gender set or policy has no restriction, show the balance.
   const balances = rawBalances?.filter((b) => {
     const policy = policies?.find((p) => p.id === b.leave_policy_id)
-    if (!policy?.gender_eligibility || policy.gender_eligibility === 'all') return true // no restriction
+    if (!policy?.gender_eligibility) return true // no restriction
     if (!myEmployee?.gender) return true // employee gender not set — show all, backend validates at submission
     return policy.gender_eligibility === myEmployee.gender
   })
@@ -47,6 +47,7 @@ function LeaveDashboard() {
   const cancelMutation = useCancelRequest()
   
   const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>('my-requests')
+  const [showAllMyRequests, setShowAllMyRequests] = useState(false)
   
   const [showNewRequestModal, setShowNewRequestModal] = useState(false)
   const [selectedPolicyId, setSelectedPolicyId] = useState<string>('')
@@ -357,6 +358,17 @@ function LeaveDashboard() {
                 </span>
               )}
             </button>
+            {pendingCount > 0 && (
+              <Link
+                to="/approvals"
+                search={{ filter: 'leave' }}
+                className="flex items-center gap-1.5 ml-auto px-3 py-1.5 text-xs font-semibold rounded-lg transition-opacity hover:opacity-80"
+                style={{ background: t.surface, border: `1px solid ${t.border}`, color: t.text }}
+              >
+                All Appvl.
+                <ArrowUpRight size={13} />
+              </Link>
+            )}
           </div>
 
           {/* Tab Content */}
@@ -513,7 +525,8 @@ function LeaveDashboard() {
                     overflow: 'hidden',
                   }}
                 >
-                  {myRequests.map((request, idx) => {
+                  {(showAllMyRequests ? myRequests : myRequests.slice(0, 5)).map((request, idx) => {
+                    const visibleList = showAllMyRequests ? myRequests : myRequests.slice(0, 5)
                     // Find matching balance for this request
                     const matchedBalance = balances?.find(
                       (b) => b.leave_policy_id === request.leave_policy_id
@@ -532,10 +545,19 @@ function LeaveDashboard() {
                           isPendingCancel: cancelMutation.isPending,
                         }}
                         theme={leaveRequestTheme}
-                        isLast={idx === myRequests.length - 1}
+                        isLast={idx === visibleList.length - 1 && (showAllMyRequests || myRequests.length <= 5)}
                       />
                     )
                   })}
+                  {myRequests.length > 5 && (
+                    <button
+                      onClick={() => setShowAllMyRequests(!showAllMyRequests)}
+                      className="w-full py-2.5 text-center transition-colors hover:brightness-110"
+                      style={{ fontSize: typography.label.size, fontWeight: 600, color: t.accent, borderTop: `1px solid ${t.border}` }}
+                    >
+                      {showAllMyRequests ? 'Show less' : `Show all (${myRequests.length})`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

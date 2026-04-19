@@ -1,5 +1,5 @@
-import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { AlertCircle, Settings, X, Upload } from 'lucide-react'
+import { createFileRoute, useNavigate, Link } from '@tanstack/react-router'
+import { AlertCircle, Settings, X, Upload, ArrowUpRight } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import {
@@ -54,6 +54,8 @@ function ClaimsDashboard() {
 
   const [activeTab, setActiveTab] = useState<'approvals' | 'my-requests'>('my-requests')
   const [payingClaim, setPayingClaim] = useState<ClaimWithDetails | null>(null)
+  const [showAllPendingPayments, setShowAllPendingPayments] = useState(false)
+  const [showAllMyClaims, setShowAllMyClaims] = useState(false)
   
   const [showNewClaimModal, setShowNewClaimModal] = useState(false)
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('')
@@ -382,6 +384,17 @@ function ClaimsDashboard() {
                 </span>
               )}
             </button>
+            {(pendingCount > 0 || approvedCount > 0) && (
+              <Link
+                to="/approvals"
+                search={{ filter: 'claims' }}
+                className="flex items-center gap-1.5 ml-auto px-3 py-1.5 text-xs font-semibold rounded-lg transition-opacity hover:opacity-80"
+                style={{ background: t.surface, border: `1px solid ${t.border}`, color: t.text }}
+              >
+                All Appvl.
+                <ArrowUpRight size={13} />
+              </Link>
+            )}
           </div>
 
           {/* Tab Content */}
@@ -395,12 +408,14 @@ function ClaimsDashboard() {
                   {/* ── Needs Approval section ── */}
                   {pendingClaims.length > 0 && (
                 <div>
-                  <p
-                    className="font-semibold mb-2"
-                    style={{ fontSize: typography.label.size, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}
-                  >
-                    Needs Approval
-                  </p>
+                  <div className="mb-2">
+                    <p
+                      className="font-semibold"
+                      style={{ fontSize: typography.label.size, color: t.textMuted, textTransform: 'uppercase', letterSpacing: '0.06em' }}
+                    >
+                      Needs Approval
+                    </p>
+                  </div>
                   <div className="space-y-3">
                     {(() => {
                       const groupedByEmployee = pendingClaims.reduce((acc, claim) => {
@@ -480,14 +495,26 @@ function ClaimsDashboard() {
                       overflow: 'hidden',
                     }}
                   >
-                    {approvedClaims.map((claim, idx) => (
-                      <PendingPaymentRow
-                        key={claim.id}
-                        claim={claim}
-                        isLast={idx === approvedClaims.length - 1}
-                        onPay={() => setPayingClaim(claim)}
-                      />
-                    ))}
+                    {(showAllPendingPayments ? approvedClaims : approvedClaims.slice(0, 5)).map((claim, idx) => {
+                      const visibleList = showAllPendingPayments ? approvedClaims : approvedClaims.slice(0, 5)
+                      return (
+                        <PendingPaymentRow
+                          key={claim.id}
+                          claim={claim}
+                          isLast={idx === visibleList.length - 1 && (showAllPendingPayments || approvedClaims.length <= 5)}
+                          onPay={() => setPayingClaim(claim)}
+                        />
+                      )
+                    })}
+                    {approvedClaims.length > 5 && (
+                      <button
+                        onClick={() => setShowAllPendingPayments(!showAllPendingPayments)}
+                        className="w-full py-2.5 text-center transition-colors hover:brightness-110"
+                        style={{ fontSize: typography.label.size, fontWeight: 600, color: t.accent, borderTop: `1px solid ${t.border}` }}
+                      >
+                        {showAllPendingPayments ? 'Show less' : `Show all (${approvedClaims.length})`}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
@@ -578,7 +605,8 @@ function ClaimsDashboard() {
                     overflow: 'hidden',
                   }}
                 >
-                  {myClaims.map((claim, idx) => {
+                  {(showAllMyClaims ? myClaims : myClaims.slice(0, 5)).map((claim, idx) => {
+                    const visibleList = showAllMyClaims ? myClaims : myClaims.slice(0, 5)
                     // Find matching balance for this claim
                     const matchedBalance = balances?.find(
                       (b) => b.category_id === claim.category_id
@@ -597,10 +625,19 @@ function ClaimsDashboard() {
                           isPendingCancel: cancelMutation.isPending,
                         }}
                         theme={claimRequestTheme}
-                        isLast={idx === myClaims.length - 1}
+                        isLast={idx === visibleList.length - 1 && (showAllMyClaims || myClaims.length <= 5)}
                       />
                     )
                   })}
+                  {myClaims.length > 5 && (
+                    <button
+                      onClick={() => setShowAllMyClaims(!showAllMyClaims)}
+                      className="w-full py-2.5 text-center transition-colors hover:brightness-110"
+                      style={{ fontSize: typography.label.size, fontWeight: 600, color: t.accent, borderTop: `1px solid ${t.border}` }}
+                    >
+                      {showAllMyClaims ? 'Show less' : `Show all (${myClaims.length})`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>

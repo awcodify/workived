@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { Link } from '@tanstack/react-router'
 import { useCorrections, useApproveCorrection, useRejectCorrection, useCancelCorrection } from '@/lib/hooks/useAttendance'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
 import { moduleThemes, colors } from '@/design/tokens'
@@ -130,6 +131,14 @@ export function CorrectionsPanel({ tz = 'UTC' }: { tz?: string }) {
                 Show all {totalCount} requests
               </button>
             )}
+            <Link
+              to="/approvals"
+              search={{ filter: 'attendance' }}
+              className="block w-full px-4 py-2 text-xs font-semibold text-center transition-opacity hover:opacity-70"
+              style={{ color: t.accent, borderTop: `1px solid ${t.border}` }}
+            >
+              See all approvals →
+            </Link>
           </>
         ) : (
           <>

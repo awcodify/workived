@@ -27,6 +27,7 @@ function getCurrentModule(pathname: string): ModuleKey {
   if (pathname.startsWith('/profile')) return 'people'
   if (pathname.startsWith('/people')) return 'people'
   if (pathname.startsWith('/attendance')) return 'attendance'
+  if (pathname.startsWith('/approvals')) return 'overview'
   if (pathname.startsWith('/leave')) return 'leave'
   if (pathname.startsWith('/claims')) return 'claims'
   if (pathname.startsWith('/calendar')) return 'calendar'
