@@ -237,11 +237,14 @@ function FieldInput({
       return wrapper(
         <input
           type="date"
-          value={optimistic !== null ? (optimistic.value as string ?? '') : (current?.value_date ? current.value_date.split('T')[0] : '')}
+          data-testid={`field-input-date-${fd.id}`}
+          value={isCreateMode
+            ? (createValue as string ?? '')
+            : (optimistic !== null ? (optimistic.value as string ?? '') : (current?.value_date ? current.value_date.split('T')[0] : ''))}
           style={{ ...inputStyle, colorScheme: 'light' }}
           onChange={(e) => {
             if (e.target.value) save(e.target.value)
-            else if (current) clear()
+            else if (isCreateMode ? hasValue : current) clear()
           }}
         />
       )
