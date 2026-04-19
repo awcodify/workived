@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from '@tanstack/react-router'
-import { Megaphone } from 'lucide-react'
+import { Megaphone, Pin } from 'lucide-react'
 import { colors } from '@/design/tokens'
 import { useAnnouncements, useMarkAnnouncementRead, useAnnouncementUnreadCount } from '@/lib/hooks/useAnnouncements'
 
@@ -196,21 +196,34 @@ export function NotificationBell({
                       />
                     )}
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        fontSize: 13,
-                        fontWeight: ann.is_read ? 500 : 600,
-                        color: textColor,
-                        margin: '0 0 2px',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {ann.title}
-                      </p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <p style={{
+                          fontSize: 13,
+                          fontWeight: ann.is_read ? 500 : 600,
+                          color: textColor,
+                          margin: 0,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          flex: 1,
+                        }}>
+                          {ann.title}
+                        </p>
+                        {ann.is_pinned && (
+                          <Pin
+                            size={12}
+                            style={{
+                              color: accentColor,
+                              flexShrink: 0,
+                              opacity: 0.6,
+                            }}
+                          />
+                        )}
+                      </div>
                       <p style={{
                         fontSize: 11,
                         color: textMutedColor,
-                        margin: 0,
+                        margin: '2px 0 0',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
