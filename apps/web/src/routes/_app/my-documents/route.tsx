@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { moduleThemes, colors, typography } from '@/design/tokens'
 import { ArrowLeft, FileText } from 'lucide-react'
 
@@ -9,6 +9,8 @@ export const Route = createFileRoute('/_app/my-documents')({
 const t = moduleThemes.people
 
 function MyDocumentsPage() {
+  const router = useRouter()
+
   return (
     <div
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
@@ -17,13 +19,13 @@ function MyDocumentsPage() {
     >
       <div className="max-w-3xl mx-auto">
         {/* Back link */}
-        <Link
-          to="/overview"
+        <button
+          onClick={() => router.history.back()}
           className="inline-flex items-center gap-1.5 text-sm font-medium mb-6"
           style={{ color: colors.ink500 }}
         >
           <ArrowLeft size={16} /> Back
-        </Link>
+        </button>
 
         {/* Page header */}
         <h1

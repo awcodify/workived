@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 import { useState } from 'react'
 import { useMyEmployee } from '@/lib/hooks/useEmployees'
 import { useAuthStore } from '@/lib/stores/auth'
@@ -170,6 +170,7 @@ function QuickStat({ label, value, color }: { label: string; value: string; colo
 function MyProfilePage() {
   const { data: employee, isLoading, error } = useMyEmployee()
   const user = useAuthStore((s) => s.user)
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<TabType>('overview')
 
   // ── Loading ───────────────────────────────────────────────
@@ -239,13 +240,13 @@ function MyProfilePage() {
         style={{ background: colors.ink50, paddingBottom: '160px' }}
       >
         <div className="max-w-3xl mx-auto">
-          <Link
-            to="/overview"
+          <button
+            onClick={() => router.history.back()}
             className="inline-flex items-center gap-1.5 text-sm font-medium mb-6"
             style={{ color: colors.ink500 }}
           >
             <ArrowLeft size={16} /> Back
-          </Link>
+          </button>
           <div
             className="p-10 rounded-2xl text-center"
             style={{ background: colors.ink0, border: `1px solid ${colors.ink100}` }}
@@ -301,13 +302,13 @@ function MyProfilePage() {
     >
       <div className="max-w-3xl mx-auto">
         {/* Back link */}
-        <Link
-          to="/overview"
+        <button
+          onClick={() => router.history.back()}
           className="inline-flex items-center gap-1.5 text-sm font-medium mb-6"
           style={{ color: colors.ink500 }}
         >
           <ArrowLeft size={16} /> Back
-        </Link>
+        </button>
 
         {/* ── Hero Card ──────────────────────────────────────── */}
         <div
