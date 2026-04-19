@@ -115,9 +115,20 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 
 func (h *Handler) ListCategories(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
-	userID := middleware.UserIDFromCtx(c)
+	role := middleware.RoleFromCtx(c)
 
-	// Resolve employee so we can filter by employment type eligibility.
+	// Admins and owners see all categories regardless of employment type eligibility.
+	if role == middleware.RoleOwner || role == middleware.RoleAdmin {
+		categories, err := h.service.ListCategories(c.Request.Context(), orgID)
+		if err != nil {
+			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"data": categories})
+		return
+	}
+
+	userID := middleware.UserIDFromCtx(c)
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
 		h.logAndRespondError(c, err, "failed to lookup employee for categories", map[string]string{

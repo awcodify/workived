@@ -532,6 +532,19 @@ func TestHandler_ListCategories(t *testing.T) {
 		newClaimsRouter(svc).ServeHTTP(w, req)
 		assertClaimsStatus(t, w, http.StatusInternalServerError)
 	})
+
+	t.Run("200 — member sees employment-type-filtered categories", func(t *testing.T) {
+		svc := &fakeHandlerService{
+			listCategoriesFn: func(_ context.Context, _ uuid.UUID) ([]claims.Category, error) {
+				return []claims.Category{{ID: testCategoryID, Name: "Travel"}}, nil
+			},
+		}
+		w := httptest.NewRecorder()
+		req, _ := http.NewRequest(http.MethodGet, "/api/v1/claims/categories", nil)
+		newClaimsRouterWithRole(svc, middleware.RoleMember).ServeHTTP(w, req)
+		assertClaimsStatus(t, w, http.StatusOK)
+		assertClaimsDataKey(t, w)
+	})
 }
 
 // ── TestHandler_CreateCategory ────────────────────────────────────────────────
