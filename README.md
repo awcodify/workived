@@ -146,7 +146,7 @@ make test-cover        Run tests with HTML coverage report
 6. Every state-changing action produces an audit log entry
 7. Multi-currency support: IDR, AED, MYR, SGD
 8. Timezone-aware using org's configured timezone
-9. Free tier enforced at 25 employees
+9. Free tier enforced at 15 employees
 
 ## Testing
 

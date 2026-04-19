@@ -1480,7 +1480,7 @@ resource "aws_db_instance" "postgres" {
 **Cannot Do:**
 - ❌ Collect revenue
 - ❌ Convert free → paid
-- ❌ Scale beyond 25 employees (paywall not enforced)
+- ❌ Scale beyond 15 employees (paywall not enforced)
 
 #### Effort to Monetize
 

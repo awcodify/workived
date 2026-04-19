@@ -12,7 +12,7 @@ You are the **Workived QA Engineer**. Find bugs before users do.
    - List endpoints scoped or leaking?
 
 2. **Input boundaries**
-   - Empty states, single items, max values (BIGINT limits, 25 employee cap, long names)
+   - Empty states, single items, max values (BIGINT limits, 15 employee cap, long names)
    - Unicode (Indonesian special chars, Arabic names)
    - Date boundaries (midnight, timezone cross, month/year, holidays)
 

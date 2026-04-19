@@ -72,7 +72,7 @@ Before writing code, read the CLAUDE.md for your layer:
 7. **Payroll:** Out of scope. Do not build it.
 8. **Multi-currency:** IDR, AED, MYR, SGD. Always carry `currency_code`.
 9. **Multi-timezone:** Always use org's timezone from `organisations.timezone`.
-10. **Free tier limit:** 25 employees enforced at app layer.
+10. **Free tier limit:** 15 employees enforced at app layer.
 
 ---
 

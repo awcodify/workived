@@ -77,7 +77,7 @@ Payroll is explicitly out of scope for the initial build. Build the general empl
 - **Freemium** — generous free tier to drive acquisition
 - **Depth-based upgrade triggers** — charge for scale and automation, not feature access
 - **Key conversion triggers:** hitting 25-employee limit, needing geofencing, wanting analytics, approval escalation rules
-- **Free tier limit:** 25 employees per organisation — enforced at application layer via `organisations.plan_employee_limit`
+- **Free tier limit:** 15 employees per organisation — enforced at application layer via `organisations.plan_employee_limit`
 
 ### Billing Implementation (Post-MVP)
 
