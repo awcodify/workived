@@ -27,7 +27,7 @@ export const Route = createFileRoute('/_app/profile/')({
 })
 
 // ── Types ─────────────────────────────────────────────────────
-type TabType = 'overview' | 'documents' | 'custom-fields'
+type TabType = 'overview' | 'custom-fields'
 
 // ── Sub-components ────────────────────────────────────────────
 
@@ -387,13 +387,6 @@ function MyProfilePage() {
             onClick={() => setActiveTab('overview')}
           />
           <ProfileTab
-            icon={FileText}
-            label="Documents"
-            active={activeTab === 'documents'}
-            onClick={() => setActiveTab('documents')}
-            badge="Soon"
-          />
-          <ProfileTab
             icon={Layers}
             label="Custom Fields"
             active={activeTab === 'custom-fields'}
@@ -473,20 +466,6 @@ function MyProfilePage() {
                 To update your profile, please contact your HR administrator.
               </p>
             </div>
-          </div>
-        )}
-
-        {/* Documents Tab */}
-        {activeTab === 'documents' && (
-          <div
-            className="rounded-2xl"
-            style={{ background: colors.ink0, border: `1px solid ${colors.ink100}` }}
-          >
-            <ComingSoonPlaceholder
-              icon={FileText}
-              title="Employee Documents"
-              description="View and manage your personal documents — contracts, certificates, and more. Your HR administrator will upload documents here."
-            />
           </div>
         )}
 

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
-import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, HelpCircle } from 'lucide-react'
+import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, HelpCircle, MoreHorizontal } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useThemeStore } from '@/lib/stores/theme'
 import { useTourStore } from '@/lib/stores/tour'
@@ -174,7 +174,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
             />
           )}
 
-          <Settings
+          <MoreHorizontal
             className="md:group-hover:rotate-90 md:group-hover:scale-110 transition-all duration-300 relative w-[22px] h-[22px] md:w-5 md:h-5"
             style={{ 
               color: isOpen ? theme.active.icon : theme.icon,
@@ -192,7 +192,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
               transition: 'color 0.2s ease',
             }}
           >
-            Settings
+            More
           </span>
         </div>
       </button>
@@ -253,7 +253,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
               </div>
             )}
 
-            {/* Navigation Section */}
+            {/* Personal */}
             <div className="p-1.5">
               <MenuItem
                 icon={User}
@@ -261,6 +261,19 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
                 testId="settings-menu-profile-link"
                 onClick={() => { setIsOpen(false); navigate({ to: '/profile' }) }}
               />
+              <MenuItem
+                icon={FileText}
+                label="My documents"
+                testId="settings-menu-documents-link"
+                onClick={() => { setIsOpen(false); navigate({ to: '/my-documents' }) }}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="mx-3" style={{ height: 1, background: menuStyle.divider }} />
+
+            {/* Workspace Section */}
+            <div className="p-1.5">
               <MenuItem
                 icon={Building2}
                 label="Company settings"

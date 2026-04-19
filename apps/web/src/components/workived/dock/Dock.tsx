@@ -1,5 +1,5 @@
 import { Link, useMatches, useRouter } from '@tanstack/react-router'
-import { LayoutDashboard, Users, Clock, Calendar, CalendarDays, Receipt, CheckSquare, Loader2 } from 'lucide-react'
+import { LayoutDashboard, Users, Clock, Calendar, CalendarDays, Receipt, CheckSquare, Loader2, BarChart3 } from 'lucide-react'
 import { dockThemes, useDockTheme } from '@/design/tokens'
 import { cn } from '@/lib/utils/cn'
 import { SettingsMenu } from './SettingsMenu'
@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   { to: '/leave', label: 'Leave', icon: Calendar, module: 'leave' as ModuleKey, featureKey: null, notificationKey: 'leave', hideOnMobile: false },
   { to: '/claims', label: 'Claims', icon: Receipt, module: 'claims' as ModuleKey, featureKey: null, notificationKey: 'claims', hideOnMobile: false },
   { to: '/calendar', label: 'Calendar', icon: CalendarDays, module: 'calendar' as ModuleKey, featureKey: null, notificationKey: null, hideOnMobile: false },
-  { to: '/reports/dashboards', label: 'Dashboards', icon: LayoutDashboard, module: 'reports' as ModuleKey, featureKey: 'reports', notificationKey: null, hideOnMobile: false },
+  { to: '/reports/dashboards', label: "Dashbds", icon: BarChart3, module: 'reports' as ModuleKey, featureKey: 'reports', notificationKey: null, hideOnMobile: false },
   { to: '/people', label: 'People', icon: Users, module: 'people' as ModuleKey, featureKey: null, notificationKey: 'people', hideOnMobile: true },
 ] as const
 

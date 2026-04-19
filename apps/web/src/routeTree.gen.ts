@@ -23,6 +23,7 @@ import { Route as AppTasksRouteRouteImport } from './routes/_app/tasks/route'
 import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
+import { Route as AppMyDocumentsRouteRouteImport } from './routes/_app/my-documents/route'
 import { Route as AppLeaveRouteRouteImport } from './routes/_app/leave/route'
 import { Route as AppFeatureDisabledRouteRouteImport } from './routes/_app/feature-disabled/route'
 import { Route as AppClaimsRouteRouteImport } from './routes/_app/claims/route'
@@ -118,6 +119,11 @@ const AppPeopleRouteRoute = AppPeopleRouteRouteImport.update({
 const AppOverviewRouteRoute = AppOverviewRouteRouteImport.update({
   id: '/overview',
   path: '/overview',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppMyDocumentsRouteRoute = AppMyDocumentsRouteRouteImport.update({
+  id: '/my-documents',
+  path: '/my-documents',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppLeaveRouteRoute = AppLeaveRouteRouteImport.update({
@@ -275,6 +281,7 @@ export interface FileRoutesByFullPath {
   '/claims': typeof AppClaimsRouteRouteWithChildren
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/leave': typeof AppLeaveRouteRouteWithChildren
+  '/my-documents': typeof AppMyDocumentsRouteRoute
   '/overview': typeof AppOverviewRouteRoute
   '/people': typeof AppPeopleRouteRouteWithChildren
   '/settings': typeof AppSettingsRouteRouteWithChildren
@@ -313,6 +320,7 @@ export interface FileRoutesByTo {
   '/announcements': typeof AppAnnouncementsRouteRoute
   '/changelog': typeof AppChangelogRouteRoute
   '/feature-disabled': typeof AppFeatureDisabledRouteRoute
+  '/my-documents': typeof AppMyDocumentsRouteRoute
   '/overview': typeof AppOverviewRouteRoute
   '/settings': typeof AppSettingsRouteRouteWithChildren
   '/tasks': typeof AppTasksRouteRoute
@@ -357,6 +365,7 @@ export interface FileRoutesById {
   '/_app/claims': typeof AppClaimsRouteRouteWithChildren
   '/_app/feature-disabled': typeof AppFeatureDisabledRouteRoute
   '/_app/leave': typeof AppLeaveRouteRouteWithChildren
+  '/_app/my-documents': typeof AppMyDocumentsRouteRoute
   '/_app/overview': typeof AppOverviewRouteRoute
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
   '/_app/settings': typeof AppSettingsRouteRouteWithChildren
@@ -401,6 +410,7 @@ export interface FileRouteTypes {
     | '/claims'
     | '/feature-disabled'
     | '/leave'
+    | '/my-documents'
     | '/overview'
     | '/people'
     | '/settings'
@@ -439,6 +449,7 @@ export interface FileRouteTypes {
     | '/announcements'
     | '/changelog'
     | '/feature-disabled'
+    | '/my-documents'
     | '/overview'
     | '/settings'
     | '/tasks'
@@ -482,6 +493,7 @@ export interface FileRouteTypes {
     | '/_app/claims'
     | '/_app/feature-disabled'
     | '/_app/leave'
+    | '/_app/my-documents'
     | '/_app/overview'
     | '/_app/people'
     | '/_app/settings'
@@ -620,6 +632,13 @@ declare module '@tanstack/react-router' {
       path: '/overview'
       fullPath: '/overview'
       preLoaderRoute: typeof AppOverviewRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/_app/my-documents': {
+      id: '/_app/my-documents'
+      path: '/my-documents'
+      fullPath: '/my-documents'
+      preLoaderRoute: typeof AppMyDocumentsRouteRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/_app/leave': {
@@ -914,6 +933,7 @@ interface AppRouteRouteChildren {
   AppClaimsRouteRoute: typeof AppClaimsRouteRouteWithChildren
   AppFeatureDisabledRouteRoute: typeof AppFeatureDisabledRouteRoute
   AppLeaveRouteRoute: typeof AppLeaveRouteRouteWithChildren
+  AppMyDocumentsRouteRoute: typeof AppMyDocumentsRouteRoute
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
   AppPeopleRouteRoute: typeof AppPeopleRouteRouteWithChildren
   AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
@@ -936,6 +956,7 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppClaimsRouteRoute: AppClaimsRouteRouteWithChildren,
   AppFeatureDisabledRouteRoute: AppFeatureDisabledRouteRoute,
   AppLeaveRouteRoute: AppLeaveRouteRouteWithChildren,
+  AppMyDocumentsRouteRoute: AppMyDocumentsRouteRoute,
   AppOverviewRouteRoute: AppOverviewRouteRoute,
   AppPeopleRouteRoute: AppPeopleRouteRouteWithChildren,
   AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
