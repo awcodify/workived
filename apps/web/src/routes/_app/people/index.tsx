@@ -172,7 +172,6 @@ function PeoplePage() {
             className="flex items-center gap-1.5 text-sm font-medium shrink-0 px-3.5 py-2 transition-opacity hover:opacity-70 whitespace-nowrap"
             style={{ borderRadius: 10, background: t.surface, border: `1px solid ${t.border}`, color: t.textMuted }}
           >
-            <Settings size={14} />
             Dept. & Job Titles
           </button>
 
@@ -182,7 +181,7 @@ function PeoplePage() {
             style={{ borderRadius: 10, background: t.surface, border: `1px solid ${t.border}`, color: t.textMuted }}
           >
             <Network size={14} />
-            Org Chart
+            Org. Chart
           </Link>
 
           {canManageEmployees && (
@@ -194,7 +193,7 @@ function PeoplePage() {
               style={{ background: t.accent, color: t.accentText, borderRadius: 10 }}
             >
               <Plus size={15} />
-              Add employee
+              Emp.
             </Link>
           )}
         </div>
@@ -391,7 +390,7 @@ function PeopleEmptyState({
           }}
         >
           <Plus size={16} />
-          Add employee
+          Emp.
         </Link>
       )}
     </div>
