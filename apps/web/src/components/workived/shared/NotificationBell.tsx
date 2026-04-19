@@ -121,6 +121,26 @@ export function NotificationBell({
               <h3 style={{ fontSize: 13, fontWeight: 600, color: textColor, margin: 0 }}>
                 Announcements
               </h3>
+              {unreadCount > 0 && (
+                <span
+                  data-testid="notification-header-badge"
+                  style={{
+                    minWidth: 18,
+                    height: 18,
+                    borderRadius: 9,
+                    background: '#D44040',
+                    color: '#fff',
+                    fontSize: 10,
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
+                  }}
+                >
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
             </div>
             <Link
               to="/announcements"

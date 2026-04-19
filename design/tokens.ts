@@ -49,8 +49,9 @@ export const moduleBackgrounds = {
   claims:      '#F0FDF9',  // soft mint green
   tasks:       '#F5F5F0',  // warm paper beige (kanban board)
   reports:     '#F3F2FB',  // soft violet (light)
-  calendar:    '#FFF8F3',  // warm amber cream
-  settings:    '#0F0F1A',  // deep indigo night (same as reports)
+  calendar:      '#FFF8F3',  // warm amber cream
+  announcements: '#FFF8F0',  // warm peach
+  settings:      '#0F0F1A',  // deep indigo night (same as reports)
 } as const
 
 // ── DOCK THEMES ───────────────────────────────────────────────
@@ -183,6 +184,17 @@ export const moduleThemes = {
     border:       'rgba(217,119,6,0.12)',
     input:        '#FFFFFF',
     inputBorder:  'rgba(217,119,6,0.15)',
+  },
+  announcements: {
+    text:         '#1A0C00',
+    textMuted:    '#8C6A45',
+    surface:      '#FFFFFF',
+    surfaceHover: '#FFF3E8',
+    accent:       '#B45014',
+    accentText:   '#FFFFFF',
+    border:       'rgba(180,80,20,0.12)',
+    input:        '#FFFFFF',
+    inputBorder:  'rgba(180,80,20,0.15)',
   },
 } as const
 
