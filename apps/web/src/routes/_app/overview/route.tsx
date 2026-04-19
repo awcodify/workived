@@ -1,11 +1,12 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useEmployees, useMyEmployee } from '@/lib/hooks/useEmployees'
 import { useTodayAttendance, useCorrectionNotificationCount } from '@/lib/hooks/useAttendance'
 import { useMyBalances, useCalendar, useHolidays, useLeaveNotificationCount } from '@/lib/hooks/useLeave'
 import { useMyClaimBalances, useClaimNotificationCount } from '@/lib/hooks/useClaims'
+import { useAnnouncements, useMarkAnnouncementRead } from '@/lib/hooks/useAnnouncements'
 import { useCanManageLeave, useCanManageClaims } from '@/lib/hooks/useRole'
 import { useAttendanceRole } from '@/lib/hooks/useAttendanceRole'
 import { todayISO, getMondayOfWeek } from '@/lib/utils/date'
@@ -13,10 +14,11 @@ import { formatMoney } from '@/lib/utils/money'
 import { useModuleTheme, useModuleBackground, colors, typography } from '@/design/tokens'
 import { Avatar } from '@/components/workived/layout/Avatar'
 import { AttendanceCard } from '@/components/workived/attendance/AttendanceCard'
-import { Users, CalendarDays, Receipt, AlertCircle, ChevronRight, Clock } from 'lucide-react'
+import { Users, CalendarDays, Receipt, AlertCircle, ChevronRight, Clock, Megaphone, X, Pin } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { BalanceCardSkeleton, TeamMemberSkeleton, ListSkeleton } from '@/components/workived/shared/Skeleton'
+import type { Announcement } from '@/types/api'
 
 // ── Tooltip ──────────────────────────────────────────────────────
 import { useRef, useState as useTooltipState } from 'react'
@@ -66,28 +68,6 @@ function TeamTooltip({ children, content }: { children: React.ReactNode, content
 export const Route = createFileRoute('/_app/overview')({
   component: OverviewPage,
 })
-// TODO: move it to admin config.
-// ── Quotes ──────────────────────────────────────────────────────
-
-const QUOTES = [
-  { text: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' },
-  { text: 'Success is not final, failure is not fatal: it is the courage to continue that counts.', author: 'Winston Churchill' },
-  { text: 'Done is better than perfect.', author: 'Sheryl Sandberg' },
-  { text: 'Move fast and break things. Unless you are breaking stuff, you are not moving fast enough.', author: 'Mark Zuckerberg' },
-  { text: 'The best time to plant a tree was 20 years ago. The second best time is now.', author: 'Chinese Proverb' },
-  { text: 'It always seems impossible until it is done.', author: 'Nelson Mandela' },
-  { text: 'Stay hungry, stay foolish.', author: 'Steve Jobs' },
-  { text: 'Talent wins games, but teamwork and intelligence win championships.', author: 'Michael Jordan' },
-  { text: 'If you want to go fast, go alone. If you want to go far, go together.', author: 'African Proverb' },
-  { text: 'Work hard in silence, let your success be your noise.', author: 'Frank Ocean' },
-  { text: 'The secret of getting ahead is getting started.', author: 'Mark Twain' },
-  { text: 'What you do today can improve all your tomorrows.', author: 'Ralph Marston' },
-]
-
-function useDailyQuote() {
-  const [index] = useState(() => Math.floor(Math.random() * QUOTES.length))
-  return QUOTES[index]
-}
 
 // ── Hooks ───────────────────────────────────────────────────────
 
@@ -113,6 +93,50 @@ function OverviewPage() {
 
   const { data: employees, isLoading: empLoading} = useEmployees({ limit: 100, status: 'active' })
   const { data: daily, isLoading: dailyLoading } = useTodayAttendance(weekStart, today)
+
+  // Announcements
+  const { data: announcements = [] } = useAnnouncements()
+  const markReadMut = useMarkAnnouncementRead()
+  const [viewingAnnouncement, setViewingAnnouncement] = useState<Announcement | undefined>()
+  const [dismissedAnnouncements, setDismissedAnnouncements] = useState<Set<string>>(() => {
+    const stored = localStorage.getItem('dismissed-announcements')
+    return stored ? new Set(JSON.parse(stored)) : new Set()
+  })
+  const [currentSlide, setCurrentSlide] = useState(0)
+
+  const pinnedAnnouncements = useMemo(() => {
+    return announcements
+      .filter((a) => a.is_pinned && a.published_at && !dismissedAnnouncements.has(a.id))
+      .slice(0, 3)
+  }, [announcements, dismissedAnnouncements])
+
+  // Reset slide when announcements change
+  useEffect(() => {
+    if (currentSlide >= pinnedAnnouncements.length) {
+      setCurrentSlide(0)
+    }
+  }, [pinnedAnnouncements.length, currentSlide])
+
+  // Auto-rotate announcements every 5 seconds
+  useEffect(() => {
+    if (pinnedAnnouncements.length <= 1) return
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % pinnedAnnouncements.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [pinnedAnnouncements.length])
+
+  function openAnnouncement(ann: Announcement) {
+    if (!ann.is_read) markReadMut.mutate(ann.id)
+    setViewingAnnouncement(ann)
+  }
+
+  function dismissAnnouncement(id: string) {
+    const newDismissed = new Set(dismissedAnnouncements)
+    newDismissed.add(id)
+    setDismissedAnnouncements(newDismissed)
+    localStorage.setItem('dismissed-announcements', JSON.stringify(Array.from(newDismissed)))
+  }
 
   // Leave balances for current year
   const currentYear = new Date().getFullYear()
@@ -197,7 +221,6 @@ function OverviewPage() {
   const firstName = fullName?.split(' ')[0] ?? 'there'
 
   const greeting = useGreeting()
-  const dailyQuote = useDailyQuote()
 
   // Team pulse data — merge employees with daily report + leave calendar
   const teamMembers = useMemo(() => {
@@ -257,41 +280,143 @@ function OverviewPage() {
       </div>
       </div>
 
-      {/* Motivational Quote Card (moved below header) */}
-      <div
-        style={{
-          maxWidth: 680,
-          margin: '0 auto 24px auto',
-          background: t.surface,
-          borderRadius: 16,
-          boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)',
-          padding: '22px 40px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 22,
-          border: `1px solid ${t.border}`,
-        }}
-      >
-        <span style={{ fontSize: 32, color: colors.accent, marginRight: 8 }}>❝</span>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 17, color: t.text, fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>{dailyQuote?.text}</p>
-          <p style={{ fontSize: 13, color: t.textMuted, fontWeight: 500, textAlign: 'right' }}>— {dailyQuote?.author}</p>
-        </div>
-      </div>
-
       {/* ── Main Content: 3-Column Dashboard ──────────────────────────── */}
       <div
         className="dashboard-columns"
         style={{ display: 'flex', gap: 24, marginTop: 32 }}
       >
 
-        {/* ═══ LEFT COLUMN: Clock In + Upcoming ═══ */}
-        <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* ═══ LEFT + MIDDLE COLUMNS WRAPPER ═══ */}
+        <div style={{ flex: 2, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          
+          {/* Pinned Announcements */}
+          {pinnedAnnouncements.length > 0 && (() => {
+            const currentAnnouncement = pinnedAnnouncements[currentSlide]
+            if (!currentAnnouncement) return null
+            return (
+              <div>
+                <div
+                  style={{
+                    background: t.surface,
+                    borderRadius: 16,
+                    boxShadow: '0 2px 12px 0 rgba(0,0,0,0.06)',
+                    padding: '18px 32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 22,
+                    border: `1px solid ${t.border}`,
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'opacity 0.3s ease-in-out',
+                  }}
+                  onClick={() => openAnnouncement(currentAnnouncement)}
+                >
+                  {/* Pin icon badge */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 12,
+                      left: 16,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Pin size={16} style={{ color: colors.accent, opacity: 0.6 }} />
+                  </div>
 
-          {/* My Attendance Card */}
-          <div data-tour="attendance-card">
-            <AttendanceCard variant="light" />
-          </div>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 17, color: t.text, fontWeight: 600, marginBottom: 4, lineHeight: 1.4 }}>
+                      {currentAnnouncement.title}
+                    </p>
+                    <p
+                      style={{
+                        fontSize: 14,
+                        color: t.textMuted,
+                        marginBottom: 4,
+                        lineHeight: 1.5,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {currentAnnouncement.body}
+                    </p>
+                    <p style={{ fontSize: 13, color: t.textMuted, fontWeight: 500, textAlign: 'right', margin: 0 }}>
+                      — {currentAnnouncement.author_name}
+                    </p>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      dismissAnnouncement(currentAnnouncement.id)
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: 12,
+                      right: 12,
+                      width: 24,
+                      height: 24,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: 8,
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      opacity: 0.3,
+                      transition: 'all 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '1'
+                      e.currentTarget.style.background = t.border
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '0.3'
+                      e.currentTarget.style.background = 'transparent'
+                    }}
+                  >
+                    <X size={14} style={{ color: t.textMuted }} />
+                  </button>
+                </div>
+                
+                {/* Navigation dots */}
+                {pinnedAnnouncements.length > 1 && (
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 12 }}>
+                    {pinnedAnnouncements.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentSlide(index)}
+                        style={{
+                          width: 8,
+                          height: 8,
+                          borderRadius: '50%',
+                          border: 'none',
+                          background: index === currentSlide ? colors.accent : t.border,
+                          cursor: 'pointer',
+                          padding: 0,
+                          transition: 'all 0.2s',
+                        }}
+                        aria-label={`Go to announcement ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+
+          {/* 2-Column Grid for Clock In and Pending Approval */}
+          <div style={{ display: 'flex', gap: 24 }}>
+            
+            {/* ═══ LEFT COLUMN: Clock In + Upcoming ═══ */}
+            <div className="dashboard-col" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+              {/* My Attendance Card */}
+              <div data-tour="attendance-card">
+                <AttendanceCard variant="light" />
+              </div>
 
           {/* Upcoming Holidays */}
           {upcomingHolidays.length > 0 && (
@@ -771,6 +896,9 @@ function OverviewPage() {
           })()}
         </div>
 
+            </div> {/* End 2-column grid */}
+          </div> {/* End left+middle wrapper */}
+
         {/* ═══ RIGHT COLUMN: Team Pulse ═══ */}
         <div className="dashboard-col" data-tour="team-pulse" style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {empLoading || dailyLoading ? (
@@ -816,6 +944,11 @@ function OverviewPage() {
           }
         }
       `}</style>
+
+      {/* Announcement Detail Modal */}
+      {viewingAnnouncement && (
+        <AnnouncementDetailModal ann={viewingAnnouncement} onClose={() => setViewingAnnouncement(undefined)} />
+      )}
     </div>
   )
 }
@@ -1209,6 +1342,67 @@ function DonutChart({ size, segments, total, centerLabel, hovered, onHover, show
               </p>
             </>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Announcement Detail Modal ─────────────────────────────────────────────────
+
+function AnnouncementDetailModal({ ann, onClose }: { ann: Announcement; onClose: () => void }) {
+  const t = useModuleTheme('overview')
+  const date = ann.published_at
+    ? new Date(ann.published_at).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    : null
+
+  return (
+    <div
+      data-testid="announcement-detail-modal"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.5)' }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden"
+        style={{ background: t.surface, border: `1px solid ${t.border}` }}
+      >
+        {/* Modal header */}
+        <div
+          className="flex items-start justify-between gap-4 px-6 pt-6 pb-4"
+          style={{ borderBottom: `1px solid ${t.border}` }}
+        >
+          <div className="flex-1 min-w-0">
+            {ann.is_pinned && (
+              <div className="flex items-center gap-1 text-xs font-bold mb-2" style={{ color: colors.accent }}>
+                <Pin className="w-3 h-3" />
+                Pinned
+              </div>
+            )}
+            <h2 className="font-extrabold text-lg leading-tight" style={{ color: t.text }}>{ann.title}</h2>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-xs font-medium" style={{ color: t.textMuted }}>{ann.author_name}</span>
+              {date && (
+                <>
+                  <span className="text-xs" style={{ color: t.border }}>·</span>
+                  <span className="text-xs" style={{ color: t.textMuted }}>{date}</span>
+                </>
+              )}
+            </div>
+          </div>
+          <button
+            data-testid="announcement-detail-close-btn"
+            onClick={onClose}
+            className="p-1.5 rounded-lg transition-colors shrink-0"
+            style={{ color: t.textMuted }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="px-6 py-5 max-h-[60vh] overflow-y-auto">
+          <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: t.text }}>{ann.body}</p>
         </div>
       </div>
     </div>
