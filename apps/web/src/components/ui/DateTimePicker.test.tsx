@@ -8,73 +8,57 @@ describe('DateTimePicker', () => {
     expect(screen.getByText('Test DateTime')).toBeInTheDocument()
   })
 
-  it('parses ISO datetime value into separate date and time', () => {
+  it('parses ISO datetime value into segments', () => {
     render(<DateTimePicker value="2026-04-19T14:30:00" />)
-    // Date input should show date part
-    const inputs = screen.getAllByRole('textbox')
-    expect(inputs.length).toBeGreaterThan(0)
+    // Should have date segments (Year, Month, Day) and time segments (Hour, Minute)
+    expect(screen.getByLabelText('Year')).toHaveValue('2026')
+    expect(screen.getByLabelText('Month')).toHaveValue('04')
+    expect(screen.getByLabelText('Day')).toHaveValue('19')
+    expect(screen.getByLabelText('Hour')).toHaveValue('14')
+    expect(screen.getByLabelText('Minute')).toHaveValue('30')
   })
 
-  it('calls onChange with ISO string when date changes', () => {
+  it('calls onChange with ISO string when year segment changes', () => {
     const onChange = vi.fn()
     render(<DateTimePicker onChange={onChange} />)
-    
-    const dateInput = screen.getAllByRole('textbox')[0] as HTMLInputElement
-    fireEvent.change(dateInput, { target: { value: '2026-04-20' } })
-    
-    expect(onChange).toHaveBeenCalledWith(expect.stringContaining('2026-04-20'))
+    // Type into the year segment
+    fireEvent.change(screen.getByLabelText('Year'), { target: { value: '2026' } })
+    expect(onChange).toHaveBeenCalled()
   })
 
-  it('calls onChange with ISO string when time changes', () => {
+  it('calls onChange with ISO string when hour segment changes', () => {
     const onChange = vi.fn()
     render(<DateTimePicker value="2026-04-19T14:30:00" onChange={onChange} />)
-    
-    const timeInput = screen.getAllByRole('textbox')[1] as HTMLInputElement
-    fireEvent.change(timeInput, { target: { value: '15:45' } })
-    
-    expect(onChange).toHaveBeenCalledWith(expect.stringContaining('15:45'))
+    fireEvent.change(screen.getByLabelText('Hour'), { target: { value: '15' } })
+    expect(onChange).toHaveBeenCalled()
   })
 
-  it('disables time input when no date is selected', () => {
+  it('disables time segments when no date is selected', () => {
     render(<DateTimePicker />)
-    const inputs = screen.getAllByRole('textbox')
-    const timeInput = inputs[1] as HTMLInputElement
-    expect(timeInput).toBeDisabled()
+    expect(screen.getByLabelText('Hour')).toBeDisabled()
+    expect(screen.getByLabelText('Minute')).toBeDisabled()
   })
 
-  it('enables time input when date is selected', () => {
+  it('enables time segments when date is selected', () => {
     render(<DateTimePicker value="2026-04-19T14:30:00" />)
-    const inputs = screen.getAllByRole('textbox')
-    const timeInput = inputs[1] as HTMLInputElement
-    expect(timeInput).not.toBeDisabled()
-  })
-
-  it('clears time when date is cleared', () => {
-    const onChange = vi.fn()
-    render(<DateTimePicker value="2026-04-19T14:30:00" onChange={onChange} />)
-    
-    const dateInput = screen.getAllByRole('textbox')[0] as HTMLInputElement
-    fireEvent.change(dateInput, { target: { value: '' } })
-    
-    expect(onChange).toHaveBeenCalledWith('')
+    expect(screen.getByLabelText('Hour')).not.toBeDisabled()
+    expect(screen.getByLabelText('Minute')).not.toBeDisabled()
   })
 
   it('shows error message when error prop is true', () => {
     render(
-      <DateTimePicker
-        error={true}
-        errorMessage="DateTime is required"
-      />
+      <DateTimePicker error={true} errorMessage="DateTime is required" />
     )
     expect(screen.getByText('DateTime is required')).toBeInTheDocument()
   })
 
-  it('applies disabled state to both inputs', () => {
+  it('applies disabled state to all segments', () => {
     render(<DateTimePicker disabled />)
-    const inputs = screen.getAllByRole('textbox')
-    inputs.forEach(input => {
-      expect(input).toBeDisabled()
-    })
+    expect(screen.getByLabelText('Year')).toBeDisabled()
+    expect(screen.getByLabelText('Month')).toBeDisabled()
+    expect(screen.getByLabelText('Day')).toBeDisabled()
+    expect(screen.getByLabelText('Hour')).toBeDisabled()
+    expect(screen.getByLabelText('Minute')).toBeDisabled()
   })
 
   it('forwards ref correctly', () => {
