@@ -247,7 +247,7 @@ func (s *Service) HasActiveProLicense(ctx context.Context, orgID uuid.UUID) (boo
 }
 
 func (s *Service) CreateProLicense(ctx context.Context, req CreateProLicenseRequest, createdBy uuid.UUID) (*ProLicense, error) {
-	license, err := s.repo.CreateProLicense(ctx, req, createdBy)
+	license, err := s.repo.CreateProLicense(ctx, req, createdBy, uuid.Nil)
 	if err != nil {
 		return nil, fmt.Errorf("create pro license: %w", err)
 	}
@@ -258,6 +258,23 @@ func (s *Service) CreateProLicense(ctx context.Context, req CreateProLicenseRequ
 		Str("status", license.Status).
 		Str("created_by", createdBy.String()).
 		Msg("admin.pro_license.created")
+
+	return license, nil
+}
+
+// CreateProLicenseByStaffAdmin creates a license with staff admin attribution.
+func (s *Service) CreateProLicenseByStaffAdmin(ctx context.Context, req CreateProLicenseRequest, staffAdminID uuid.UUID) (*ProLicense, error) {
+	license, err := s.repo.CreateProLicense(ctx, req, uuid.Nil, staffAdminID)
+	if err != nil {
+		return nil, fmt.Errorf("create pro license: %w", err)
+	}
+
+	s.log.Info().
+		Str("license_id", license.ID.String()).
+		Str("org_id", license.OrganisationID.String()).
+		Str("status", license.Status).
+		Str("staff_admin_id", staffAdminID.String()).
+		Msg("admin.pro_license.created_by_staff")
 
 	return license, nil
 }

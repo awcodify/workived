@@ -118,7 +118,7 @@ func (r *Repository) ListProLicenses(ctx context.Context, status *string) ([]Pro
 			pl.license_type, pl.status, pl.max_employees,
 			pl.starts_at, pl.expires_at, pl.cancelled_at,
 			pl.stripe_subscription_id, pl.stripe_customer_id,
-			pl.created_by, pl.created_at, pl.updated_at
+			pl.created_by, pl.created_by_staff_admin_id, pl.created_at, pl.updated_at
 		FROM pro_licenses pl
 		LEFT JOIN organisations o ON o.id = pl.organisation_id
 	`
@@ -143,7 +143,7 @@ func (r *Repository) ListProLicenses(ctx context.Context, status *string) ([]Pro
 			&l.LicenseType, &l.Status, &l.MaxEmployees,
 			&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 			&l.StripeSubscriptionID, &l.StripeCustomerID,
-			&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
+			&l.CreatedBy, &l.CreatedByStaffAdminID, &l.CreatedAt, &l.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -160,7 +160,7 @@ func (r *Repository) GetProLicenseByOrg(ctx context.Context, orgID uuid.UUID) (*
 			pl.license_type, pl.status, pl.max_employees,
 			pl.starts_at, pl.expires_at, pl.cancelled_at,
 			pl.stripe_subscription_id, pl.stripe_customer_id,
-			pl.created_by, pl.created_at, pl.updated_at
+			pl.created_by, pl.created_by_staff_admin_id, pl.created_at, pl.updated_at
 		FROM pro_licenses pl
 		LEFT JOIN organisations o ON o.id = pl.organisation_id
 		WHERE pl.organisation_id = $1
@@ -169,7 +169,7 @@ func (r *Repository) GetProLicenseByOrg(ctx context.Context, orgID uuid.UUID) (*
 		&l.LicenseType, &l.Status, &l.MaxEmployees,
 		&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 		&l.StripeSubscriptionID, &l.StripeCustomerID,
-		&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
+		&l.CreatedBy, &l.CreatedByStaffAdminID, &l.CreatedAt, &l.UpdatedAt,
 	)
 	if err != nil {
 		return nil, apperr.NotFound("pro license")
@@ -185,7 +185,7 @@ func (r *Repository) GetProLicenseByID(ctx context.Context, licenseID uuid.UUID)
 			pl.license_type, pl.status, pl.max_employees,
 			pl.starts_at, pl.expires_at, pl.cancelled_at,
 			pl.stripe_subscription_id, pl.stripe_customer_id,
-			pl.created_by, pl.created_at, pl.updated_at
+			pl.created_by, pl.created_by_staff_admin_id, pl.created_at, pl.updated_at
 		FROM pro_licenses pl
 		LEFT JOIN organisations o ON o.id = pl.organisation_id
 		WHERE pl.id = $1
@@ -194,7 +194,7 @@ func (r *Repository) GetProLicenseByID(ctx context.Context, licenseID uuid.UUID)
 		&l.LicenseType, &l.Status, &l.MaxEmployees,
 		&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 		&l.StripeSubscriptionID, &l.StripeCustomerID,
-		&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
+		&l.CreatedBy, &l.CreatedByStaffAdminID, &l.CreatedAt, &l.UpdatedAt,
 	)
 	if err != nil {
 		return nil, apperr.NotFound("pro license")
@@ -202,37 +202,51 @@ func (r *Repository) GetProLicenseByID(ctx context.Context, licenseID uuid.UUID)
 	return &l, nil
 }
 
-func (r *Repository) CreateProLicense(ctx context.Context, req CreateProLicenseRequest, createdBy uuid.UUID) (*ProLicense, error) {
+func (r *Repository) CreateProLicense(ctx context.Context, req CreateProLicenseRequest, createdBy uuid.UUID, staffAdminID uuid.UUID) (*ProLicense, error) {
 	startsAt := time.Now().UTC()
 	expiresAt := startsAt.AddDate(0, 0, req.DurationDays)
+
+	// Convert uuid.Nil to NULL for foreign key fields
+	var createdByParam, staffAdminIDParam interface{}
+	if createdBy == uuid.Nil {
+		createdByParam = nil
+	} else {
+		createdByParam = createdBy
+	}
+	if staffAdminID == uuid.Nil {
+		staffAdminIDParam = nil
+	} else {
+		staffAdminIDParam = staffAdminID
+	}
 
 	var l ProLicense
 	err := r.db.QueryRow(ctx, `
 		WITH inserted AS (
-			INSERT INTO pro_licenses (organisation_id, license_type, status, max_employees, starts_at, expires_at, created_by)
-			VALUES ($1, $2, 'active', $3, $4, $5, $6)
+			INSERT INTO pro_licenses (organisation_id, license_type, status, max_employees, starts_at, expires_at, created_by, created_by_staff_admin_id)
+			VALUES ($1, $2, 'active', $3, $4, $5, $6, $7)
 			RETURNING id, organisation_id, license_type, status, max_employees,
 			          starts_at, expires_at, cancelled_at,
 			          stripe_subscription_id, stripe_customer_id,
-			          created_by, created_at, updated_at
+			          created_by, created_by_staff_admin_id, created_at, updated_at
 		)
 		SELECT 
 			i.id, i.organisation_id, COALESCE(o.name, 'Unknown') as organisation_name,
 			i.license_type, i.status, i.max_employees,
 			i.starts_at, i.expires_at, i.cancelled_at,
 			i.stripe_subscription_id, i.stripe_customer_id,
-			i.created_by, i.created_at, i.updated_at
+			i.created_by, i.created_by_staff_admin_id, i.created_at, i.updated_at
 		FROM inserted i
 		LEFT JOIN organisations o ON o.id = i.organisation_id
-	`, req.OrganisationID, req.LicenseType, req.MaxEmployees, startsAt, expiresAt, createdBy).Scan(
+	`, req.OrganisationID, req.LicenseType, req.MaxEmployees, startsAt, expiresAt, createdByParam, staffAdminIDParam).Scan(
 		&l.ID, &l.OrganisationID, &l.OrganisationName,
 		&l.LicenseType, &l.Status, &l.MaxEmployees,
 		&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 		&l.StripeSubscriptionID, &l.StripeCustomerID,
-		&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
+		&l.CreatedBy, &l.CreatedByStaffAdminID, &l.CreatedAt, &l.UpdatedAt,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to insert pro license for org %s (type=%s, max_employees=%v, duration=%d days): %w",
+			req.OrganisationID.String(), req.LicenseType, req.MaxEmployees, req.DurationDays, err)
 	}
 	return &l, nil
 }
@@ -250,14 +264,14 @@ func (r *Repository) UpdateProLicense(ctx context.Context, licenseID uuid.UUID, 
 			RETURNING id, organisation_id, license_type, status, max_employees,
 			          starts_at, expires_at, cancelled_at,
 			          stripe_subscription_id, stripe_customer_id,
-			          created_by, created_at, updated_at
+			          created_by, created_by_staff_admin_id, created_at, updated_at
 		)
 		SELECT 
 			u.id, u.organisation_id, COALESCE(o.name, 'Unknown') as organisation_name,
 			u.license_type, u.status, u.max_employees,
 			u.starts_at, u.expires_at, u.cancelled_at,
 			u.stripe_subscription_id, u.stripe_customer_id,
-			u.created_by, u.created_at, u.updated_at
+			u.created_by, u.created_by_staff_admin_id, u.created_at, u.updated_at
 		FROM updated u
 		LEFT JOIN organisations o ON o.id = u.organisation_id
 	`, req.Status, req.MaxEmployees, req.ExpiresAt, licenseID).Scan(
@@ -265,7 +279,7 @@ func (r *Repository) UpdateProLicense(ctx context.Context, licenseID uuid.UUID, 
 		&l.LicenseType, &l.Status, &l.MaxEmployees,
 		&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 		&l.StripeSubscriptionID, &l.StripeCustomerID,
-		&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
+		&l.CreatedBy, &l.CreatedByStaffAdminID, &l.CreatedAt, &l.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

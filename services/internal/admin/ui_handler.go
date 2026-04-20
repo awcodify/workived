@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/internal/staff"
 	"github.com/workived/services/pkg/apperr"
@@ -27,6 +28,7 @@ type UIHandler struct {
 	staffSvc  *staff.Service
 	staffRepo *staff.Repository
 	templates map[string]*template.Template
+	log       zerolog.Logger
 }
 
 // NewUIHandler creates a new UI handler and loads templates.
@@ -68,6 +70,7 @@ func NewUIHandler(svc *Service, staffSvc *staff.Service, staffRepo *staff.Reposi
 		staffSvc:  staffSvc,
 		staffRepo: staffRepo,
 		templates: templates,
+		log:       svc.log,
 	}, nil
 }
 
@@ -445,12 +448,13 @@ func (h *UIHandler) Licenses(c *gin.Context) {
 // CreateLicense handles the create license form submission.
 func (h *UIHandler) CreateLicense(c *gin.Context) {
 	adminID, _ := c.Get("internal_admin_id")
-	createdBy := adminID.(uuid.UUID)
+	staffAdminID := adminID.(uuid.UUID)
 
 	// Parse form
 	orgIDStr := c.PostForm("organisation_id")
 	orgID, err := uuid.Parse(orgIDStr)
 	if err != nil {
+		h.log.Error().Err(err).Str("org_id_str", orgIDStr).Msg("invalid organisation ID for license creation")
 		c.Redirect(http.StatusSeeOther, "/_system/licenses?error=invalid_org_id")
 		return
 	}
@@ -477,12 +481,25 @@ func (h *UIHandler) CreateLicense(c *gin.Context) {
 		DurationDays:   durationDays,
 	}
 
-	_, err = h.svc.CreateProLicense(c.Request.Context(), req, createdBy)
+	h.log.Info().
+		Str("org_id", orgID.String()).
+		Str("license_type", licenseType).
+		Int("duration_days", durationDays).
+		Str("staff_admin_id", staffAdminID.String()).
+		Msg("attempting to create pro license")
+
+	_, err = h.svc.CreateProLicenseByStaffAdmin(c.Request.Context(), req, staffAdminID)
 	if err != nil {
+		h.log.Error().
+			Err(err).
+			Str("org_id", orgID.String()).
+			Str("license_type", licenseType).
+			Msg("failed to create pro license")
 		c.Redirect(http.StatusSeeOther, "/_system/licenses?error=create_failed")
 		return
 	}
 
+	h.log.Info().Str("org_id", orgID.String()).Msg("pro license created successfully")
 	c.Redirect(http.StatusSeeOther, "/_system/licenses")
 }
 

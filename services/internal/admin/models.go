@@ -23,20 +23,21 @@ type FeatureFlag struct {
 
 // ProLicense represents a Pro tier license for an organisation.
 type ProLicense struct {
-	ID                   uuid.UUID  `json:"id"`
-	OrganisationID       uuid.UUID  `json:"organisation_id"`
-	OrganisationName     string     `json:"organisation_name"` // Joined from organisations table
-	LicenseType          string     `json:"license_type"`      // 'trial' | 'monthly' | 'annual'
-	Status               string     `json:"status"`            // 'active' | 'expired' | 'cancelled' | 'suspended'
-	MaxEmployees         *int       `json:"max_employees,omitempty"`
-	StartsAt             time.Time  `json:"starts_at"`
-	ExpiresAt            time.Time  `json:"expires_at"`
-	CancelledAt          *time.Time `json:"cancelled_at,omitempty"`
-	StripeSubscriptionID *string    `json:"stripe_subscription_id,omitempty"`
-	StripeCustomerID     *string    `json:"stripe_customer_id,omitempty"`
-	CreatedBy            *uuid.UUID `json:"created_by,omitempty"`
-	CreatedAt            time.Time  `json:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at"`
+	ID                    uuid.UUID  `json:"id"`
+	OrganisationID        uuid.UUID  `json:"organisation_id"`
+	OrganisationName      string     `json:"organisation_name"` // Joined from organisations table
+	LicenseType           string     `json:"license_type"`      // 'trial' | 'monthly' | 'annual'
+	Status                string     `json:"status"`            // 'active' | 'expired' | 'cancelled' | 'suspended'
+	MaxEmployees          *int       `json:"max_employees,omitempty"`
+	StartsAt              time.Time  `json:"starts_at"`
+	ExpiresAt             time.Time  `json:"expires_at"`
+	CancelledAt           *time.Time `json:"cancelled_at,omitempty"`
+	StripeSubscriptionID  *string    `json:"stripe_subscription_id,omitempty"`
+	StripeCustomerID      *string    `json:"stripe_customer_id,omitempty"`
+	CreatedBy             *uuid.UUID `json:"created_by,omitempty"`                // Regular user (if created via API)
+	CreatedByStaffAdminID *uuid.UUID `json:"created_by_staff_admin_id,omitempty"` // Staff admin (if created via admin panel)
+	CreatedAt             time.Time  `json:"created_at"`
+	UpdatedAt             time.Time  `json:"updated_at"`
 }
 
 // DaysUntilExpiry returns the number of days until the license expires.
