@@ -12,7 +12,6 @@ import type { MainTabParamList } from '@/navigation'
 import { useLocation } from '@/hooks/useLocation'
 import { CustomAlert } from '@/components/CustomAlert'
 import { CameraCapture } from '@/components/CameraCapture'
-import { LocationAnalyticsCard } from '@/components/LocationAnalyticsCard'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function HomeScreen() {
@@ -21,7 +20,6 @@ export default function HomeScreen() {
   const navigation = useNavigation<BottomTabNavigationProp<MainTabParamList>>()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [clockedInLocation, setClockedInLocation] = useState<{ latitude: number; longitude: number; address?: string; accuracy?: number | null } | null>(null)
-  const [weekOffset, setWeekOffset] = useState(0) // 0 = this week, -1 = last week
   const [showClockInAlert, setShowClockInAlert] = useState(false)
   const [showClockOutAlert, setShowClockOutAlert] = useState(false)
   const [clockInLocationText, setClockInLocationText] = useState('')
@@ -48,9 +46,9 @@ export default function HomeScreen() {
   } = useLocation()
 
   const { data, isLoading, error, refetch, isRefetching } = useQuery({
-    queryKey: ['mobile', 'home', weekOffset],
-    queryFn: () => apiClient.getMobileHome(weekOffset),
-    refetchInterval: 60_000, // Refresh every minute
+    queryKey: ['mobile', 'home', 0],
+    queryFn: () => apiClient.getMobileHome(0),
+    refetchInterval: 60_000,
   })
 
   // Update current time every second
@@ -640,76 +638,6 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Week Attendance */}
-        <View style={styles.card}>
-          <View style={styles.weekHeader}>
-            <View style={styles.cardTitleRow}>
-              <Ionicons name="trending-up" size={20} color="#8B5CF6" />
-              <Text style={styles.cardTitle}>
-                {weekOffset === 0 ? 'This Week' : weekOffset === -1 ? 'Last Week' : `${Math.abs(weekOffset)} Weeks Ago`}
-              </Text>
-            </View>
-            <View style={styles.weekNavigation}>
-              <TouchableOpacity 
-                onPress={() => setWeekOffset(prev => prev - 1)}
-                disabled={weekOffset <= -52}
-                style={[styles.navButton, weekOffset <= -52 && styles.navButtonDisabled]}
-              >
-                <Ionicons name="chevron-back" size={20} color={weekOffset <= -52 ? '#D1D5DB' : '#6B7280'} />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={() => setWeekOffset(prev => prev + 1)}
-                disabled={weekOffset >= 0}
-                style={[styles.navButton, weekOffset >= 0 && styles.navButtonDisabled]}
-              >
-                <Ionicons name="chevron-forward" size={20} color={weekOffset >= 0 ? '#D1D5DB' : '#6B7280'} />
-              </TouchableOpacity>
-            </View>
-          </View>
-          <View style={styles.weekDays}>
-            {data.week_attendance.days.map((status, idx) => (
-              <View
-                key={idx}
-                style={[
-                  styles.dayBox,
-                  status === 'checked' && styles.dayBoxPresent,
-                  status === 'late' && styles.dayBoxLate,
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.dayText,
-                    (status === 'checked' || status === 'late') && styles.dayTextActive,
-                  ]}
-                >
-                  {['M', 'T', 'W', 'T', 'F'][idx]}
-                </Text>
-              </View>
-            ))}
-          </View>
-          <View style={styles.percentageRow}>
-            <Text style={styles.percentageText}>{data.week_attendance.percentage}% on time</Text>
-            <View
-              style={[
-                styles.percentageBadge,
-                data.week_attendance.percentage >= 80
-                  ? styles.percentageBadgeGood
-                  : data.week_attendance.percentage >= 50
-                  ? styles.percentageBadgeFair
-                  : styles.percentageBadgePoor,
-              ]}
-            >
-              <Text style={styles.percentageBadgeText}>
-                {data.week_attendance.percentage >= 80 ? '✓ Good' : data.week_attendance.percentage >= 50 ? '⚠ Fair' : '✗ Poor'}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Location Analytics — admin/manager only */}
-        {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'manager') && (
-          <LocationAnalyticsCard />
-        )}
       </ScrollView>
 
       <CustomAlert
@@ -1126,24 +1054,6 @@ const styles = StyleSheet.create({
     gap: 8,
     marginBottom: 16,
   },
-  weekHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  weekNavigation: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  navButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-  },
-  navButtonDisabled: {
-    opacity: 0.3,
-  },
   cardTitle: {
     fontSize: 18,
     fontWeight: 'bold',
@@ -1179,64 +1089,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#111827',
-  },
-  weekDays: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 16,
-  },
-  dayBox: {
-    flex: 1,
-    aspectRatio: 1,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  dayBoxPresent: {
-    backgroundColor: '#10B981',
-  },
-  dayBoxLate: {
-    backgroundColor: '#F59E0B',
-  },
-  dayText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#9CA3AF',
-  },
-  dayTextActive: {
-    color: '#FFF',
-  },
-  percentageRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-    borderRadius: 12,
-    padding: 12,
-  },
-  percentageText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  percentageBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  percentageBadgeGood: {
-    backgroundColor: '#D1FAE5',
-  },
-  percentageBadgeFair: {
-    backgroundColor: '#FEF3C7',
-  },
-  percentageBadgePoor: {
-    backgroundColor: '#FEE2E2',
-  },
-  percentageBadgeText: {
-    fontSize: 14,
-    fontWeight: 'bold',
   },
   summaryCard: {
     backgroundColor: '#F0FDF4',

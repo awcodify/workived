@@ -13,10 +13,17 @@ import ClaimsScreen from '@/screens/ClaimsScreen'
 import ApprovalsScreen from '@/screens/ApprovalsScreen'
 import ProfileScreen from '@/screens/ProfileScreen'
 import LoginScreen from '@/screens/LoginScreen'
+import TeamRankingScreen from '@/screens/TeamRankingScreen'
+import TeamScreen from '@/screens/TeamScreen'
+import MyAttendanceScreen from '@/screens/MyAttendanceScreen'
+import AttendanceCorrectionScreen from '@/screens/AttendanceCorrectionScreen'
 
 export type RootStackParamList = {
   Login: undefined
   Main: undefined
+  TeamRanking: undefined
+  MyAttendance: undefined
+  AttendanceCorrection: undefined
 }
 
 export type MainTabParamList = {
@@ -24,6 +31,7 @@ export type MainTabParamList = {
   Leave: undefined
   Claims: undefined
   Approvals: { tab?: 'leave' | 'claim' } | undefined
+  Team: undefined
   Profile: undefined
 }
 
@@ -54,6 +62,8 @@ function MainTabs() {
             iconName = focused ? 'receipt' : 'receipt-outline'
           } else if (route.name === 'Approvals') {
             iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline'
+          } else if (route.name === 'Team') {
+            iconName = focused ? 'stats-chart' : 'stats-chart-outline'
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline'
           }
@@ -75,13 +85,14 @@ function MainTabs() {
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Leave" component={LeaveScreen} />
       <Tab.Screen name="Claims" component={ClaimsScreen} />
-      <Tab.Screen 
-        name="Approvals" 
+      <Tab.Screen
+        name="Approvals"
         component={ApprovalsScreen}
         options={{
           tabBarBadge: badgeCount > 0 ? badgeCount : undefined,
         }}
       />
+      <Tab.Screen name="Team" component={TeamScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   )
@@ -108,7 +119,12 @@ export default function Navigation() {
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : (
-          <Stack.Screen name="Main" component={MainTabs} />
+          <>
+            <Stack.Screen name="Main" component={MainTabs} />
+            <Stack.Screen name="TeamRanking" component={TeamRankingScreen} />
+            <Stack.Screen name="MyAttendance" component={MyAttendanceScreen} />
+            <Stack.Screen name="AttendanceCorrection" component={AttendanceCorrectionScreen} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
