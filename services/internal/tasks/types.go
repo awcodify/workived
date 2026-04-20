@@ -44,9 +44,9 @@ type Task struct {
 // TaskWithDetails includes joined employee names and custom field values
 type TaskWithDetails struct {
 	Task
-	AssigneeName *string                  `json:"assignee_name,omitempty"`
-	CreatorName  string                   `json:"creator_name"`
-	ListName     string                   `json:"list_name"`
+	AssigneeName *string                    `json:"assignee_name,omitempty"`
+	CreatorName  string                     `json:"creator_name"`
+	ListName     string                     `json:"list_name"`
 	FieldValues  []FieldValueWithDefinition `json:"field_values,omitempty"`
 }
 
@@ -138,7 +138,7 @@ type TaskFilters struct {
 	TaskListID           *string `form:"task_list_id"`
 	AssigneeID           *string `form:"assignee_id"`
 	Priority             *string `form:"priority"`
-	Status               *string `form:"status"`           // completed, pending
+	Status               *string `form:"status"`            // completed, pending
 	IncludeCompleted     bool    `form:"include_completed"` // bypass 7-day archive filter
 	Search               *string `form:"search"`            // ILIKE title match
 	CompletedAfter       *string `form:"completed_after"`   // ISO 8601 date

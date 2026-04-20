@@ -252,13 +252,127 @@ export function RichTextEditor({
 
       {/* Editor Content */}
       <div
-        className="rounded-b-lg px-4 py-2.5"
+        className="rounded-b-lg px-4 py-2.5 prose prose-sm max-w-none"
         style={{
           background: bgColor,
           border: `2px solid ${textColor}20`,
           borderTop: 'none',
         }}
       >
+        <style>{`
+          .ProseMirror {
+            outline: none;
+          }
+          
+          .ProseMirror h1 {
+            font-size: 1.875rem;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.2;
+            color: ${textColor};
+          }
+          
+          .ProseMirror h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 1.25rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+            color: ${textColor};
+          }
+          
+          .ProseMirror h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            color: ${textColor};
+          }
+          
+          .ProseMirror p {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.6;
+          }
+          
+          .ProseMirror code {
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+            padding: 2px 6px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875em;
+            color: #d63384;
+          }
+          
+          .ProseMirror pre {
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+            margin: 0.75rem 0;
+            overflow-x: auto;
+          }
+          
+          .ProseMirror pre code {
+            background: none;
+            border: none;
+            padding: 0;
+            color: inherit;
+            font-size: 0.875rem;
+          }
+          
+          .ProseMirror ul,
+          .ProseMirror ol {
+            padding-left: 1.5rem;
+            margin: 0.75rem 0;
+          }
+          
+          .ProseMirror ul {
+            list-style-type: disc;
+          }
+          
+          .ProseMirror ol {
+            list-style-type: decimal;
+          }
+          
+          .ProseMirror li {
+            margin: 0.25rem 0;
+            line-height: 1.6;
+          }
+          
+          .ProseMirror li p {
+            margin: 0;
+          }
+          
+          .ProseMirror a {
+            color: #2563eb;
+            text-decoration: underline;
+            cursor: pointer;
+          }
+          
+          .ProseMirror a:hover {
+            color: #1d4ed8;
+          }
+          
+          .ProseMirror blockquote {
+            border-left: 3px solid rgba(0, 0, 0, 0.2);
+            padding-left: 1rem;
+            margin-left: 0;
+            margin-right: 0;
+            margin-top: 0.75rem;
+            margin-bottom: 0.75rem;
+            color: rgba(0, 0, 0, 0.6);
+          }
+          
+          .ProseMirror hr {
+            border: none;
+            border-top: 2px solid rgba(0, 0, 0, 0.1);
+            margin: 1.5rem 0;
+          }
+        `}</style>
         <EditorContent editor={editor} />
       </div>
     </div>
