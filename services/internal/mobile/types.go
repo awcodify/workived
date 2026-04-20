@@ -41,8 +41,9 @@ type LeaveBalanceInfo struct {
 
 // PendingApprovalsInfo contains the count of pending approvals by category.
 type PendingApprovalsInfo struct {
-	LeaveCount int `json:"leave_count"` // Number of pending leave requests
-	ClaimCount int `json:"claim_count"` // Number of pending claims
+	LeaveCount      int `json:"leave_count"`      // Number of pending leave requests
+	ClaimCount      int `json:"claim_count"`      // Number of pending claims
+	CorrectionCount int `json:"correction_count"` // Number of pending attendance corrections
 }
 
 // WeekAttendanceInfo contains week attendance status.

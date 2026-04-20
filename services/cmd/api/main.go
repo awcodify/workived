@@ -15,12 +15,12 @@ import (
 
 	"github.com/workived/services/internal/admin"
 	"github.com/workived/services/internal/announcements"
-	"github.com/workived/services/internal/dashboard"
 	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/auth"
 	"github.com/workived/services/internal/calendar"
 	"github.com/workived/services/internal/claims"
+	"github.com/workived/services/internal/dashboard"
 	"github.com/workived/services/internal/department"
 	"github.com/workived/services/internal/employee"
 	"github.com/workived/services/internal/employmentchange"
@@ -28,11 +28,11 @@ import (
 	"github.com/workived/services/internal/leave"
 	"github.com/workived/services/internal/mobile"
 	"github.com/workived/services/internal/organisation"
-	"github.com/workived/services/internal/reports"
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/internal/platform/storage"
+	"github.com/workived/services/internal/reports"
 	"github.com/workived/services/internal/setup"
 	"github.com/workived/services/internal/tasks"
 	"github.com/workived/services/internal/upload"
@@ -235,7 +235,7 @@ func main() {
 	}, log)
 
 	// Mobile service — aggregates data from multiple services
-	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, tasksRepo, cachedOrgInfo, log, cacheStore)
+	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, tasksRepo, attSvc, cachedOrgInfo, log, cacheStore)
 	mobileHandler := mobile.NewHandler(mobileSvc)
 
 	// ── Router ────────────────────────────────────────────────────────────────

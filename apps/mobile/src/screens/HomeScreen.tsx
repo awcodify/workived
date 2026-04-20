@@ -562,7 +562,7 @@ export default function HomeScreen() {
         )}
 
         {/* Pending Approvals (Managers) */}
-        {(data.pending_approvals.leave_count > 0 || data.pending_approvals.claim_count > 0) && (
+        {(data.pending_approvals.leave_count > 0 || data.pending_approvals.claim_count > 0 || data.pending_approvals.correction_count > 0) && (
           <View style={styles.card}>
             <View style={styles.cardTitleRow}>
               <Ionicons name="checkmark-circle" size={20} color="#F59E0B" />
@@ -587,6 +587,18 @@ export default function HomeScreen() {
                   <Ionicons name="receipt-outline" size={20} color="#10B981" />
                   <Text style={styles.approvalCategoryText}>
                     {data.pending_approvals.claim_count} {data.pending_approvals.claim_count === 1 ? 'claim' : 'claims'} to review
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
+            )}
+
+            {data.pending_approvals.correction_count > 0 && (
+              <TouchableOpacity style={styles.approvalCategoryRow} onPress={() => navigation.navigate('Approvals', { tab: 'correction' })}>
+                <View style={styles.approvalCategoryLeft}>
+                  <Ionicons name="time-outline" size={20} color="#10B981" />
+                  <Text style={styles.approvalCategoryText}>
+                    {data.pending_approvals.correction_count} {data.pending_approvals.correction_count === 1 ? 'correction' : 'corrections'} to review
                   </Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />

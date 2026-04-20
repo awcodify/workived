@@ -22,7 +22,7 @@ export type RootStackParamList = {
   Login: undefined
   Main: undefined
   TeamRanking: undefined
-  MyAttendance: undefined
+  MyAttendance: { filter?: 'corrections' } | undefined
   AttendanceCorrection: undefined
 }
 
@@ -30,7 +30,7 @@ export type MainTabParamList = {
   Home: undefined
   Leave: undefined
   Claims: undefined
-  Approvals: { tab?: 'leave' | 'claim' } | undefined
+  Approvals: { tab?: 'leave' | 'claim' | 'correction' } | undefined
   Team: undefined
   Profile: undefined
 }

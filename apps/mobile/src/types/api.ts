@@ -25,6 +25,7 @@ export interface MobileHomeData {
   pending_approvals: {
     leave_count: number
     claim_count: number
+    correction_count: number
   }
   week_attendance: {
     days: string[]

@@ -242,6 +242,21 @@ class ApiClient {
     return response.data
   }
 
+  async getPendingCorrections(): Promise<ApiResponse<AttendanceCorrection[]>> {
+    const response = await this.client.get<ApiResponse<AttendanceCorrection[]>>('/attendance/corrections?status=pending&mine=false')
+    return response.data
+  }
+
+  async approveCorrection(correctionId: string): Promise<ApiResponse<AttendanceCorrection>> {
+    const response = await this.client.patch<ApiResponse<AttendanceCorrection>>(`/attendance/corrections/${correctionId}/approve`)
+    return response.data
+  }
+
+  async rejectCorrection(correctionId: string): Promise<ApiResponse<AttendanceCorrection>> {
+    const response = await this.client.patch<ApiResponse<AttendanceCorrection>>(`/attendance/corrections/${correctionId}/reject`)
+    return response.data
+  }
+
   // Scorecard / Reports
   async getMyScorecard(period: string = 'this_month'): Promise<{ scorecard: Scorecard }> {
     const response = await this.client.get<{ scorecard: Scorecard }>('/reports/scorecard/me', {
