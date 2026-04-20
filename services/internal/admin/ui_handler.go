@@ -38,7 +38,7 @@ func NewUIHandler(svc *Service, staffSvc *staff.Service, staffRepo *staff.Reposi
 	templates := make(map[string]*template.Template)
 
 	// Parse each page template with base
-	pages := []string{"dashboard.html", "feature-flags.html", "licenses.html", "error.html"}
+	pages := []string{"dashboard.html", "feature-flags.html", "licenses.html", "organizations.html", "error.html"}
 	for _, page := range pages {
 		pagePath := filepath.Join(templatesDir, page)
 		tmpl, err := template.ParseFiles(basePath, pagePath)
@@ -97,6 +97,9 @@ func (h *UIHandler) RegisterUIRoutes(r *gin.Engine, jwtSecret string) {
 		protected.POST("/licenses/create", h.CreateLicense)
 		protected.POST("/licenses/:id/update", h.UpdateLicense)
 		protected.POST("/licenses/:id/extend", h.ExtendLicense)
+		protected.GET("/organizations", h.Organizations)
+		protected.POST("/organizations/:id/suspend", h.SuspendOrganization)
+		protected.POST("/organizations/:id/reactivate", h.ReactivateOrganization)
 		protected.GET("/configs", h.Configs)
 		protected.POST("/logout", h.Logout)
 	}
@@ -561,6 +564,73 @@ func (h *UIHandler) Configs(c *gin.Context) {
 
 	c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	c.String(http.StatusOK, "Admin configs page (to be implemented)")
+}
+
+// Organizations renders the organizations management page.
+func (h *UIHandler) Organizations(c *gin.Context) {
+	orgs, err := h.svc.ListOrganisations(c.Request.Context())
+	if err != nil {
+		h.renderError(c, err)
+		return
+	}
+
+	userEmail, _ := c.Cookie("admin_user_email")
+	data := gin.H{
+		"User":          gin.H{"Email": userEmail},
+		"Organizations": orgs,
+		"Title":         "Organizations",
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if renderErr := h.templates["organizations.html"].ExecuteTemplate(c.Writer, "base.html", data); renderErr != nil {
+		c.String(http.StatusInternalServerError, "Template error: %v", renderErr)
+	}
+}
+
+// SuspendOrganization sets an organization as inactive.
+func (h *UIHandler) SuspendOrganization(c *gin.Context) {
+	orgID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organisation ID"})
+		return
+	}
+
+	// Get admin user ID from context
+	adminUserID, exists := c.Get("internal_admin_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	if err := h.svc.SuspendOrganisation(c.Request.Context(), orgID, adminUserID.(uuid.UUID)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/_system/organizations")
+}
+
+// ReactivateOrganization sets an organization as active.
+func (h *UIHandler) ReactivateOrganization(c *gin.Context) {
+	orgID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid organisation ID"})
+		return
+	}
+
+	// Get admin user ID from context
+	adminUserID, exists := c.Get("internal_admin_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+
+	if err := h.svc.ReactivateOrganisation(c.Request.Context(), orgID, adminUserID.(uuid.UUID)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/_system/organizations")
 }
 
 // Logout handles logout and clears session cookie.

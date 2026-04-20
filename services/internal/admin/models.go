@@ -91,3 +91,33 @@ type SystemStatsResponse struct {
 	ActiveLicenses     int           `json:"active_licenses"`
 	ExpiringLicenses   []ProLicense  `json:"expiring_licenses"` // Expiring in next 7 days
 }
+
+// OrganisationListItem represents an organisation in the admin list view.
+type OrganisationListItem struct {
+	ID            uuid.UUID  `json:"id"`
+	Name          string     `json:"name"`
+	Slug          string     `json:"slug"`
+	CountryCode   string     `json:"country_code"`
+	Plan          string     `json:"plan"`
+	EmployeeCount int        `json:"employee_count"`
+	MemberCount   int        `json:"member_count"`
+	OwnerName     string     `json:"owner_name"`
+	OwnerEmail    string     `json:"owner_email"`
+	IsActive      bool       `json:"is_active"`
+	CreatedAt     time.Time  `json:"created_at"`
+	HasProLicense bool       `json:"has_pro_license"`
+	LicenseExpiry *time.Time `json:"license_expiry,omitempty"`
+}
+
+// OrganisationDetailView represents full organisation details for the admin modal.
+type OrganisationDetailView struct {
+	OrganisationListItem
+	Timezone          string      `json:"timezone"`
+	CurrencyCode      string      `json:"currency_code"`
+	WorkDays          []int       `json:"work_days"`
+	PlanEmployeeLimit *int        `json:"plan_employee_limit,omitempty"`
+	LogoURL           *string     `json:"logo_url,omitempty"`
+	AllowWebClockIn   bool        `json:"allow_web_clock_in"`
+	SetupCompleted    bool        `json:"setup_completed"`
+	ProLicense        *ProLicense `json:"pro_license,omitempty"`
+}

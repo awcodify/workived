@@ -393,3 +393,115 @@ func (r *Repository) GetSystemStats(ctx context.Context) (*SystemStatsResponse, 
 
 	return stats, nil
 }
+
+// ── Organisations ───────────────────────────────────────────────────────────
+
+// ListOrganisations returns all organisations with employee/member counts and owner info.
+func (r *Repository) ListOrganisations(ctx context.Context) ([]OrganisationListItem, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT 
+			o.id,
+			o.name,
+			o.slug,
+			o.country_code,
+			o.plan,
+			COALESCE((SELECT COUNT(*) FROM employees WHERE organisation_id = o.id AND is_active = TRUE), 0) AS employee_count,
+			COALESCE((SELECT COUNT(*) FROM organisation_members WHERE organisation_id = o.id AND is_active = TRUE), 0) AS member_count,
+			COALESCE(u.full_name, '') AS owner_name,
+			COALESCE(u.email, '') AS owner_email,
+			o.is_active,
+			o.created_at,
+			EXISTS(SELECT 1 FROM pro_licenses WHERE organisation_id = o.id AND status = 'active' AND expires_at > NOW()) AS has_pro_license,
+			(SELECT expires_at FROM pro_licenses WHERE organisation_id = o.id AND status = 'active' AND expires_at > NOW() ORDER BY expires_at DESC LIMIT 1) AS license_expiry
+		FROM organisations o
+		LEFT JOIN organisation_members om ON om.organisation_id = o.id AND om.role = 'owner' AND om.is_active = TRUE
+		LEFT JOIN users u ON u.id = om.user_id
+		ORDER BY o.created_at DESC
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var orgs []OrganisationListItem
+	for rows.Next() {
+		var org OrganisationListItem
+		if err := rows.Scan(
+			&org.ID, &org.Name, &org.Slug, &org.CountryCode, &org.Plan,
+			&org.EmployeeCount, &org.MemberCount, &org.OwnerName, &org.OwnerEmail,
+			&org.IsActive, &org.CreatedAt, &org.HasProLicense, &org.LicenseExpiry,
+		); err != nil {
+			return nil, err
+		}
+		orgs = append(orgs, org)
+	}
+	return orgs, rows.Err()
+}
+
+// GetOrganisationDetail returns full details for a single organisation.
+func (r *Repository) GetOrganisationDetail(ctx context.Context, orgID uuid.UUID) (*OrganisationDetailView, error) {
+	var detail OrganisationDetailView
+	err := r.db.QueryRow(ctx, `
+		SELECT 
+			o.id,
+			o.name,
+			o.slug,
+			o.country_code,
+			o.timezone,
+			o.currency_code,
+			o.work_days,
+			o.plan,
+			o.plan_employee_limit,
+			o.logo_url,
+			o.allow_web_clock_in,
+			o.is_active,
+			o.created_at,
+			COALESCE((SELECT COUNT(*) FROM employees WHERE organisation_id = o.id AND is_active = TRUE), 0) AS employee_count,
+			COALESCE((SELECT COUNT(*) FROM organisation_members WHERE organisation_id = o.id AND is_active = TRUE), 0) AS member_count,
+			COALESCE(u.full_name, '') AS owner_name,
+			COALESCE(u.email, '') AS owner_email,
+			EXISTS(SELECT 1 FROM pro_licenses WHERE organisation_id = o.id AND status = 'active' AND expires_at > NOW()) AS has_pro_license,
+			(SELECT expires_at FROM pro_licenses WHERE organisation_id = o.id AND status = 'active' AND expires_at > NOW() ORDER BY expires_at DESC LIMIT 1) AS license_expiry,
+			EXISTS(SELECT 1 FROM employees WHERE organisation_id = o.id LIMIT 1) AS setup_completed
+		FROM organisations o
+		LEFT JOIN organisation_members om ON om.organisation_id = o.id AND om.role = 'owner' AND om.is_active = TRUE
+		LEFT JOIN users u ON u.id = om.user_id
+		WHERE o.id = $1
+	`, orgID).Scan(
+		&detail.ID, &detail.Name, &detail.Slug, &detail.CountryCode, &detail.Timezone,
+		&detail.CurrencyCode, &detail.WorkDays, &detail.Plan, &detail.PlanEmployeeLimit,
+		&detail.LogoURL, &detail.AllowWebClockIn, &detail.IsActive, &detail.CreatedAt,
+		&detail.EmployeeCount, &detail.MemberCount, &detail.OwnerName, &detail.OwnerEmail,
+		&detail.HasProLicense, &detail.LicenseExpiry, &detail.SetupCompleted,
+	)
+	if err != nil {
+		return nil, apperr.NotFound("organisation")
+	}
+
+	// Fetch pro license if exists
+	if detail.HasProLicense {
+		license, err := r.GetProLicenseByOrg(ctx, orgID)
+		if err == nil {
+			detail.ProLicense = license
+		}
+	}
+
+	return &detail, nil
+}
+
+// UpdateOrganisationStatus updates the is_active status of an organisation.
+func (r *Repository) UpdateOrganisationStatus(ctx context.Context, orgID uuid.UUID, isActive bool) error {
+	result, err := r.db.Exec(ctx, `
+		UPDATE organisations
+		SET is_active = $1, updated_at = NOW()
+		WHERE id = $2
+	`, isActive, orgID)
+	if err != nil {
+		return err
+	}
+
+	if result.RowsAffected() == 0 {
+		return apperr.NotFound("organisation")
+	}
+	return nil
+}

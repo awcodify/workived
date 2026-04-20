@@ -1,0 +1,262 @@
+{{define "title"}}Organizations — Workived Admin{{end}}
+
+{{define "content"}}
+<div class="px-4 sm:px-0">
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold text-gray-900">Organizations</h1>
+            <p class="mt-2 text-sm text-gray-600">View and manage all organizations on the platform</p>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-4">
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Total Organizations</dt>
+            <dd class="mt-1 text-3xl font-semibold text-gray-900">{{len .Organizations}}</dd>
+        </div>
+    </div>
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Active</dt>
+            <dd class="mt-1 text-3xl font-semibold text-green-600" id="activeCount">-</dd>
+        </div>
+    </div>
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Free Tier</dt>
+            <dd class="mt-1 text-3xl font-semibold text-blue-600" id="freeCount">-</dd>
+        </div>
+    </div>
+    <div class="bg-white overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Pro Tier</dt>
+            <dd class="mt-1 text-3xl font-semibold text-indigo-600" id="proCount">-</dd>
+        </div>
+    </div>
+</div>
+
+<!-- Search & Filters -->
+<div class="mt-8 bg-white shadow rounded-lg px-6 py-4">
+    <div class="flex flex-wrap gap-4 items-end">
+        <div class="flex-1 min-w-[250px]">
+            <label for="search" class="block text-sm font-medium text-gray-700">Search</label>
+            <input type="text" id="search" placeholder="Search by name, slug, or owner..."
+                   onkeyup="filterTable()"
+                   class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+        </div>
+        <div class="w-48">
+            <label for="planFilter" class="block text-sm font-medium text-gray-700">Plan</label>
+            <select id="planFilter" onchange="filterTable()" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">All Plans</option>
+                <option value="free">Free</option>
+                <option value="pro">Pro</option>
+            </select>
+        </div>
+        <div class="w-48">
+            <label for="statusFilter" class="block text-sm font-medium text-gray-700">Status</label>
+            <select id="statusFilter" onchange="filterTable()" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+        <div class="w-48">
+            <label for="countryFilter" class="block text-sm font-medium text-gray-700">Country</label>
+            <select id="countryFilter" onchange="filterTable()" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                <option value="">All Countries</option>
+                {{range .Organizations}}
+                    <option value="{{.CountryCode}}">{{.CountryCode}}</option>
+                {{end}}
+            </select>
+        </div>
+        <button onclick="clearFilters()" class="px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+            Clear Filters
+        </button>
+    </div>
+</div>
+
+<!-- Organizations Table -->
+<div class="mt-6">
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <table id="orgsTable" class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Organization
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Owner
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Plan
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Employees
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Country
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Created
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                    <th scope="col" class="relative px-6 py-3">
+                        <span class="sr-only">Actions</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {{range .Organizations}}
+                <tr data-name="{{.Name}}" data-slug="{{.Slug}}" data-owner="{{.OwnerName}} {{.OwnerEmail}}" data-plan="{{.Plan}}" data-status="{{if .IsActive}}active{{else}}inactive{{end}}" data-country="{{.CountryCode}}">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{.Name}}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    {{.Slug}}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{.OwnerName}}</div>
+                        <div class="text-xs text-gray-500">{{.OwnerEmail}}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {{if eq .Plan "pro"}}bg-indigo-100 text-indigo-800{{else}}bg-gray-100 text-gray-800{{end}}">
+                            {{.Plan}}
+                        </span>
+                        {{if .HasProLicense}}
+                        <div class="text-xs text-gray-500 mt-1">
+                            {{if .LicenseExpiry}}
+                                License: {{.LicenseExpiry.Format "2 Jan 2006"}}
+                            {{end}}
+                        </div>
+                        {{end}}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">{{.EmployeeCount}}</div>
+                        <div class="text-xs text-gray-500">{{.MemberCount}} members</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{.CountryCode}}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{.CreatedAt.Format "2 Jan 2006"}}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {{if .IsActive}}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            Active
+                        </span>
+                        {{else}}
+                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                            Suspended
+                        </span>
+                        {{end}}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="showDetailsModal('{{.ID}}')" class="text-indigo-600 hover:text-indigo-900 mr-3">
+                            View
+                        </button>
+                        {{if .IsActive}}
+                        <form method="POST" action="/_system/organizations/{{.ID}}/suspend" class="inline" onsubmit="return confirm('Are you sure you want to suspend {{.Name}}? This will block all access for users.')">
+                            <button type="submit" class="text-red-600 hover:text-red-900">
+                                Suspend
+                            </button>
+                        </form>
+                        {{else}}
+                        <form method="POST" action="/_system/organizations/{{.ID}}/reactivate" class="inline" onsubmit="return confirm('Reactivate {{.Name}}?')">
+                            <button type="submit" class="text-green-600 hover:text-green-900">
+                                Reactivate
+                            </button>
+                        </form>
+                        {{end}}
+                    </td>
+                </tr>
+                {{else}}
+                <tr>
+                    <td colspan="8" class="px-6 py-8 text-center text-gray-500">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                        </svg>
+                        <p class="mt-2">No organizations found</p>
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function filterTable() {
+    const searchInput = document.getElementById('search').value.toLowerCase();
+    const planFilter = document.getElementById('planFilter').value.toLowerCase();
+    const statusFilter = document.getElementById('statusFilter').value.toLowerCase();
+// Calculate stats on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const rows = document.querySelectorAll('#orgsTable tbody tr[data-name]');
+    let activeCount = 0;
+    let freeCount = 0;
+    let proCount = 0;
+    
+    rows.forEach(row => {
+        if (row.getAttribute('data-status') === 'active') activeCount++;
+        if (row.getAttribute('data-plan') === 'free') freeCount++;
+        if (row.getAttribute('data-plan') === 'pro') proCount++;
+    });
+    
+    document.getElementById('activeCount').textContent = activeCount;
+    document.getElementById('freeCount').textContent = freeCount;
+    document.getElementById('proCount').textContent = proCount;
+});
+
+    const countryFilter = document.getElementById('countryFilter').value.toLowerCase();
+    const table = document.getElementById('orgsTable');
+    const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+    for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.getAttribute('data-name') === null) continue; // Skip "no data" row
+        
+        const name = row.getAttribute('data-name').toLowerCase();
+        const slug = row.getAttribute('data-slug').toLowerCase();
+        const owner = row.getAttribute('data-owner').toLowerCase();
+        const plan = row.getAttribute('data-plan').toLowerCase();
+        const status = row.getAttribute('data-status').toLowerCase();
+        const country = row.getAttribute('data-country').toLowerCase();
+        
+        const matchesSearch = searchInput === '' || name.includes(searchInput) || slug.includes(searchInput) || owner.includes(searchInput);
+        const matchesPlan = planFilter === '' || plan === planFilter;
+        const matchesStatus = statusFilter === '' || status === statusFilter;
+        const matchesCountry = countryFilter === '' || country === countryFilter;
+        
+        if (matchesSearch && matchesPlan && matchesStatus && matchesCountry) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    }
+}
+
+function clearFilters() {
+    document.getElementById('search').value = '';
+    document.getElementById('planFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('countryFilter').value = '';
+    filterTable();
+}
+
+function showDetailsModal(orgId) {
+    alert('Organization details modal for: ' + orgId + '\n\n(Full details modal to be implemented)');
+}
+</script>
+{{end}}

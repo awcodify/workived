@@ -292,3 +292,39 @@ func (s *Service) UpdateAdminConfig(ctx context.Context, key string, req UpdateA
 func (s *Service) GetSystemStats(ctx context.Context) (*SystemStatsResponse, error) {
 	return s.repo.GetSystemStats(ctx)
 }
+
+// ── Organisations ───────────────────────────────────────────────────────────
+
+func (s *Service) ListOrganisations(ctx context.Context) ([]OrganisationListItem, error) {
+	return s.repo.ListOrganisations(ctx)
+}
+
+func (s *Service) GetOrganisationDetail(ctx context.Context, orgID uuid.UUID) (*OrganisationDetailView, error) {
+	return s.repo.GetOrganisationDetail(ctx, orgID)
+}
+
+func (s *Service) SuspendOrganisation(ctx context.Context, orgID uuid.UUID, suspendedBy uuid.UUID) error {
+	if err := s.repo.UpdateOrganisationStatus(ctx, orgID, false); err != nil {
+		return fmt.Errorf("suspend organisation: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("suspended_by", suspendedBy.String()).
+		Msg("admin.organisation.suspended")
+
+	return nil
+}
+
+func (s *Service) ReactivateOrganisation(ctx context.Context, orgID uuid.UUID, reactivatedBy uuid.UUID) error {
+	if err := s.repo.UpdateOrganisationStatus(ctx, orgID, true); err != nil {
+		return fmt.Errorf("reactivate organisation: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("reactivated_by", reactivatedBy.String()).
+		Msg("admin.organisation.reactivated")
+
+	return nil
+}
