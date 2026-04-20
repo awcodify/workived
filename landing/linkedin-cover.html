@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workived — LinkedIn Cover</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --accent: #6357E8;
+      --accent-dim: #EFEDFD;
+      --accent-mid: #8F86F0;
+      --accent-text: #4A3FBF;
+      --ink-900: #0F0E13;
+      --ink-700: #1F1D2B;
+      --ink-500: #72708A;
+      --ink-300: #B0AEBE;
+      --ink-150: #DDDBE8;
+      --ink-100: #EDECF4;
+      --ink-50: #F6F5FC;
+      --ink-0: #FFFFFF;
+      --green: #10B981;
+      --amber: #F59E0B;
+      --blue: #818CF8;
+      --teal: #06B6D4;
+    }
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #E5E5E5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* LinkedIn cover: 1584 x 396 */
+    .cover {
+      width: 1584px;
+      height: 396px;
+      background: var(--ink-0);
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 380px 1fr;
+    }
+
+    /* Background decoration */
+    .cover::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 15% 50%, rgba(99,87,232,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 30%, rgba(129,140,248,0.05) 0%, transparent 45%),
+        radial-gradient(ellipse at 70% 90%, rgba(16,185,129,0.04) 0%, transparent 40%);
+      pointer-events: none;
+    }
+    .cover::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(99,87,232,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(99,87,232,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse at 30% 50%, black 20%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at 30% 50%, black 20%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* ─── LEFT: Branding ─── */
+    .cover-left {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 36px 32px 36px 48px;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .logo-row img {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+    }
+    .logo-row .wordmark {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--ink-900);
+      letter-spacing: -0.04em;
+    }
+
+    .cover-headline {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+      color: var(--ink-900);
+      margin-bottom: 12px;
+    }
+    .cover-headline .gradient {
+      background: linear-gradient(135deg, #9B8FF7 0%, #6357E8 40%, #818CF8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .cover-sub {
+      font-size: 14px;
+      color: var(--ink-500);
+      line-height: 1.6;
+      max-width: 340px;
+      margin-bottom: 20px;
+    }
+
+    .cover-url {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.02em;
+    }
+
+    /* ─── RIGHT: Cards grid ─── */
+    .cover-right {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 10px;
+      padding: 16px 28px 16px 12px;
+      height: 396px;
+    }
+
+    /* Overview: square card spanning 2 rows, 1 col */
+    .overview-card {
+      grid-row: 1 / 3;
+      grid-column: 1;
+      border-radius: 14px;
+      padding: 12px 12px 0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .overview-card .mod-card-img {
+      flex: 1;
+      min-height: 0;
+      border-radius: 8px 8px 0 0;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+      background: #fff;
+      margin-top: 6px;
+    }
+    .overview-card .mod-card-img img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top left;
+    }
+
+    /* Module cards: fill remaining 3 cols x 2 rows */
+    .mod-card {
+      border-radius: 14px;
+      padding: 10px 10px 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .mod-card-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 4px;
+      flex-shrink: 0;
+    }
+
+    .mod-card-name {
+      font-size: 8px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .mod-card h4 {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      color: var(--ink-900);
+      margin-bottom: 4px;
+    }
+
+    .mod-card-img {
+      margin-top: auto;
+      border-radius: 7px 7px 0 0;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+      background: #fff;
+      flex: 1;
+      min-height: 0;
+    }
+    .mod-card-img img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: top left;
+    }
+
+    /* Color themes */
+    .mod-card--purple { background: #EFEDFD; }
+    .mod-card--purple .mod-card-name { color: #6357E8; }
+    .mod-card--purple .mod-card-icon { background: rgba(99,87,232,0.15); }
+
+    .mod-card--blue { background: #E8EFFE; }
+    .mod-card--blue .mod-card-name { color: #818CF8; }
+    .mod-card--blue .mod-card-icon { background: rgba(129,140,248,0.15); }
+
+    .mod-card--green { background: #E6F7F0; }
+    .mod-card--green .mod-card-name { color: #10B981; }
+    .mod-card--green .mod-card-icon { background: rgba(16,185,129,0.15); }
+
+    .mod-card--amber { background: #FEF7E6; }
+    .mod-card--amber .mod-card-name { color: #D97706; }
+    .mod-card--amber .mod-card-icon { background: rgba(245,158,11,0.15); }
+
+    .mod-card--teal { background: #E6F4F7; }
+    .mod-card--teal .mod-card-name { color: #06B6D4; }
+    .mod-card--teal .mod-card-icon { background: rgba(6,182,212,0.15); }
+
+    .mod-card--indigo { background: #ECEEFE; }
+    .mod-card--indigo .mod-card-name { color: #6366F1; }
+    .mod-card--indigo .mod-card-icon { background: rgba(99,102,241,0.15); }
+
+    /* ─── Decorative accent line ─── */
+    .accent-bar {
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, var(--accent) 0%, var(--blue) 50%, var(--green) 100%);
+      z-index: 10;
+    }
+
+    /* ─── Bottom feature tags strip ─── */
+    .bottom-strip {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 5;
+      height: 3px;
+      background: linear-gradient(90deg,
+        #6366F1 0%, #6366F1 16.66%,
+        #6357E8 16.66%, #6357E8 33.33%,
+        #818CF8 33.33%, #818CF8 50%,
+        #10B981 50%, #10B981 66.66%,
+        #D97706 66.66%, #D97706 83.33%,
+        #06B6D4 83.33%, #06B6D4 100%);
+    }
+  </style>
+</head>
+<body>
+  <div class="cover">
+    <div class="accent-bar"></div>
+    <div class="bottom-strip"></div>
+
+    <!-- LEFT: Branding -->
+    <div class="cover-left">
+      <div class="logo-row">
+        <img src="images/logo-128.png" alt="Workived logo">
+        <span class="wordmark">workived</span>
+      </div>
+      <div class="cover-headline">
+        HR ops for<br>
+        <span class="gradient">small teams</span><br>
+        that ship fast.
+      </div>
+      <p class="cover-sub">
+        Attendance, leave, claims, tasks, and people — all in one workspace. Free for teams up to 15.
+      </p>
+      <span class="cover-url">workived.com</span>
+    </div>
+
+    <!-- RIGHT: Cards grid -->
+    <div class="cover-right">
+      <!-- Overview: square, spans 2 rows -->
+      <div class="overview-card mod-card--indigo">
+        <div class="mod-card-icon" style="background:rgba(99,102,241,0.15);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <div class="mod-card-name" style="color:#6366F1;">Overview</div>
+        <h4>Everything at a glance</h4>
+        <div class="mod-card-img">
+          <img src="images/dashboard-1.png" alt="HR Overview dashboard">
+        </div>
+      </div>
+
+      <!-- Row 1: Attendance, Leave, Claims -->
+      <div class="mod-card mod-card--purple">
+        <div class="mod-card-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6357E8" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="mod-card-name">Attendance</div>
+        <h4>Clock in, GPS, schedules</h4>
+        <div class="mod-card-img">
+          <img src="images/thumbnails/attendance-map.png" alt="Attendance map">
+        </div>
+      </div>
+
+      <div class="mod-card mod-card--blue">
+        <div class="mod-card-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="mod-card-name">Leave</div>
+        <h4>Request, approve, track</h4>
+        <div class="mod-card-img">
+          <img src="images/thumbnails/leave-calendar.png" alt="Leave calendar">
+        </div>
+      </div>
+
+      <div class="mod-card mod-card--green">
+        <div class="mod-card-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="mod-card-name">Claims</div>
+        <h4>Expenses &amp; receipts</h4>
+        <div class="mod-card-img">
+          <img src="images/thumbnails/claim-pending.png" alt="Claims">
+        </div>
+      </div>
+
+      <!-- Row 2: Tasks, People -->
+      <div class="mod-card mod-card--amber">
+        <div class="mod-card-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        </div>
+        <div class="mod-card-name">Tasks</div>
+        <h4>Boards &amp; custom fields</h4>
+        <div class="mod-card-img">
+          <img src="images/thumbnails/task-todo.png" alt="Task board">
+        </div>
+      </div>
+
+      <div class="mod-card mod-card--teal">
+        <div class="mod-card-icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#06B6D4" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </div>
+        <div class="mod-card-name">People</div>
+        <h4>Directory &amp; performance</h4>
+        <div class="mod-card-img">
+          <img src="images/thumbnails/people-performance-summary.png" alt="People analytics">
+        </div>
+      </div>
+    </div><!-- /cover-right -->
+  </div>
+</body>
+</html>
