@@ -39,6 +39,12 @@ type ProLicense struct {
 	UpdatedAt            time.Time  `json:"updated_at"`
 }
 
+// DaysUntilExpiry returns the number of days until the license expires.
+func (l *ProLicense) DaysUntilExpiry() int {
+	duration := time.Until(l.ExpiresAt)
+	return int(duration.Hours() / 24)
+}
+
 // AdminConfig represents a system configuration setting.
 type AdminConfig struct {
 	Key         string                 `json:"key"`

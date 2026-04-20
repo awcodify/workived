@@ -177,6 +177,31 @@ func (r *Repository) GetProLicenseByOrg(ctx context.Context, orgID uuid.UUID) (*
 	return &l, nil
 }
 
+func (r *Repository) GetProLicenseByID(ctx context.Context, licenseID uuid.UUID) (*ProLicense, error) {
+	var l ProLicense
+	err := r.db.QueryRow(ctx, `
+		SELECT 
+			pl.id, pl.organisation_id, COALESCE(o.name, 'Unknown') as organisation_name,
+			pl.license_type, pl.status, pl.max_employees,
+			pl.starts_at, pl.expires_at, pl.cancelled_at,
+			pl.stripe_subscription_id, pl.stripe_customer_id,
+			pl.created_by, pl.created_at, pl.updated_at
+		FROM pro_licenses pl
+		LEFT JOIN organisations o ON o.id = pl.organisation_id
+		WHERE pl.id = $1
+	`, licenseID).Scan(
+		&l.ID, &l.OrganisationID, &l.OrganisationName,
+		&l.LicenseType, &l.Status, &l.MaxEmployees,
+		&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
+		&l.StripeSubscriptionID, &l.StripeCustomerID,
+		&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
+	)
+	if err != nil {
+		return nil, apperr.NotFound("pro license")
+	}
+	return &l, nil
+}
+
 func (r *Repository) CreateProLicense(ctx context.Context, req CreateProLicenseRequest, createdBy uuid.UUID) (*ProLicense, error) {
 	startsAt := time.Now().UTC()
 	expiresAt := startsAt.AddDate(0, 0, req.DurationDays)

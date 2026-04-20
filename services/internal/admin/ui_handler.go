@@ -1,9 +1,11 @@
 package admin
 
 import (
+	"fmt"
 	"html/template"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -92,6 +94,9 @@ func (h *UIHandler) RegisterUIRoutes(r *gin.Engine, jwtSecret string) {
 		protected.GET("/feature-flags", h.FeatureFlags)
 		protected.POST("/feature-flags/:key/toggle", h.ToggleFeatureFlag)
 		protected.GET("/licenses", h.Licenses)
+		protected.POST("/licenses/create", h.CreateLicense)
+		protected.POST("/licenses/:id/update", h.UpdateLicense)
+		protected.POST("/licenses/:id/extend", h.ExtendLicense)
 		protected.GET("/configs", h.Configs)
 		protected.POST("/logout", h.Logout)
 	}
@@ -350,22 +355,203 @@ func (h *UIHandler) ToggleFeatureFlag(c *gin.Context) {
 
 // Licenses renders the Pro licenses management page.
 func (h *UIHandler) Licenses(c *gin.Context) {
-	licenses, err := h.svc.ListProLicenses(c.Request.Context(), nil)
+	// Get filter parameters
+	search := c.Query("search")
+	statusFilter := c.Query("status")
+
+	// Fetch all licenses
+	var status *string
+	if statusFilter != "" && statusFilter != "expiring" {
+		status = &statusFilter
+	}
+	allLicenses, err := h.svc.ListProLicenses(c.Request.Context(), status)
 	if err != nil {
 		h.renderError(c, err)
 		return
+	}
+
+	// Apply filters
+	var licenses []ProLicense
+	for _, l := range allLicenses {
+		// Apply search filter
+		if search != "" {
+			if !containsIgnoreCase(l.OrganisationName, search) &&
+				!containsIgnoreCase(l.OrganisationID.String(), search) {
+				continue
+			}
+		}
+
+		// Apply "expiring" filter
+		if statusFilter == "expiring" {
+			if l.Status != "active" || l.DaysUntilExpiry() > 7 || l.DaysUntilExpiry() < 0 {
+				continue
+			}
+		}
+
+		licenses = append(licenses, l)
+	}
+
+	// Calculate stats
+	stats := struct {
+		Total        int
+		Active       int
+		ExpiringSoon int
+		Expired      int
+	}{}
+
+	for _, l := range allLicenses {
+		stats.Total++
+		if l.Status == "active" {
+			stats.Active++
+			if l.DaysUntilExpiry() <= 7 && l.DaysUntilExpiry() >= 0 {
+				stats.ExpiringSoon++
+			}
+		} else if l.Status == "expired" {
+			stats.Expired++
+		}
 	}
 
 	userEmail, _ := c.Cookie("admin_user_email")
 	data := gin.H{
 		"User":     gin.H{"Email": userEmail},
 		"Licenses": licenses,
+		"Stats":    stats,
+		"Filters": gin.H{
+			"Search": search,
+			"Status": statusFilter,
+		},
 	}
 
 	c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if err := h.templates["licenses.html"].ExecuteTemplate(c.Writer, "base.html", data); err != nil {
 		c.String(http.StatusInternalServerError, "Template error: %v", err)
 	}
+}
+
+// CreateLicense handles the create license form submission.
+func (h *UIHandler) CreateLicense(c *gin.Context) {
+	adminID, _ := c.Get("internal_admin_id")
+	createdBy := adminID.(uuid.UUID)
+
+	// Parse form
+	orgIDStr := c.PostForm("organisation_id")
+	orgID, err := uuid.Parse(orgIDStr)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/_system/licenses?error=invalid_org_id")
+		return
+	}
+
+	licenseType := c.PostForm("license_type")
+	durationDaysStr := c.PostForm("duration_days")
+	durationDays := 14 // default
+	if durationDaysStr != "" {
+		fmt.Sscanf(durationDaysStr, "%d", &durationDays)
+	}
+
+	var maxEmployees *int
+	maxEmployeesStr := c.PostForm("max_employees")
+	if maxEmployeesStr != "" {
+		var val int
+		fmt.Sscanf(maxEmployeesStr, "%d", &val)
+		maxEmployees = &val
+	}
+
+	req := CreateProLicenseRequest{
+		OrganisationID: orgID,
+		LicenseType:    licenseType,
+		MaxEmployees:   maxEmployees,
+		DurationDays:   durationDays,
+	}
+
+	_, err = h.svc.CreateProLicense(c.Request.Context(), req, createdBy)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/_system/licenses?error=create_failed")
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/_system/licenses")
+}
+
+// UpdateLicense handles the update license form submission.
+func (h *UIHandler) UpdateLicense(c *gin.Context) {
+	licenseIDStr := c.Param("id")
+	licenseID, err := uuid.Parse(licenseIDStr)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/_system/licenses?error=invalid_id")
+		return
+	}
+
+	// Parse form
+	status := c.PostForm("status")
+	expiresAtStr := c.PostForm("expires_at")
+	maxEmployeesStr := c.PostForm("max_employees")
+
+	var expiresAt *time.Time
+	if expiresAtStr != "" {
+		parsed, err := time.Parse("2006-01-02", expiresAtStr)
+		if err == nil {
+			expiresAt = &parsed
+		}
+	}
+
+	var maxEmployees *int
+	if maxEmployeesStr != "" {
+		var val int
+		fmt.Sscanf(maxEmployeesStr, "%d", &val)
+		maxEmployees = &val
+	}
+
+	req := UpdateProLicenseRequest{
+		Status:       &status,
+		ExpiresAt:    expiresAt,
+		MaxEmployees: maxEmployees,
+	}
+
+	_, err = h.svc.UpdateProLicense(c.Request.Context(), licenseID, req)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/_system/licenses?error=update_failed")
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/_system/licenses")
+}
+
+// ExtendLicense extends a license by 30 days.
+func (h *UIHandler) ExtendLicense(c *gin.Context) {
+	licenseIDStr := c.Param("id")
+	licenseID, err := uuid.Parse(licenseIDStr)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/_system/licenses?error=invalid_id")
+		return
+	}
+
+	// Get current license
+	license, err := h.svc.repo.GetProLicenseByID(c.Request.Context(), licenseID)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/_system/licenses?error=license_not_found")
+		return
+	}
+
+	// Extend by 30 days
+	newExpiresAt := license.ExpiresAt.AddDate(0, 0, 30)
+	req := UpdateProLicenseRequest{
+		ExpiresAt: &newExpiresAt,
+	}
+
+	_, err = h.svc.UpdateProLicense(c.Request.Context(), licenseID, req)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/_system/licenses?error=extend_failed")
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/_system/licenses")
+}
+
+// containsIgnoreCase checks if s contains substr (case-insensitive).
+func containsIgnoreCase(s, substr string) bool {
+	s = strings.ToLower(s)
+	substr = strings.ToLower(substr)
+	return strings.Contains(s, substr)
 }
 
 // Configs renders the admin configs page.
