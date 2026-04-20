@@ -25,8 +25,9 @@ type FeatureFlag struct {
 type ProLicense struct {
 	ID                   uuid.UUID  `json:"id"`
 	OrganisationID       uuid.UUID  `json:"organisation_id"`
-	LicenseType          string     `json:"license_type"` // 'trial' | 'monthly' | 'annual'
-	Status               string     `json:"status"`       // 'active' | 'expired' | 'cancelled' | 'suspended'
+	OrganisationName     string     `json:"organisation_name"` // Joined from organisations table
+	LicenseType          string     `json:"license_type"`      // 'trial' | 'monthly' | 'annual'
+	Status               string     `json:"status"`            // 'active' | 'expired' | 'cancelled' | 'suspended'
 	MaxEmployees         *int       `json:"max_employees,omitempty"`
 	StartsAt             time.Time  `json:"starts_at"`
 	ExpiresAt            time.Time  `json:"expires_at"`

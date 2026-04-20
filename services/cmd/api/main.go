@@ -169,11 +169,6 @@ func main() {
 	empHandler := employee.NewHandler(empSvc)
 	deptHandler := department.NewHandler(deptSvc, log)
 	jtHandler := jobtitle.NewHandler(jtSvc, log)
-	adminHandler := admin.NewHandler(adminSvc, log)
-	adminUIHandler, err := admin.NewUIHandler(adminSvc, authSvc)
-	if err != nil {
-		log.Fatal().Err(err).Msg("create admin UI handler")
-	}
 	attHandler := attendance.NewHandler(attSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
 		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
 		if err != nil {
@@ -316,15 +311,6 @@ func main() {
 	reportsHandler.RegisterRoutes(authed)
 	dashboardHandler.RegisterRoutes(authed)
 	annHandler.RegisterRoutes(authed)
-
-	// Admin routes (super_admin only — Workived internal team)
-	adminHandler.RegisterRoutes(authOnly)
-
-	// Admin UI (server-side rendered HTML for super_admin)
-	adminUIHandler.RegisterUIRoutes(r, cfg.JWTSecret) // Register directly on router with auth
-
-	// Public feature-flag check (auth-only, any user with a valid JWT + org)
-	adminHandler.RegisterPublicRoutes(authOnly)
 
 	// ── Server ────────────────────────────────────────────────────────────────
 	srv := &http.Server{

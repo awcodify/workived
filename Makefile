@@ -80,6 +80,13 @@ build: ## Build the API binary to bin/api
 	@mkdir -p bin
 	cd $(SERVICES_DIR) && go build -o ../bin/api ./cmd/api
 
+build-staff: ## Build the staff admin binary to bin/staff
+	@mkdir -p bin
+	cd $(SERVICES_DIR) && go build -o ../bin/staff ./cmd/staff
+
+run-staff: ## Run the staff admin server
+	cd $(SERVICES_DIR) && go run ./cmd/staff
+
 # ── Frontend ─────────────────────────────────────────────────────────────────
 
 web-install: ## Install frontend dependencies

@@ -35,10 +35,10 @@ func (h *Handler) List(c *gin.Context) {
 	orgID, _ := c.Get("org_id")
 	orgUUID := orgID.(uuid.UUID)
 
-	// Security: Only owner/admin/hr_admin/super_admin can access employment history
+	// Security: Only owner/admin/hr_admin can access employment history
 	role, _ := c.Get("role")
 	roleStr, _ := role.(string)
-	if roleStr != "owner" && roleStr != "admin" && roleStr != "hr_admin" && roleStr != "super_admin" {
+	if roleStr != "owner" && roleStr != "admin" && roleStr != "hr_admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 		return
 	}
@@ -107,8 +107,8 @@ func (h *Handler) GetByEmployee(c *gin.Context) {
 	}
 	// DEBUG: Log the role for troubleshooting
 	c.Writer.Header().Add("X-Debug-Role", roleStr)
-	if roleStr != "owner" && roleStr != "admin" && roleStr != "hr_admin" && roleStr != "super_admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions", "role": roleStr, "required": "owner/admin/hr_admin/super_admin"})
+	if roleStr != "owner" && roleStr != "admin" && roleStr != "hr_admin" {
+		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions", "role": roleStr, "required": "owner/admin/hr_admin"})
 		return
 	}
 

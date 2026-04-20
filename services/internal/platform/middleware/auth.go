@@ -17,9 +17,10 @@ const (
 
 type Claims struct {
 	jwt.RegisteredClaims
-	UserID         uuid.UUID `json:"uid"`
-	OrgID          uuid.UUID `json:"oid"`
-	Role           string    `json:"role"`
+	// For regular users
+	UserID         uuid.UUID `json:"uid,omitempty"`
+	OrgID          uuid.UUID `json:"oid,omitempty"`
+	Role           string    `json:"role,omitempty"`
 	HasSubordinate bool      `json:"has_sub,omitempty"`
 }
 
@@ -45,10 +46,12 @@ func Auth(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
+		// Set user context
 		c.Set(userIDKey, claims.UserID)
 		c.Set(orgIDKey, claims.OrgID)
 		c.Set("role", claims.Role)
 		c.Set("has_subordinate", claims.HasSubordinate)
+
 		c.Next()
 	}
 }
@@ -116,10 +119,12 @@ func AuthWithCookie(jwtSecret string) gin.HandlerFunc {
 			return
 		}
 
+		// Set user context
 		c.Set(userIDKey, claims.UserID)
 		c.Set(orgIDKey, claims.OrgID)
 		c.Set("role", claims.Role)
 		c.Set("has_subordinate", claims.HasSubordinate)
+
 		c.Next()
 	}
 }

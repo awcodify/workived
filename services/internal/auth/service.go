@@ -127,7 +127,7 @@ func (s *Service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, 
 		return nil, "", apperr.New(apperr.CodeForbidden, "account is deactivated")
 	}
 
-	// Try to get org context — may be empty if user has not yet created/joined an org
+	// Get org context — may be empty if user has not yet created/joined an org
 	orgID, role, hasSubordinate, _ := s.orgRepo.GetMemberOrgID(ctx, user.ID)
 
 	accessToken, err := s.IssueAccessToken(user.ID, orgID, role, hasSubordinate)
@@ -160,6 +160,7 @@ func (s *Service) Refresh(ctx context.Context, rawToken string) (*RefreshRespons
 		return nil, "", err
 	}
 
+	// Get org context
 	orgID, role, hasSubordinate, _ := s.orgRepo.GetMemberOrgID(ctx, user.ID)
 
 	accessToken, err := s.IssueAccessToken(user.ID, orgID, role, hasSubordinate)

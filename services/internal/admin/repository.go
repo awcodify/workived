@@ -113,18 +113,21 @@ func (r *Repository) UpdateFeatureFlag(ctx context.Context, key string, req Upda
 
 func (r *Repository) ListProLicenses(ctx context.Context, status *string) ([]ProLicense, error) {
 	query := `
-		SELECT id, organisation_id, license_type, status, max_employees,
-		       starts_at, expires_at, cancelled_at,
-		       stripe_subscription_id, stripe_customer_id,
-		       created_by, created_at, updated_at
-		FROM pro_licenses
+		SELECT 
+			pl.id, pl.organisation_id, COALESCE(o.name, 'Unknown') as organisation_name,
+			pl.license_type, pl.status, pl.max_employees,
+			pl.starts_at, pl.expires_at, pl.cancelled_at,
+			pl.stripe_subscription_id, pl.stripe_customer_id,
+			pl.created_by, pl.created_at, pl.updated_at
+		FROM pro_licenses pl
+		LEFT JOIN organisations o ON o.id = pl.organisation_id
 	`
 	args := []interface{}{}
 	if status != nil {
-		query += ` WHERE status = $1`
+		query += ` WHERE pl.status = $1`
 		args = append(args, *status)
 	}
-	query += ` ORDER BY created_at DESC`
+	query += ` ORDER BY pl.created_at DESC`
 
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
@@ -136,7 +139,8 @@ func (r *Repository) ListProLicenses(ctx context.Context, status *string) ([]Pro
 	for rows.Next() {
 		var l ProLicense
 		if err := rows.Scan(
-			&l.ID, &l.OrganisationID, &l.LicenseType, &l.Status, &l.MaxEmployees,
+			&l.ID, &l.OrganisationID, &l.OrganisationName,
+			&l.LicenseType, &l.Status, &l.MaxEmployees,
 			&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 			&l.StripeSubscriptionID, &l.StripeCustomerID,
 			&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
@@ -151,14 +155,18 @@ func (r *Repository) ListProLicenses(ctx context.Context, status *string) ([]Pro
 func (r *Repository) GetProLicenseByOrg(ctx context.Context, orgID uuid.UUID) (*ProLicense, error) {
 	var l ProLicense
 	err := r.db.QueryRow(ctx, `
-		SELECT id, organisation_id, license_type, status, max_employees,
-		       starts_at, expires_at, cancelled_at,
-		       stripe_subscription_id, stripe_customer_id,
-		       created_by, created_at, updated_at
-		FROM pro_licenses
-		WHERE organisation_id = $1
+		SELECT 
+			pl.id, pl.organisation_id, COALESCE(o.name, 'Unknown') as organisation_name,
+			pl.license_type, pl.status, pl.max_employees,
+			pl.starts_at, pl.expires_at, pl.cancelled_at,
+			pl.stripe_subscription_id, pl.stripe_customer_id,
+			pl.created_by, pl.created_at, pl.updated_at
+		FROM pro_licenses pl
+		LEFT JOIN organisations o ON o.id = pl.organisation_id
+		WHERE pl.organisation_id = $1
 	`, orgID).Scan(
-		&l.ID, &l.OrganisationID, &l.LicenseType, &l.Status, &l.MaxEmployees,
+		&l.ID, &l.OrganisationID, &l.OrganisationName,
+		&l.LicenseType, &l.Status, &l.MaxEmployees,
 		&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 		&l.StripeSubscriptionID, &l.StripeCustomerID,
 		&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
@@ -175,14 +183,25 @@ func (r *Repository) CreateProLicense(ctx context.Context, req CreateProLicenseR
 
 	var l ProLicense
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO pro_licenses (organisation_id, license_type, status, max_employees, starts_at, expires_at, created_by)
-		VALUES ($1, $2, 'active', $3, $4, $5, $6)
-		RETURNING id, organisation_id, license_type, status, max_employees,
-		          starts_at, expires_at, cancelled_at,
-		          stripe_subscription_id, stripe_customer_id,
-		          created_by, created_at, updated_at
+		WITH inserted AS (
+			INSERT INTO pro_licenses (organisation_id, license_type, status, max_employees, starts_at, expires_at, created_by)
+			VALUES ($1, $2, 'active', $3, $4, $5, $6)
+			RETURNING id, organisation_id, license_type, status, max_employees,
+			          starts_at, expires_at, cancelled_at,
+			          stripe_subscription_id, stripe_customer_id,
+			          created_by, created_at, updated_at
+		)
+		SELECT 
+			i.id, i.organisation_id, COALESCE(o.name, 'Unknown') as organisation_name,
+			i.license_type, i.status, i.max_employees,
+			i.starts_at, i.expires_at, i.cancelled_at,
+			i.stripe_subscription_id, i.stripe_customer_id,
+			i.created_by, i.created_at, i.updated_at
+		FROM inserted i
+		LEFT JOIN organisations o ON o.id = i.organisation_id
 	`, req.OrganisationID, req.LicenseType, req.MaxEmployees, startsAt, expiresAt, createdBy).Scan(
-		&l.ID, &l.OrganisationID, &l.LicenseType, &l.Status, &l.MaxEmployees,
+		&l.ID, &l.OrganisationID, &l.OrganisationName,
+		&l.LicenseType, &l.Status, &l.MaxEmployees,
 		&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 		&l.StripeSubscriptionID, &l.StripeCustomerID,
 		&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,
@@ -196,18 +215,29 @@ func (r *Repository) CreateProLicense(ctx context.Context, req CreateProLicenseR
 func (r *Repository) UpdateProLicense(ctx context.Context, licenseID uuid.UUID, req UpdateProLicenseRequest) (*ProLicense, error) {
 	var l ProLicense
 	err := r.db.QueryRow(ctx, `
-		UPDATE pro_licenses
-		SET status = COALESCE($1, status),
-		    max_employees = COALESCE($2, max_employees),
-		    expires_at = COALESCE($3, expires_at),
-		    updated_at = NOW()
-		WHERE id = $4
-		RETURNING id, organisation_id, license_type, status, max_employees,
-		          starts_at, expires_at, cancelled_at,
-		          stripe_subscription_id, stripe_customer_id,
-		          created_by, created_at, updated_at
+		WITH updated AS (
+			UPDATE pro_licenses
+			SET status = COALESCE($1, status),
+			    max_employees = COALESCE($2, max_employees),
+			    expires_at = COALESCE($3, expires_at),
+			    updated_at = NOW()
+			WHERE id = $4
+			RETURNING id, organisation_id, license_type, status, max_employees,
+			          starts_at, expires_at, cancelled_at,
+			          stripe_subscription_id, stripe_customer_id,
+			          created_by, created_at, updated_at
+		)
+		SELECT 
+			u.id, u.organisation_id, COALESCE(o.name, 'Unknown') as organisation_name,
+			u.license_type, u.status, u.max_employees,
+			u.starts_at, u.expires_at, u.cancelled_at,
+			u.stripe_subscription_id, u.stripe_customer_id,
+			u.created_by, u.created_at, u.updated_at
+		FROM updated u
+		LEFT JOIN organisations o ON o.id = u.organisation_id
 	`, req.Status, req.MaxEmployees, req.ExpiresAt, licenseID).Scan(
-		&l.ID, &l.OrganisationID, &l.LicenseType, &l.Status, &l.MaxEmployees,
+		&l.ID, &l.OrganisationID, &l.OrganisationName,
+		&l.LicenseType, &l.Status, &l.MaxEmployees,
 		&l.StartsAt, &l.ExpiresAt, &l.CancelledAt,
 		&l.StripeSubscriptionID, &l.StripeCustomerID,
 		&l.CreatedBy, &l.CreatedAt, &l.UpdatedAt,

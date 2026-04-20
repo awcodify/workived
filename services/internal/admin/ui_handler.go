@@ -8,8 +8,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/workived/services/internal/auth"
+	"github.com/google/uuid"
 	"github.com/workived/services/internal/platform/middleware"
+	"github.com/workived/services/internal/staff"
 	"github.com/workived/services/pkg/apperr"
 )
 
@@ -21,12 +22,13 @@ const (
 // UIHandler serves HTML pages for the admin interface.
 type UIHandler struct {
 	svc       *Service
-	authSvc   *auth.Service
+	staffSvc  *staff.Service
+	staffRepo *staff.Repository
 	templates map[string]*template.Template
 }
 
 // NewUIHandler creates a new UI handler and loads templates.
-func NewUIHandler(svc *Service, authSvc *auth.Service) (*UIHandler, error) {
+func NewUIHandler(svc *Service, staffSvc *staff.Service, staffRepo *staff.Repository) (*UIHandler, error) {
 	// Load templates - each page gets base.html + its specific template
 	basePath := filepath.Join("internal", "admin", "templates", "base.html")
 	templatesDir := filepath.Join("internal", "admin", "templates")
@@ -44,7 +46,7 @@ func NewUIHandler(svc *Service, authSvc *auth.Service) (*UIHandler, error) {
 		templates[page] = tmpl
 	}
 
-	// Parse login separately (doesn't use base)
+	// Parse login and setup separately (don't use base)
 	loginPath := filepath.Join(templatesDir, "login.html")
 	loginTmpl, err := template.ParseFiles(loginPath)
 	if err != nil {
@@ -52,22 +54,36 @@ func NewUIHandler(svc *Service, authSvc *auth.Service) (*UIHandler, error) {
 	}
 	templates["login.html"] = loginTmpl
 
+	setupPath := filepath.Join(templatesDir, "setup.html")
+	setupTmpl, err := template.ParseFiles(setupPath)
+	if err != nil {
+		return nil, err
+	}
+	templates["setup.html"] = setupTmpl
+
 	return &UIHandler{
 		svc:       svc,
-		authSvc:   authSvc,
+		staffSvc:  staffSvc,
+		staffRepo: staffRepo,
 		templates: templates,
 	}, nil
 }
 
-// RegisterUIRoutes registers all admin UI routes under /admin
+// RegisterUIRoutes registers all admin UI routes under /_system
 func (h *UIHandler) RegisterUIRoutes(r *gin.Engine, jwtSecret string) {
-	admin := r.Group("/admin")
+	admin := r.Group("/_system")
+
+	// One-time setup routes (only accessible if no internal admins exist)
+	admin.GET("/setup", h.SetupPage)
+	admin.POST("/setup", h.HandleSetup)
 
 	// Public routes (no auth required)
-	admin.GET("/login", h.LoginPage)
+	admin.GET("/login", h.redirectToSetupIfNeeded, h.LoginPage)
 	admin.POST("/login", h.HandleLogin)
 
-	// Protected routes (authentication + super_admin role required)
+	// Protected routes (authentication required - staff admins only)
+	// DATA PRIVACY: These routes manage Workived platform settings only.
+	// Staff admins have NO ACCESS to customer organization data.
 	protected := admin.Group("")
 	protected.Use(h.RequireAdminSession(jwtSecret))
 	{
@@ -77,7 +93,6 @@ func (h *UIHandler) RegisterUIRoutes(r *gin.Engine, jwtSecret string) {
 		protected.POST("/feature-flags/:key/toggle", h.ToggleFeatureFlag)
 		protected.GET("/licenses", h.Licenses)
 		protected.GET("/configs", h.Configs)
-		protected.GET("/organizations", h.Organizations)
 		protected.POST("/logout", h.Logout)
 	}
 }
@@ -87,13 +102,13 @@ func (h *UIHandler) RequireAdminSession(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		sessionToken, err := c.Cookie(adminSessionCookie)
 		if err != nil || sessionToken == "" {
-			c.Redirect(http.StatusSeeOther, "/admin/login")
+			c.Redirect(http.StatusSeeOther, "/_system/login")
 			c.Abort()
 			return
 		}
 
 		// Validate JWT token manually (don't use API middleware which returns JSON)
-		claims := &middleware.Claims{}
+		claims := &staff.Claims{}
 		token, err := jwt.ParseWithClaims(sessionToken, claims, func(t *jwt.Token) (any, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, apperr.Unauthorized()
@@ -102,25 +117,116 @@ func (h *UIHandler) RequireAdminSession(jwtSecret string) gin.HandlerFunc {
 		})
 
 		if err != nil || !token.Valid {
-			c.Redirect(http.StatusSeeOther, "/admin/login?error=session_expired")
+			c.Redirect(http.StatusSeeOther, "/_system/login?error=session_expired")
 			c.Abort()
 			return
 		}
 
-		// Store claims in context for downstream handlers
-		c.Set("user_id", claims.UserID)
-		c.Set("org_id", claims.OrgID)
-		c.Set("role", claims.Role)
-
-		// Check for super_admin role (UI-specific - redirect instead of JSON error)
-		if claims.Role != middleware.RoleSuperAdmin {
-			c.Redirect(http.StatusSeeOther, "/admin/login?error=insufficient_permissions")
+		// Verify this is an internal admin token
+		if claims.InternalAdminID == uuid.Nil {
+			c.Redirect(http.StatusSeeOther, "/_system/login?error=invalid_token")
 			c.Abort()
 			return
 		}
+
+		// Verify admin is still active in database
+		if !h.staffRepo.IsActive(c.Request.Context(), claims.InternalAdminID) {
+			c.Redirect(http.StatusSeeOther, "/_system/login?error=insufficient_permissions")
+			c.Abort()
+			return
+		}
+
+		// Store admin ID in context
+		c.Set("internal_admin_id", claims.InternalAdminID)
+		c.Set("is_internal_admin", true)
 
 		c.Next()
 	}
+}
+
+// redirectToSetupIfNeeded redirects to setup page if no internal admins exist yet
+func (h *UIHandler) redirectToSetupIfNeeded(c *gin.Context) {
+	if !h.staffRepo.HasAny(c.Request.Context()) {
+		c.Redirect(http.StatusSeeOther, "/_system/setup")
+		c.Abort()
+		return
+	}
+	c.Next()
+}
+
+// SetupPage renders the one-time setup page
+func (h *UIHandler) SetupPage(c *gin.Context) {
+	// Check if setup is still needed
+	if h.staffRepo.HasAny(c.Request.Context()) {
+		c.Redirect(http.StatusSeeOther, "/_system/login")
+		return
+	}
+
+	error := c.Query("error")
+	data := gin.H{
+		"Error": error,
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := h.templates["setup.html"].Execute(c.Writer, data); err != nil {
+		c.String(http.StatusInternalServerError, "Template error: %v", err)
+	}
+}
+
+// HandleSetup processes the one-time setup form
+func (h *UIHandler) HandleSetup(c *gin.Context) {
+	// Check if setup is still needed
+	if h.staffRepo.HasAny(c.Request.Context()) {
+		c.Redirect(http.StatusSeeOther, "/_system/login")
+		return
+	}
+
+	email := c.PostForm("email")
+	password := c.PostForm("password")
+	fullName := c.PostForm("full_name")
+
+	// Validate input
+	if email == "" || password == "" || fullName == "" {
+		c.Redirect(http.StatusSeeOther, "/_system/setup?error=missing_fields")
+		return
+	}
+
+	// Create the first internal admin
+	admin, err := h.staffSvc.Create(c.Request.Context(), email, password, fullName)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/_system/setup?error=setup_failed")
+		return
+	}
+
+	// Login the newly created admin
+	loginResp, err := h.staffSvc.Login(c.Request.Context(), email, password)
+	if err != nil {
+		c.Redirect(http.StatusSeeOther, "/_system/login")
+		return
+	}
+
+	// Set session cookie
+	c.SetCookie(
+		adminSessionCookie,
+		loginResp.AccessToken,
+		int(sessionDuration.Seconds()),
+		"/_system",
+		"",
+		c.Request.TLS != nil,
+		true,
+	)
+
+	c.SetCookie(
+		"admin_user_email",
+		admin.Email,
+		int(sessionDuration.Seconds()),
+		"/_system",
+		"",
+		c.Request.TLS != nil,
+		false,
+	)
+
+	c.Redirect(http.StatusSeeOther, "/_system")
 }
 
 // LoginPage renders the admin login page
@@ -141,46 +247,36 @@ func (h *UIHandler) HandleLogin(c *gin.Context) {
 	email := c.PostForm("email")
 	password := c.PostForm("password")
 
-	// Authenticate using auth service
-	loginResp, refreshToken, err := h.authSvc.Login(c.Request.Context(), auth.LoginRequest{
-		Email:    email,
-		Password: password,
-	})
+	// Authenticate as internal admin
+	loginResp, err := h.staffSvc.Login(c.Request.Context(), email, password)
 	if err != nil {
-		c.Redirect(http.StatusSeeOther, "/admin/login?error=invalid_credentials")
+		c.Redirect(http.StatusSeeOther, "/_system/login?error=invalid_credentials")
 		return
 	}
-
-	// Note: refreshToken is returned but we don't use it for admin UI
-	_ = refreshToken
-
-	// Check if user is super_admin (get their role from org membership)
-	// Note: The token already contains the role, but we should verify it
-	// For now, we trust the token. In production, add explicit role check here.
 
 	// Set session cookie (httpOnly, secure in production)
 	c.SetCookie(
 		adminSessionCookie,
 		loginResp.AccessToken,
 		int(sessionDuration.Seconds()),
-		"/admin",
+		"/_system",
 		"",                   // domain
 		c.Request.TLS != nil, // secure: true if HTTPS
 		true,                 // httpOnly
 	)
 
-	// Store user email in a separate cookie for display
+	// Store admin email in a separate cookie for display
 	c.SetCookie(
 		"admin_user_email",
-		loginResp.User.Email,
+		loginResp.Admin.Email,
 		int(sessionDuration.Seconds()),
-		"/admin",
+		"/_system",
 		"",
 		c.Request.TLS != nil,
 		false, // not httpOnly so JS can read it
 	)
 
-	c.Redirect(http.StatusSeeOther, "/admin")
+	c.Redirect(http.StatusSeeOther, "/_system")
 }
 
 // Dashboard renders the admin dashboard with system stats.
@@ -249,7 +345,7 @@ func (h *UIHandler) ToggleFeatureFlag(c *gin.Context) {
 	}
 
 	// Redirect back to feature flags page
-	c.Redirect(http.StatusSeeOther, "/admin/feature-flags")
+	c.Redirect(http.StatusSeeOther, "/_system/feature-flags")
 }
 
 // Licenses renders the Pro licenses management page.
@@ -281,21 +377,12 @@ func (h *UIHandler) Configs(c *gin.Context) {
 	c.String(http.StatusOK, "Admin configs page (to be implemented)")
 }
 
-// Organizations renders the organizations list page.
-func (h *UIHandler) Organizations(c *gin.Context) {
-	userEmail, _ := c.Cookie("admin_user_email")
-	_ = userEmail // TODO: use in template when implemented
-
-	c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	c.String(http.StatusOK, "Organizations page (to be implemented)")
-}
-
 // Logout handles logout and clears session cookie.
 func (h *UIHandler) Logout(c *gin.Context) {
 	// Clear session cookie
-	c.SetCookie(adminSessionCookie, "", -1, "/admin", "", false, true)
-	c.SetCookie("admin_user_email", "", -1, "/admin", "", false, false)
-	c.Redirect(http.StatusSeeOther, "/admin/login")
+	c.SetCookie(adminSessionCookie, "", -1, "/_system", "", false, true)
+	c.SetCookie("admin_user_email", "", -1, "/_system", "", false, false)
+	c.Redirect(http.StatusSeeOther, "/_system/login")
 }
 
 // renderError renders an error page.

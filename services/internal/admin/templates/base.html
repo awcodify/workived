@@ -39,19 +39,19 @@
                     
                     <!-- Navigation -->
                     <div class="hidden sm:ml-8 sm:flex sm:space-x-8">
-                        <a href="/admin" class="border-transparent text-gray-900 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        <a href="/_system" class="border-transparent text-gray-900 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             Dashboard
                         </a>
-                        <a href="/admin/feature-flags" class="border-transparent text-gray-500 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        <a href="/_system/feature-flags" class="border-transparent text-gray-500 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             Feature Flags
                         </a>
-                        <a href="/admin/licenses" class="border-transparent text-gray-500 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        <a href="/_system/licenses" class="border-transparent text-gray-500 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             Pro Licenses
                         </a>
-                        <a href="/admin/configs" class="border-transparent text-gray-500 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        <a href="/_system/configs" class="border-transparent text-gray-500 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             Configs
                         </a>
-                        <a href="/admin/organizations" class="border-transparent text-gray-500 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                        <a href="/_system/organizations" class="border-transparent text-gray-500 hover:border-indigo-500 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
                             Organizations
                         </a>
                     </div>
@@ -62,7 +62,7 @@
                     <div class="text-sm text-gray-700 mr-4">
                         {{.User.Email}}
                     </div>
-                    <form action="/admin/logout" method="POST">
+                    <form action="/_system/logout" method="POST">
                         <button type="submit" class="text-sm text-gray-500 hover:text-gray-700">
                             Logout
                         </button>
