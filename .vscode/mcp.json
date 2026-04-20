@@ -7,6 +7,13 @@
 				"mcp-remote",
 				"https://mcp.linear.app/mcp"
 			]
+		},
+		"workived-dev": {
+			"command": "/Users/danuwicaksono/Documents/Work/workived/bin/mcp",
+			"env": {
+				"WORKIVED_APP_URL": "http://localhost:8080",
+				"LOG_LEVEL": "info"
+			}
 		}
 	},
 	"inputs": []
