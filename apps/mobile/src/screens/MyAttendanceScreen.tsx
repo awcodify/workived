@@ -8,6 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { apiClient } from '@/api/client'
 import type { WeekDay } from '@/types/api'
 import type { RootStackParamList } from '@/navigation'
+import { CorrectionBottomSheet } from '@/components/CorrectionBottomSheet'
 
 function getMonday(offset: number): string {
   const now = new Date()
@@ -52,14 +53,15 @@ const DAY_STATUS_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; 
   'future': { icon: 'ellipsis-horizontal', color: '#D1D5DB', bg: '#F9FAFB', label: 'Upcoming' },
 }
 
-function TimelineDay({ day }: { day: WeekDay }) {
+function TimelineDay({ day, onPress }: { day: WeekDay; onPress?: (date: string) => void }) {
   const config = DAY_STATUS_CONFIG[day.status] ?? DAY_STATUS_CONFIG['future']
   const clockIn = formatTime(day.clock_in_at)
   const clockOut = formatTime(day.clock_out_at)
   const hours = computeHoursWorked(day.clock_in_at, day.clock_out_at)
   const isWorkday = !['weekend', 'future'].includes(day.status)
+  const canRequestCorrection = !['weekend', 'future', 'on_leave'].includes(day.status)
 
-  return (
+  const content = (
     <View style={tlStyles.row} testID={`timeline-day-${day.date}`}>
       {/* Left: date column */}
       <View style={tlStyles.dateCol}>
@@ -77,7 +79,7 @@ function TimelineDay({ day }: { day: WeekDay }) {
       </View>
 
       {/* Right: detail card */}
-      <View style={[tlStyles.card, day.is_today && tlStyles.todayCard]}>
+      <View style={[tlStyles.card, day.is_today && tlStyles.todayCard, canRequestCorrection && tlStyles.cardClickable]}>
         {/* Status badge */}
         <View style={tlStyles.cardTop}>
           <View style={[tlStyles.statusBadge, { backgroundColor: config.bg }]}>
@@ -132,14 +134,34 @@ function TimelineDay({ day }: { day: WeekDay }) {
             <Text style={tlStyles.noteText} numberOfLines={2}>{day.note}</Text>
           </View>
         )}
+        
+        {/* Tap hint for clickable days */}
+        {canRequestCorrection && onPress && (
+          <View style={tlStyles.tapHint}>
+            <Ionicons name="hand-left-outline" size={12} color="#9CA3AF" />
+            <Text style={tlStyles.tapHintText}>Tap to request correction</Text>
+          </View>
+        )}
       </View>
     </View>
   )
+
+  if (canRequestCorrection && onPress) {
+    return (
+      <TouchableOpacity onPress={() => onPress(day.date)} activeOpacity={0.7}>
+        {content}
+      </TouchableOpacity>
+    )
+  }
+
+  return content
 }
 
 export default function MyAttendanceScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const [weekOffset, setWeekOffset] = useState(0)
+  const [showCorrectionForm, setShowCorrectionForm] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<string | undefined>()
 
   const startDate = useMemo(() => getMonday(weekOffset), [weekOffset])
 
@@ -153,6 +175,11 @@ export default function MyAttendanceScreen() {
 
   const weekLabel = weekOffset === 0 ? 'This Week' : weekOffset === -1 ? 'Last Week' : `${Math.abs(weekOffset)} Weeks Ago`
   const dateRange = week ? `${formatShortDate(week.start_date)} – ${formatShortDate(week.end_date)}` : ''
+
+  const handleDatePress = (date: string) => {
+    setSelectedDate(date)
+    setShowCorrectionForm(true)
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']} testID="my-attendance-screen">
@@ -196,6 +223,17 @@ export default function MyAttendanceScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Info Banner */}
+        {week && (
+          <View style={styles.infoBanner}>
+            <Ionicons name="information-circle" size={20} color="#6357E8" />
+            <Text style={styles.infoBannerText}>
+              <Text style={styles.infoBannerBold}>Tip:</Text>
+              {' Tap on any workday below to request an attendance correction'}
+            </Text>
+          </View>
+        )}
+
         {/* Timeline */}
         {weekLoading ? (
           <ActivityIndicator size="large" color="#6357E8" style={styles.timelineLoader} testID="my-attendance-week-skeleton" />
@@ -211,7 +249,7 @@ export default function MyAttendanceScreen() {
         ) : week ? (
           <View style={styles.timeline}>
             {week.days.map((day) => (
-              <TimelineDay key={day.date} day={day} />
+              <TimelineDay key={day.date} day={day} onPress={handleDatePress} />
             ))}
           </View>
         ) : null}
@@ -223,15 +261,21 @@ export default function MyAttendanceScreen() {
           testID="my-attendance-correction-btn"
         >
           <View style={styles.correctionLinkLeft}>
-            <Ionicons name="create-outline" size={22} color="#6357E8" />
-            <View>
-              <Text style={styles.correctionLinkTitle}>Attendance Corrections</Text>
-              <Text style={styles.correctionLinkSub}>Request or view correction history</Text>
-            </View>
+            <Ionicons name="list-outline" size={22} color="#6B7280" />
+            <Text style={styles.correctionLinkTitle}>View correction history</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
         </TouchableOpacity>
       </ScrollView>
+      
+      <CorrectionBottomSheet 
+        visible={showCorrectionForm} 
+        onClose={() => {
+          setShowCorrectionForm(false)
+          setSelectedDate(undefined)
+        }} 
+        initialDate={selectedDate} 
+      />
     </SafeAreaView>
   )
 }
@@ -367,6 +411,24 @@ const tlStyles = StyleSheet.create({
     color: '#6B7280',
     lineHeight: 16,
   },
+  cardClickable: {
+    borderWidth: 1,
+    borderColor: '#E0E7FF',
+  },
+  tapHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  tapHintText: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontStyle: 'italic',
+  },
 })
 
 const styles = StyleSheet.create({
@@ -438,6 +500,24 @@ const styles = StyleSheet.create({
   navBtnDisabled: {
     opacity: 0.3,
   },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#EEF2FF',
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  infoBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#4338CA',
+    lineHeight: 18,
+  },
+  infoBannerBold: {
+    fontWeight: '700',
+  },
   timeline: {
     marginBottom: 20,
   },
@@ -492,13 +572,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   correctionLinkTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  correctionLinkSub: {
-    fontSize: 12,
-    color: '#9CA3AF',
-    marginTop: 1,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
   },
 })

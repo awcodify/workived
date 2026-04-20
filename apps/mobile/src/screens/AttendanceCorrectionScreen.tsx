@@ -1,11 +1,9 @@
-import { useState } from 'react'
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, RefreshControl } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useQuery } from '@tanstack/react-query'
 import { Ionicons } from '@expo/vector-icons'
 import { useNavigation } from '@react-navigation/native'
 import { apiClient } from '@/api/client'
-import { CorrectionBottomSheet } from '@/components/CorrectionBottomSheet'
 import type { AttendanceCorrection } from '@/types/api'
 
 const STATUS_COLOR: Record<AttendanceCorrection['status'], string> = {
@@ -33,7 +31,6 @@ function formatTime(iso: string | undefined): string | null {
 
 export default function AttendanceCorrectionScreen() {
   const navigation = useNavigation()
-  const [showForm, setShowForm] = useState(false)
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['corrections', 'mine'],
@@ -60,16 +57,6 @@ export default function AttendanceCorrectionScreen() {
           <RefreshControl refreshing={isRefetching} onRefresh={refetch} colors={['#6357E8']} tintColor="#6357E8" />
         }
       >
-        {/* Request button */}
-        <TouchableOpacity
-          style={styles.requestBtn}
-          onPress={() => setShowForm(true)}
-          testID="correction-screen-request-btn"
-        >
-          <Ionicons name="create-outline" size={20} color="#FFF" />
-          <Text style={styles.requestBtnText}>Request Correction</Text>
-        </TouchableOpacity>
-
         {/* History */}
         <Text style={styles.sectionTitle}>My Requests</Text>
 
@@ -81,7 +68,7 @@ export default function AttendanceCorrectionScreen() {
           <View style={styles.emptyState} testID="correction-screen-empty">
             <Ionicons name="document-text-outline" size={48} color="#D1D5DB" />
             <Text style={styles.emptyTitle}>No corrections yet</Text>
-            <Text style={styles.emptySub}>Tap "Request Correction" to submit one</Text>
+            <Text style={styles.emptySub}>Tap on any workday in My Attendance to submit a correction</Text>
           </View>
         ) : (
           corrections.map((c) => (
@@ -127,8 +114,6 @@ export default function AttendanceCorrectionScreen() {
           ))
         )}
       </ScrollView>
-
-      <CorrectionBottomSheet visible={showForm} onClose={() => setShowForm(false)} />
     </SafeAreaView>
   )
 }
@@ -166,21 +151,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 16,
     paddingBottom: 40,
-  },
-  requestBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: '#6357E8',
-    borderRadius: 14,
-    paddingVertical: 14,
-    marginBottom: 24,
-  },
-  requestBtnText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFF',
   },
   sectionTitle: {
     fontSize: 16,

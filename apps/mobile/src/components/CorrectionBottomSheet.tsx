@@ -12,6 +12,7 @@ import { apiClient } from '@/api/client'
 interface Props {
   visible: boolean
   onClose: () => void
+  initialDate?: string // YYYY-MM-DD format
 }
 
 function toLocalTimeString(date: Date): string {
@@ -28,12 +29,21 @@ function combineDateAndTime(date: Date, time: Date): string {
   return d.toISOString()
 }
 
-export function CorrectionBottomSheet({ visible, onClose }: Props) {
+export function CorrectionBottomSheet({ visible, onClose, initialDate }: Props) {
   const queryClient = useQueryClient()
   const insets = useSafeAreaInsets()
   const today = new Date()
   const slideAnim = useRef(new Animated.Value(600)).current
   const [isModalVisible, setIsModalVisible] = useState(false)
+
+  // Parse initial date or default to yesterday
+  const getInitialDate = () => {
+    if (initialDate) {
+      const [year, month, day] = initialDate.split('-').map(Number)
+      return new Date(year, month - 1, day)
+    }
+    return new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1)
+  }
 
   useEffect(() => {
     if (visible) {
@@ -50,7 +60,15 @@ export function CorrectionBottomSheet({ visible, onClose }: Props) {
     }
   }, [visible, slideAnim])
 
-  const [date, setDate] = useState(new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1))
+  const [date, setDate] = useState(getInitialDate())
+
+  // Update date when initialDate changes
+  useEffect(() => {
+    if (visible && initialDate) {
+      const [year, month, day] = initialDate.split('-').map(Number)
+      setDate(new Date(year, month - 1, day))
+    }
+  }, [initialDate, visible])
   const [clockIn, setClockIn] = useState<Date | null>(null)
   const [clockOut, setClockOut] = useState<Date | null>(null)
   const [reason, setReason] = useState('')
