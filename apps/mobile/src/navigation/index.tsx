@@ -32,7 +32,7 @@ export type MainTabParamList = {
   Claims: undefined
   Approvals: { tab?: 'leave' | 'claim' | 'correction' } | undefined
   Team: undefined
-  Profile: undefined
+  Me: undefined
 }
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
@@ -64,7 +64,7 @@ function MainTabs() {
             iconName = focused ? 'checkmark-circle' : 'checkmark-circle-outline'
           } else if (route.name === 'Team') {
             iconName = focused ? 'stats-chart' : 'stats-chart-outline'
-          } else if (route.name === 'Profile') {
+          } else if (route.name === 'Me') {
             iconName = focused ? 'person' : 'person-outline'
           }
 
@@ -93,7 +93,7 @@ function MainTabs() {
         }}
       />
       <Tab.Screen name="Team" component={TeamScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen name="Me" component={ProfileScreen} />
     </Tab.Navigator>
   )
 }
