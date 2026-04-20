@@ -35,6 +35,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Task Lists
 	tasks.GET("/lists", middleware.Require(middleware.PermTasksRead), h.ListTaskLists)
 	tasks.POST("/lists", middleware.Require(middleware.PermTasksWrite), h.CreateTaskList)
+	tasks.PATCH("/lists/reorder", middleware.Require(middleware.PermTasksWrite), h.ReorderTaskLists)
 	tasks.PUT("/lists/:id", middleware.Require(middleware.PermTasksWrite), h.UpdateTaskList)
 	tasks.DELETE("/lists/:id", middleware.Require(middleware.PermTasksWrite), h.DeactivateTaskList)
 
@@ -148,7 +149,27 @@ func (h *Handler) DeactivateTaskList(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.DeactivateTaskList(c.Request.Context(), orgID, id, userID); err != nil {
+	// Optional: move_tasks_to can be provided as query param or request body
+	var req DeleteListRequest
+	// Try body first (for explicit JSON requests)
+	if c.Request.ContentLength > 0 {
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+			return
+		}
+	} else {
+		// Fall back to query param
+		if moveToStr := c.Query("move_tasks_to"); moveToStr != "" {
+			moveToID, err := uuid.Parse(moveToStr)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, apperr.New(apperr.CodeValidation, "invalid move_tasks_to UUID"))
+				return
+			}
+			req.MoveTasksTo = &moveToID
+		}
+	}
+
+	if err := h.service.DeactivateTaskList(c.Request.Context(), orgID, id, req, userID); err != nil {
 		h.logAndRespondError(c, err, "failed to deactivate task list", map[string]string{
 			"org_id":  orgID.String(),
 			"list_id": id.String(),
@@ -157,6 +178,26 @@ func (h *Handler) DeactivateTaskList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *Handler) ReorderTaskLists(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	var req ReorderListsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.ReorderTaskLists(c.Request.Context(), orgID, req, userID); err != nil {
+		h.logAndRespondError(c, err, "failed to reorder task lists", map[string]string{
+			"org_id": orgID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "task lists reordered successfully"})
 }
 
 // ── Tasks ────────────────────────────────────────────────────────────────────

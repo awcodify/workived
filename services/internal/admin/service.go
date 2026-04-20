@@ -214,6 +214,28 @@ func (s *Service) GetProLicenseByOrg(ctx context.Context, orgID uuid.UUID) (*Pro
 	return s.repo.GetProLicenseByOrg(ctx, orgID)
 }
 
+// HasActiveProLicense checks if an organisation has an active Pro license.
+// Returns true if license exists, is active, and not expired.
+func (s *Service) HasActiveProLicense(ctx context.Context, orgID uuid.UUID) (bool, error) {
+	license, err := s.repo.GetProLicenseByOrg(ctx, orgID)
+	if err != nil {
+		// If license not found, org is on free tier
+		return false, nil
+	}
+
+	// Check if license is active and not expired
+	if license.Status != "active" {
+		return false, nil
+	}
+
+	// Check if license has not expired
+	if time.Now().UTC().After(license.ExpiresAt) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (s *Service) CreateProLicense(ctx context.Context, req CreateProLicenseRequest, createdBy uuid.UUID) (*ProLicense, error) {
 	license, err := s.repo.CreateProLicense(ctx, req, createdBy)
 	if err != nil {

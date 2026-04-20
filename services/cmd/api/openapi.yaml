@@ -1810,7 +1810,9 @@ paths:
     post:
       operationId: createTaskList
       summary: Create a new task list
-      description: Requires admin/owner role
+      description: |
+        Create a custom task board column.
+        PRO tier feature (max 20 lists). Requires admin/owner role.
       tags: [Tasks]
       requestBody:
         required: true
@@ -1828,15 +1830,55 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/TaskList"
+        "402":
+          description: PRO tier feature required or max limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tasks/lists/reorder:
+    patch:
+      operationId: reorderTaskLists
+      summary: Reorder task lists
+      description: |
+        Reorder all task lists by providing an ordered array of list IDs.
+        PRO tier feature. Requires admin/owner role.
+      tags: [Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderTaskListsRequest"
+      responses:
+        "200":
+          description: Lists reordered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Task lists reordered successfully
+        "402":
+          description: PRO tier feature required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /tasks/lists/{id}:
     parameters:
       - $ref: "#/components/parameters/ResourceID"
 
-    put:
+    patch:
       operationId: updateTaskList
       summary: Update a task list
-      description: Requires admin/owner role
+      description: |
+        Update task list name, position, or is_final_state flag.
+        PRO tier feature. Requires admin/owner role.
       tags: [Tasks]
       requestBody:
         required: true
@@ -1854,15 +1896,48 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/TaskList"
+        "402":
+          description: PRO tier feature required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
     delete:
       operationId: deactivateTaskList
       summary: Deactivate a task list
-      description: Soft-deletes the list. Requires admin/owner role
+      description: |
+        Soft-deletes the list. Cannot delete the last active list.
+        If the list has tasks, must provide move_tasks_to parameter.
+        PRO tier feature. Requires admin/owner role.
       tags: [Tasks]
+      parameters:
+        - name: move_tasks_to
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Target list ID to migrate tasks to (can also be in body)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteTaskListRequest"
       responses:
         "204":
           description: Task list deactivated
+        "400":
+          description: Cannot delete last list or list has tasks without migration target
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "402":
+          description: PRO tier feature required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /tasks:
     get:
@@ -3436,25 +3511,6 @@ paths:
         "400":
           $ref: "#/components/responses/ValidationError"
 
-# ── Components ────────────────────────────────────────────────────────────────
-
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT access token obtained from `/auth/login`
-
-  parameters:
-    ResourceID:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-
   # ── Announcements ────────────────────────────────────────────────────────
   /announcements:
     get:
@@ -3645,6 +3701,25 @@ components:
       responses:
         "204":
           description: Marked as read
+
+# ── Components ────────────────────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from `/auth/login`
+
+  parameters:
+    ResourceID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
   # ── Reusable responses ──────────────────────────────────────────────────
   responses:
@@ -5244,6 +5319,9 @@ components:
         position:
           type: integer
           description: Position for ordering lists
+        is_final_state:
+          type: boolean
+          description: Whether tasks in this list are considered complete
         is_active:
           type: boolean
         created_at:
@@ -5271,6 +5349,28 @@ components:
           maxLength: 100
         position:
           type: integer
+        is_final_state:
+          type: boolean
+          description: Whether tasks in this list should be marked complete
+
+    ReorderTaskListsRequest:
+      type: object
+      required: [list_ids]
+      properties:
+        list_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Ordered array of task list IDs (PRO tier feature)
+
+    DeleteTaskListRequest:
+      type: object
+      properties:
+        move_tasks_to:
+          type: string
+          format: uuid
+          description: Target list ID to migrate tasks to before deletion
 
     Task:
       type: object

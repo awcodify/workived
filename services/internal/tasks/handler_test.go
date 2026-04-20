@@ -89,7 +89,8 @@ type fakeService struct {
 	listTaskListsFn        func(ctx context.Context, orgID uuid.UUID) ([]tasks.TaskList, error)
 	createTaskListFn       func(ctx context.Context, orgID uuid.UUID, req tasks.CreateListRequest, actorUserID ...uuid.UUID) (*tasks.TaskList, error)
 	updateTaskListFn       func(ctx context.Context, orgID, id uuid.UUID, req tasks.UpdateListRequest, actorUserID ...uuid.UUID) (*tasks.TaskList, error)
-	deactivateTaskListFn   func(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
+	deactivateTaskListFn   func(ctx context.Context, orgID, id uuid.UUID, req tasks.DeleteListRequest, actorUserID ...uuid.UUID) error
+	reorderTaskListsFn     func(ctx context.Context, orgID uuid.UUID, req tasks.ReorderListsRequest, actorUserID ...uuid.UUID) error
 	ensureDefaultListsFn   func(ctx context.Context, orgID uuid.UUID) error
 	listTasksFn            func(ctx context.Context, orgID uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error)
 	getTaskFn              func(ctx context.Context, orgID, id uuid.UUID) (*tasks.TaskWithDetails, error)
@@ -137,9 +138,16 @@ func (f *fakeService) UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, r
 	return &tasks.TaskList{ID: id}, nil
 }
 
-func (f *fakeService) DeactivateTaskList(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error {
+func (f *fakeService) DeactivateTaskList(ctx context.Context, orgID, id uuid.UUID, req tasks.DeleteListRequest, actorUserID ...uuid.UUID) error {
 	if f.deactivateTaskListFn != nil {
-		return f.deactivateTaskListFn(ctx, orgID, id, actorUserID...)
+		return f.deactivateTaskListFn(ctx, orgID, id, req, actorUserID...)
+	}
+	return nil
+}
+
+func (f *fakeService) ReorderTaskLists(ctx context.Context, orgID uuid.UUID, req tasks.ReorderListsRequest, actorUserID ...uuid.UUID) error {
+	if f.reorderTaskListsFn != nil {
+		return f.reorderTaskListsFn(ctx, orgID, req, actorUserID...)
 	}
 	return nil
 }
@@ -768,16 +776,16 @@ func TestCreateFieldDefinition(t *testing.T) {
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "invalid field_type rejected by service",
-			body:       map[string]any{"name": "X", "field_type": "invalid"},
+			name: "invalid field_type rejected by service",
+			body: map[string]any{"name": "X", "field_type": "invalid"},
 			fn: func(_ context.Context, _ uuid.UUID, req tasks.CreateFieldDefinitionRequest, _ ...uuid.UUID) (*tasks.FieldDefinition, error) {
 				return nil, tasks.ErrInvalidFieldType(req.FieldType)
 			},
 			wantStatus: http.StatusBadRequest,
 		},
 		{
-			name:       "duplicate name rejected by service",
-			body:       map[string]any{"name": "Notes", "field_type": "text"},
+			name: "duplicate name rejected by service",
+			body: map[string]any{"name": "Notes", "field_type": "text"},
 			fn: func(_ context.Context, _ uuid.UUID, req tasks.CreateFieldDefinitionRequest, _ ...uuid.UUID) (*tasks.FieldDefinition, error) {
 				return nil, tasks.ErrFieldDefinitionDuplicate(req.Name)
 			},

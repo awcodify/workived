@@ -1,12 +1,3 @@
-import { createFileRoute, Outlet } from '@tanstack/react-router'
-
-export const Route = createFileRoute('/_app/tasks')({
-  component: TasksLayout,
-})
-
-function TasksLayout() {
-  return <Outlet />
-}
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
 import React, { useState, useCallback, useMemo, useEffect } from 'react'
 import { Settings } from 'lucide-react'
@@ -66,7 +57,7 @@ type TasksSearch = {
   column?: string // Mobile: active column ID
 }
 
-export const Route = createFileRoute('/_app/tasks')({
+export const Route = createFileRoute('/_app/tasks/')({
   validateSearch: (search: Record<string, unknown>): TasksSearch => {
     const view = search.view
     return {
@@ -205,13 +196,12 @@ function TasksPage() {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [expandedWorkloadStatus])
   
-  // Only render first 3 lists (To Do, In Progress, Done)
+  // Render all active lists in position order
   const visibleLists = useMemo(() => {
     const lists = taskLists || []
     return lists
       .filter((list) => list.is_active)
       .sort((a, b) => a.position - b.position)
-      .slice(0, 3)
   }, [taskLists])
   
   // Check if any filters are active (showCompleted=true is the default, so only count it if false)
@@ -1097,7 +1087,7 @@ function TasksPage() {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 relative">
+        <div className="flex gap-6 pb-4 -mx-6 px-6 md:-mx-11 md:px-11 overflow-x-auto" style={{ minHeight: '400px', scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}>
           {columnConfig.map((col, idx) => {
             const columnTasks = (optimisticTasks || [])
               .filter((t) => t.task_list_id === col.id)
@@ -1126,6 +1116,7 @@ function TasksPage() {
                   role="tabpanel"
                   aria-labelledby={`tab-${col.id}`}
                   className={typeof window !== 'undefined' && window.innerWidth < 640 && !isMobileActive ? 'hidden' : ''}
+                  style={{ minWidth: '300px', flex: '1 0 0%' }}
                 >
                   <StatusColumn
                     listId={col.id}
@@ -1155,11 +1146,12 @@ function TasksPage() {
                 {/* Hand-drawn vertical divider between columns (desktop only) */}
                 {idx < columnConfig.length - 1 && (
                   <div 
-                    className="hidden lg:block absolute top-0 bottom-0"
+                    className="hidden sm:flex items-stretch flex-shrink-0"
                     style={{
-                      left: `${((idx + 1) / 3) * 100}%`,
-                      transform: 'translateX(-50%)',
+                      width: '6px',
                       pointerEvents: 'none',
+                      marginLeft: '-4px',
+                      marginRight: '-4px',
                     }}
                   >
                     <svg
@@ -1168,14 +1160,7 @@ function TasksPage() {
                       style={{ overflow: 'visible' }}
                     >
                       <path
-                        d={`M 3 0 Q ${Math.random() * 2 + 2} ${Math.random() * 30 + 40}, 3 ${Math.random() * 30 + 70}
-                            T 3 ${Math.random() * 40 + 140}
-                            T 3 ${Math.random() * 40 + 210}
-                            T 3 ${Math.random() * 40 + 280}
-                            T 3 ${Math.random() * 40 + 350}
-                            T 3 420
-                            T 3 490
-                            T 3 560`}
+                        d="M 3 0 Q 4 40, 3 70 T 3 140 T 3 210 T 3 280 T 3 350 T 3 420 T 3 490 T 3 560"
                         stroke="#2C3E50"
                         strokeWidth="2.5"
                         fill="none"
@@ -1326,17 +1311,6 @@ function StatusColumn({
                 }}
               >
                 {label}
-                {isFinalState && (
-                  <span
-                    style={{
-                      marginLeft: '8px',
-                      fontSize: '16px',
-                      color: '#27AE60',
-                    }}
-                  >
-                    ✓ Available
-                  </span>
-                )}
               </h3>
             </div>
             {/* Hand-drawn underline */}

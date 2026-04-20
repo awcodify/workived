@@ -94,8 +94,17 @@ type CreateListRequest struct {
 }
 
 type UpdateListRequest struct {
-	Name     *string `json:"name,omitempty" binding:"omitempty,max=100"`
-	Position *int    `json:"position,omitempty"`
+	Name         *string `json:"name,omitempty" binding:"omitempty,max=100"`
+	Position     *int    `json:"position,omitempty"`
+	IsFinalState *bool   `json:"is_final_state,omitempty"`
+}
+
+type ReorderListsRequest struct {
+	ListIDs []uuid.UUID `json:"list_ids" binding:"required,min=1"`
+}
+
+type DeleteListRequest struct {
+	MoveTasksTo *uuid.UUID `json:"move_tasks_to,omitempty"` // Required if list has tasks
 }
 
 type CreateTaskRequest struct {
@@ -244,6 +253,13 @@ type UpdateFieldDefinitionRequest struct {
 	SortOrder   *int          `json:"sort_order,omitempty"`
 }
 
+// ── Interfaces ───────────────────────────────────────────────────────────────
+
+// ProLicenseChecker checks if an organisation has an active Pro license.
+type ProLicenseChecker interface {
+	HasActiveProLicense(ctx context.Context, orgID uuid.UUID) (bool, error)
+}
+
 // ── Repository Interface ─────────────────────────────────────────────────────
 
 type RepositoryInterface interface {
@@ -255,6 +271,9 @@ type RepositoryInterface interface {
 	UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, req UpdateListRequest) (*TaskList, error)
 	DeactivateTaskList(ctx context.Context, orgID, id uuid.UUID) error
 	CountTaskLists(ctx context.Context, orgID uuid.UUID) (int, error)
+	CountTasksInList(ctx context.Context, orgID, listID uuid.UUID) (int, error)
+	MoveTasksToList(ctx context.Context, orgID, fromListID, toListID uuid.UUID) error
+	ReorderTaskLists(ctx context.Context, orgID uuid.UUID, listIDs []uuid.UUID) error
 
 	// Tasks
 	ListTasks(ctx context.Context, orgID uuid.UUID, filters TaskFilters) ([]TaskWithDetails, error)
@@ -296,7 +315,8 @@ type ServiceInterface interface {
 	ListTaskLists(ctx context.Context, orgID uuid.UUID) ([]TaskList, error)
 	CreateTaskList(ctx context.Context, orgID uuid.UUID, req CreateListRequest, actorUserID ...uuid.UUID) (*TaskList, error)
 	UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, req UpdateListRequest, actorUserID ...uuid.UUID) (*TaskList, error)
-	DeactivateTaskList(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
+	DeactivateTaskList(ctx context.Context, orgID, id uuid.UUID, req DeleteListRequest, actorUserID ...uuid.UUID) error
+	ReorderTaskLists(ctx context.Context, orgID uuid.UUID, req ReorderListsRequest, actorUserID ...uuid.UUID) error
 	EnsureDefaultLists(ctx context.Context, orgID uuid.UUID) error
 
 	// Tasks
@@ -348,6 +368,22 @@ func ErrTaskListInactive(name string) *apperr.AppError {
 
 func ErrUnauthorizedCommentDelete() *apperr.AppError {
 	return apperr.New(apperr.CodeForbidden, "you can only delete your own comments")
+}
+
+func ErrProFeatureRequired(feature string) *apperr.AppError {
+	return apperr.New(apperr.CodeForbidden, fmt.Sprintf("Pro tier required for %s. Upgrade at /settings/billing", feature))
+}
+
+func ErrCannotDeleteLastList() *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, "cannot delete the last task list - at least one list is required")
+}
+
+func ErrListHasTasks(count int) *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, fmt.Sprintf("task list has %d task(s) - specify 'move_tasks_to' to migrate them", count))
+}
+
+func ErrMaxTaskListsExceeded(max int) *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, fmt.Sprintf("maximum %d task lists allowed", max))
 }
 
 func ErrInvalidPriority(priority string) *apperr.AppError {
