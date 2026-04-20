@@ -505,3 +505,93 @@ func (r *Repository) UpdateOrganisationStatus(ctx context.Context, orgID uuid.UU
 	}
 	return nil
 }
+
+// ── System Health ───────────────────────────────────────────────────────────
+
+// GetSystemHealth returns real-time health metrics for system monitoring.
+func (r *Repository) GetSystemHealth(ctx context.Context) (*SystemHealthResponse, error) {
+	health := &SystemHealthResponse{
+		RealTimeStats:  RealTimeStats{},
+		RecentActivity: RecentActivity{},
+		SystemStatus:   SystemStatus{},
+	}
+
+	// Real-time stats: Active sessions (unique users with valid refresh tokens)
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT user_id) 
+		FROM auth_tokens 
+		WHERE token_type = 'refresh' 
+		  AND expires_at > NOW()
+	`).Scan(&health.RealTimeStats.ActiveSessions)
+	if err != nil {
+		return nil, fmt.Errorf("count active sessions: %w", err)
+	}
+
+	// Real-time stats: Failed login attempts (last hour)
+	// Note: We track this via expired/used password_reset tokens as a proxy
+	// TODO: Implement dedicated login_attempts audit table for more accurate tracking
+	err = r.db.QueryRow(ctx, `
+		SELECT COUNT(*) 
+		FROM auth_tokens 
+		WHERE token_type = 'password_reset' 
+		  AND created_at > NOW() - INTERVAL '1 hour'
+		  AND used_at IS NULL
+		  AND expires_at < NOW()
+	`).Scan(&health.RealTimeStats.FailedLoginsLastHr)
+	if err != nil {
+		// Non-critical, just log and continue
+		health.RealTimeStats.FailedLoginsLastHr = 0
+	}
+
+	// Recent activity (last 24 hours): New users
+	err = r.db.QueryRow(ctx, `
+		SELECT COUNT(*) 
+		FROM users 
+		WHERE created_at > NOW() - INTERVAL '24 hours'
+	`).Scan(&health.RecentActivity.NewUsers)
+	if err != nil {
+		return nil, fmt.Errorf("count new users: %w", err)
+	}
+
+	// Recent activity: New organisations
+	err = r.db.QueryRow(ctx, `
+		SELECT COUNT(*) 
+		FROM organisations 
+		WHERE created_at > NOW() - INTERVAL '24 hours'
+	`).Scan(&health.RecentActivity.NewOrganisations)
+	if err != nil {
+		return nil, fmt.Errorf("count new organisations: %w", err)
+	}
+
+	// Recent activity: Active employees (had attendance/leave activity in last 24h)
+	err = r.db.QueryRow(ctx, `
+		SELECT COUNT(DISTINCT employee_id) FROM (
+			SELECT employee_id FROM attendance_records WHERE created_at > NOW() - INTERVAL '24 hours'
+			UNION
+			SELECT employee_id FROM leave_requests WHERE created_at > NOW() - INTERVAL '24 hours'
+		) AS active_employees
+	`).Scan(&health.RecentActivity.ActiveEmployees)
+	if err != nil {
+		return nil, fmt.Errorf("count active employees: %w", err)
+	}
+
+	// Database health check
+	var dbHealthCheck int
+	err = r.db.QueryRow(ctx, `SELECT 1`).Scan(&dbHealthCheck)
+	if err != nil {
+		health.SystemStatus.Database = "down"
+	} else {
+		health.SystemStatus.Database = "healthy"
+	}
+
+	// Database connection pool stats
+	stats := r.db.Stat()
+	health.DatabasePoolInfo = DatabasePoolInfo{
+		AcquiredConns: stats.AcquiredConns(),
+		IdleConns:     stats.IdleConns(),
+		MaxConns:      stats.MaxConns(),
+		TotalConns:    stats.TotalConns(),
+	}
+
+	return health, nil
+}

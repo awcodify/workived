@@ -136,5 +136,248 @@
     </div>
 </div>
 
+<!-- System Health Monitoring -->
+<div class="mt-8">
+    <div class="px-4 sm:px-0 flex items-center justify-between">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900">System Health</h2>
+            <p class="mt-1 text-sm text-gray-600">Real-time system monitoring and status indicators</p>
+        </div>
+        <div class="text-sm text-gray-500">
+            Auto-refresh: <span id="refresh-countdown">30</span>s
+        </div>
+    </div>
+
+    <!-- Real-time Stats -->
+    <div class="mt-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Real-Time Statistics</h3>
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            <!-- Active Sessions -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">
+                        Active Sessions
+                    </dt>
+                    <dd class="mt-1 text-3xl font-semibold text-gray-900" id="active-sessions">
+                        <span class="inline-block animate-pulse">...</span>
+                    </dd>
+                </div>
+            </div>
+
+            <!-- Failed Logins -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">
+                        Failed Logins (1h)
+                    </dt>
+                    <dd class="mt-1 text-3xl font-semibold text-gray-900" id="failed-logins">
+                        <span class="inline-block animate-pulse">...</span>
+                    </dd>
+                </div>
+            </div>
+
+            <!-- Database Connections -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">
+                        DB Connections
+                    </dt>
+                    <dd class="mt-1 text-3xl font-semibold text-gray-900" id="db-connections">
+                        <span class="inline-block animate-pulse">...</span>
+                    </dd>
+                    <p class="mt-1 text-xs text-gray-500" id="db-pool-info">
+                        <span class="inline-block animate-pulse">Loading...</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Database Status -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">
+                        Database
+                    </dt>
+                    <dd class="mt-1" id="db-status">
+                        <span class="inline-block animate-pulse text-gray-400">...</span>
+                    </dd>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div class="mt-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">System Components</h3>
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <!-- Email Service -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">
+                        Email Service
+                    </dt>
+                    <dd class="mt-1" id="email-status">
+                        <span class="inline-block animate-pulse text-gray-400">...</span>
+                    </dd>
+                </div>
+            </div>
+
+            <!-- Cache (Redis) -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">
+                        Cache (Redis)
+                    </dt>
+                    <dd class="mt-1" id="cache-status">
+                        <span class="inline-block animate-pulse text-gray-400">...</span>
+                    </dd>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity (Last 24h) -->
+    <div class="mt-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Activity (Last 24 Hours)</h3>
+        <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
+            <!-- New Users -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">
+                        New Users
+                    </dt>
+                    <dd class="mt-1 text-3xl font-semibold text-gray-900" id="new-users">
+                        <span class="inline-block animate-pulse">...</span>
+                    </dd>
+                </div>
+            </div>
+
+            <!-- New Organizations -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">
+                        New Organizations
+                    </dt>
+                    <dd class="mt-1 text-3xl font-semibold text-gray-900" id="new-orgs">
+                        <span class="inline-block animate-pulse">...</span>
+                    </dd>
+                </div>
+            </div>
+
+            <!-- Active Employees -->
+            <div class="bg-white overflow-hidden shadow rounded-lg">
+                <div class="px-4 py-5 sm:p-6">
+                    <dt class="text-sm font-medium text-gray-500 truncate">
+                        Active Employees
+                    </dt>
+                    <dd class="mt-1 text-3xl font-semibold text-gray-900" id="active-employees">
+                        <span class="inline-block animate-pulse">...</span>
+                    </dd>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Health Monitoring Script -->
+<script>
+let refreshInterval;
+let countdownInterval;
+let secondsRemaining = 30;
+
+async function fetchHealthData() {
+    try {
+        const response = await fetch('/_system/health');
+        if (!response.ok) throw new Error('Failed to fetch health data');
+        
+        const result = await response.json();
+        const health = result.data;
+        
+        // Update real-time stats
+        document.getElementById('active-sessions').textContent = health.real_time_stats.active_sessions;
+        document.getElementById('failed-logins').textContent = health.real_time_stats.failed_logins_last_hr;
+        
+        // Update DB connections
+        const dbInfo = health.database_pool_info;
+        document.getElementById('db-connections').textContent = dbInfo.total_conns;
+        document.getElementById('db-pool-info').textContent = 
+            `Acquired: ${dbInfo.acquired_conns} | Idle: ${dbInfo.idle_conns} | Max: ${dbInfo.max_conns}`;
+        
+        // Update DB status with color-coded badge
+        const dbStatus = health.system_status.database;
+        const statusEl = document.getElementById('db-status');
+        if (dbStatus === 'healthy') {
+            statusEl.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">✓ Healthy</span>';
+        } else if (dbStatus === 'warning') {
+            statusEl.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">⚠ Warning</span>';
+        } else {
+            statusEl.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">✗ Down</span>';
+        }
+        
+        // Update email status
+        const emailStatus = health.system_status.email;
+        const emailEl = document.getElementById('email-status');
+        if (emailStatus === 'connected') {
+            emailEl.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">✓ Connected</span>';
+        } else if (emailStatus === 'not_configured') {
+            emailEl.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">⊘ Not Configured</span>';
+        } else {
+            emailEl.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">✗ Unreachable</span>';
+        }
+        
+        // Update cache status
+        const cacheStatus = health.system_status.cache;
+        const cacheEl = document.getElementById('cache-status');
+        if (cacheStatus === 'connected') {
+            cacheEl.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">✓ Connected</span>';
+        } else if (cacheStatus === 'not_configured') {
+            cacheEl.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">⊘ Not Configured</span>';
+        } else {
+            cacheEl.innerHTML = '<span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">✗ Down</span>';
+        }
+        
+        // Update recent activity
+        document.getElementById('new-users').textContent = health.recent_activity.new_users;
+        document.getElementById('new-orgs').textContent = health.recent_activity.new_organisations;
+        document.getElementById('active-employees').textContent = health.recent_activity.active_employees;
+        
+    } catch (error) {
+        console.error('Failed to fetch health data:', error);
+        // Show error state
+        ['active-sessions', 'failed-logins', 'db-connections', 'new-users', 'new-orgs', 'active-employees'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '<span class="text-red-500">Error</span>';
+        });
+    }
+}
+
+function updateCountdown() {
+    secondsRemaining--;
+    document.getElementById('refresh-countdown').textContent = secondsRemaining;
+    
+    if (secondsRemaining <= 0) {
+        secondsRemaining = 30;
+        fetchHealthData();
+    }
+}
+
+// Initialize health monitoring
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch immediately on load
+    fetchHealthData();
+    
+    // Set up auto-refresh every 30 seconds
+    refreshInterval = setInterval(fetchHealthData, 30000);
+    
+    // Update countdown every second
+    countdownInterval = setInterval(updateCountdown, 1000);
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (refreshInterval) clearInterval(refreshInterval);
+    if (countdownInterval) clearInterval(countdownInterval);
+});
+</script>
+
 {{end}}
 

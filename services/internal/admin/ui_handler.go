@@ -91,6 +91,7 @@ func (h *UIHandler) RegisterUIRoutes(r *gin.Engine, jwtSecret string) {
 	{
 		protected.GET("", h.Dashboard)
 		protected.GET("/", h.Dashboard)
+		protected.GET("/health", h.HealthJSON)
 		protected.GET("/feature-flags", h.FeatureFlags)
 		protected.POST("/feature-flags/:key/toggle", h.ToggleFeatureFlag)
 		protected.GET("/licenses", h.Licenses)
@@ -307,6 +308,16 @@ func (h *UIHandler) Dashboard(c *gin.Context) {
 	if err := h.templates["dashboard.html"].ExecuteTemplate(c.Writer, "base.html", data); err != nil {
 		c.String(http.StatusInternalServerError, "Template error: %v", err)
 	}
+}
+
+// HealthJSON returns system health metrics as JSON for dashboard auto-refresh.
+func (h *UIHandler) HealthJSON(c *gin.Context) {
+	health, err := h.svc.GetSystemHealth(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch health data"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": health})
 }
 
 // FeatureFlags renders the feature flags management page.

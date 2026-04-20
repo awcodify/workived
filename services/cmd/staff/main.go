@@ -13,6 +13,7 @@ import (
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/staff"
+	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/logger"
 )
 
@@ -32,13 +33,32 @@ func main() {
 	}
 	defer db.Close()
 
+	// ── Redis Cache (optional) ───────────────────────────────────────────────
+	var cacheStore *cache.Store
+	if cfg.RedisURL != "" {
+		rdb, err := database.ConnectRedis(ctx, cfg.RedisURL)
+		if err != nil {
+			log.Warn().Err(err).Msg("redis connection failed - continuing without cache")
+		} else {
+			cacheStore = cache.New(rdb, log)
+			log.Info().Msg("redis cache connected")
+			defer func() { _ = rdb.Close() }()
+		}
+	}
+
 	// ── Repositories ─────────────────────────────────────────────────────────
 	staffRepo := staff.NewRepository(db)
 	adminRepo := admin.NewRepository(db)
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	staffSvc := staff.NewService(staffRepo, cfg.JWTSecret, cfg.JWTAccessTTL)
-	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log))
+
+	// Build admin service with optional cache
+	adminOpts := []admin.ServiceOption{admin.WithLogger(log), admin.WithConfig(cfg)}
+	if cacheStore != nil {
+		adminOpts = append(adminOpts, admin.WithCache(cacheStore))
+	}
+	adminSvc := admin.NewService(adminRepo, adminOpts...)
 
 	// ── UI Handler ───────────────────────────────────────────────────────────
 	adminUIHandler, err := admin.NewUIHandler(adminSvc, staffSvc, staffRepo)

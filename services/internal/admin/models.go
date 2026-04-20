@@ -121,3 +121,50 @@ type OrganisationDetailView struct {
 	SetupCompleted    bool        `json:"setup_completed"`
 	ProLicense        *ProLicense `json:"pro_license,omitempty"`
 }
+
+// ── System Health ───────────────────────────────────────────────────────────
+
+// SystemHealthResponse represents system health metrics for monitoring.
+type SystemHealthResponse struct {
+	RealTimeStats    RealTimeStats    `json:"real_time_stats"`
+	RecentActivity   RecentActivity   `json:"recent_activity"`
+	SystemStatus     SystemStatus     `json:"system_status"`
+	DatabasePoolInfo DatabasePoolInfo `json:"database_pool_info"`
+	CacheInfo        *CacheInfo       `json:"cache_info,omitempty"`
+}
+
+// RealTimeStats holds current system statistics.
+type RealTimeStats struct {
+	ActiveSessions     int `json:"active_sessions"`
+	FailedLoginsLastHr int `json:"failed_logins_last_hr"`
+}
+
+// RecentActivity holds statistics for the last 24 hours.
+type RecentActivity struct {
+	NewUsers         int `json:"new_users"`
+	NewOrganisations int `json:"new_organisations"`
+	ActiveEmployees  int `json:"active_employees"`
+}
+
+// SystemStatus holds status indicators for various system components.
+type SystemStatus struct {
+	Database string `json:"database"` // "healthy" | "warning" | "down"
+	Email    string `json:"email"`    // "connected" | "not_configured" | "unreachable"
+	Cache    string `json:"cache"`    // "connected" | "not_configured" | "down"
+}
+
+// DatabasePoolInfo holds database connection pool statistics.
+type DatabasePoolInfo struct {
+	AcquiredConns int32 `json:"acquired_conns"`
+	IdleConns     int32 `json:"idle_conns"`
+	MaxConns      int32 `json:"max_conns"`
+	TotalConns    int32 `json:"total_conns"`
+}
+
+// CacheInfo holds Redis cache statistics.
+type CacheInfo struct {
+	IsConfigured bool    `json:"is_configured"`
+	UsedMemory   string  `json:"used_memory,omitempty"`
+	UsedMemoryMB float64 `json:"used_memory_mb,omitempty"`
+	Keys         int64   `json:"keys,omitempty"`
+}

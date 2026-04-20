@@ -78,3 +78,38 @@ func TestUpdateOrganisationStatus(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }
+
+func TestGetSystemHealth(t *testing.T) {
+	db := getTestDB(t)
+	defer db.Close()
+
+	repo := NewRepository(db)
+	ctx := context.Background()
+
+	// Test GetSystemHealth returns without error
+	health, err := repo.GetSystemHealth(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, health)
+
+	// Verify structure is populated
+	assert.GreaterOrEqual(t, health.RealTimeStats.ActiveSessions, 0)
+	assert.GreaterOrEqual(t, health.RealTimeStats.FailedLoginsLastHr, 0)
+	assert.GreaterOrEqual(t, health.RecentActivity.NewUsers, 0)
+	assert.GreaterOrEqual(t, health.RecentActivity.NewOrganisations, 0)
+	assert.GreaterOrEqual(t, health.RecentActivity.ActiveEmployees, 0)
+
+	// Verify database status is set
+	assert.NotEmpty(t, health.SystemStatus.Database)
+	assert.Contains(t, []string{"healthy", "warning", "down"}, health.SystemStatus.Database)
+
+	// Verify database pool info is populated
+	assert.GreaterOrEqual(t, health.DatabasePoolInfo.MaxConns, int32(0))
+	assert.GreaterOrEqual(t, health.DatabasePoolInfo.TotalConns, int32(0))
+	assert.GreaterOrEqual(t, health.DatabasePoolInfo.IdleConns, int32(0))
+	assert.GreaterOrEqual(t, health.DatabasePoolInfo.AcquiredConns, int32(0))
+
+	// Verify pool info is consistent
+	assert.Equal(t, health.DatabasePoolInfo.TotalConns,
+		health.DatabasePoolInfo.AcquiredConns+health.DatabasePoolInfo.IdleConns,
+		"total connections should equal acquired + idle")
+}
