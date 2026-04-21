@@ -333,6 +333,17 @@ func (s *MigrationService) MigrateComments(
 			body = comment.Body
 		}
 
+		// Debug: log the markdown output
+		pmPreview := comment.BodyData
+		if len(pmPreview) > 2000 {
+			pmPreview = pmPreview[:2000] + "..."
+		}
+		s.log.Debug().
+			Str("comment_id", comment.ID).
+			Str("prosemirror_json", pmPreview).
+			Str("markdown_output", body).
+			Msg("converted prosemirror to markdown")
+
 		// Convert markdown to HTML for database storage (Linear image URLs remain unchanged)
 		body = MarkdownToHTML(body)
 
@@ -394,6 +405,22 @@ func processContent(content []map[string]interface{}, result *strings.Builder, d
 	for i, node := range content {
 		nodeType, _ := node["type"].(string)
 
+		// Debug: log unhandled node types
+		handled := map[string]bool{
+			"paragraph": true, "heading": true,
+			"bulletList": true, "bullet_list": true,
+			"orderedList": true, "ordered_list": true,
+			"taskList": true, "task_list": true,
+			"table": true, "table_row": true, "table_header": true, "table_cell": true,
+			"codeBlock": true, "code_block": true,
+			"blockquote":     true,
+			"horizontalRule": true, "horizontal_rule": true,
+			"image": true,
+		}
+		if !handled[nodeType] {
+			fmt.Printf("[DEBUG] Unhandled ProseMirror node type: %q at depth %d\n", nodeType, depth)
+		}
+
 		switch nodeType {
 		case "paragraph":
 			if childContent, ok := node["content"].([]interface{}); ok {
@@ -414,17 +441,27 @@ func processContent(content []map[string]interface{}, result *strings.Builder, d
 			}
 			result.WriteString("\n\n")
 
-		case "bulletList":
+		case "bulletList", "bullet_list":
 			if childContent, ok := node["content"].([]interface{}); ok {
 				processList(childContent, result, "- ", depth)
 			}
 
-		case "orderedList":
+		case "orderedList", "ordered_list":
 			if childContent, ok := node["content"].([]interface{}); ok {
 				processList(childContent, result, "", depth)
 			}
 
-		case "codeBlock":
+		case "taskList", "task_list":
+			// Linear's checkbox/task list items
+			if childContent, ok := node["content"].([]interface{}); ok {
+				processList(childContent, result, "- [ ] ", depth)
+			}
+		case "table":
+			// Convert tables to markdown table format
+			if childContent, ok := node["content"].([]interface{}); ok {
+				processTable(childContent, result)
+			}
+		case "codeBlock", "code_block":
 			result.WriteString("```")
 			if attrs, ok := node["attrs"].(map[string]interface{}); ok {
 				if lang, ok := attrs["language"].(string); ok {
@@ -442,7 +479,7 @@ func processContent(content []map[string]interface{}, result *strings.Builder, d
 				processBlockquote(childContent, result)
 			}
 
-		case "horizontalRule":
+		case "horizontalRule", "horizontal_rule":
 			result.WriteString("---\n\n")
 
 		case "image":
@@ -485,7 +522,7 @@ func processInlineContent(content []interface{}, result *strings.Builder) {
 			wrapped := wrapWithMarks(text, marks)
 			result.WriteString(wrapped)
 
-		case "hardBreak":
+		case "hardBreak", "hard_break":
 			result.WriteString("  \n")
 
 		case "mention":
@@ -557,7 +594,9 @@ func processList(items []interface{}, result *strings.Builder, bullet string, de
 		}
 
 		nodeType, _ := itemMap["type"].(string)
-		if nodeType != "listItem" {
+		// Support both listItem (bullets/ordered) and taskItem (checkboxes)
+		// Linear uses snake_case (list_item, task_item)
+		if nodeType != "listItem" && nodeType != "taskItem" && nodeType != "list_item" && nodeType != "task_item" {
 			continue
 		}
 
@@ -565,6 +604,19 @@ func processList(items []interface{}, result *strings.Builder, bullet string, de
 		if bullet == "" {
 			// Ordered list
 			prefix = fmt.Sprintf("%d. ", i+1)
+		} else if nodeType == "taskItem" || nodeType == "task_item" {
+			// Task list item - check if it's checked
+			checked := false
+			if attrs, ok := itemMap["attrs"].(map[string]interface{}); ok {
+				if c, ok := attrs["checked"].(bool); ok {
+					checked = c
+				}
+			}
+			if checked {
+				prefix = "- [x] "
+			} else {
+				prefix = "- [ ] "
+			}
 		}
 
 		result.WriteString(indent + prefix)
@@ -583,10 +635,17 @@ func processList(items []interface{}, result *strings.Builder, bullet string, de
 					if content, ok := childMap["content"].([]interface{}); ok {
 						processInlineContent(content, result)
 					}
-				} else if childType == "bulletList" || childType == "orderedList" {
+				} else if childType == "bulletList" || childType == "bullet_list" || childType == "orderedList" || childType == "ordered_list" || childType == "taskList" || childType == "task_list" {
 					result.WriteString("\n")
 					if nestedContent, ok := childMap["content"].([]interface{}); ok {
-						processList(nestedContent, result, bullet, depth+1)
+						// Determine correct bullet for nested list
+						nestedBullet := "- "
+						if childType == "orderedList" || childType == "ordered_list" {
+							nestedBullet = ""
+						} else if childType == "taskList" || childType == "task_list" {
+							nestedBullet = "- [ ] "
+						}
+						processList(nestedContent, result, nestedBullet, depth+1)
 					}
 				}
 
@@ -620,6 +679,91 @@ func processBlockquote(content []interface{}, result *strings.Builder) {
 
 		result.WriteString("\n")
 	}
+	result.WriteString("\n")
+}
+
+// processTable converts ProseMirror table to markdown table
+func processTable(rows []interface{}, result *strings.Builder) {
+	var tableRows [][]string
+
+	for _, row := range rows {
+		rowMap, ok := row.(map[string]interface{})
+		if !ok {
+			continue
+		}
+
+		if rowMap["type"] != "table_row" {
+			continue
+		}
+
+		cells, ok := rowMap["content"].([]interface{})
+		if !ok {
+			continue
+		}
+
+		var rowCells []string
+		for _, cell := range cells {
+			cellMap, ok := cell.(map[string]interface{})
+			if !ok {
+				continue
+			}
+
+			cellType := cellMap["type"]
+			if cellType != "table_header" && cellType != "table_cell" {
+				continue
+			}
+
+			// Extract cell content
+			var cellText strings.Builder
+			if cellContent, ok := cellMap["content"].([]interface{}); ok {
+				for _, cellNode := range cellContent {
+					cellNodeMap, ok := cellNode.(map[string]interface{})
+					if !ok {
+						continue
+					}
+
+					if cellNodeMap["type"] == "paragraph" {
+						if paraContent, ok := cellNodeMap["content"].([]interface{}); ok {
+							var paraBuilder strings.Builder
+							processInlineContent(paraContent, &paraBuilder)
+							cellText.WriteString(paraBuilder.String())
+						}
+					}
+				}
+			}
+
+			rowCells = append(rowCells, strings.TrimSpace(cellText.String()))
+		}
+
+		if len(rowCells) > 0 {
+			tableRows = append(tableRows, rowCells)
+		}
+	}
+
+	// Output markdown table
+	if len(tableRows) == 0 {
+		return
+	}
+
+	// Header row
+	result.WriteString("| ")
+	result.WriteString(strings.Join(tableRows[0], " | "))
+	result.WriteString(" |\n")
+
+	// Separator
+	result.WriteString("|")
+	for range tableRows[0] {
+		result.WriteString("----------|")
+	}
+	result.WriteString("\n")
+
+	// Data rows
+	for i := 1; i < len(tableRows); i++ {
+		result.WriteString("| ")
+		result.WriteString(strings.Join(tableRows[i], " | "))
+		result.WriteString(" |\n")
+	}
+
 	result.WriteString("\n")
 }
 
