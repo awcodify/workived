@@ -142,11 +142,35 @@ function TasksPage() {
   const [createModalListId, setCreateModalListId] = useState<string | null>(null)
   const [expandedWorkloadStatus, setExpandedWorkloadStatus] = useState<string | null>(null)
   
+  // Local state for search input to prevent race conditions with URL updates
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
+  
   // Track if we've initialized mobile column to prevent infinite loops
   const mobileColumnInitialized = useRef(false)
   
   // Track previous tasks data to prevent unnecessary optimistic updates
   const prevTasksRef = useRef<TaskWithDetails[]>([])
+  
+  // Track if user is currently dragging to prevent flicker from background refetches
+  const isDraggingRef = useRef(false)
+  
+  // Sync local search to URL params with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearchQuery !== searchQuery) {
+        updateSearchParam('search', localSearchQuery)
+      }
+    }, 300) // 300ms debounce
+    
+    return () => clearTimeout(timer)
+  }, [localSearchQuery, searchQuery, updateSearchParam])
+  
+  // Sync URL search param back to local state (for when URL changes externally, e.g., clear button)
+  useEffect(() => {
+    if (searchQuery !== localSearchQuery && searchQuery === '') {
+      setLocalSearchQuery('')
+    }
+  }, [searchQuery])
 
   // Apply filters to optimistic tasks (for display only)
   const displayTasks = useMemo(() => {
@@ -159,9 +183,9 @@ function TasksPage() {
       filtered = filtered.filter((task) => !!task.approval_type)
     }
 
-    // Search filter (title + description)
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
+    // Search filter (title + description) - use localSearchQuery for instant filtering
+    if (localSearchQuery.trim()) {
+      const query = localSearchQuery.toLowerCase()
       filtered = filtered.filter((task) => {
         const matchTitle = task.title.toLowerCase().includes(query)
         const matchDesc = task.description?.toLowerCase().includes(query)
@@ -189,11 +213,16 @@ function TasksPage() {
     }
     
     return filtered
-  }, [optimisticTasks, viewMode, searchQuery, selectedAssignee, selectedPriority, showCompleted])
+  }, [optimisticTasks, viewMode, localSearchQuery, selectedAssignee, selectedPriority, showCompleted])
   
   // Sync optimistic state with server data (only when data genuinely changes)
   useEffect(() => {
     const currentTasks = tasks || []
+    
+    // Don't update during drag operations to prevent flicker
+    if (isDraggingRef.current) {
+      return
+    }
     
     // Create a signature of the current data (IDs + updated_at timestamps)
     const createSignature = (taskList: TaskWithDetails[]) => 
@@ -226,7 +255,7 @@ function TasksPage() {
   }, [taskLists])
   
   // Check if any filters are active (showCompleted=true is the default, so only count it if false)
-  const hasActiveFilters = !!(searchQuery || selectedAssignee || selectedPriority || showCompleted === false)
+  const hasActiveFilters = !!(localSearchQuery || selectedAssignee || selectedPriority || showCompleted === false)
 
   // Mobile: Set default active column to first list if not specified (run only once)
   useEffect(() => {
@@ -316,6 +345,7 @@ function TasksPage() {
   }, [optimisticTasks, visibleLists])
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    isDraggingRef.current = true
     const tasks = optimisticTasks || []
     const task = tasks.find((t) => t.id === event.active.id)
     if (task) {
@@ -330,6 +360,7 @@ function TasksPage() {
   }, [])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    isDraggingRef.current = false
     const { active, over } = event
     const draggedTask = activeTask
     const originalListId = activeTaskOriginalListId
@@ -693,8 +724,8 @@ function TasksPage() {
               <span className="text-base" style={{ opacity: 0.5 }}>🔍</span>
               <input
                 type="text"
-                value={searchQuery}
-                onChange={(e) => updateSearchParam('search', e.target.value)}
+                value={localSearchQuery}
+                onChange={(e) => setLocalSearchQuery(e.target.value)}
                 placeholder="Search tasks..."
                 className="flex-1 bg-transparent border-none outline-none text-sm"
                 style={{
@@ -702,9 +733,9 @@ function TasksPage() {
                   fontFamily: typography.fontFamily,
                 }}
               />
-              {searchQuery && (
+              {localSearchQuery && (
                 <button
-                  onClick={() => updateSearchParam('search', '')}
+                  onClick={() => setLocalSearchQuery('')}
                   className="text-xs font-bold px-2 py-1 rounded transition-opacity hover:opacity-70"
                   style={{
                     background: 'rgba(0, 0, 0, 0.05)',
@@ -1339,16 +1370,6 @@ function StatusColumn({
                 {label}
               </h3>
             </div>
-            {/* Hand-drawn underline */}
-            <svg width="100%" height="8" style={{ overflow: 'visible' }}>
-              <path
-                d={`M 0 4 Q ${Math.random() * 20 + 40} ${Math.random() * 2 + 3}, ${Math.random() * 20 + 80} 4 T ${Math.random() * 20 + 160} 4`}
-                stroke="#2C3E50"
-                strokeWidth="2.5"
-                fill="none"
-                opacity="0.8"
-              />
-            </svg>
           </div>
           {/* Add Task Button in Header */}
           <button
