@@ -1171,18 +1171,48 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
 
             {/* Task Code */}
             {!isCreateMode && task?.code && (
-              <span
-                className="flex-shrink-0 px-3 py-1.5 rounded-md text-sm font-mono font-bold"
-                style={{
-                  background: 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%)',
-                  color: '#475569',
-                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
-                  letterSpacing: '0.5px',
-                  border: '1px solid #CBD5E1',
-                }}
-              >
-                {task.code}
-              </span>
+              <div className="relative group">
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}${window.location.pathname}?task=${task.code}`
+                    navigator.clipboard.writeText(url).then(() => {
+                      // Show brief visual feedback
+                      const btn = document.activeElement as HTMLElement
+                      if (btn) {
+                        const originalBg = btn.style.background
+                        btn.style.background = 'linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%)'
+                        btn.title = '✓ Copied!'
+                        setTimeout(() => {
+                          btn.style.background = originalBg
+                          btn.title = 'Click to copy shareable link'
+                        }, 1000)
+                      }
+                    })
+                  }}
+                  title="Click to copy shareable link"
+                  className="flex-shrink-0 px-3 py-1.5 rounded-md text-sm font-mono font-bold cursor-pointer transition-all hover:shadow-md active:scale-95"
+                  style={{
+                    background: 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%)',
+                    color: '#475569',
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                    letterSpacing: '0.5px',
+                    border: '1px solid #CBD5E1',
+                  }}
+                >
+                  {task.code}
+                </button>
+                {/* Hover tooltip */}
+                <div 
+                  className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-2 py-1 rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10"
+                  style={{
+                    background: '#1F2937',
+                    color: '#F9FAFB',
+                    fontSize: '11px',
+                  }}
+                >
+                  Click to copy link
+                </div>
+              </div>
             )}
 
             {!isCreateMode && (

@@ -1527,21 +1527,21 @@ func generateCompanyInitials(companyName string) string {
 		initials := ""
 		for i := 0; i < 3 && i < len(words); i++ {
 			if len(words[i]) > 0 {
-				initials += string(words[i][0])
+				initials += string(toUpper(rune(words[i][0])))
 			}
 		}
 		return initials
 	}
 
-	// Strategy 2: If 2 words, take first letter of each + first letter of second word again
+	// Strategy 2: If 2 words, take first letter of each
 	if len(words) == 2 {
-		return string(words[0][0]) + string(words[1][0])
+		return string(toUpper(rune(words[0][0]))) + string(toUpper(rune(words[1][0])))
 	}
 
 	// Strategy 3: Single word - take first 3 letters
 	word := words[0]
 	if len(word) >= 3 {
-		return word[:3]
+		return string(toUpper(rune(word[0]))) + string(toUpper(rune(word[1]))) + string(toUpper(rune(word[2])))
 	}
 
 	return "ORG"

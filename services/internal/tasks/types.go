@@ -158,7 +158,7 @@ type CreateTaskRequest struct {
 	TaskListID   uuid.UUID  `json:"task_list_id" binding:"required"`
 	Code         *string    `json:"code,omitempty"` // Auto-generated task code (e.g. WOR-123)
 	Title        string     `json:"title" binding:"required,max=500"`
-	Description  *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
+	Description  *string    `json:"description,omitempty" binding:"omitempty,max=8000"`
 	AssigneeID   *uuid.UUID `json:"assignee_id,omitempty"`
 	Priority     string     `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
 	DueDate      *string    `json:"due_date,omitempty"` // YYYY-MM-DD or RFC3339 datetime
@@ -168,7 +168,7 @@ type CreateTaskRequest struct {
 
 type UpdateTaskRequest struct {
 	Title       *string    `json:"title,omitempty" binding:"omitempty,max=500"`
-	Description *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
+	Description *string    `json:"description,omitempty" binding:"omitempty,max=8000"`
 	AssigneeID  *uuid.UUID `json:"assignee_id,omitempty"`
 	Priority    *string    `json:"priority,omitempty" binding:"omitempty,oneof=low medium high urgent"`
 	DueDate     *string    `json:"due_date,omitempty"` // YYYY-MM-DD format
