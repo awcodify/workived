@@ -98,6 +98,16 @@ func (f *fakeAuthRepo) ConsumeAllPasswordResetTokens(_ context.Context, userID u
 	return nil
 }
 
+func (f *fakeAuthRepo) ConsumeAllTokensByType(_ context.Context, userID uuid.UUID, tokenType string) error {
+	now := time.Now().UTC()
+	for _, tok := range f.tokens {
+		if tok.UserID == userID && tok.TokenType == tokenType && tok.UsedAt == nil && tok.ExpiresAt.After(time.Now()) {
+			tok.UsedAt = &now
+		}
+	}
+	return nil
+}
+
 func (f *fakeAuthRepo) UpdatePassword(_ context.Context, userID uuid.UUID, passwordHash string) error {
 	if f.updatePasswordErr != nil {
 		return f.updatePasswordErr

@@ -143,6 +143,18 @@ func (r *Repository) ConsumeAllPasswordResetTokens(ctx context.Context, userID u
 	return err
 }
 
+func (r *Repository) ConsumeAllTokensByType(ctx context.Context, userID uuid.UUID, tokenType string) error {
+	now := time.Now().UTC()
+	_, err := r.db.Exec(ctx, `
+		UPDATE auth_tokens SET used_at = $1
+		WHERE user_id = $2
+		  AND token_type = $3
+		  AND used_at IS NULL
+		  AND expires_at > NOW()
+	`, now, userID, tokenType)
+	return err
+}
+
 func (r *Repository) ConsumeToken(ctx context.Context, tokenHash string) error {
 	now := time.Now().UTC()
 	tag, err := r.db.Exec(ctx, `

@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, redirect } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
@@ -13,12 +13,6 @@ import { extractInviteToken } from '@/lib/utils/url'
 import type { MyInvitation } from '@/types/api'
 
 export const Route = createFileRoute('/_auth/setup-org')({
-  beforeLoad: () => {
-    const { accessToken } = useAuthStore.getState()
-    if (!accessToken) {
-      throw redirect({ to: '/login', search: { redirect: undefined } })
-    }
-  },
   component: SetupOrgPage,
 })
 

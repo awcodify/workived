@@ -60,8 +60,10 @@ function RegisterPage() {
     },
     onSuccess: (data) => {
       setAuth(data)
+      
+      // Redirect to invitation acceptance or setup-org
+      // Auth guard will handle verification check
       if (invite_token) {
-        // Came from an invite link — go accept the invitation instead of creating a workspace
         navigate({ to: '/invite', search: { token: invite_token } })
       } else {
         navigate({ to: '/setup-org' })

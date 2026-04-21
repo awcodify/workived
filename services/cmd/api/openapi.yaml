@@ -141,6 +141,44 @@ paths:
         "404":
           $ref: "#/components/responses/NotFoundError"
 
+  /auth/resend-verification:
+    post:
+      operationId: resendVerificationEmail
+      summary: Resend email verification link
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          $ref: "#/components/responses/MessageResponse"
+        "429":
+          description: Too many requests (rate limited)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/verification-status:
+    get:
+      operationId: checkVerificationStatus
+      summary: Check if user's email is verified
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Verification status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      is_verified:
+                        type: boolean
+
   /auth/forgot-password:
     post:
       operationId: forgotPassword

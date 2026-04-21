@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/workived/services/internal/auth"
 	"github.com/workived/services/pkg/apperr"
 )
@@ -21,13 +22,15 @@ func init() {
 // ── Mock service ──────────────────────────────────────────────────────────────
 
 type mockAuthService struct {
-	registerFn      func(ctx context.Context, req auth.RegisterRequest) (*auth.User, error)
-	loginFn         func(ctx context.Context, req auth.LoginRequest) (*auth.LoginResponse, string, error)
-	refreshFn       func(ctx context.Context, raw string) (*auth.RefreshResponse, string, error)
-	logoutFn        func(ctx context.Context, raw string) error
-	verifyEmailFn   func(ctx context.Context, req auth.VerifyEmailRequest) error
-	forgotPasswordFn func(ctx context.Context, req auth.ForgotPasswordRequest) error
-	resetPasswordFn  func(ctx context.Context, req auth.ResetPasswordRequest) error
+	registerFn           func(ctx context.Context, req auth.RegisterRequest) (*auth.User, error)
+	loginFn              func(ctx context.Context, req auth.LoginRequest) (*auth.LoginResponse, string, error)
+	refreshFn            func(ctx context.Context, raw string) (*auth.RefreshResponse, string, error)
+	logoutFn             func(ctx context.Context, raw string) error
+	verifyEmailFn        func(ctx context.Context, req auth.VerifyEmailRequest) error
+	resendVerificationFn func(ctx context.Context, userID uuid.UUID) error
+	getUserByIDFn        func(ctx context.Context, userID uuid.UUID) (*auth.User, error)
+	forgotPasswordFn     func(ctx context.Context, req auth.ForgotPasswordRequest) error
+	resetPasswordFn      func(ctx context.Context, req auth.ResetPasswordRequest) error
 }
 
 func (m *mockAuthService) Register(ctx context.Context, req auth.RegisterRequest) (*auth.User, error) {
@@ -44,6 +47,18 @@ func (m *mockAuthService) Logout(ctx context.Context, raw string) error {
 }
 func (m *mockAuthService) VerifyEmail(ctx context.Context, req auth.VerifyEmailRequest) error {
 	return m.verifyEmailFn(ctx, req)
+}
+func (m *mockAuthService) ResendVerificationEmail(ctx context.Context, userID uuid.UUID) error {
+	if m.resendVerificationFn != nil {
+		return m.resendVerificationFn(ctx, userID)
+	}
+	return nil
+}
+func (m *mockAuthService) GetUserByID(ctx context.Context, userID uuid.UUID) (*auth.User, error) {
+	if m.getUserByIDFn != nil {
+		return m.getUserByIDFn(ctx, userID)
+	}
+	return &auth.User{ID: userID, IsVerified: true}, nil
 }
 func (m *mockAuthService) ForgotPassword(ctx context.Context, req auth.ForgotPasswordRequest) error {
 	return m.forgotPasswordFn(ctx, req)

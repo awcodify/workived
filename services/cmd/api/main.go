@@ -41,6 +41,27 @@ import (
 	"github.com/workived/services/pkg/logger"
 )
 
+// userRepoAdapter adapts auth.Repository to organisation.UserRepository interface.
+type userRepoAdapter struct {
+	authRepo *auth.Repository
+}
+
+func (u *userRepoAdapter) GetUserByID(ctx context.Context, id uuid.UUID) (*organisation.User, error) {
+	authUser, err := u.authRepo.GetUserByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	return &organisation.User{
+		ID:         authUser.ID,
+		Email:      authUser.Email,
+		IsVerified: authUser.IsVerified,
+	}, nil
+}
+
+func (u *userRepoAdapter) MarkEmailVerified(ctx context.Context, userID uuid.UUID) error {
+	return u.authRepo.MarkEmailVerified(ctx, userID)
+}
+
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -146,7 +167,9 @@ func main() {
 	leaveSvc := leave.NewService(leaveRepo, cachedOrgInfo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender), leave.WithTasksService(tasksSvc), leave.WithCache(cacheStore))
 	annSvc := announcements.NewService(annRepo, log)
 	// Org service created after leave and announcements — needs both callbacks for post-invite hooks
-	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender), organisation.WithCache(cacheStore),
+	// Create a user repo adapter for org service
+	userRepoAdapter := &userRepoAdapter{authRepo: authRepo}
+	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, userRepoAdapter, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender), organisation.WithCache(cacheStore),
 		organisation.WithOnEmployeeJoined(leaveSvc.InitBalancesForEmployee),
 		organisation.WithOnEmployeeJoined(func(ctx context.Context, orgID, employeeID uuid.UUID) {
 			emp, err := empRepo.GetByID(ctx, orgID, employeeID)
@@ -286,6 +309,7 @@ func main() {
 	// Auth-only routes (no tenant context — user may not belong to an org yet).
 	authOnly := v1.Group("")
 	authOnly.Use(middleware.Auth(cfg.JWTSecret))
+	authHandler.RegisterPublicRoutes(authOnly)
 	orgHandler.RegisterPublicRoutes(authOnly)
 
 	// Authenticated + tenant-scoped routes.

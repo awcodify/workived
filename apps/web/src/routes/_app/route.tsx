@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect, useMatches, isRedirect } from '@tanstack/react-router'
 import { useEffect } from 'react'
 import { useAuthStore } from '@/lib/stores/auth'
+import { authApi } from '@/lib/api/auth'
 import { Dock } from '@/components/workived/dock/Dock'
 import { LoadingBar } from '@/components/workived/shared/LoadingBar'
 import { PWAInstallPrompt } from '@/components/workived/pwa/PWAInstallPrompt'
@@ -18,6 +19,17 @@ export const Route = createFileRoute('/_app')({
     const { accessToken } = useAuthStore.getState()
     if (!accessToken) {
       throw redirect({ to: '/login', search: { redirect: undefined } })
+    }
+
+    // Fetch fresh verification status from backend (never trust cached state)
+    try {
+      const { data } = await authApi.checkVerificationStatus()
+      if (!data.data.is_verified) {
+        throw redirect({ to: '/verify-email-required' })
+      }
+    } catch (err) {
+      // If verification check fails, assume unverified and redirect
+      throw redirect({ to: '/verify-email-required' })
     }
 
     // Setup wizard guard: redirect to /setup if setup is needed and not skipped

@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/validate"
 )
@@ -16,6 +18,8 @@ type ServiceInterface interface {
 	Refresh(ctx context.Context, rawToken string) (*RefreshResponse, string, error)
 	Logout(ctx context.Context, rawToken string) error
 	VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
+	ResendVerificationEmail(ctx context.Context, userID uuid.UUID) error
+	GetUserByID(ctx context.Context, userID uuid.UUID) (*User, error)
 	ForgotPassword(ctx context.Context, req ForgotPasswordRequest) error
 	ResetPassword(ctx context.Context, req ResetPasswordRequest) error
 }
@@ -42,6 +46,13 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	mcp := rg.Group("/mcp")
 	mcp.GET("/login", h.HandleMCPLogin)
 	mcp.POST("/auth", h.HandleMCPAuth)
+}
+
+// RegisterPublicRoutes registers auth routes that require authentication but not tenant context.
+func (h *Handler) RegisterPublicRoutes(rg *gin.RouterGroup) {
+	auth := rg.Group("/auth")
+	auth.POST("/resend-verification", h.ResendVerificationEmail)
+	auth.GET("/verification-status", h.CheckVerificationStatus)
 }
 
 func (h *Handler) Register(c *gin.Context) {
@@ -138,6 +149,29 @@ func (h *Handler) VerifyEmail(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "email verified"}})
+}
+
+func (h *Handler) ResendVerificationEmail(c *gin.Context) {
+	userID := middleware.UserIDFromCtx(c)
+
+	if err := h.service.ResendVerificationEmail(c.Request.Context(), userID); err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"message": "verification email sent"}})
+}
+
+func (h *Handler) CheckVerificationStatus(c *gin.Context) {
+	userID := middleware.UserIDFromCtx(c)
+
+	user, err := h.service.GetUserByID(c.Request.Context(), userID)
+	if err != nil {
+		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": gin.H{"is_verified": user.IsVerified}})
 }
 
 func (h *Handler) ForgotPassword(c *gin.Context) {
