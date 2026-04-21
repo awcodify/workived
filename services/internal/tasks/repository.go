@@ -274,7 +274,8 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 		SELECT 
 			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
-			t.completed_at, t.approval_type, t.approval_id, t.created_at, t.updated_at,
+			t.completed_at, t.approval_type, t.approval_id, t.parent_task_id,
+			t.hierarchy_level, t.created_at, t.updated_at,
 			assignee.full_name AS assignee_name,
 			creator.full_name AS creator_name,
 			tl.name AS list_name
@@ -342,7 +343,8 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 		if err := rows.Scan(
 			&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
 			&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
-			&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.CreatedAt, &t.UpdatedAt,
+			&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.ParentTaskID,
+			&t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
 			&t.AssigneeName, &t.CreatorName, &t.ListName,
 		); err != nil {
 			return nil, err
@@ -358,7 +360,8 @@ func (r *Repository) GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWit
 		SELECT 
 			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
-			t.completed_at, t.approval_type, t.approval_id, t.created_at, t.updated_at,
+			t.completed_at, t.approval_type, t.approval_id, t.parent_task_id,
+			t.hierarchy_level, t.created_at, t.updated_at,
 			assignee.full_name AS assignee_name,
 			creator.full_name AS creator_name,
 			tl.name AS list_name
@@ -370,7 +373,8 @@ func (r *Repository) GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWit
 	`, orgID, id).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
 		&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
-		&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.CreatedAt, &t.UpdatedAt,
+		&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.ParentTaskID,
+		&t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
 		&t.AssigneeName, &t.CreatorName, &t.ListName,
 	)
 	if err != nil {
@@ -388,7 +392,8 @@ func (r *Repository) GetTaskByApproval(ctx context.Context, approvalType string,
 		SELECT 
 			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
-			t.completed_at, t.approval_type, t.approval_id, t.created_at, t.updated_at,
+			t.completed_at, t.approval_type, t.approval_id, t.parent_task_id,
+			t.hierarchy_level, t.created_at, t.updated_at,
 			assignee.full_name AS assignee_name,
 			creator.full_name AS creator_name,
 			tl.name AS list_name
@@ -401,7 +406,8 @@ func (r *Repository) GetTaskByApproval(ctx context.Context, approvalType string,
 	`, approvalType, approvalID).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
 		&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
-		&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.CreatedAt, &t.UpdatedAt,
+		&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.ParentTaskID,
+		&t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
 		&t.AssigneeName, &t.CreatorName, &t.ListName,
 	)
 	if err != nil {
@@ -463,14 +469,17 @@ func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID,
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO tasks (
 			organisation_id, task_list_id, title, description, assignee_id,
-			created_by, priority, due_date, position, completed_at, approval_type, approval_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+			created_by, priority, due_date, position, completed_at, approval_type, approval_id,
+			parent_task_id, hierarchy_level
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NULL, 0)
 		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
-		          created_by, priority, due_date, position, completed_at, approval_type, approval_id, created_at, updated_at
+		          created_by, priority, due_date, position, completed_at, approval_type, approval_id,
+		          parent_task_id, hierarchy_level, created_at, updated_at
 	`, orgID, req.TaskListID, req.Title, req.Description, req.AssigneeID,
 		createdBy, priority, dueDate, maxPosition+1000, completedAt, req.ApprovalType, req.ApprovalID).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
-		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.CreatedAt, &t.UpdatedAt,
+		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID,
+		&t.ParentTaskID, &t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -528,12 +537,14 @@ func (r *Repository) UpdateTask(ctx context.Context, orgID, id uuid.UUID, req Up
 		UPDATE tasks SET %s
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
-		          created_by, priority, due_date, position, completed_at, created_at, updated_at
+		          created_by, priority, due_date, position, completed_at, approval_type, approval_id,
+		          parent_task_id, hierarchy_level, created_at, updated_at
 	`, strings.Join(updates, ", "))
 
 	err := r.db.QueryRow(ctx, query, args...).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
-		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.CreatedAt, &t.UpdatedAt,
+		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID,
+		&t.ParentTaskID, &t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -568,10 +579,12 @@ func (r *Repository) MoveTask(ctx context.Context, orgID, taskID uuid.UUID, newL
 		    completed_at = CASE WHEN $5 THEN COALESCE(completed_at, NOW()) ELSE NULL END
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
-		          created_by, priority, due_date, position, completed_at, created_at, updated_at
+		          created_by, priority, due_date, position, completed_at, approval_type, approval_id,
+		          parent_task_id, hierarchy_level, created_at, updated_at
 	`, orgID, taskID, newListID, newPosition, isFinalState).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
-		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.CreatedAt, &t.UpdatedAt,
+		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID,
+		&t.ParentTaskID, &t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -589,10 +602,12 @@ func (r *Repository) ToggleTaskCompletion(ctx context.Context, orgID, taskID uui
 		SET completed_at = CASE WHEN completed_at IS NULL THEN NOW() ELSE NULL END
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
-		          created_by, priority, due_date, position, completed_at, created_at, updated_at
+		          created_by, priority, due_date, position, completed_at, approval_type, approval_id,
+		          parent_task_id, hierarchy_level, created_at, updated_at
 	`, orgID, taskID).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
-		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.CreatedAt, &t.UpdatedAt,
+		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID,
+		&t.ParentTaskID, &t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -1211,4 +1226,269 @@ func (r *Repository) ClearFieldValue(ctx context.Context, orgID, taskID, fieldID
 		return ErrFieldValueNotFound()
 	}
 	return nil
+}
+
+// ── Task Links ───────────────────────────────────────────────────────────────
+
+func (r *Repository) CreateTaskLink(ctx context.Context, orgID, sourceTaskID, targetTaskID, createdBy uuid.UUID, linkType string) (*TaskLink, error) {
+	var link TaskLink
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO task_links (organisation_id, source_task_id, target_task_id, link_type, created_by)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id, organisation_id, source_task_id, target_task_id, link_type, created_at, created_by
+	`, orgID, sourceTaskID, targetTaskID, linkType, createdBy).Scan(
+		&link.ID, &link.OrganisationID, &link.SourceTaskID, &link.TargetTaskID,
+		&link.LinkType, &link.CreatedAt, &link.CreatedBy,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &link, nil
+}
+
+func (r *Repository) ListTaskLinks(ctx context.Context, orgID, taskID uuid.UUID) ([]TaskLinkWithTask, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT 
+			tl.id, tl.organisation_id, tl.source_task_id, tl.target_task_id,
+			tl.link_type, tl.created_at, tl.created_by,
+			t.id, t.title, t.priority, t.completed_at, list.name
+		FROM task_links tl
+		JOIN tasks t ON tl.target_task_id = t.id
+		JOIN task_lists list ON t.task_list_id = list.id
+		WHERE tl.organisation_id = $1 AND tl.source_task_id = $2
+		ORDER BY tl.created_at DESC
+	`, orgID, taskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var links []TaskLinkWithTask
+	for rows.Next() {
+		var link TaskLinkWithTask
+		if err := rows.Scan(
+			&link.ID, &link.OrganisationID, &link.SourceTaskID, &link.TargetTaskID,
+			&link.LinkType, &link.CreatedAt, &link.CreatedBy,
+			&link.TargetTask.ID, &link.TargetTask.Title, &link.TargetTask.Priority,
+			&link.TargetTask.CompletedAt, &link.TargetTask.ListName,
+		); err != nil {
+			return nil, err
+		}
+		links = append(links, link)
+	}
+	return links, rows.Err()
+}
+
+func (r *Repository) DeleteTaskLink(ctx context.Context, orgID, linkID uuid.UUID) error {
+	tag, err := r.db.Exec(ctx, `
+		DELETE FROM task_links
+		WHERE organisation_id = $1 AND id = $2
+	`, orgID, linkID)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrTaskLinkNotFound()
+	}
+	return nil
+}
+
+func (r *Repository) LinkExists(ctx context.Context, orgID, sourceTaskID, targetTaskID uuid.UUID, linkType string) (bool, error) {
+	var exists bool
+	err := r.db.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1 FROM task_links
+			WHERE organisation_id = $1 
+			  AND source_task_id = $2 
+			  AND target_task_id = $3 
+			  AND link_type = $4
+		)
+	`, orgID, sourceTaskID, targetTaskID, linkType).Scan(&exists)
+	return exists, err
+}
+
+// ── Subtasks / Hierarchy ─────────────────────────────────────────────────────
+
+func (r *Repository) ListSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID) ([]TaskWithDetails, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT 
+			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
+			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
+			t.completed_at, t.approval_type, t.approval_id, t.parent_task_id, 
+			t.hierarchy_level, t.created_at, t.updated_at,
+			assignee.full_name AS assignee_name,
+			creator.full_name AS creator_name,
+			tl.name AS list_name,
+			COALESCE(sub.total, 0) AS subtask_total,
+			COALESCE(sub.completed, 0) AS subtask_completed
+		FROM tasks t
+		JOIN employees creator ON t.created_by = creator.id
+		JOIN task_lists tl ON t.task_list_id = tl.id
+		LEFT JOIN employees assignee ON t.assignee_id = assignee.id
+		LEFT JOIN (
+			SELECT 
+				parent_task_id,
+				COUNT(*) as total,
+				COUNT(*) FILTER (WHERE completed_at IS NOT NULL) as completed
+			FROM tasks
+			WHERE organisation_id = $1
+			GROUP BY parent_task_id
+		) sub ON sub.parent_task_id = t.id
+		WHERE t.organisation_id = $1 AND t.parent_task_id = $2
+		ORDER BY t.position ASC, t.created_at ASC
+	`, orgID, parentTaskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tasks []TaskWithDetails
+	for rows.Next() {
+		var t TaskWithDetails
+		var subtaskTotal, subtaskCompleted int
+		if err := rows.Scan(
+			&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
+			&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
+			&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.ParentTaskID,
+			&t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
+			&t.AssigneeName, &t.CreatorName, &t.ListName,
+			&subtaskTotal, &subtaskCompleted,
+		); err != nil {
+			return nil, err
+		}
+		// Only populate SubtaskCounts if there are subtasks
+		if subtaskTotal > 0 {
+			t.SubtaskCount = &SubtaskCounts{
+				Total:     subtaskTotal,
+				Completed: subtaskCompleted,
+			}
+		}
+		tasks = append(tasks, t)
+	}
+	return tasks, rows.Err()
+}
+
+func (r *Repository) GetSubtaskCounts(ctx context.Context, orgID, parentTaskID uuid.UUID) (*SubtaskCounts, error) {
+	var counts SubtaskCounts
+	err := r.db.QueryRow(ctx, `
+		SELECT 
+			COUNT(*) as total,
+			COUNT(*) FILTER (WHERE completed_at IS NOT NULL) as completed
+		FROM tasks
+		WHERE organisation_id = $1 AND parent_task_id = $2
+	`, orgID, parentTaskID).Scan(&counts.Total, &counts.Completed)
+	if err != nil {
+		return nil, err
+	}
+	if counts.Total == 0 {
+		return nil, nil // No subtasks
+	}
+	return &counts, nil
+}
+
+// BatchGetSubtaskCounts retrieves subtask counts for multiple parent tasks at once
+func (r *Repository) BatchGetSubtaskCounts(ctx context.Context, orgID uuid.UUID, parentTaskIDs []uuid.UUID) (map[uuid.UUID]*SubtaskCounts, error) {
+	if len(parentTaskIDs) == 0 {
+		return make(map[uuid.UUID]*SubtaskCounts), nil
+	}
+
+	rows, err := r.db.Query(ctx, `
+		SELECT 
+			parent_task_id,
+			COUNT(*) as total,
+			COUNT(*) FILTER (WHERE completed_at IS NOT NULL) as completed
+		FROM tasks
+		WHERE organisation_id = $1 AND parent_task_id = ANY($2)
+		GROUP BY parent_task_id
+	`, orgID, parentTaskIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	result := make(map[uuid.UUID]*SubtaskCounts)
+	for rows.Next() {
+		var parentID uuid.UUID
+		var counts SubtaskCounts
+		if err := rows.Scan(&parentID, &counts.Total, &counts.Completed); err != nil {
+			return nil, err
+		}
+		result[parentID] = &counts
+	}
+	return result, rows.Err()
+}
+
+func (r *Repository) ChangeTaskParent(ctx context.Context, orgID, taskID uuid.UUID, newParentID *uuid.UUID, newHierarchyLevel int) error {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE tasks
+		SET parent_task_id = $3, hierarchy_level = $4, updated_at = NOW()
+		WHERE organisation_id = $1 AND id = $2
+	`, orgID, taskID, newParentID, newHierarchyLevel)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrTaskNotFound()
+	}
+	return nil
+}
+
+// GetTaskHierarchyPath returns all ancestor task IDs from root to the given task
+func (r *Repository) GetTaskHierarchyPath(ctx context.Context, orgID, taskID uuid.UUID) ([]uuid.UUID, error) {
+	rows, err := r.db.Query(ctx, `
+		WITH RECURSIVE hierarchy AS (
+			-- Base case: the target task
+			SELECT id, parent_task_id, 0 as depth
+			FROM tasks
+			WHERE organisation_id = $1 AND id = $2
+			
+			UNION ALL
+			
+			-- Recursive case: get parent
+			SELECT t.id, t.parent_task_id, h.depth + 1
+			FROM tasks t
+			JOIN hierarchy h ON t.id = h.parent_task_id
+			WHERE t.organisation_id = $1
+		)
+		SELECT id FROM hierarchy ORDER BY depth DESC
+	`, orgID, taskID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var path []uuid.UUID
+	for rows.Next() {
+		var id uuid.UUID
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		path = append(path, id)
+	}
+	return path, rows.Err()
+}
+
+func (r *Repository) ReorderSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID, subtaskIDs []uuid.UUID) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	for i, subtaskID := range subtaskIDs {
+		position := i * 1000 // Space out positions (0, 1000, 2000, ...)
+		tag, err := tx.Exec(ctx, `
+			UPDATE tasks 
+			SET position = $4, updated_at = NOW()
+			WHERE organisation_id = $1 AND id = $2 AND parent_task_id = $3
+		`, orgID, subtaskID, parentTaskID, position)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return ErrTaskNotFound()
+		}
+	}
+
+	return tx.Commit(ctx)
 }
