@@ -13,6 +13,7 @@ import { Settings } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
+import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { ColumnTabNav } from '@/components/tasks/ColumnTabNav'
 import { TaskCard as EnhancedTaskCard } from '@/components/tasks/TaskCard'
 import { FieldDefinitionsPanel } from '@/components/tasks/FieldDefinitionsPanel'
@@ -97,6 +98,7 @@ export const Route = createFileRoute('/_app/tasks')({
 function TasksPage() {
   const navigate = useNavigate({ from: Route.fullPath })
   const searchParams = Route.useSearch()
+  const { data: org } = useOrganisation()
   
   const { data: taskLists = [], isLoading: listsLoading } = useTaskLists()
   const { data: tasks = [], isLoading: tasksLoading } = useTasks()
@@ -564,6 +566,22 @@ function TasksPage() {
               textMutedColor="#7F8C8D"
               borderColor="#E8ECF0"
             />
+            {org?.plan === 'pro' && (
+              <div
+                className="flex items-center px-3 py-1.5 rounded-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                }}
+              >
+                <span
+                  className="text-[10px] font-bold uppercase"
+                  style={{ color: '#FFFFFF', letterSpacing: '0.05em' }}
+                >
+                  ⭐ PRO
+                </span>
+              </div>
+            )}
             <NotificationBell
               surfaceColor="#FFFFFF"
               borderColor="#E8ECF0"

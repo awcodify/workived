@@ -451,13 +451,30 @@ function OverviewPage() {
           </h1>
         </div>
 
-        {/* Date, live clock, and notification on right */}
+        {/* Date, live clock, PRO badge, and notification on right */}
         <div className="flex items-center gap-4">
           <DateTime 
             textColor={t.text}
             textMutedColor={t.textMuted}
             borderColor={t.border}
           />
+          {org?.plan === 'pro' && (
+            <div
+              className="flex items-center px-3 py-1.5 rounded-lg"
+              data-testid="header-pro-badge"
+              style={{
+                background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+              }}
+            >
+              <span
+                className="text-[10px] font-bold uppercase"
+                style={{ color: '#FFFFFF', letterSpacing: '0.05em' }}
+              >
+                ⭐ PRO
+              </span>
+            </div>
+          )}
           <div data-tour="notification-bell">
             <NotificationBell
               surfaceColor={t.surface}

@@ -19,6 +19,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { colors, typography, moduleBackgrounds, radius, spacing } from '@/design/tokens'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
+import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { 
   useTaskLists, 
   useCreateTaskList, 
@@ -225,6 +226,7 @@ function SortableListItem({ list, onUpdate, onDelete, disabled }: {
 
 function TaskBoardSettingsPage() {
   const canEdit = useCanEditOrgSettings()
+  const { data: org } = useOrganisation()
   const { data: taskLists = [], isLoading } = useTaskLists()
   const { data: fieldDefinitions = [], isLoading: isLoadingFields } = useFieldDefinitions()
   const createList = useCreateTaskList()
@@ -461,6 +463,22 @@ function TaskBoardSettingsPage() {
               textMutedColor="#7F8C8D"
               borderColor="#E8ECF0"
             />
+            {org?.plan === 'pro' && (
+              <div
+                className="flex items-center px-3 py-1.5 rounded-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                }}
+              >
+                <span
+                  className="text-[10px] font-bold uppercase"
+                  style={{ color: '#FFFFFF', letterSpacing: '0.05em' }}
+                >
+                  ⭐ PRO
+                </span>
+              </div>
+            )}
             <NotificationBell
               surfaceColor="#FFFFFF"
               borderColor="#E8ECF0"

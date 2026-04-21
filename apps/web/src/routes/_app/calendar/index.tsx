@@ -160,6 +160,22 @@ function CalendarPage() {
               textMutedColor={t.textMuted}
               borderColor={t.border}
             />
+            {org?.plan === 'pro' && (
+              <div
+                className="flex items-center px-3 py-1.5 rounded-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                }}
+              >
+                <span
+                  className="text-[10px] font-bold uppercase"
+                  style={{ color: '#FFFFFF', letterSpacing: '0.05em' }}
+                >
+                  ⭐ PRO
+                </span>
+              </div>
+            )}
             <NotificationBell
               surfaceColor={t.surface}
               borderColor={t.border}
