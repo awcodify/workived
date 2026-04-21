@@ -62,8 +62,8 @@ BEGIN
 
     -- 3. Add owner to organization
     INSERT INTO organisation_members (id, organisation_id, user_id, role)
-    VALUES (gen_random_uuid(), v_org_id, v_owner_id, 'super_admin');
-    RAISE NOTICE '✓ Added owner to organization with super_admin role';
+    VALUES (gen_random_uuid(), v_org_id, v_owner_id, 'owner');
+    RAISE NOTICE '✓ Added owner to organization with owner role';
 
     -- 4. Create owner employee record
     INSERT INTO employees (
@@ -394,7 +394,7 @@ BEGIN
     RAISE NOTICE '  Password: 12345678';
     RAISE NOTICE '';
     RAISE NOTICE 'Test employees:';
-    RAISE NOTICE '  1. Ahmad Rizki (CEO, super_admin) - email: ahmad@workived.com';
+    RAISE NOTICE '  1. Ahmad Rizki (CEO, owner) - email: ahmad@workived.com';
     RAISE NOTICE '  2. New Employee (Engineer) - email: new@rizkitech.com';
     RAISE NOTICE '  3. Sarah Johnson (HR Manager) - email: sarah@rizkitech.com';
     RAISE NOTICE '  4. Michael Chen (Finance Lead) - email: michael@rizkitech.com';

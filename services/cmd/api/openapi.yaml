@@ -10,6 +10,10 @@ info:
 servers:
   - url: http://localhost:8080/api/v1
     description: Local development
+  - url: https://stg-api.workived.com/v1
+    description: Staging
+  - url: https://api.workived.com/v1
+    description: Production
 
 security:
   - BearerAuth: []
@@ -1806,7 +1810,9 @@ paths:
     post:
       operationId: createTaskList
       summary: Create a new task list
-      description: Requires admin/owner role
+      description: |
+        Create a custom task board column.
+        PRO tier feature (max 20 lists). Requires admin/owner role.
       tags: [Tasks]
       requestBody:
         required: true
@@ -1824,15 +1830,55 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/TaskList"
+        "402":
+          description: PRO tier feature required or max limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /tasks/lists/reorder:
+    patch:
+      operationId: reorderTaskLists
+      summary: Reorder task lists
+      description: |
+        Reorder all task lists by providing an ordered array of list IDs.
+        PRO tier feature. Requires admin/owner role.
+      tags: [Tasks]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReorderTaskListsRequest"
+      responses:
+        "200":
+          description: Lists reordered successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Task lists reordered successfully
+        "402":
+          description: PRO tier feature required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /tasks/lists/{id}:
     parameters:
       - $ref: "#/components/parameters/ResourceID"
 
-    put:
+    patch:
       operationId: updateTaskList
       summary: Update a task list
-      description: Requires admin/owner role
+      description: |
+        Update task list name, position, or is_final_state flag.
+        PRO tier feature. Requires admin/owner role.
       tags: [Tasks]
       requestBody:
         required: true
@@ -1850,15 +1896,48 @@ paths:
                 properties:
                   data:
                     $ref: "#/components/schemas/TaskList"
+        "402":
+          description: PRO tier feature required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
     delete:
       operationId: deactivateTaskList
       summary: Deactivate a task list
-      description: Soft-deletes the list. Requires admin/owner role
+      description: |
+        Soft-deletes the list. Cannot delete the last active list.
+        If the list has tasks, must provide move_tasks_to parameter.
+        PRO tier feature. Requires admin/owner role.
       tags: [Tasks]
+      parameters:
+        - name: move_tasks_to
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Target list ID to migrate tasks to (can also be in body)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteTaskListRequest"
       responses:
         "204":
           description: Task list deactivated
+        "400":
+          description: Cannot delete last list or list has tasks without migration target
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "402":
+          description: PRO tier feature required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 
   /tasks:
     get:
@@ -2830,240 +2909,6 @@ paths:
                     items:
                       $ref: "#/components/schemas/MonthlySummary"
 
-  # ── Admin ─────────────────────────────────────────────────────────────────
-  /admin/stats:
-    get:
-      operationId: getSystemStats
-      summary: Get system statistics
-      description: Super admin only
-      tags: [Admin]
-      responses:
-        "200":
-          description: System statistics
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: "#/components/schemas/SystemStats"
-
-  /admin/feature-flags:
-    get:
-      operationId: listFeatureFlags
-      summary: List all feature flags
-      description: Super admin only
-      tags: [Admin]
-      responses:
-        "200":
-          description: List of feature flags
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/FeatureFlag"
-
-  /admin/feature-flags/{key}:
-    parameters:
-      - name: key
-        in: path
-        required: true
-        schema:
-          type: string
-    get:
-      operationId: getFeatureFlagByKey
-      summary: Get a feature flag by key
-      description: Super admin only
-      tags: [Admin]
-      responses:
-        "200":
-          description: Feature flag details
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: "#/components/schemas/FeatureFlag"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
-
-    patch:
-      operationId: updateFeatureFlag
-      summary: Update a feature flag
-      description: Super admin only
-      tags: [Admin]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateFeatureFlagRequest"
-      responses:
-        "200":
-          description: Feature flag updated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: "#/components/schemas/FeatureFlag"
-
-  /admin/pro-licenses:
-    get:
-      operationId: listProLicenses
-      summary: List all pro licenses
-      description: Super admin only
-      tags: [Admin]
-      parameters:
-        - name: status
-          in: query
-          schema:
-            type: string
-            enum: [active, expired, revoked]
-      responses:
-        "200":
-          description: List of pro licenses
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/ProLicense"
-
-    post:
-      operationId: createProLicense
-      summary: Create a pro license
-      description: Super admin only
-      tags: [Admin]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateProLicenseRequest"
-      responses:
-        "201":
-          description: License created
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: "#/components/schemas/ProLicense"
-
-  /admin/pro-licenses/org/{orgId}:
-    parameters:
-      - name: orgId
-        in: path
-        required: true
-        schema:
-          type: string
-          format: uuid
-    get:
-      operationId: getProLicenseByOrg
-      summary: Get pro license for an organisation
-      description: Super admin only
-      tags: [Admin]
-      responses:
-        "200":
-          description: Pro license details
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: "#/components/schemas/ProLicense"
-        "404":
-          $ref: "#/components/responses/NotFoundError"
-
-  /admin/pro-licenses/{id}:
-    parameters:
-      - $ref: "#/components/parameters/ResourceID"
-    patch:
-      operationId: updateProLicense
-      summary: Update a pro license
-      description: Super admin only
-      tags: [Admin]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/UpdateProLicenseRequest"
-      responses:
-        "200":
-          description: License updated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: "#/components/schemas/ProLicense"
-
-  /admin/configs:
-    get:
-      operationId: listAdminConfigs
-      summary: List all admin configurations
-      description: Super admin only
-      tags: [Admin]
-      responses:
-        "200":
-          description: List of admin configs
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: "#/components/schemas/AdminConfig"
-
-  /admin/configs/{key}:
-    parameters:
-      - name: key
-        in: path
-        required: true
-        schema:
-          type: string
-    patch:
-      operationId: updateAdminConfig
-      summary: Update an admin configuration
-      description: Super admin only
-      tags: [Admin]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [value]
-              properties:
-                value:
-                  type: string
-      responses:
-        "200":
-          description: Config updated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    $ref: "#/components/schemas/AdminConfig"
-
   # ── Features ──────────────────────────────────────────────────────────────
   /features:
     get:
@@ -3432,25 +3277,6 @@ paths:
         "400":
           $ref: "#/components/responses/ValidationError"
 
-# ── Components ────────────────────────────────────────────────────────────────
-
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: JWT access token obtained from `/auth/login`
-
-  parameters:
-    ResourceID:
-      name: id
-      in: path
-      required: true
-      schema:
-        type: string
-        format: uuid
-
   # ── Announcements ────────────────────────────────────────────────────────
   /announcements:
     get:
@@ -3641,6 +3467,25 @@ components:
       responses:
         "204":
           description: Marked as read
+
+# ── Components ────────────────────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT access token obtained from `/auth/login`
+
+  parameters:
+    ResourceID:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
 
   # ── Reusable responses ──────────────────────────────────────────────────
   responses:
@@ -5240,6 +5085,9 @@ components:
         position:
           type: integer
           description: Position for ordering lists
+        is_final_state:
+          type: boolean
+          description: Whether tasks in this list are considered complete
         is_active:
           type: boolean
         created_at:
@@ -5267,6 +5115,28 @@ components:
           maxLength: 100
         position:
           type: integer
+        is_final_state:
+          type: boolean
+          description: Whether tasks in this list should be marked complete
+
+    ReorderTaskListsRequest:
+      type: object
+      required: [list_ids]
+      properties:
+        list_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: Ordered array of task list IDs (PRO tier feature)
+
+    DeleteTaskListRequest:
+      type: object
+      properties:
+        move_tasks_to:
+          type: string
+          format: uuid
+          description: Target list ID to migrate tasks to before deletion
 
     Task:
       type: object
@@ -5736,129 +5606,6 @@ components:
         end_time:
           type: string
           description: "HH:MM"
-
-    # ── Admin ─────────────────────────────────────────────────────────────
-    SystemStats:
-      type: object
-      properties:
-        total_organisations:
-          type: integer
-        total_users:
-          type: integer
-        total_employees:
-          type: integer
-        active_pro_licenses:
-          type: integer
-
-    FeatureFlag:
-      type: object
-      properties:
-        key:
-          type: string
-        name:
-          type: string
-        description:
-          type: string
-        is_enabled:
-          type: boolean
-        updated_by:
-          type: string
-          format: uuid
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
-
-    UpdateFeatureFlagRequest:
-      type: object
-      required: [is_enabled]
-      properties:
-        is_enabled:
-          type: boolean
-
-    ProLicense:
-      type: object
-      properties:
-        id:
-          type: string
-          format: uuid
-        organisation_id:
-          type: string
-          format: uuid
-        status:
-          type: string
-          enum: [active, expired, revoked]
-        valid_from:
-          type: string
-          format: date
-        valid_until:
-          type: string
-          format: date
-        max_employees:
-          type: integer
-        issued_by:
-          type: string
-          format: uuid
-        revoked_by:
-          type: string
-          format: uuid
-          nullable: true
-        revoked_at:
-          type: string
-          format: date-time
-          nullable: true
-        created_at:
-          type: string
-          format: date-time
-
-    CreateProLicenseRequest:
-      type: object
-      required: [organisation_id, valid_from, valid_until, max_employees]
-      properties:
-        organisation_id:
-          type: string
-          format: uuid
-        valid_from:
-          type: string
-          format: date
-        valid_until:
-          type: string
-          format: date
-        max_employees:
-          type: integer
-          minimum: 1
-
-    UpdateProLicenseRequest:
-      type: object
-      properties:
-        status:
-          type: string
-          enum: [active, expired, revoked]
-        valid_until:
-          type: string
-          format: date
-        max_employees:
-          type: integer
-          minimum: 1
-
-    AdminConfig:
-      type: object
-      properties:
-        key:
-          type: string
-        value:
-          type: string
-        description:
-          type: string
-        updated_by:
-          type: string
-          format: uuid
-          nullable: true
-        updated_at:
-          type: string
-          format: date-time
-          nullable: true
 
     # ── Reports ─────────────────────────────────────────────────────────────
 

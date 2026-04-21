@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import { Plus, Pin, PinOff, Send, Trash2, Pencil, Megaphone, X, ChevronRight, ChevronDown } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
+import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { AnnouncementModal } from '@/components/workived/announcements/AnnouncementModal'
 import {
   useAnnouncements,
@@ -23,6 +24,7 @@ export const Route = createFileRoute('/_app/announcements')({
 })
 
 export function AnnouncementsPage() {
+  const { data: org } = useOrganisation()
   const isAdmin = useCanEditOrgSettings()
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Announcement | undefined>()
@@ -67,6 +69,22 @@ export function AnnouncementsPage() {
           </h1>
           <div className="flex items-center gap-3">
             <DateTime textColor={t.text} textMutedColor={t.textMuted} borderColor={t.border} />
+            {org?.plan === 'pro' && (
+              <div
+                className="flex items-center px-3 py-1.5 rounded-lg"
+                style={{
+                  background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                }}
+              >
+                <span
+                  className="text-[10px] font-bold uppercase"
+                  style={{ color: '#FFFFFF', letterSpacing: '0.05em' }}
+                >
+                  ⭐ PRO
+                </span>
+              </div>
+            )}
             <NotificationBell
               surfaceColor={t.surface}
               borderColor={t.border}

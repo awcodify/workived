@@ -1169,7 +1169,17 @@ function CompanyPage() {
               {org.name.charAt(0).toUpperCase()}
             </div>
             <div className="text-center">
-              <p style={{ color: text, fontSize: typography.h3.size, fontWeight: typography.h3.weight, letterSpacing: typography.h3.tracking }}>{org.name}</p>
+              <div className="flex items-center justify-center gap-2">
+                <p style={{ color: text, fontSize: typography.h3.size, fontWeight: typography.h3.weight, letterSpacing: typography.h3.tracking }}>{org.name}</p>
+                {org.plan === 'pro' && (
+                  <span
+                    className="text-[10px] font-bold uppercase px-2 py-1 rounded"
+                    style={{ background: '#9B8FF7', color: '#FFFFFF', letterSpacing: '0.05em' }}
+                  >
+                    PRO
+                  </span>
+                )}
+              </div>
               <p style={{ color: textDim, fontSize: typography.label.size }}>Workspace settings</p>
             </div>
           </div>

@@ -15,12 +15,12 @@ import (
 
 	"github.com/workived/services/internal/admin"
 	"github.com/workived/services/internal/announcements"
-	"github.com/workived/services/internal/dashboard"
 	"github.com/workived/services/internal/attendance"
 	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/auth"
 	"github.com/workived/services/internal/calendar"
 	"github.com/workived/services/internal/claims"
+	"github.com/workived/services/internal/dashboard"
 	"github.com/workived/services/internal/department"
 	"github.com/workived/services/internal/employee"
 	"github.com/workived/services/internal/employmentchange"
@@ -28,11 +28,11 @@ import (
 	"github.com/workived/services/internal/leave"
 	"github.com/workived/services/internal/mobile"
 	"github.com/workived/services/internal/organisation"
-	"github.com/workived/services/internal/reports"
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/internal/platform/storage"
+	"github.com/workived/services/internal/reports"
 	"github.com/workived/services/internal/setup"
 	"github.com/workived/services/internal/tasks"
 	"github.com/workived/services/internal/upload"
@@ -138,8 +138,10 @@ func main() {
 	deptSvc := department.NewService(deptRepo, department.WithLogger(log), department.WithCache(cacheStore))
 	jtSvc := jobtitle.NewService(jtRepo, jobtitle.WithLogger(log), jobtitle.WithCache(cacheStore))
 	attSvc := attendance.NewService(attRepo, cachedOrgInfo, empRepo, log, attendance.WithCache(cacheStore), attendance.WithLeaveRepo(leave.NewRepository(db)))
+	// Admin service for Pro license checking
+	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log), admin.WithCache(cacheStore))
 	// Tasks service must be created before leave/claims to wire up approval task creation
-	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log))
+	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log), tasks.WithProLicenseChecker(adminSvc))
 	claimsSvc := claims.NewService(claimsRepo, orgRepo, empRepo, cfg.AppURL, claims.WithAuditLog(auditRepo), claims.WithLogger(log), claims.WithEmailSender(emailSender), claims.WithTasksService(tasksSvc))
 	leaveSvc := leave.NewService(leaveRepo, cachedOrgInfo, empRepo, cfg.AppURL, leave.WithLogger(log), leave.WithEmailSender(emailSender), leave.WithTasksService(tasksSvc), leave.WithCache(cacheStore))
 	annSvc := announcements.NewService(annRepo, log)
@@ -156,7 +158,6 @@ func main() {
 				log.Warn().Err(err).Str("employee_id", employeeID.String()).Msg("welcome announcement: failed to create")
 			}
 		}))
-	adminSvc := admin.NewService(adminRepo, admin.WithLogger(log), admin.WithCache(cacheStore))
 	setupSvc := setup.NewService(setupRepo, log)
 	calendarSvc := calendar.NewService(calendarRepo, orgRepo, log)
 	reportsSvc := reports.NewService(reportsRepo, log)
@@ -168,11 +169,6 @@ func main() {
 	empHandler := employee.NewHandler(empSvc)
 	deptHandler := department.NewHandler(deptSvc, log)
 	jtHandler := jobtitle.NewHandler(jtSvc, log)
-	adminHandler := admin.NewHandler(adminSvc, log)
-	adminUIHandler, err := admin.NewUIHandler(adminSvc, authSvc)
-	if err != nil {
-		log.Fatal().Err(err).Msg("create admin UI handler")
-	}
 	attHandler := attendance.NewHandler(attSvc, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
 		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
 		if err != nil {
@@ -235,7 +231,7 @@ func main() {
 	}, log)
 
 	// Mobile service — aggregates data from multiple services
-	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, tasksRepo, cachedOrgInfo, log, cacheStore)
+	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, tasksRepo, attSvc, cachedOrgInfo, log, cacheStore)
 	mobileHandler := mobile.NewHandler(mobileSvc)
 
 	// ── Router ────────────────────────────────────────────────────────────────
@@ -315,15 +311,6 @@ func main() {
 	reportsHandler.RegisterRoutes(authed)
 	dashboardHandler.RegisterRoutes(authed)
 	annHandler.RegisterRoutes(authed)
-
-	// Admin routes (super_admin only — Workived internal team)
-	adminHandler.RegisterRoutes(authOnly)
-
-	// Admin UI (server-side rendered HTML for super_admin)
-	adminUIHandler.RegisterUIRoutes(r, cfg.JWTSecret) // Register directly on router with auth
-
-	// Public feature-flag check (auth-only, any user with a valid JWT + org)
-	adminHandler.RegisterPublicRoutes(authOnly)
 
 	// ── Server ────────────────────────────────────────────────────────────────
 	srv := &http.Server{

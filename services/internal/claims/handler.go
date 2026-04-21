@@ -102,7 +102,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	claims.POST("/:id/approve", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermTeamClaimsApprove, middleware.PermClaimsWrite), h.ApproveClaim)
 	claims.POST("/:id/reject", middleware.RequireAny(middleware.PermClaimsApprove, middleware.PermTeamClaimsApprove, middleware.PermClaimsWrite), h.RejectClaim)
 
-	// Payment — role-gated inside handler (owner/admin/hr_admin/finance/super_admin).
+	// Payment — role-gated inside handler (owner/admin/hr_admin/finance).
 	// PermSelfClaims is the coarse auth gate (all roles have it); precise role check
 	// is enforced in the handler body to allow hr_admin and finance through.
 	claims.POST("/:id/pay", middleware.Require(middleware.PermSelfClaims), h.MarkAsPaid)
@@ -405,7 +405,7 @@ func (h *Handler) ListClaims(c *gin.Context) {
 	// the direct manager.
 	var managerEmployeeID *uuid.UUID
 	hasOrgWideClaimsView := role == "owner" || role == "admin" || role == "hr_admin" ||
-		role == "super_admin" || role == "finance"
+		role == "finance"
 
 	if !hasOrgWideClaimsView {
 		// Pass this user's employee_id as the root of the hierarchy filter.
@@ -556,7 +556,7 @@ func (h *Handler) ApproveClaim(c *gin.Context) {
 	}
 
 	// If not an admin, verify they are the actual manager of the claimant
-	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin"
 	if !hasFullApprovalRights {
 		// Get the claim to check the reporting relationship
 		claim, err := h.service.GetClaim(c.Request.Context(), orgID, claimID)
@@ -615,7 +615,7 @@ func (h *Handler) RejectClaim(c *gin.Context) {
 	}
 
 	// If not an admin, verify they are the actual manager of the claimant
-	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin"
 	if !hasFullApprovalRights {
 		// Get the claim to check the reporting relationship
 		claim, err := h.service.GetClaim(c.Request.Context(), orgID, claimID)
@@ -689,7 +689,7 @@ func (h *Handler) MarkAsPaid(c *gin.Context) {
 	// PermClaimsWrite is also held by "member" (for team claim visibility), so we
 	// gate payment with an explicit role check rather than relying on the permission alone.
 	canPay := role == "owner" || role == "admin" || role == "hr_admin" ||
-		role == "super_admin" || role == "finance"
+		role == "finance"
 	if !canPay {
 		c.JSON(http.StatusForbidden, apperr.Response(apperr.New(apperr.CodeForbidden, "only admin or finance roles can mark claims as paid")))
 		return

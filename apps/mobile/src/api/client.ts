@@ -19,11 +19,16 @@ import type {
   ClaimBalanceWithCategory,
   PresignResponse,
   LocationAnalytics,
+  Scorecard,
+  TeamScorecard,
+  AttendanceCorrection,
+  SubmitCorrectionRequest,
+  WeekCalendar,
 } from '@/types/api'
 
 // TODO: Replace with your actual backend URL
 const API_BASE_URL = __DEV__ 
-  ? 'http://10.102.199.89:8080/api/v1' 
+  ? 'http://10.11.1.150:8080/api/v1' 
   : 'https://my.workived.com/api/v1'
 
 class ApiClient {
@@ -109,6 +114,13 @@ class ApiClient {
 
   async getToday(employeeId: string): Promise<ApiResponse<AttendanceRecord>> {
     const response = await this.client.get<ApiResponse<AttendanceRecord>>(`/attendance/today/${employeeId}`)
+    return response.data
+  }
+
+  async getMyWeek(startDate: string): Promise<ApiResponse<WeekCalendar>> {
+    const response = await this.client.get<ApiResponse<WeekCalendar>>('/attendance/my/week', {
+      params: { start_date: startDate },
+    })
     return response.data
   }
 
@@ -214,6 +226,54 @@ class ApiClient {
   // Location Analytics
   async getLocationAnalytics(period: 'this_week' | 'this_month'): Promise<ApiResponse<LocationAnalytics>> {
     const response = await this.client.get<ApiResponse<LocationAnalytics>>('/attendance/analytics/locations', {
+      params: { period },
+    })
+    return response.data
+  }
+
+  // Attendance Corrections
+  async submitCorrection(data: SubmitCorrectionRequest): Promise<ApiResponse<AttendanceCorrection>> {
+    const response = await this.client.post<ApiResponse<AttendanceCorrection>>('/attendance/corrections', data)
+    return response.data
+  }
+
+  async getMyCorrections(): Promise<ApiResponse<AttendanceCorrection[]>> {
+    const response = await this.client.get<ApiResponse<AttendanceCorrection[]>>('/attendance/corrections?mine=true')
+    return response.data
+  }
+
+  async getPendingCorrections(): Promise<ApiResponse<AttendanceCorrection[]>> {
+    const response = await this.client.get<ApiResponse<AttendanceCorrection[]>>('/attendance/corrections?status=pending&mine=false')
+    return response.data
+  }
+
+  async approveCorrection(correctionId: string): Promise<ApiResponse<AttendanceCorrection>> {
+    const response = await this.client.patch<ApiResponse<AttendanceCorrection>>(`/attendance/corrections/${correctionId}/approve`)
+    return response.data
+  }
+
+  async rejectCorrection(correctionId: string): Promise<ApiResponse<AttendanceCorrection>> {
+    const response = await this.client.patch<ApiResponse<AttendanceCorrection>>(`/attendance/corrections/${correctionId}/reject`)
+    return response.data
+  }
+
+  // Scorecard / Reports
+  async getMyScorecard(period: string = 'this_month'): Promise<{ scorecard: Scorecard }> {
+    const response = await this.client.get<{ scorecard: Scorecard }>('/reports/scorecard/me', {
+      params: { period },
+    })
+    return response.data
+  }
+
+  async getEmployeeScorecard(employeeId: string, period: string = 'this_month'): Promise<{ scorecard: Scorecard }> {
+    const response = await this.client.get<{ scorecard: Scorecard }>(`/reports/scorecard/${employeeId}`, {
+      params: { period },
+    })
+    return response.data
+  }
+
+  async getTeamScorecard(period: string = 'this_month'): Promise<{ team_scorecard: TeamScorecard }> {
+    const response = await this.client.get<{ team_scorecard: TeamScorecard }>('/reports/scorecard/team', {
       params: { period },
     })
     return response.data

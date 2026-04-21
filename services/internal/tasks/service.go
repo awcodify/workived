@@ -14,9 +14,10 @@ import (
 )
 
 type Service struct {
-	repo     RepositoryInterface
-	auditLog audit.Logger
-	log      zerolog.Logger
+	repo            RepositoryInterface
+	proLicenseCheck ProLicenseChecker
+	auditLog        audit.Logger
+	log             zerolog.Logger
 }
 
 func NewService(repo RepositoryInterface, opts ...ServiceOption) *Service {
@@ -28,6 +29,12 @@ func NewService(repo RepositoryInterface, opts ...ServiceOption) *Service {
 }
 
 type ServiceOption func(*Service)
+
+func WithProLicenseChecker(checker ProLicenseChecker) ServiceOption {
+	return func(s *Service) {
+		s.proLicenseCheck = checker
+	}
+}
 
 func WithAuditLog(al audit.Logger) ServiceOption {
 	return func(s *Service) {
@@ -49,6 +56,25 @@ func (s *Service) logAudit(ctx context.Context, entry audit.LogEntry) {
 	if err := s.auditLog.Log(ctx, entry); err != nil {
 		s.log.Error().Err(err).Msg("audit log error")
 	}
+}
+
+// checkProFeature returns an error if the organisation doesn't have Pro tier and the feature requires it.
+func (s *Service) checkProFeature(ctx context.Context, orgID uuid.UUID, feature string) error {
+	if s.proLicenseCheck == nil {
+		// If no checker is configured, allow all operations (backward compatibility)
+		return nil
+	}
+
+	hasPro, err := s.proLicenseCheck.HasActiveProLicense(ctx, orgID)
+	if err != nil {
+		return err
+	}
+
+	if !hasPro {
+		return ErrProFeatureRequired(feature)
+	}
+
+	return nil
 }
 
 // ── Task Lists ───────────────────────────────────────────────────────────────
@@ -116,6 +142,21 @@ func (s *Service) EnsureDefaultLists(ctx context.Context, orgID uuid.UUID) error
 }
 
 func (s *Service) CreateTaskList(ctx context.Context, orgID uuid.UUID, req CreateListRequest, actorUserID ...uuid.UUID) (*TaskList, error) {
+	// Pro tier required for custom task lists
+	if err := s.checkProFeature(ctx, orgID, "custom task lists"); err != nil {
+		return nil, err
+	}
+
+	// Enforce maximum task lists (soft limit to prevent abuse)
+	const MaxTaskLists = 20
+	count, err := s.repo.CountTaskLists(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	if count >= MaxTaskLists {
+		return nil, ErrMaxTaskListsExceeded(MaxTaskLists)
+	}
+
 	list, err := s.repo.CreateTaskList(ctx, orgID, req)
 	if err != nil {
 		return nil, err
@@ -142,6 +183,11 @@ func (s *Service) CreateTaskList(ctx context.Context, orgID uuid.UUID, req Creat
 }
 
 func (s *Service) UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, req UpdateListRequest, actorUserID ...uuid.UUID) (*TaskList, error) {
+	// Pro tier required for modifying task lists
+	if err := s.checkProFeature(ctx, orgID, "task list customization"); err != nil {
+		return nil, err
+	}
+
 	// Get before state for audit
 	before, err := s.repo.GetTaskList(ctx, orgID, id)
 	if err != nil {
@@ -173,7 +219,57 @@ func (s *Service) UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, req U
 	return list, nil
 }
 
-func (s *Service) DeactivateTaskList(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error {
+func (s *Service) DeactivateTaskList(ctx context.Context, orgID, id uuid.UUID, req DeleteListRequest, actorUserID ...uuid.UUID) error {
+	// Pro tier required for deleting task lists
+	if err := s.checkProFeature(ctx, orgID, "task list customization"); err != nil {
+		return err
+	}
+
+	// Cannot delete the last task list
+	count, err := s.repo.CountTaskLists(ctx, orgID)
+	if err != nil {
+		return err
+	}
+	if count <= 1 {
+		return ErrCannotDeleteLastList()
+	}
+
+	// Check if list has tasks
+	taskCount, err := s.repo.CountTasksInList(ctx, orgID, id)
+	if err != nil {
+		return err
+	}
+
+	if taskCount > 0 {
+		// If list has tasks, must specify where to move them
+		if req.MoveTasksTo == nil {
+			return ErrListHasTasks(taskCount)
+		}
+
+		// Verify target list exists and belongs to same org
+		targetList, err := s.repo.GetTaskList(ctx, orgID, *req.MoveTasksTo)
+		if err != nil {
+			return err
+		}
+
+		// Cannot move to the list being deleted
+		if targetList.ID == id {
+			return apperr.New(apperr.CodeValidation, "cannot move tasks to the list being deleted")
+		}
+
+		// Move all tasks to target list
+		if err := s.repo.MoveTasksToList(ctx, orgID, id, *req.MoveTasksTo); err != nil {
+			return err
+		}
+
+		s.log.Info().
+			Str("org_id", orgID.String()).
+			Str("from_list_id", id.String()).
+			Str("to_list_id", req.MoveTasksTo.String()).
+			Int("task_count", taskCount).
+			Msg("tasks.migrated_before_delete")
+	}
+
 	// Get list for audit before deleting
 	list, err := s.repo.GetTaskList(ctx, orgID, id)
 	if err != nil {
@@ -199,6 +295,43 @@ func (s *Service) DeactivateTaskList(ctx context.Context, orgID, id uuid.UUID, a
 		Str("org_id", orgID.String()).
 		Str("list_id", id.String()).
 		Msg("task_list.deactivated")
+
+	return nil
+}
+
+func (s *Service) ReorderTaskLists(ctx context.Context, orgID uuid.UUID, req ReorderListsRequest, actorUserID ...uuid.UUID) error {
+	// Pro tier required for reordering task lists
+	if err := s.checkProFeature(ctx, orgID, "task list customization"); err != nil {
+		return err
+	}
+
+	// Verify all list IDs belong to this org
+	for _, listID := range req.ListIDs {
+		_, err := s.repo.GetTaskList(ctx, orgID, listID)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Reorder the lists
+	if err := s.repo.ReorderTaskLists(ctx, orgID, req.ListIDs); err != nil {
+		return err
+	}
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task_lists.reordered",
+			ResourceType: "task_list",
+			AfterState:   req.ListIDs,
+		})
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Int("list_count", len(req.ListIDs)).
+		Msg("task_lists.reordered")
 
 	return nil
 }

@@ -32,7 +32,7 @@
                             </p>
                         </div>
                         <div class="ml-4 flex-shrink-0">
-                            <form action="/admin/feature-flags/{{.FeatureKey}}/toggle" method="POST" class="inline">
+                            <form action="/_system/feature-flags/{{.FeatureKey}}/toggle" method="POST" class="inline">
                                 <input type="hidden" name="enabled" value="{{not .IsEnabled}}">
                                 <button type="submit" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-offset-2 {{if .IsEnabled}}bg-indigo-600{{else}}bg-gray-200{{end}}">
                                     <span class="sr-only">Toggle feature flag</span>

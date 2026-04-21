@@ -3,13 +3,17 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
 import { useAuth } from '@/contexts/AuthContext'
 import { useQuery } from '@tanstack/react-query'
+import { useNavigation } from '@react-navigation/native'
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack'
 import { apiClient } from '@/api/client'
 import { useState } from 'react'
 import { CustomAlert } from '@/components/CustomAlert'
 import type { DirectReport } from '@/types/api'
+import type { RootStackParamList } from '@/navigation'
 
 export default function ProfileScreen() {
   const { logout } = useAuth()
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>()
   const [showLogoutAlert, setShowLogoutAlert] = useState(false)
   const [selectedReport, setSelectedReport] = useState<DirectReport | null>(null)
 
@@ -124,6 +128,20 @@ export default function ProfileScreen() {
           </View>
           <Text style={styles.nameText}>{profile.full_name}</Text>
           {profile.email && <Text style={styles.emailText}>{profile.email}</Text>}
+        </View>
+
+        {/* Quick Links */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => navigation.navigate('MyAttendance')}
+          >
+            <View style={styles.actionButtonLeft}>
+              <Ionicons name="time-outline" size={24} color="#6357E8" />
+              <Text style={styles.actionButtonText}>My Attendance</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
         </View>
 
         {/* Employment Info */}

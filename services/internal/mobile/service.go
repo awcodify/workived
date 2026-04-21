@@ -45,6 +45,11 @@ type TasksProvider interface {
 	ListTasks(ctx context.Context, orgID uuid.UUID, f tasks.TaskFilters) ([]tasks.TaskWithDetails, error)
 }
 
+// CorrectionProvider provides attendance correction data.
+type CorrectionProvider interface {
+	GetCorrections(ctx context.Context, orgID uuid.UUID, f attendance.ListCorrectionsFilter) ([]attendance.Correction, error)
+}
+
 // OrgInfoProvider provides organisation configuration.
 type OrgInfoProvider interface {
 	GetOrgTimezone(ctx context.Context, orgID uuid.UUID) (string, error)
@@ -57,6 +62,7 @@ type Service struct {
 	leaveRepo      LeaveProvider
 	claimsRepo     ClaimsProvider
 	tasksRepo      TasksProvider
+	correctionRepo CorrectionProvider
 	orgRepo        OrgInfoProvider
 	log            zerolog.Logger
 	cache          *cache.Store
@@ -69,6 +75,7 @@ func NewService(
 	leaveRepo LeaveProvider,
 	claimsRepo ClaimsProvider,
 	tasksRepo TasksProvider,
+	correctionRepo CorrectionProvider,
 	orgRepo OrgInfoProvider,
 	log zerolog.Logger,
 	cache *cache.Store,
@@ -79,6 +86,7 @@ func NewService(
 		leaveRepo:      leaveRepo,
 		claimsRepo:     claimsRepo,
 		tasksRepo:      tasksRepo,
+		correctionRepo: correctionRepo,
 		orgRepo:        orgRepo,
 		log:            log,
 		cache:          cache,
@@ -304,7 +312,7 @@ func (s *Service) getClockStatus(ctx context.Context, orgID, employeeID uuid.UUI
 	return status, nil
 }
 
-// getPendingApprovals fetches pending leave requests and claims for approval.
+// getPendingApprovals fetches pending leave requests, claims, and corrections for approval.
 func (s *Service) getPendingApprovals(ctx context.Context, orgID uuid.UUID, managerEmployeeID *uuid.UUID) (*PendingApprovalsInfo, error) {
 	// Fetch pending leave requests
 	statusPending := approval.StatusPending
@@ -325,10 +333,20 @@ func (s *Service) getPendingApprovals(ctx context.Context, orgID uuid.UUID, mana
 		return nil, fmt.Errorf("list pending claims: %w", err)
 	}
 
+	// Fetch pending attendance corrections
+	corrections, err := s.correctionRepo.GetCorrections(ctx, orgID, attendance.ListCorrectionsFilter{
+		Status:     "pending",
+		EmployeeID: nil, // All employees that report to this manager
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list pending corrections: %w", err)
+	}
+
 	// Count by type
 	return &PendingApprovalsInfo{
-		LeaveCount: len(leaveReqs),
-		ClaimCount: len(claimsResult.Claims),
+		LeaveCount:      len(leaveReqs),
+		ClaimCount:      len(claimsResult.Claims),
+		CorrectionCount: len(corrections),
 	}, nil
 }
 

@@ -304,7 +304,7 @@ func (h *Handler) ListRequests(c *gin.Context) {
 	// For non-admin roles, filter by direct reports (reporting_to relationship)
 	// Admins (owner, admin, hr_admin) can see all requests
 	var managerEmployeeID *uuid.UUID
-	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" 
 
 	if !hasFullApprovalRights {
 		// Lookup current user's employee_id to filter by their direct reports
@@ -362,7 +362,7 @@ func (h *Handler) ApproveRequest(c *gin.Context) {
 	}
 
 	// If not an admin, verify they are the actual manager of the requester
-	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" 
 	if !hasFullApprovalRights {
 		// Get the request to check the reporting relationship
 		request, err := h.service.GetRequest(c.Request.Context(), orgID, requestID)
@@ -405,7 +405,7 @@ func (h *Handler) RejectRequest(c *gin.Context) {
 	}
 
 	// If not an admin, verify they are the actual manager of the requester
-	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" 
 	if !hasFullApprovalRights {
 		// Get the request to check the reporting relationship
 		request, err := h.service.GetRequest(c.Request.Context(), orgID, requestID)
@@ -516,7 +516,7 @@ func (h *Handler) GetNotificationCount(c *gin.Context) {
 
 	// For non-admin roles, filter by direct reports
 	var managerEmployeeID *uuid.UUID
-	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" || role == "super_admin"
+	hasFullApprovalRights := role == "owner" || role == "admin" || role == "hr_admin" 
 
 	if !hasFullApprovalRights {
 		empID, err := h.empLookup(c.Request.Context(), orgID, userID)

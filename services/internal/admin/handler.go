@@ -1,3 +1,10 @@
+// Package admin provides platform-level administration for Workived staff.
+//
+// DATA PRIVACY BOUNDARIES:
+// - Staff admins manage Workived platform settings (feature flags, licenses, configs)
+// - Staff admins CAN SEE: organization names/IDs (for license management)
+// - Staff admins CANNOT ACCESS: employee data, attendance, payroll, HR records, tasks, etc.
+// - All customer HR data access goes through the separate API service with proper tenancy
 package admin
 
 import (
@@ -28,10 +35,13 @@ func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fiel
 	c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
 }
 
-// RegisterRoutes registers all admin routes under /api/v1/admin
-func (h *Handler) RegisterRoutes(r *gin.RouterGroup) {
+// RegisterStaffRoutes registers all admin routes for staff binary.
+// Protected by staff authentication middleware (applied at router level).
+//
+// DATA PRIVACY: Staff admins manage Workived platform settings (feature flags,
+// licenses, configs) but have NO ACCESS to customer organization data.
+func (h *Handler) RegisterStaffRoutes(r *gin.RouterGroup) {
 	admin := r.Group("/admin")
-	admin.Use(middleware.RequireSuperAdmin()) // Only super_admin role can access
 
 	// System stats
 	admin.GET("/stats", h.GetSystemStats)
@@ -226,7 +236,7 @@ func (h *Handler) UpdateAdminConfig(c *gin.Context) {
 // ── Public feature-flag check ────────────────────────────────────────────────
 
 // GetEnabledFeatures returns a map of feature_key → bool for the current user's org.
-// This endpoint is auth-only (not super_admin-only) so regular users can call it.
+// This endpoint is auth-only (available to any authenticated user).
 func (h *Handler) GetEnabledFeatures(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 	userID := middleware.UserIDFromCtx(c)

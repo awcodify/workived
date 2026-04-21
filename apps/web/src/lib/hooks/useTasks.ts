@@ -70,6 +70,17 @@ export function useDeleteTaskList() {
   })
 }
 
+export function useReorderTaskLists() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (listIds: string[]) =>
+      tasksApi.reorderTaskLists(listIds),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: tasksKeys.lists() })
+    },
+  })
+}
+
 // ── Task Hooks ───────────────────────────────────────────────
 export function useTasks(filters?: TaskFilters) {
   return useQuery({

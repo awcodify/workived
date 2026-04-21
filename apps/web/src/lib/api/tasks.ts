@@ -52,6 +52,9 @@ export const tasksApi = {
   deleteTaskList: (id: string) =>
     apiClient.delete(`/api/v1/tasks/lists/${id}`),
 
+  reorderTaskLists: (listIds: string[]) =>
+    apiClient.patch('/api/v1/tasks/lists/reorder', { list_ids: listIds }),
+
   // ── Tasks ──────────────────────────────────────────────────
   listTasks: (filters?: TaskFilters) =>
     apiClient.get<TaskResponse>('/api/v1/tasks', { params: filters }),

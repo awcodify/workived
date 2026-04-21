@@ -37,6 +37,11 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	auth.POST("/verify-email", h.VerifyEmail)
 	auth.POST("/forgot-password", h.ForgotPassword)
 	auth.POST("/reset-password", h.ResetPassword)
+
+	// MCP SSO endpoints (public)
+	mcp := rg.Group("/mcp")
+	mcp.GET("/login", h.HandleMCPLogin)
+	mcp.POST("/auth", h.HandleMCPAuth)
 }
 
 func (h *Handler) Register(c *gin.Context) {

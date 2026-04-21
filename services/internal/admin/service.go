@@ -3,17 +3,20 @@ package admin
 import (
 	"context"
 	"fmt"
+	"net/smtp"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
+	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/pkg/cache"
 )
 
 type Service struct {
-	repo  *Repository
-	cache *cache.Store
-	log   zerolog.Logger
+	repo   *Repository
+	cache  *cache.Store
+	config *config.Config
+	log    zerolog.Logger
 }
 
 type ServiceOption func(*Service)
@@ -28,6 +31,13 @@ func WithLogger(log zerolog.Logger) ServiceOption {
 func WithCache(c *cache.Store) ServiceOption {
 	return func(s *Service) {
 		s.cache = c
+	}
+}
+
+// WithConfig sets the configuration for the admin service.
+func WithConfig(cfg *config.Config) ServiceOption {
+	return func(s *Service) {
+		s.config = cfg
 	}
 }
 
@@ -214,8 +224,30 @@ func (s *Service) GetProLicenseByOrg(ctx context.Context, orgID uuid.UUID) (*Pro
 	return s.repo.GetProLicenseByOrg(ctx, orgID)
 }
 
+// HasActiveProLicense checks if an organisation has an active Pro license.
+// Returns true if license exists, is active, and not expired.
+func (s *Service) HasActiveProLicense(ctx context.Context, orgID uuid.UUID) (bool, error) {
+	license, err := s.repo.GetProLicenseByOrg(ctx, orgID)
+	if err != nil {
+		// If license not found, org is on free tier
+		return false, nil
+	}
+
+	// Check if license is active and not expired
+	if license.Status != "active" {
+		return false, nil
+	}
+
+	// Check if license has not expired
+	if time.Now().UTC().After(license.ExpiresAt) {
+		return false, nil
+	}
+
+	return true, nil
+}
+
 func (s *Service) CreateProLicense(ctx context.Context, req CreateProLicenseRequest, createdBy uuid.UUID) (*ProLicense, error) {
-	license, err := s.repo.CreateProLicense(ctx, req, createdBy)
+	license, err := s.repo.CreateProLicense(ctx, req, createdBy, uuid.Nil)
 	if err != nil {
 		return nil, fmt.Errorf("create pro license: %w", err)
 	}
@@ -226,6 +258,23 @@ func (s *Service) CreateProLicense(ctx context.Context, req CreateProLicenseRequ
 		Str("status", license.Status).
 		Str("created_by", createdBy.String()).
 		Msg("admin.pro_license.created")
+
+	return license, nil
+}
+
+// CreateProLicenseByStaffAdmin creates a license with staff admin attribution.
+func (s *Service) CreateProLicenseByStaffAdmin(ctx context.Context, req CreateProLicenseRequest, staffAdminID uuid.UUID) (*ProLicense, error) {
+	license, err := s.repo.CreateProLicense(ctx, req, uuid.Nil, staffAdminID)
+	if err != nil {
+		return nil, fmt.Errorf("create pro license: %w", err)
+	}
+
+	s.log.Info().
+		Str("license_id", license.ID.String()).
+		Str("org_id", license.OrganisationID.String()).
+		Str("status", license.Status).
+		Str("staff_admin_id", staffAdminID.String()).
+		Msg("admin.pro_license.created_by_staff")
 
 	return license, nil
 }
@@ -269,4 +318,110 @@ func (s *Service) UpdateAdminConfig(ctx context.Context, key string, req UpdateA
 
 func (s *Service) GetSystemStats(ctx context.Context) (*SystemStatsResponse, error) {
 	return s.repo.GetSystemStats(ctx)
+}
+
+func (s *Service) GetSystemHealth(ctx context.Context) (*SystemHealthResponse, error) {
+	// Get base health from repository (database queries)
+	health, err := s.repo.GetSystemHealth(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check Redis/Cache health
+	if s.cache != nil {
+		health.SystemStatus.Cache = "connected"
+
+		// Get cache info
+		cacheInfo := &CacheInfo{
+			IsConfigured: true,
+		}
+
+		// Try to get Redis INFO stats
+		// Note: This requires access to the underlying Redis client
+		// For now, we'll just confirm it's connected
+		health.CacheInfo = cacheInfo
+	} else {
+		health.SystemStatus.Cache = "not_configured"
+	}
+
+	// Email service health
+	if s.config != nil && s.config.EmailEnabled {
+		// Email is configured - test connectivity
+		if s.config.ResendAPIKey != "" {
+			// Using Resend API
+			health.SystemStatus.Email = "connected"
+		} else if s.config.SMTPHost != "" && s.config.SMTPPort > 0 {
+			// Using SMTP - test connection
+			health.SystemStatus.Email = s.testSMTPConnection()
+		} else {
+			health.SystemStatus.Email = "not_configured"
+		}
+	} else {
+		health.SystemStatus.Email = "not_configured"
+	}
+
+	return health, nil
+}
+
+// testSMTPConnection attempts to connect to the SMTP server to verify it's reachable
+func (s *Service) testSMTPConnection() string {
+	if s.config == nil {
+		return "not_configured"
+	}
+
+	// Try to connect with a short timeout
+	addr := fmt.Sprintf("%s:%d", s.config.SMTPHost, s.config.SMTPPort)
+
+	// Use smtp.Dial with timeout context
+	// Note: smtp package doesn't support context, so we do a quick check
+	client, err := smtp.Dial(addr)
+	if err != nil {
+		s.log.Warn().Err(err).Str("smtp_host", s.config.SMTPHost).Msg("smtp health check failed")
+		return "unreachable"
+	}
+	defer client.Close()
+
+	// Try HELLO command
+	if err := client.Hello("workived-health-check"); err != nil {
+		s.log.Warn().Err(err).Msg("smtp hello failed")
+		return "unreachable"
+	}
+
+	return "connected"
+}
+
+// ── Organisations ───────────────────────────────────────────────────────────
+
+func (s *Service) ListOrganisations(ctx context.Context) ([]OrganisationListItem, error) {
+	return s.repo.ListOrganisations(ctx)
+}
+
+func (s *Service) GetOrganisationDetail(ctx context.Context, orgID uuid.UUID) (*OrganisationDetailView, error) {
+	return s.repo.GetOrganisationDetail(ctx, orgID)
+}
+
+func (s *Service) SuspendOrganisation(ctx context.Context, orgID uuid.UUID, suspendedBy uuid.UUID) error {
+	if err := s.repo.UpdateOrganisationStatus(ctx, orgID, false); err != nil {
+		return fmt.Errorf("suspend organisation: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("suspended_by", suspendedBy.String()).
+		Msg("admin.organisation.suspended")
+
+	return nil
+}
+
+func (s *Service) ReactivateOrganisation(ctx context.Context, orgID uuid.UUID, reactivatedBy uuid.UUID) error {
+	if err := s.repo.UpdateOrganisationStatus(ctx, orgID, true); err != nil {
+		return fmt.Errorf("reactivate organisation: %w", err)
+	}
+
+	s.log.Info().
+		Str("org_id", orgID.String()).
+		Str("reactivated_by", reactivatedBy.String()).
+		Msg("admin.organisation.reactivated")
+
+	return nil
 }

@@ -35,7 +35,7 @@ func (h *Handler) List(c *gin.Context) {
 	orgUUID := orgID.(uuid.UUID)
 	role, _ := c.Get("role")
 	roleStr, _ := role.(string)
-	if roleStr != "owner" && roleStr != "admin" && roleStr != "super_admin" {
+	if roleStr != "owner" && roleStr != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 		return
 	}
@@ -105,7 +105,7 @@ func (h *Handler) GetByResource(c *gin.Context) {
 	orgUUID := orgID.(uuid.UUID)
 	role, _ := c.Get("role")
 	roleStr, _ := role.(string)
-	if roleStr != "owner" && roleStr != "admin" && roleStr != "super_admin" {
+	if roleStr != "owner" && roleStr != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "insufficient permissions"})
 		return
 	}

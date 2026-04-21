@@ -25,6 +25,7 @@ export interface MobileHomeData {
   pending_approvals: {
     leave_count: number
     claim_count: number
+    correction_count: number
   }
   week_attendance: {
     days: string[]
@@ -32,6 +33,26 @@ export interface MobileHomeData {
   }
   my_tasks: TaskInfo[]
   week_offset: number // 0 = this week, -1 = last week
+}
+
+export interface WeekDay {
+  date: string          // "2026-03-17" (YYYY-MM-DD)
+  day_name: string      // "Mon", "Tue", etc.
+  day_number: number
+  status: 'on-time' | 'late' | 'absent' | 'weekend' | 'future' | 'overtime' | 'on_leave'
+  clock_in_at: string | null
+  clock_out_at: string | null
+  note: string | null
+  is_today: boolean
+  is_leaving_early: boolean
+  is_overtime: boolean
+  is_corrected: boolean
+}
+
+export interface WeekCalendar {
+  start_date: string  // Monday YYYY-MM-DD
+  end_date: string    // Sunday YYYY-MM-DD
+  days: WeekDay[]     // Always 7 elements
 }
 
 export interface TaskInfo {
@@ -252,6 +273,87 @@ export interface LocationAnalytics {
   breakdown: LocationBreakdownItem[]
   start_date: string
   end_date: string
+}
+
+export interface AttendanceCorrection {
+  id: string
+  organisation_id: string
+  employee_id: string
+  employee_name: string
+  record_id?: string
+  date: string
+  original_clock_in?: string
+  original_clock_out?: string
+  requested_clock_in?: string
+  requested_clock_out?: string
+  reason: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  reviewed_by?: string
+  reviewed_at?: string
+  rejection_reason?: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SubmitCorrectionRequest {
+  date: string              // YYYY-MM-DD
+  requested_clock_in?: string  // ISO timestamp
+  requested_clock_out?: string // ISO timestamp
+  reason: string
+}
+
+export interface ScorecardBreakdown {
+  score: number
+  detail: string
+}
+
+export interface ScorecardFlag {
+  type: string
+  message: string
+  severity: 'warning' | 'alert'
+}
+
+export interface Scorecard {
+  employee_id: string
+  employee_name: string
+  department: string
+  period: string
+  period_label: string
+  start_date: string
+  end_date: string
+  overall_score: number
+  grade: string
+  trend: number
+  breakdown: {
+    attendance: ScorecardBreakdown
+    punctuality: ScorecardBreakdown
+    leave: ScorecardBreakdown
+    tasks: ScorecardBreakdown
+  }
+  flags: ScorecardFlag[]
+  sufficient: boolean
+}
+
+export interface EmployeeScore {
+  employee_id: string
+  employee_name: string
+  department: string
+  overall_score: number
+  grade: string
+  trend: number
+  attendance_score: number
+  punctuality_score: number
+  leave_score: number
+  tasks_score: number
+}
+
+export interface TeamScorecard {
+  period: string
+  period_label: string
+  start_date: string
+  end_date: string
+  team_average: number
+  employees: EmployeeScore[]
 }
 
 export interface ClaimBalanceWithCategory {

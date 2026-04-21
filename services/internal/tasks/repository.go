@@ -147,6 +147,12 @@ func (r *Repository) UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, re
 	if req.Position != nil {
 		updates = append(updates, fmt.Sprintf("position = $%d", argIdx))
 		args = append(args, *req.Position)
+		argIdx++
+	}
+	if req.IsFinalState != nil {
+		updates = append(updates, fmt.Sprintf("is_final_state = $%d", argIdx))
+		args = append(args, *req.IsFinalState)
+		argIdx++
 	}
 
 	if len(updates) == 0 {
@@ -190,6 +196,72 @@ func (r *Repository) CountTaskLists(ctx context.Context, orgID uuid.UUID) (int, 
 		SELECT COUNT(*) FROM task_lists WHERE organisation_id = $1 AND is_active = TRUE
 	`, orgID).Scan(&count)
 	return count, err
+}
+
+func (r *Repository) CountTasksInList(ctx context.Context, orgID, listID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM tasks 
+		WHERE organisation_id = $1 AND task_list_id = $2
+	`, orgID, listID).Scan(&count)
+	return count, err
+}
+
+func (r *Repository) MoveTasksToList(ctx context.Context, orgID, fromListID, toListID uuid.UUID) error {
+	// Move all tasks from fromListID to toListID
+	tag, err := r.db.Exec(ctx, `
+		UPDATE tasks 
+		SET task_list_id = $3, updated_at = NOW()
+		WHERE organisation_id = $1 AND task_list_id = $2
+	`, orgID, fromListID, toListID)
+	if err != nil {
+		return err
+	}
+
+	r.log.Info().
+		Str("org_id", orgID.String()).
+		Str("from_list_id", fromListID.String()).
+		Str("to_list_id", toListID.String()).
+		Int64("tasks_moved", tag.RowsAffected()).
+		Msg("tasks.moved_to_list")
+
+	return nil
+}
+
+func (r *Repository) ReorderTaskLists(ctx context.Context, orgID uuid.UUID, listIDs []uuid.UUID) error {
+	// Update positions based on array order
+	// Use a transaction to ensure atomicity
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	for i, listID := range listIDs {
+		position := i * 1000 // Space out positions (0, 1000, 2000, ...)
+		tag, err := tx.Exec(ctx, `
+			UPDATE task_lists 
+			SET position = $3, updated_at = NOW()
+			WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
+		`, orgID, listID, position)
+		if err != nil {
+			return err
+		}
+		if tag.RowsAffected() == 0 {
+			return ErrTaskListNotFound()
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return err
+	}
+
+	r.log.Info().
+		Str("org_id", orgID.String()).
+		Int("list_count", len(listIDs)).
+		Msg("task_lists.reordered")
+
+	return nil
 }
 
 // ── Tasks ────────────────────────────────────────────────────────────────────
@@ -246,18 +318,18 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 	}
 
 	rows, err := r.db.Query(ctx, query,
-		orgID,                               // $1
-		ptrToUUID(filters.TaskListID),       // $2
-		ptrToUUID(filters.AssigneeID),       // $3
-		filters.Priority,                    // $4
-		filters.Status,                      // $5
-		nilIfEmpty(cursor.Value),            // $6
-		limit+1,                             // $7
-		archiveDays,                         // $8
-		filters.ExcludeApprovalTasks,        // $9
-		filters.Search,         // $10 (*string, nil = no filter)
-		filters.CompletedAfter, // $11 (*string, nil = no filter)
-		filters.CompletedBefore, // $12 (*string, nil = no filter)
+		orgID,                         // $1
+		ptrToUUID(filters.TaskListID), // $2
+		ptrToUUID(filters.AssigneeID), // $3
+		filters.Priority,              // $4
+		filters.Status,                // $5
+		nilIfEmpty(cursor.Value),      // $6
+		limit+1,                       // $7
+		archiveDays,                   // $8
+		filters.ExcludeApprovalTasks,  // $9
+		filters.Search,                // $10 (*string, nil = no filter)
+		filters.CompletedAfter,        // $11 (*string, nil = no filter)
+		filters.CompletedBefore,       // $12 (*string, nil = no filter)
 	)
 	if err != nil {
 		return nil, err

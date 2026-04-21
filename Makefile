@@ -80,6 +80,13 @@ build: ## Build the API binary to bin/api
 	@mkdir -p bin
 	cd $(SERVICES_DIR) && go build -o ../bin/api ./cmd/api
 
+build-staff: ## Build the staff admin binary to bin/staff
+	@mkdir -p bin
+	cd $(SERVICES_DIR) && go build -o ../bin/staff ./cmd/staff
+
+run-staff: ## Run the staff admin server
+	cd $(SERVICES_DIR) && go run ./cmd/staff
+
 # ── Frontend ─────────────────────────────────────────────────────────────────
 
 web-install: ## Install frontend dependencies
@@ -129,3 +136,17 @@ prod-migrate: ## Run database migrations on production
 		exit 1; \
 	fi
 	migrate -path $(MIGRATIONS_DIR) -database "$$DATABASE_URL" up
+
+# ── MCP Server ────────────────────────────────────────────────────────────────
+
+mcp-build: ## Build MCP server (stdio mode, 100% API-based)
+	@echo "Building MCP server..."
+	@mkdir -p bin
+	cd $(SERVICES_DIR) && go build -o ../bin/mcp ./cmd/mcp
+	@echo "✅ MCP server built successfully"
+
+mcp-test: mcp-build ## Test MCP server with sample requests
+	@echo "Testing MCP server..."
+	@echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}' | ./bin/mcp
+	@echo ""
+	@echo '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | ./bin/mcp
