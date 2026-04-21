@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { moduleThemes, colors } from '@/design/tokens'
 
 const defaultTheme = moduleThemes.attendance
@@ -10,6 +11,7 @@ export interface DropdownOption {
   label: string
   description?: string
   badge?: string
+  icon?: LucideIcon
 }
 
 export interface DropdownTheme {
@@ -171,7 +173,8 @@ export function Dropdown({
           ...style, // Merge custom styles after defaults
         }}
       >
-        <span className={!selectedOption ? 'text-opacity-50' : ''}>
+        <span className={`flex items-center gap-2 ${!selectedOption ? 'text-opacity-50' : ''}`}>
+          {selectedOption?.icon && <selectedOption.icon size={14} style={{ color: colors.accent }} />}
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown
@@ -240,6 +243,7 @@ export function Dropdown({
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
+                      {option.icon && <option.icon size={14} style={{ color: colors.accent }} />}
                       <span className="text-sm font-semibold" style={{ color: t.text }}>
                         {option.label}
                       </span>

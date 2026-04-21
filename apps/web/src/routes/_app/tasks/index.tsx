@@ -7,7 +7,6 @@ import { TaskDetailModal } from '@/components/TaskDetailModal'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { ColumnTabNav } from '@/components/tasks/ColumnTabNav'
 import { TaskCard as EnhancedTaskCard } from '@/components/tasks/TaskCard'
-import { FieldDefinitionsPanel } from '@/components/tasks/FieldDefinitionsPanel'
 import { AllIssuesTable } from '@/components/tasks/AllIssuesTable'
 import { Dropdown, type DropdownOption } from '@/components/workived/shared/Dropdown'
 import {
@@ -142,7 +141,6 @@ function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<TaskWithDetails | null>(null)
   const [createModalListId, setCreateModalListId] = useState<string | null>(null)
   const [expandedWorkloadStatus, setExpandedWorkloadStatus] = useState<string | null>(null)
-  const [showFieldsPanel, setShowFieldsPanel] = useState(false)
   
   // Track if we've initialized mobile column to prevent infinite loops
   const mobileColumnInitialized = useRef(false)
@@ -934,22 +932,6 @@ function TasksPage() {
             }}
           />
 
-          {canEditOrgSettings && (
-            <button
-              onClick={() => setShowFieldsPanel(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all hover:bg-black/5"
-              style={{
-                background: 'white',
-                color: '#64748B',
-                border: '1px solid #DFE1E6',
-                fontFamily: typography.fontFamily,
-              }}
-            >
-              <span>⊞</span>
-              Fields
-            </button>
-          )}
-
           </> /* end board-only filters */}
 
           {/* Team Workload - Right side */}
@@ -1260,10 +1242,6 @@ function TasksPage() {
             setNewTaskAssignee('')
           }}
         />
-      )}
-
-      {showFieldsPanel && (
-        <FieldDefinitionsPanel onClose={() => setShowFieldsPanel(false)} />
       )}
     </div>
   )
