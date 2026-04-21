@@ -1,5 +1,5 @@
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { Settings } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
@@ -93,7 +93,10 @@ function TasksPage() {
   
   const { data: taskLists = [], isLoading: listsLoading } = useTaskLists()
   const { data: tasks = [], isLoading: tasksLoading } = useTasks()
-  const { data: employeesData } = useEmployees({ status: 'active', limit: 100 })
+  
+  // Memoize employee query options to prevent React Query from reconfiguring on every render
+  const employeeQueryOptions = useMemo(() => ({ status: 'active' as const, limit: 100 }), [])
+  const { data: employeesData } = useEmployees(employeeQueryOptions)
   const employees = employeesData?.data || []
   const { data: workloadData = [] } = useEmployeeWorkload()
   
@@ -140,10 +143,16 @@ function TasksPage() {
   const [createModalListId, setCreateModalListId] = useState<string | null>(null)
   const [expandedWorkloadStatus, setExpandedWorkloadStatus] = useState<string | null>(null)
   const [showFieldsPanel, setShowFieldsPanel] = useState(false)
+  
+  // Track if we've initialized mobile column to prevent infinite loops
+  const mobileColumnInitialized = useRef(false)
+  
+  // Track previous tasks data to prevent unnecessary optimistic updates
+  const prevTasksRef = useRef<TaskWithDetails[]>([])
 
-  // Apply filters to tasks
-  const filteredTasks = useMemo(() => {
-    let filtered = tasks || []
+  // Apply filters to optimistic tasks (for display only)
+  const displayTasks = useMemo(() => {
+    let filtered = optimisticTasks || []
 
     // View mode filter (tasks vs approvals)
     if (viewMode === 'tasks') {
@@ -182,12 +191,24 @@ function TasksPage() {
     }
     
     return filtered
-  }, [tasks, viewMode, searchQuery, selectedAssignee, selectedPriority, showCompleted])
+  }, [optimisticTasks, viewMode, searchQuery, selectedAssignee, selectedPriority, showCompleted])
   
-  // Sync with server data and apply filters
+  // Sync optimistic state with server data (only when data genuinely changes)
   useEffect(() => {
-    setOptimisticTasks(filteredTasks || [])
-  }, [filteredTasks])
+    const currentTasks = tasks || []
+    
+    // Create a signature of the current data (IDs + updated_at timestamps)
+    const createSignature = (taskList: TaskWithDetails[]) => 
+      taskList.map(t => `${t.id}:${t.updated_at || ''}`).sort().join('|')
+    
+    const currentSig = createSignature(currentTasks)
+    const prevSig = createSignature(prevTasksRef.current)
+    
+    if (currentSig !== prevSig) {
+      prevTasksRef.current = currentTasks
+      setOptimisticTasks(currentTasks)
+    }
+  }, [tasks])
 
   // Close workload dropdown when clicking outside
   useEffect(() => {
@@ -209,31 +230,40 @@ function TasksPage() {
   // Check if any filters are active (showCompleted=true is the default, so only count it if false)
   const hasActiveFilters = !!(searchQuery || selectedAssignee || selectedPriority || showCompleted === false)
 
-  // Mobile: Set default active column to first list if not specified
+  // Mobile: Set default active column to first list if not specified (run only once)
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 640 && visibleLists.length > 0 && !activeColumnId) {
+    if (
+      !mobileColumnInitialized.current &&
+      typeof window !== 'undefined' && 
+      window.innerWidth < 640 && 
+      visibleLists.length > 0 && 
+      !activeColumnId
+    ) {
       const firstList = visibleLists[0]
       if (firstList) {
+        mobileColumnInitialized.current = true
         updateSearchParam('column', firstList.id)
       }
     }
-  }, [visibleLists, activeColumnId, updateSearchParam])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleLists, activeColumnId])
 
   // Handler for mobile column switching
   const handleColumnChange = useCallback((columnId: string) => {
     updateSearchParam('column', columnId)
-  }, [updateSearchParam])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Calculate task counts per column
+  // Calculate task counts per column (using filtered tasks)
   const taskCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     visibleLists.forEach((list) => {
-      counts[list.id] = (optimisticTasks || []).filter(
+      counts[list.id] = (displayTasks || []).filter(
         (t) => t.task_list_id === list.id
       ).length
     })
     return counts
-  }, [visibleLists, optimisticTasks])
+  }, [visibleLists, displayTasks])
 
   // Visual column config
   const columnConfig = useMemo(() => {
@@ -483,14 +513,14 @@ function TasksPage() {
     )
   }
 
-  const totalTasks = (optimisticTasks || []).length
+  const totalTasks = (displayTasks || []).length
   const allTasksCount = (tasks || []).length
   const finalStateListIds = new Set(visibleLists.filter((l) => l.is_final_state).map((l) => l.id))
   const completedTasks = (tasks || []).filter(
     (t) => t.completed_at || finalStateListIds.has(t.task_list_id)
   ).length
   const inProgressList = visibleLists.find((l) => !l.is_final_state && l !== visibleLists[0])
-  const inProgressCount = inProgressList ? (optimisticTasks || []).filter(
+  const inProgressCount = inProgressList ? (displayTasks || []).filter(
     (t) => t.task_list_id === inProgressList.id && !t.completed_at
   ).length : 0
 
@@ -1107,7 +1137,7 @@ function TasksPage() {
       >
         <div className="flex gap-6 pb-4 -mx-6 px-6 md:-mx-11 md:px-11 overflow-x-auto" style={{ minHeight: '400px', scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}>
           {columnConfig.map((col, idx) => {
-            const columnTasks = (optimisticTasks || [])
+            const columnTasks = (displayTasks || [])
               .filter((t) => t.task_list_id === col.id)
               .sort((a, b) => {
                 // Pin approval tasks to the top

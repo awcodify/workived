@@ -78,9 +78,11 @@ export function RichTextEditor({
   })
 
   // Update editor content when value changes externally
-  if (editor && value !== editor.getHTML()) {
-    editor.commands.setContent(value)
-  }
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value)
+    }
+  }, [editor, value])
 
   const toggleBold = () => editor?.chain().focus().toggleBold().run()
   const toggleItalic = () => editor?.chain().focus().toggleItalic().run()
