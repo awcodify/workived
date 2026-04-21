@@ -15,6 +15,7 @@ import (
 
 type Service struct {
 	repo            RepositoryInterface
+	orgRepo         OrgRepository
 	proLicenseCheck ProLicenseChecker
 	auditLog        audit.Logger
 	log             zerolog.Logger
@@ -33,6 +34,12 @@ type ServiceOption func(*Service)
 func WithProLicenseChecker(checker ProLicenseChecker) ServiceOption {
 	return func(s *Service) {
 		s.proLicenseCheck = checker
+	}
+}
+
+func WithOrgRepository(repo OrgRepository) ServiceOption {
+	return func(s *Service) {
+		s.orgRepo = repo
 	}
 }
 
@@ -1476,4 +1483,112 @@ func (s *Service) ReorderSubtasks(ctx context.Context, orgID, parentTaskID uuid.
 	}
 
 	return nil
+}
+
+// ── Helper Functions ─────────────────────────────────────────────────────────
+
+// generateCompanyInitials creates initials from company name for task codes.
+// Examples:
+//   - "Workived" → "WOR"
+//   - "Acme Corp" → "AC"
+//   - "Digital Solutions" → "DS"
+//   - "ABC Company Limited" → "ABC"
+func generateCompanyInitials(companyName string) string {
+	if companyName == "" {
+		return "ORG"
+	}
+
+	// Split by spaces and filter out common words
+	commonWords := map[string]bool{
+		"the": true, "and": true, "of": true, "in": true, "a": true, "an": true,
+		"inc": true, "ltd": true, "llc": true, "corp": true, "co": true,
+		"company": true, "limited": true, "corporation": true,
+		"pt": true, "cv": true, "tbk": true, // Indonesian entities
+	}
+
+	words := []string{}
+	for _, word := range splitWords(companyName) {
+		if !commonWords[word] && len(word) > 0 {
+			words = append(words, word)
+		}
+	}
+
+	if len(words) == 0 {
+		// Fallback: use first 3 chars of original name
+		clean := cleanForInitials(companyName)
+		if len(clean) >= 3 {
+			return clean[:3]
+		}
+		return "ORG"
+	}
+
+	// Strategy 1: If 3+ significant words, take first letter of each
+	if len(words) >= 3 {
+		initials := ""
+		for i := 0; i < 3 && i < len(words); i++ {
+			if len(words[i]) > 0 {
+				initials += string(words[i][0])
+			}
+		}
+		return initials
+	}
+
+	// Strategy 2: If 2 words, take first letter of each + first letter of second word again
+	if len(words) == 2 {
+		return string(words[0][0]) + string(words[1][0])
+	}
+
+	// Strategy 3: Single word - take first 3 letters
+	word := words[0]
+	if len(word) >= 3 {
+		return word[:3]
+	}
+
+	return "ORG"
+}
+
+// splitWords splits a string into lowercase words, removing punctuation
+func splitWords(s string) []string {
+	var words []string
+	var current []rune
+
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			current = append(current, toLower(r))
+		} else if len(current) > 0 {
+			words = append(words, string(current))
+			current = nil
+		}
+	}
+
+	if len(current) > 0 {
+		words = append(words, string(current))
+	}
+
+	return words
+}
+
+// cleanForInitials removes non-alphanumeric chars and converts to uppercase
+func cleanForInitials(s string) string {
+	var result []rune
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			result = append(result, toUpper(r))
+		}
+	}
+	return string(result)
+}
+
+func toLower(r rune) rune {
+	if r >= 'A' && r <= 'Z' {
+		return r + ('a' - 'A')
+	}
+	return r
+}
+
+func toUpper(r rune) rune {
+	if r >= 'a' && r <= 'z' {
+		return r - ('a' - 'A')
+	}
+	return r
 }

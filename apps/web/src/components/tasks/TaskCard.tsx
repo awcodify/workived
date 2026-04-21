@@ -329,6 +329,22 @@ export function TaskCard({
             </div>
           )}
           
+          {/* Task code badge */}
+          {task.code && (
+            <span
+              className="inline-block px-2 py-0.5 rounded text-xs font-mono font-semibold mr-2 mb-1"
+              style={{
+                background: isDone ? '#E5E7EB' : '#F3F4F6',
+                color: isDone ? '#9CA3AF' : '#6B7280',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                fontSize: '11px',
+                letterSpacing: '0.3px',
+              }}
+            >
+              {task.code}
+            </span>
+          )}
+          
           <h3
             className="font-bold text-sm leading-snug line-clamp-2"
             style={{

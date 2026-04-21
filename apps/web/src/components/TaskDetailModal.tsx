@@ -451,6 +451,7 @@ function TaskFieldsSection({ task, employees, pendingFieldValues, onFieldChange,
 interface TaskDetailModalProps {
   mode?: 'create' | 'edit'
   task?: TaskWithDetails
+  taskId?: string // For shareable URLs - fetches task by ID
   listId?: string
   employees: Employee[]
   taskLists: any[]
@@ -458,19 +459,22 @@ interface TaskDetailModalProps {
   onClose: () => void
 }
 
-export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: initialListId, employees, taskLists, getEmployeeWorkload, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: initialTaskId, listId: initialListId, employees, taskLists, getEmployeeWorkload, onClose }: TaskDetailModalProps) {
   const [taskStack, setTaskStack] = useState<string[]>([])
-  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(initialTaskId || null)
+
+  // Fetch task by ID if taskId is provided (for shareable URLs)
+  const { data: fetchedTask, isLoading: isLoadingTask } = useTask(initialTaskId || '')
 
   // Fetch the navigated-to task
   const { data: navigatedTask, isLoading: isNavigating } = useTask(currentTaskId || '')
 
-  // The task to display: navigated task or the initial task
-  const task = currentTaskId ? navigatedTask : initialTask
+  // The task to display: navigated task > fetched task > initial task
+  const task = currentTaskId ? navigatedTask : (fetchedTask || initialTask)
 
   const handleTaskNavigate = (taskId: string) => {
     // Push current task onto the stack before navigating
-    const currentId = currentTaskId || initialTask?.id
+    const currentId = currentTaskId || fetchedTask?.id || initialTask?.id
     if (currentId) {
       setTaskStack((prev) => [...prev, currentId])
     }
@@ -480,7 +484,8 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: init
   const handleGoBack = () => {
     const prev = taskStack[taskStack.length - 1]
     setTaskStack((s) => s.slice(0, -1))
-    if (prev === initialTask?.id) {
+    const baseTaskId = fetchedTask?.id || initialTask?.id
+    if (prev === baseTaskId) {
       setCurrentTaskId(null)
     } else {
       setCurrentTaskId(prev || null)
@@ -501,35 +506,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: init
   // Fetch parent task title if task has a parent
   const { data: parentTask } = useTask(task?.parent_task_id || '')
 
-  // If it's an approval task, show the approval view
-  if (isApprovalTask && task) {
-    return (
-      <div
-        className="fixed inset-0 z-[60] flex items-center justify-center p-4"
-        style={{
-          background: 'rgba(0,0,0,0.5)',
-          backdropFilter: 'blur(4px)',
-        }}
-        onClick={handleClose}
-      >
-        <div
-          className="w-full max-w-3xl overflow-y-auto max-h-[90vh] relative"
-          style={{
-            background: '#FFFFFF',
-            boxShadow: `
-              0 24px 48px rgba(0,0,0,0.12),
-              0 12px 24px rgba(0,0,0,0.08),
-              0 0 0 1px rgba(0,0,0,0.05)
-            `,
-            borderRadius: '16px',
-          }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          <ApprovalTaskView task={task} onClose={handleClose} />
-        </div>
-      </div>
-    )
-  }
+  // All hooks must be called before any conditional returns
   const [title, setTitle] = useState(task?.title || '')
   const [description, setDescription] = useState(task?.description || '')
   const [assigneeId, setAssigneeId] = useState(task?.assignee_id || '')
@@ -866,6 +843,101 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: init
     )
   }
 
+  // Show loading state when fetching task by ID
+  if (isLoadingTask && initialTaskId) {
+    return (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        style={{
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+          animation: 'fadeIn 0.2s ease-out',
+        }}
+        onClick={handleClose}
+      >
+        <div
+          className="w-full max-w-3xl p-16 text-center"
+          style={{
+            background: '#FFFFFF',
+            borderRadius: '16px',
+            boxShadow: '0 24px 48px rgba(0,0,0,0.12), 0 12px 24px rgba(0,0,0,0.08)',
+            animation: 'slideUp 0.3s ease-out',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Animated spinner */}
+          <div
+            style={{
+              width: '48px',
+              height: '48px',
+              margin: '0 auto 24px',
+              border: '4px solid #E5E7EB',
+              borderTop: '4px solid #3B82F6',
+              borderRadius: '50%',
+              animation: 'spin 0.8s linear infinite',
+            }}
+          />
+          <p style={{ fontSize: '16px', fontWeight: '500', color: '#1F2937', marginBottom: '8px' }}>
+            Loading task
+          </p>
+          <p style={{ fontSize: '14px', color: '#6B7280' }}>
+            Please wait...
+          </p>
+        </div>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+          }
+          @keyframes slideUp {
+            from { 
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to { 
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}</style>
+      </div>
+    )
+  }
+
+  // If it's an approval task, show the approval view
+  if (isApprovalTask && task) {
+    return (
+      <div
+        className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+        style={{
+          background: 'rgba(0,0,0,0.5)',
+          backdropFilter: 'blur(4px)',
+        }}
+        onClick={handleClose}
+      >
+        <div
+          className="w-full max-w-3xl overflow-y-auto max-h-[90vh] relative"
+          style={{
+            background: '#FFFFFF',
+            boxShadow: `
+              0 24px 48px rgba(0,0,0,0.12),
+              0 12px 24px rgba(0,0,0,0.08),
+              0 0 0 1px rgba(0,0,0,0.05)
+            `,
+            borderRadius: '16px',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ApprovalTaskView task={task} onClose={handleClose} />
+        </div>
+      </div>
+    )
+  }
+
   // Comment reactions component
   const CommentReactions = ({ taskId, commentId }: { taskId: string; commentId: string }) => {
     const { data: reactions = [] } = useCommentReactions(taskId, commentId)
@@ -1095,6 +1167,22 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: init
               >
                 <ArrowLeft size={16} />
               </button>
+            )}
+
+            {/* Task Code */}
+            {!isCreateMode && task?.code && (
+              <span
+                className="flex-shrink-0 px-3 py-1.5 rounded-md text-sm font-mono font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%)',
+                  color: '#475569',
+                  fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                  letterSpacing: '0.5px',
+                  border: '1px solid #CBD5E1',
+                }}
+              >
+                {task.code}
+              </span>
             )}
 
             {!isCreateMode && (

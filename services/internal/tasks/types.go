@@ -27,6 +27,7 @@ type Task struct {
 	ID             uuid.UUID  `json:"id"`
 	OrganisationID uuid.UUID  `json:"organisation_id"`
 	TaskListID     uuid.UUID  `json:"task_list_id"`
+	Code           *string    `json:"code,omitempty"` // e.g. WOR-123, AC-456
 	Title          string     `json:"title"`
 	Description    *string    `json:"description,omitempty"`
 	AssigneeID     *uuid.UUID `json:"assignee_id,omitempty"`
@@ -155,6 +156,7 @@ type DeleteListRequest struct {
 
 type CreateTaskRequest struct {
 	TaskListID   uuid.UUID  `json:"task_list_id" binding:"required"`
+	Code         *string    `json:"code,omitempty"` // Auto-generated task code (e.g. WOR-123)
 	Title        string     `json:"title" binding:"required,max=500"`
 	Description  *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
 	AssigneeID   *uuid.UUID `json:"assignee_id,omitempty"`
@@ -322,6 +324,18 @@ type UpdateFieldDefinitionRequest struct {
 
 // ── Interfaces ───────────────────────────────────────────────────────────────
 
+// OrganisationInfo contains minimal organisation data needed for task code generation.
+type OrganisationInfo struct {
+	ID   uuid.UUID
+	Name string
+}
+
+// OrgRepository provides organisation data and sequence management for task codes.
+type OrgRepository interface {
+	GetOrgName(ctx context.Context, orgID uuid.UUID) (string, error)
+	IncrementTaskSequence(ctx context.Context, orgID uuid.UUID) (int, error)
+}
+
 // ProLicenseChecker checks if an organisation has an active Pro license.
 type ProLicenseChecker interface {
 	HasActiveProLicense(ctx context.Context, orgID uuid.UUID) (bool, error)
@@ -346,6 +360,7 @@ type RepositoryInterface interface {
 	ListTasks(ctx context.Context, orgID uuid.UUID, filters TaskFilters) ([]TaskWithDetails, error)
 	GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWithDetails, error)
 	GetTaskByApproval(ctx context.Context, approvalType string, approvalID uuid.UUID) (*TaskWithDetails, error)
+	NextTaskCode(ctx context.Context, orgID uuid.UUID) (string, error)
 	CreateTask(ctx context.Context, orgID, createdBy uuid.UUID, req CreateTaskRequest) (*Task, error)
 	UpdateTask(ctx context.Context, orgID, id uuid.UUID, req UpdateTaskRequest) (*Task, error)
 	MoveTask(ctx context.Context, orgID, taskID uuid.UUID, newListID uuid.UUID, newPosition int) (*Task, error)

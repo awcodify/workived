@@ -272,7 +272,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 
 	query := `
 		SELECT 
-			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
+			t.id, t.organisation_id, t.task_list_id, t.code, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
 			t.completed_at, t.approval_type, t.approval_id, t.parent_task_id,
 			t.hierarchy_level, t.created_at, t.updated_at,
@@ -341,7 +341,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 	for rows.Next() {
 		var t TaskWithDetails
 		if err := rows.Scan(
-			&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
+			&t.ID, &t.OrganisationID, &t.TaskListID, &t.Code, &t.Title, &t.Description,
 			&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
 			&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.ParentTaskID,
 			&t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
@@ -358,7 +358,7 @@ func (r *Repository) GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWit
 	var t TaskWithDetails
 	err := r.db.QueryRow(ctx, `
 		SELECT 
-			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
+			t.id, t.organisation_id, t.task_list_id, t.code, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
 			t.completed_at, t.approval_type, t.approval_id, t.parent_task_id,
 			t.hierarchy_level, t.created_at, t.updated_at,
@@ -371,7 +371,7 @@ func (r *Repository) GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWit
 		LEFT JOIN employees assignee ON t.assignee_id = assignee.id
 		WHERE t.organisation_id = $1 AND t.id = $2
 	`, orgID, id).Scan(
-		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
+		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Code, &t.Title, &t.Description,
 		&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
 		&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.ParentTaskID,
 		&t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
@@ -390,7 +390,7 @@ func (r *Repository) GetTaskByApproval(ctx context.Context, approvalType string,
 	var t TaskWithDetails
 	err := r.db.QueryRow(ctx, `
 		SELECT 
-			t.id, t.organisation_id, t.task_list_id, t.title, t.description,
+			t.id, t.organisation_id, t.task_list_id, t.code, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
 			t.completed_at, t.approval_type, t.approval_id, t.parent_task_id,
 			t.hierarchy_level, t.created_at, t.updated_at,
@@ -404,7 +404,7 @@ func (r *Repository) GetTaskByApproval(ctx context.Context, approvalType string,
 		WHERE t.approval_type = $1 AND t.approval_id = $2
 		LIMIT 1
 	`, approvalType, approvalID).Scan(
-		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description,
+		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Code, &t.Title, &t.Description,
 		&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
 		&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.ParentTaskID,
 		&t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
@@ -417,6 +417,33 @@ func (r *Repository) GetTaskByApproval(ctx context.Context, approvalType string,
 		return nil, err
 	}
 	return &t, nil
+}
+
+// ── Task Code Generation ─────────────────────────────────────────────────────
+
+// NextTaskCode generates and returns the next task code for an organization.
+// It atomically increments task_sequence and returns code like "WOR-123".
+func (r *Repository) NextTaskCode(ctx context.Context, orgID uuid.UUID) (string, error) {
+	var orgName string
+	var nextSeq int
+
+	// Atomically increment task_sequence and get org name
+	err := r.db.QueryRow(ctx, `
+		UPDATE organisations 
+		SET task_sequence = task_sequence + 1
+		WHERE id = $1
+		RETURNING name, task_sequence
+	`, orgID).Scan(&orgName, &nextSeq)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperr.New(apperr.CodeNotFound, "organisation not found")
+		}
+		return "", err
+	}
+
+	initials := generateCompanyInitials(orgName)
+	return fmt.Sprintf("%s-%d", initials, nextSeq), nil
 }
 
 func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID, req CreateTaskRequest) (*Task, error) {
@@ -446,6 +473,18 @@ func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID,
 		return nil, err
 	}
 
+	// Auto-generate task code if not provided
+	var taskCode *string
+	if req.Code == nil || *req.Code == "" {
+		code, err := r.NextTaskCode(ctx, orgID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate task code: %w", err)
+		}
+		taskCode = &code
+	} else {
+		taskCode = req.Code
+	}
+
 	// Default priority if not provided
 	priority := req.Priority
 	if priority == "" {
@@ -468,16 +507,16 @@ func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID,
 	var t Task
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO tasks (
-			organisation_id, task_list_id, title, description, assignee_id,
+			organisation_id, task_list_id, code, title, description, assignee_id,
 			created_by, priority, due_date, position, completed_at, approval_type, approval_id,
 			parent_task_id, hierarchy_level
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NULL, 0)
-		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, 0)
+		RETURNING id, organisation_id, task_list_id, code, title, description, assignee_id,
 		          created_by, priority, due_date, position, completed_at, approval_type, approval_id,
 		          parent_task_id, hierarchy_level, created_at, updated_at
-	`, orgID, req.TaskListID, req.Title, req.Description, req.AssigneeID,
+	`, orgID, req.TaskListID, taskCode, req.Title, req.Description, req.AssigneeID,
 		createdBy, priority, dueDate, maxPosition+1000, completedAt, req.ApprovalType, req.ApprovalID).Scan(
-		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
+		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Code, &t.Title, &t.Description, &t.AssigneeID,
 		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID,
 		&t.ParentTaskID, &t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
 	)

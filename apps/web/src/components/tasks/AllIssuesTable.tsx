@@ -418,6 +418,7 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
           <table className="w-full border-collapse">
             <thead>
               <tr style={{ background: 'rgba(0,0,0,0.03)' }}>
+                <th className="text-left px-3 py-2.5 text-xs font-bold" style={{ color: '#94A3B8', fontFamily: typography.fontFamily, borderBottom: '2px solid #E2E8F0' }}>Code</th>
                 <SortHeader label="Title"       sortKey="title"        current={sortKey} dir={sortDir} onSort={handleSort} />
                 <SortHeader label="List"        sortKey="list_name"    current={sortKey} dir={sortDir} onSort={handleSort} />
                 <SortHeader label="Assignee"    sortKey="assignee_name" current={sortKey} dir={sortDir} onSort={handleSort} />
@@ -452,6 +453,21 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
                     onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(201,123,42,0.06)')}
                     onMouseLeave={(e) => (e.currentTarget.style.background = i % 2 === 0 ? 'transparent' : 'rgba(0,0,0,0.015)')}
                   >
+                    {/* Code */}
+                    <td className="px-3 py-2.5">
+                      {task.code && (
+                        <span
+                          className="inline-block text-xs font-mono font-semibold px-2 py-0.5 rounded whitespace-nowrap"
+                          style={{
+                            background: isDone ? '#E5E7EB' : '#F3F4F6',
+                            color: isDone ? '#9CA3AF' : '#6B7280',
+                            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                          }}
+                        >
+                          {task.code}
+                        </span>
+                      )}
+                    </td>
                     {/* Title */}
                     <td className="px-3 py-2.5 max-w-[280px]">
                       <div className="flex items-center gap-2">

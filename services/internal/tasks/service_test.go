@@ -27,6 +27,7 @@ type mockRepo struct {
 	listTasksFn                 func(ctx context.Context, orgID uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error)
 	getTaskFn                   func(ctx context.Context, orgID, id uuid.UUID) (*tasks.TaskWithDetails, error)
 	getTaskByApprovalFn         func(ctx context.Context, approvalType string, approvalID uuid.UUID) (*tasks.TaskWithDetails, error)
+	nextTaskCodeFn              func(ctx context.Context, orgID uuid.UUID) (string, error)
 	createTaskFn                func(ctx context.Context, orgID, createdBy uuid.UUID, req tasks.CreateTaskRequest) (*tasks.Task, error)
 	updateTaskFn                func(ctx context.Context, orgID, id uuid.UUID, req tasks.UpdateTaskRequest) (*tasks.Task, error)
 	moveTaskFn                  func(ctx context.Context, orgID, taskID uuid.UUID, newListID uuid.UUID, newPosition int) (*tasks.Task, error)
@@ -138,6 +139,13 @@ func (m *mockRepo) GetTaskByApproval(ctx context.Context, approvalType string, a
 		return m.getTaskByApprovalFn(ctx, approvalType, approvalID)
 	}
 	return &tasks.TaskWithDetails{}, nil
+}
+
+func (m *mockRepo) NextTaskCode(ctx context.Context, orgID uuid.UUID) (string, error) {
+	if m.nextTaskCodeFn != nil {
+		return m.nextTaskCodeFn(ctx, orgID)
+	}
+	return "TEST-1", nil
 }
 
 func (m *mockRepo) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID, req tasks.CreateTaskRequest) (*tasks.Task, error) {
@@ -271,6 +279,44 @@ func (m *mockRepo) BatchGetFieldValues(ctx context.Context, orgID uuid.UUID, tas
 		return m.batchGetFieldValuesFn(ctx, orgID, taskIDs)
 	}
 	return map[uuid.UUID][]tasks.FieldValueWithDefinition{}, nil
+}
+
+// Task Links (stub implementations)
+func (m *mockRepo) CreateTaskLink(ctx context.Context, orgID, sourceTaskID, targetTaskID, createdBy uuid.UUID, linkType string) (*tasks.TaskLink, error) {
+	return &tasks.TaskLink{}, nil
+}
+
+func (m *mockRepo) ListTaskLinks(ctx context.Context, orgID, taskID uuid.UUID) ([]tasks.TaskLinkWithTask, error) {
+	return []tasks.TaskLinkWithTask{}, nil
+}
+
+func (m *mockRepo) DeleteTaskLink(ctx context.Context, orgID, linkID uuid.UUID) error {
+	return nil
+}
+
+func (m *mockRepo) LinkExists(ctx context.Context, orgID, sourceTaskID, targetTaskID uuid.UUID, linkType string) (bool, error) {
+	return false, nil
+}
+
+// Subtasks / Hierarchy (stub implementations)
+func (m *mockRepo) ListSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID) ([]tasks.TaskWithDetails, error) {
+	return []tasks.TaskWithDetails{}, nil
+}
+
+func (m *mockRepo) GetSubtaskCounts(ctx context.Context, orgID, parentTaskID uuid.UUID) (*tasks.SubtaskCounts, error) {
+	return &tasks.SubtaskCounts{}, nil
+}
+
+func (m *mockRepo) ChangeTaskParent(ctx context.Context, orgID, taskID uuid.UUID, newParentID *uuid.UUID, newHierarchyLevel int) error {
+	return nil
+}
+
+func (m *mockRepo) ReorderSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID, subtaskIDs []uuid.UUID) error {
+	return nil
+}
+
+func (m *mockRepo) GetTaskHierarchyPath(ctx context.Context, orgID, taskID uuid.UUID) ([]uuid.UUID, error) {
+	return []uuid.UUID{}, nil
 }
 
 // ── Mock ProLicenseChecker ──────────────────────────────────────────────────

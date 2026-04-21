@@ -55,6 +55,8 @@ type TasksSearch = {
   priority?: string
   showCompleted: boolean
   column?: string // Mobile: active column ID
+  task?: string // Active task ID (for shareable URLs)
+  create?: string // List ID for creating new task
 }
 
 export const Route = createFileRoute('/_app/tasks/')({
@@ -66,6 +68,8 @@ export const Route = createFileRoute('/_app/tasks/')({
       assignee: typeof search.assignee === 'string' ? search.assignee : undefined,
       priority: typeof search.priority === 'string' ? search.priority : undefined,
       column: typeof search.column === 'string' ? search.column : undefined,
+      task: typeof search.task === 'string' ? search.task : undefined,
+      create: typeof search.create === 'string' ? search.create : undefined,
       showCompleted: search.showCompleted === false || search.showCompleted === 'false' ? false : true,
     }
   },
@@ -138,8 +142,25 @@ function TasksPage() {
   const [creatingInListId, setCreatingInListId] = useState<string | null>(null)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [newTaskAssignee, setNewTaskAssignee] = useState<string>('')
-  const [selectedTask, setSelectedTask] = useState<TaskWithDetails | null>(null)
-  const [createModalListId, setCreateModalListId] = useState<string | null>(null)
+  
+  // Task modal state is now managed via URL query params for shareability
+  // URL param can be either task code (e.g., "WOR-123") or task ID (UUID)
+  const taskParam = searchParams.task
+  const createModalListId = searchParams.create
+  
+  // Resolve task param to task ID
+  const selectedTaskId = useMemo(() => {
+    if (!taskParam) return null
+    
+    // Check if it's a UUID (has dashes and correct length)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskParam)
+    if (isUUID) return taskParam
+    
+    // Otherwise, treat as code and search in tasks list
+    const task = tasks.find(t => t.code === taskParam)
+    return task?.id || null
+  }, [taskParam, tasks])
+  
   const [expandedWorkloadStatus, setExpandedWorkloadStatus] = useState<string | null>(null)
   
   // Local state for search input to prevent race conditions with URL updates
@@ -1247,7 +1268,7 @@ function TasksPage() {
         <div className="flex-1 min-h-0 px-1 pb-6">
           <AllIssuesTable
             employees={employees}
-            onTaskClick={(task) => setSelectedTask(task)}
+            onTaskClick={(task) => navigate({ search: (prev) => ({ ...prev, task: task.code || task.id }), replace: false })}
           />
         </div>
       )}
@@ -1321,9 +1342,9 @@ function TasksPage() {
                       setNewTaskTitle('')
                       setNewTaskAssignee('')
                     }}
-                    onStartCreateModal={setCreateModalListId}
+                    onStartCreateModal={(listId) => navigate({ search: (prev) => ({ ...prev, create: listId }), replace: false })}
                     onStartCreateInline={setCreatingInListId}
-                    onTaskClick={setSelectedTask}
+                    onTaskClick={(task) => navigate({ search: (prev) => ({ ...prev, task: task.code || task.id }), replace: false })}
                     isFinalState={col.is_final_state}
                   />
                 </div>
@@ -1372,14 +1393,14 @@ function TasksPage() {
         </DragOverlay>
       </DndContext>}
 
-      {/* Task Detail Modal - Used for both create and edit */}
-      {selectedTask && (
+      {/* Task Detail Modal - Used for viewing/editing */}
+      {selectedTaskId && (
         <TaskDetailModal
-          task={selectedTask}
+          taskId={selectedTaskId}
           employees={employees}
           taskLists={visibleLists}
           getEmployeeWorkload={getEmployeeWorkload}
-          onClose={() => setSelectedTask(null)}
+          onClose={() => navigate({ search: (prev) => { const { task, ...rest } = prev; return rest; }, replace: false })}
         />
       )}
 
@@ -1392,7 +1413,7 @@ function TasksPage() {
           taskLists={visibleLists}
           getEmployeeWorkload={getEmployeeWorkload}
           onClose={() => {
-            setCreateModalListId(null)
+            navigate({ search: (prev) => { const { create, ...rest } = prev; return rest; }, replace: false })
             setNewTaskTitle('')
             setNewTaskAssignee('')
           }}
