@@ -311,6 +311,40 @@ func (f *fakeService) ClearFieldValue(ctx context.Context, orgID, taskID, fieldI
 	return nil
 }
 
+// Task Links (stub implementations)
+func (f *fakeService) CreateTaskLink(ctx context.Context, orgID, sourceTaskID uuid.UUID, req tasks.CreateTaskLinkRequest, createdBy uuid.UUID, actorUserID ...uuid.UUID) (*tasks.TaskLink, error) {
+	return &tasks.TaskLink{}, nil
+}
+
+func (f *fakeService) ListTaskLinks(ctx context.Context, orgID, taskID uuid.UUID) ([]tasks.TaskLinkWithTask, error) {
+	return []tasks.TaskLinkWithTask{}, nil
+}
+
+func (f *fakeService) DeleteTaskLink(ctx context.Context, orgID, linkID uuid.UUID, actorUserID ...uuid.UUID) error {
+	return nil
+}
+
+// Subtasks / Hierarchy (stub implementations)
+func (f *fakeService) CreateSubtask(ctx context.Context, orgID, parentTaskID, createdBy uuid.UUID, req tasks.CreateSubtaskRequest, actorUserID ...uuid.UUID) (*tasks.Task, error) {
+	return &tasks.Task{}, nil
+}
+
+func (f *fakeService) ListSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID) ([]tasks.TaskWithDetails, error) {
+	return []tasks.TaskWithDetails{}, nil
+}
+
+func (f *fakeService) ChangeTaskParent(ctx context.Context, orgID, taskID uuid.UUID, req tasks.ChangeParentRequest, actorUserID ...uuid.UUID) error {
+	return nil
+}
+
+func (f *fakeService) ReorderSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID, req tasks.ReorderSubtasksRequest, actorUserID ...uuid.UUID) error {
+	return nil
+}
+
+func (f *fakeService) GetSubtaskCounts(ctx context.Context, orgID, parentTaskID uuid.UUID) (*tasks.SubtaskCounts, error) {
+	return &tasks.SubtaskCounts{}, nil
+}
+
 // ── Task Lists Tests ─────────────────────────────────────────────────────────
 
 func TestListTaskLists(t *testing.T) {

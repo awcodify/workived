@@ -263,6 +263,9 @@ func main() {
 	mobileSvc := mobile.NewService(empSvc, attRepo, leaveSvc, claimsSvc, tasksRepo, attSvc, cachedOrgInfo, log, cacheStore)
 	mobileHandler := mobile.NewHandler(mobileSvc)
 
+	// Admin handler for feature flags
+	adminHandler := admin.NewHandler(adminSvc, log)
+
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
 		gin.SetMode(gin.ReleaseMode)
@@ -340,6 +343,7 @@ func main() {
 	reportsHandler.RegisterRoutes(authed)
 	dashboardHandler.RegisterRoutes(authed)
 	annHandler.RegisterRoutes(authed)
+	adminHandler.RegisterPublicRoutes(authed)
 
 	// ── Server ────────────────────────────────────────────────────────────────
 	srv := &http.Server{

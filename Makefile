@@ -87,6 +87,15 @@ build-staff: ## Build the staff admin binary to bin/staff
 run-staff: ## Run the staff admin server
 	cd $(SERVICES_DIR) && go run ./cmd/staff
 
+backfill-task-codes: ## Backfill task codes for all existing tasks (use --dry-run to preview)
+	@mkdir -p bin
+	cd $(SERVICES_DIR) && go build -o ../bin/backfill-task-codes ./cmd/backfill-task-codes
+	@echo "Running backfill script..."
+	@./bin/backfill-task-codes $(ARGS)
+
+backfill-task-codes-dry: ## Preview task code backfill without making changes
+	@$(MAKE) backfill-task-codes ARGS="--dry-run"
+
 # ── Frontend ─────────────────────────────────────────────────────────────────
 
 web-install: ## Install frontend dependencies

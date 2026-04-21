@@ -196,7 +196,17 @@ export function TaskCard({
         width: '100%',
         position: 'relative' as const,
         marginTop: '8px',
-        border: task.approval_type === 'claim'
+        borderTop: task.approval_type === 'claim'
+          ? '1px solid rgba(16, 185, 129, 0.2)'
+          : task.approval_type === 'leave'
+            ? '1px solid rgba(139, 92, 246, 0.2)'
+            : '1px solid rgba(0,0,0,0.08)',
+        borderRight: task.approval_type === 'claim'
+          ? '1px solid rgba(16, 185, 129, 0.2)'
+          : task.approval_type === 'leave'
+            ? '1px solid rgba(139, 92, 246, 0.2)'
+            : '1px solid rgba(0,0,0,0.08)',
+        borderBottom: task.approval_type === 'claim'
           ? '1px solid rgba(16, 185, 129, 0.2)'
           : task.approval_type === 'leave'
             ? '1px solid rgba(139, 92, 246, 0.2)'
@@ -317,6 +327,22 @@ export function TaskCard({
               <span>✓</span>
               <span>{task.approval_type === 'leave' ? 'Leave Approval' : 'Claim Approval'}</span>
             </div>
+          )}
+          
+          {/* Task code badge */}
+          {task.code && (
+            <span
+              className="inline-block px-2 py-0.5 rounded text-xs font-mono font-semibold mr-2 mb-1"
+              style={{
+                background: isDone ? '#E5E7EB' : '#F3F4F6',
+                color: isDone ? '#9CA3AF' : '#6B7280',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                fontSize: '11px',
+                letterSpacing: '0.3px',
+              }}
+            >
+              {task.code}
+            </span>
           )}
           
           <h3

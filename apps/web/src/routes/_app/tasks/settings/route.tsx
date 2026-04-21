@@ -1,6 +1,9 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useCallback } from 'react'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Type, Hash, Calendar, CheckSquare, ChevronDown, Link as LinkIcon, User, Star } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { Dropdown } from '@/components/workived/shared/Dropdown'
+import type { DropdownOption } from '@/components/workived/shared/Dropdown'
 import {
   DndContext,
   closestCenter,
@@ -61,16 +64,16 @@ const C = {
 
 // ── Custom Fields Constants ─────────────────────────────────────────────────
 
-const FIELD_TYPES: { value: FieldType; label: string; icon: string }[] = [
-  { value: 'text',         label: 'Text',         icon: '𝖳' },
-  { value: 'number',       label: 'Number',       icon: '#' },
-  { value: 'date',         label: 'Date',         icon: '📅' },
-  { value: 'boolean',      label: 'Yes/No',       icon: '☑' },
-  { value: 'select',       label: 'Select',       icon: '▾' },
-  { value: 'multi_select', label: 'Multi-select', icon: '▾▾' },
-  { value: 'url',          label: 'URL',          icon: '🔗' },
-  { value: 'employee',     label: 'Employee',     icon: '👤' },
-  { value: 'rating',       label: 'Rating',       icon: '★' },
+const FIELD_TYPES: { value: FieldType; label: string; icon: LucideIcon }[] = [
+  { value: 'text',         label: 'Text',         icon: Type },
+  { value: 'number',       label: 'Number',       icon: Hash },
+  { value: 'date',         label: 'Date',         icon: Calendar },
+  { value: 'boolean',      label: 'Yes/No',       icon: CheckSquare },
+  { value: 'select',       label: 'Select',       icon: ChevronDown },
+  { value: 'multi_select', label: 'Multi-select', icon: ChevronDown },
+  { value: 'url',          label: 'URL',          icon: LinkIcon },
+  { value: 'employee',     label: 'Employee',     icon: User },
+  { value: 'rating',       label: 'Rating',       icon: Star },
 ]
 
 const TYPES_NEEDING_OPTIONS: FieldType[] = ['select', 'multi_select']
@@ -319,6 +322,13 @@ function TaskBoardSettingsPage() {
   }
 
   const handleUpdateList = (id: string, updates: { name?: string; is_final_state?: boolean }) => {
+    // Optimistic update for immediate UI feedback
+    setLocalLists((items) => 
+      items.map(item => 
+        item.id === id ? { ...item, ...updates } : item
+      )
+    )
+
     updateList.mutate(
       { id, data: updates },
       {
@@ -328,6 +338,8 @@ function TaskBoardSettingsPage() {
         },
         onError: (err) => {
           setError(extractApiError(err) ?? 'Failed to update column')
+          // Revert optimistic update on error
+          setLocalLists(taskLists)
         },
       },
     )
@@ -662,20 +674,24 @@ function TaskBoardSettingsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium mb-1" style={{ color: textSec, fontFamily: typography.fontFamily }}>
-                    Type
-                  </label>
-                  <select
+                  <Dropdown
+                    label="Type"
                     value={newFieldType}
-                    onChange={(e) => setNewFieldType(e.target.value as FieldType)}
-                    className="w-full rounded-md px-3 py-2 text-sm outline-none"
-                    style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, fontFamily: typography.fontFamily }}
-                    data-testid="custom-field-type-select"
-                  >
-                    {FIELD_TYPES.map((t) => (
-                      <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
-                    ))}
-                  </select>
+                    onChange={(v) => setNewFieldType(v as FieldType)}
+                    options={FIELD_TYPES.map(t => ({ value: t.value, label: t.label, icon: t.icon }))}
+                    fullWidth
+                    theme={{
+                      text,
+                      textMuted: textSec,
+                      input: inputBg,
+                      inputBorder: inputBdr,
+                      surface: surfaceBg,
+                      border,
+                      hoverBg: '#F9FAFB',
+                    }}
+                    labelStyle={{ color: textSec, fontFamily: typography.fontFamily, fontSize: '12px', fontWeight: 500 }}
+                    style={{ fontFamily: typography.fontFamily, fontSize: '14px' }}
+                  />
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: textSec, fontFamily: typography.fontFamily }}>
@@ -727,6 +743,7 @@ function TaskBoardSettingsPage() {
                 <ul className="space-y-2" role="list">
                   {fieldDefinitions.map((field) => {
                     const typeInfo = FIELD_TYPES.find((t) => t.value === field.field_type)
+                    const TypeIcon = typeInfo?.icon
                     return (
                       <li
                         key={field.id}
@@ -735,10 +752,11 @@ function TaskBoardSettingsPage() {
                         data-testid={`custom-field-item-${field.id}`}
                       >
                         <span
-                          className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0"
+                          className="text-xs font-bold px-2 py-0.5 rounded flex-shrink-0 flex items-center gap-1"
                           style={{ background: C.accent + '18', color: C.accent }}
                         >
-                          {typeInfo?.icon} {typeInfo?.label ?? field.field_type}
+                          {TypeIcon && <TypeIcon size={12} />}
+                          {typeInfo?.label ?? field.field_type}
                         </span>
                         <div className="flex-1 min-w-0">
                           <span className="text-sm font-medium truncate block" style={{ color: text }}>

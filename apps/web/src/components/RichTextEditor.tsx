@@ -9,6 +9,9 @@ import { useState, useRef, useEffect } from 'react'
 import { ImageUploadZone } from './ImageUploadZone'
 import { X, Link as LinkIcon, Unlink, ImageIcon, Loader2 } from 'lucide-react'
 
+// Create a uniquely named Link extension to avoid duplicate warnings with RichTextViewer
+const EditableLink = Link.extend({ name: 'editableLink' })
+
 interface RichTextEditorProps {
   value: string
   onChange: (value: string) => void
@@ -40,7 +43,7 @@ export function RichTextEditor({
           levels: [1, 2, 3],
         },
       }),
-      Link.configure({
+      EditableLink.configure({
         openOnClick: false,
         HTMLAttributes: {
           style: 'color: inherit; text-decoration: underline; cursor: pointer;',
@@ -78,9 +81,11 @@ export function RichTextEditor({
   })
 
   // Update editor content when value changes externally
-  if (editor && value !== editor.getHTML()) {
-    editor.commands.setContent(value)
-  }
+  useEffect(() => {
+    if (editor && value !== editor.getHTML()) {
+      editor.commands.setContent(value)
+    }
+  }, [editor, value])
 
   const toggleBold = () => editor?.chain().focus().toggleBold().run()
   const toggleItalic = () => editor?.chain().focus().toggleItalic().run()

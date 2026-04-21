@@ -18,12 +18,22 @@ import (
 )
 
 type Handler struct {
-	svc *Service
-	log zerolog.Logger
+	svc           *Service
+	importHandler *ImportHandler
+	log           zerolog.Logger
 }
 
 func NewHandler(svc *Service, log zerolog.Logger) *Handler {
-	return &Handler{svc: svc, log: log}
+	return &Handler{
+		svc: svc,
+		log: log,
+	}
+}
+
+// WithImportHandler sets the import handler for staff import operations
+func (h *Handler) WithImportHandler(importHandler *ImportHandler) *Handler {
+	h.importHandler = importHandler
+	return h
 }
 
 func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fields map[string]string) {
@@ -60,6 +70,11 @@ func (h *Handler) RegisterStaffRoutes(r *gin.RouterGroup) {
 	// Admin configs
 	admin.GET("/configs", h.ListAdminConfigs)
 	admin.PATCH("/configs/:key", h.UpdateAdminConfig)
+
+	// Import tools
+	admin.POST("/import/linear-tasks", h.ImportLinearTasks)
+	admin.POST("/import/linear-projects", h.FetchLinearProjects)
+	admin.POST("/import/linear-users", h.FetchLinearUsers)
 }
 
 // RegisterPublicRoutes registers auth-only (non-admin) feature-check routes.
@@ -250,4 +265,33 @@ func (h *Handler) GetEnabledFeatures(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": features})
+}
+
+// ── Import Tools ─────────────────────────────────────────────────────────────
+
+// ImportLinearTasks delegates to the import handler
+func (h *Handler) ImportLinearTasks(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, apperr.Response(apperr.New(apperr.CodeNotFound, "import functionality not enabled")))
+		return
+	}
+	h.importHandler.ImportLinearTasks(c)
+}
+
+// FetchLinearProjects delegates to the import handler
+func (h *Handler) FetchLinearProjects(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, apperr.Response(apperr.New(apperr.CodeNotFound, "import functionality not enabled")))
+		return
+	}
+	h.importHandler.FetchLinearProjects(c)
+}
+
+// FetchLinearUsers delegates to the import handler
+func (h *Handler) FetchLinearUsers(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, apperr.Response(apperr.New(apperr.CodeNotFound, "import functionality not enabled")))
+		return
+	}
+	h.importHandler.FetchLinearUsers(c)
 }

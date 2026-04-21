@@ -744,6 +744,7 @@ export interface Task {
   id: string
   organisation_id: string
   task_list_id: string
+  code?: string  // Auto-generated task code (e.g. WOR-123)
   title: string
   description?: string
   assignee_id?: string

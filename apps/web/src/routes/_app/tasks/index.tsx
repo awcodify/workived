@@ -1,13 +1,12 @@
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
-import React, { useState, useCallback, useMemo, useEffect } from 'react'
-import { Settings } from 'lucide-react'
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { Settings, Flame, TrendingUp, Minus, TrendingDown, Search, Check, Zap, Plane, Menu, List, Star, X } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { ColumnTabNav } from '@/components/tasks/ColumnTabNav'
 import { TaskCard as EnhancedTaskCard } from '@/components/tasks/TaskCard'
-import { FieldDefinitionsPanel } from '@/components/tasks/FieldDefinitionsPanel'
 import { AllIssuesTable } from '@/components/tasks/AllIssuesTable'
 import { Dropdown, type DropdownOption } from '@/components/workived/shared/Dropdown'
 import {
@@ -56,6 +55,8 @@ type TasksSearch = {
   priority?: string
   showCompleted: boolean
   column?: string // Mobile: active column ID
+  task?: string // Active task ID (for shareable URLs)
+  create?: string // List ID for creating new task
 }
 
 export const Route = createFileRoute('/_app/tasks/')({
@@ -67,6 +68,8 @@ export const Route = createFileRoute('/_app/tasks/')({
       assignee: typeof search.assignee === 'string' ? search.assignee : undefined,
       priority: typeof search.priority === 'string' ? search.priority : undefined,
       column: typeof search.column === 'string' ? search.column : undefined,
+      task: typeof search.task === 'string' ? search.task : undefined,
+      create: typeof search.create === 'string' ? search.create : undefined,
       showCompleted: search.showCompleted === false || search.showCompleted === 'false' ? false : true,
     }
   },
@@ -92,8 +95,11 @@ function TasksPage() {
   const { data: org } = useOrganisation()
   
   const { data: taskLists = [], isLoading: listsLoading } = useTaskLists()
-  const { data: tasks = [], isLoading: tasksLoading } = useTasks()
-  const { data: employeesData } = useEmployees({ status: 'active', limit: 100 })
+  const { data: tasks = [], isLoading: tasksLoading } = useTasks({ include_completed: true })
+  
+  // Memoize employee query options to prevent React Query from reconfiguring on every render
+  const employeeQueryOptions = useMemo(() => ({ status: 'active' as const, limit: 100 }), [])
+  const { data: employeesData } = useEmployees(employeeQueryOptions)
   const employees = employeesData?.data || []
   const { data: workloadData = [] } = useEmployeeWorkload()
   
@@ -136,14 +142,69 @@ function TasksPage() {
   const [creatingInListId, setCreatingInListId] = useState<string | null>(null)
   const [newTaskTitle, setNewTaskTitle] = useState('')
   const [newTaskAssignee, setNewTaskAssignee] = useState<string>('')
-  const [selectedTask, setSelectedTask] = useState<TaskWithDetails | null>(null)
-  const [createModalListId, setCreateModalListId] = useState<string | null>(null)
+  
+  // Task modal state is now managed via URL query params for shareability
+  // URL param can be either task code (e.g., "WOR-123") or task ID (UUID)
+  const taskParam = searchParams.task
+  const createModalListId = searchParams.create
+  
+  // Resolve task param to task ID
+  const selectedTaskId = useMemo(() => {
+    if (!taskParam) return null
+    
+    // Check if it's a UUID (has dashes and correct length)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taskParam)
+    if (isUUID) return taskParam
+    
+    // Otherwise, treat as code and search in tasks list
+    const task = tasks.find(t => t.code === taskParam)
+    return task?.id || null
+  }, [taskParam, tasks])
+  
   const [expandedWorkloadStatus, setExpandedWorkloadStatus] = useState<string | null>(null)
-  const [showFieldsPanel, setShowFieldsPanel] = useState(false)
+  
+  // Local state for search input to prevent race conditions with URL updates
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
+  
+  // Column visibility state (persisted to localStorage)
+  const [hiddenColumnIds, setHiddenColumnIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    const stored = localStorage.getItem('workived:hiddenColumns')
+    return stored ? new Set(JSON.parse(stored)) : new Set()
+  })
+  const [showColumnToggle, setShowColumnToggle] = useState(false)
+  const columnToggleRef = useRef<HTMLDivElement>(null)
+  
+  // Track if we've initialized mobile column to prevent infinite loops
+  const mobileColumnInitialized = useRef(false)
+  
+  // Track previous tasks data to prevent unnecessary optimistic updates
+  const prevTasksRef = useRef<TaskWithDetails[]>([])
+  
+  // Track if user is currently dragging to prevent flicker from background refetches
+  const isDraggingRef = useRef(false)
+  
+  // Sync local search to URL params with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearchQuery !== searchQuery) {
+        updateSearchParam('search', localSearchQuery)
+      }
+    }, 300) // 300ms debounce
+    
+    return () => clearTimeout(timer)
+  }, [localSearchQuery, searchQuery, updateSearchParam])
+  
+  // Sync URL search param back to local state (for when URL changes externally, e.g., clear button)
+  useEffect(() => {
+    if (searchQuery !== localSearchQuery && searchQuery === '') {
+      setLocalSearchQuery('')
+    }
+  }, [searchQuery])
 
-  // Apply filters to tasks
-  const filteredTasks = useMemo(() => {
-    let filtered = tasks || []
+  // Apply filters to optimistic tasks (for display only)
+  const displayTasks = useMemo(() => {
+    let filtered = optimisticTasks || []
 
     // View mode filter (tasks vs approvals)
     if (viewMode === 'tasks') {
@@ -152,9 +213,9 @@ function TasksPage() {
       filtered = filtered.filter((task) => !!task.approval_type)
     }
 
-    // Search filter (title + description)
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
+    // Search filter (title + description) - use localSearchQuery for instant filtering
+    if (localSearchQuery.trim()) {
+      const query = localSearchQuery.toLowerCase()
       filtered = filtered.filter((task) => {
         const matchTitle = task.title.toLowerCase().includes(query)
         const matchDesc = task.description?.toLowerCase().includes(query)
@@ -182,12 +243,29 @@ function TasksPage() {
     }
     
     return filtered
-  }, [tasks, viewMode, searchQuery, selectedAssignee, selectedPriority, showCompleted])
+  }, [optimisticTasks, viewMode, localSearchQuery, selectedAssignee, selectedPriority, showCompleted])
   
-  // Sync with server data and apply filters
+  // Sync optimistic state with server data (only when data genuinely changes)
   useEffect(() => {
-    setOptimisticTasks(filteredTasks || [])
-  }, [filteredTasks])
+    const currentTasks = tasks || []
+    
+    // Don't update during drag operations to prevent flicker
+    if (isDraggingRef.current) {
+      return
+    }
+    
+    // Create a signature of the current data (IDs + updated_at timestamps)
+    const createSignature = (taskList: TaskWithDetails[]) => 
+      taskList.map(t => `${t.id}:${t.updated_at || ''}`).sort().join('|')
+    
+    const currentSig = createSignature(currentTasks)
+    const prevSig = createSignature(prevTasksRef.current)
+    
+    if (currentSig !== prevSig) {
+      prevTasksRef.current = currentTasks
+      setOptimisticTasks(currentTasks)
+    }
+  }, [tasks])
 
   // Close workload dropdown when clicking outside
   useEffect(() => {
@@ -198,42 +276,83 @@ function TasksPage() {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [expandedWorkloadStatus])
   
-  // Render all active lists in position order
+  // Close column toggle dropdown when clicking outside
+  useEffect(() => {
+    if (!showColumnToggle) return
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (columnToggleRef.current && !columnToggleRef.current.contains(event.target as Node)) {
+        setShowColumnToggle(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showColumnToggle])
+  
+  // Persist hidden columns to localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('workived:hiddenColumns', JSON.stringify([...hiddenColumnIds]))
+  }, [hiddenColumnIds])
+  
+  // Toggle column visibility
+  const toggleColumnVisibility = useCallback((columnId: string) => {
+    setHiddenColumnIds(prev => {
+      const next = new Set(prev)
+      if (next.has(columnId)) {
+        next.delete(columnId)
+      } else {
+        next.add(columnId)
+      }
+      return next
+    })
+  }, [])
+  
+  // Render all active lists in position order, excluding hidden columns
   const visibleLists = useMemo(() => {
     const lists = taskLists || []
     return lists
-      .filter((list) => list.is_active)
+      .filter((list) => list.is_active && !hiddenColumnIds.has(list.id))
       .sort((a, b) => a.position - b.position)
-  }, [taskLists])
+  }, [taskLists, hiddenColumnIds])
   
   // Check if any filters are active (showCompleted=true is the default, so only count it if false)
-  const hasActiveFilters = !!(searchQuery || selectedAssignee || selectedPriority || showCompleted === false)
+  const hasActiveFilters = !!(localSearchQuery || selectedAssignee || selectedPriority || showCompleted === false)
 
-  // Mobile: Set default active column to first list if not specified
+  // Mobile: Set default active column to first list if not specified (run only once)
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.innerWidth < 640 && visibleLists.length > 0 && !activeColumnId) {
+    if (
+      !mobileColumnInitialized.current &&
+      typeof window !== 'undefined' && 
+      window.innerWidth < 640 && 
+      visibleLists.length > 0 && 
+      !activeColumnId
+    ) {
       const firstList = visibleLists[0]
       if (firstList) {
+        mobileColumnInitialized.current = true
         updateSearchParam('column', firstList.id)
       }
     }
-  }, [visibleLists, activeColumnId, updateSearchParam])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visibleLists, activeColumnId])
 
   // Handler for mobile column switching
   const handleColumnChange = useCallback((columnId: string) => {
     updateSearchParam('column', columnId)
-  }, [updateSearchParam])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // Calculate task counts per column
+  // Calculate task counts per column (using filtered tasks)
   const taskCounts = useMemo(() => {
     const counts: Record<string, number> = {}
     visibleLists.forEach((list) => {
-      counts[list.id] = (optimisticTasks || []).filter(
+      counts[list.id] = (displayTasks || []).filter(
         (t) => t.task_list_id === list.id
       ).length
     })
     return counts
-  }, [visibleLists, optimisticTasks])
+  }, [visibleLists, displayTasks])
 
   // Visual column config
   const columnConfig = useMemo(() => {
@@ -288,6 +407,7 @@ function TasksPage() {
   }, [optimisticTasks, visibleLists])
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
+    isDraggingRef.current = true
     const tasks = optimisticTasks || []
     const task = tasks.find((t) => t.id === event.active.id)
     if (task) {
@@ -302,6 +422,7 @@ function TasksPage() {
   }, [])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
+    isDraggingRef.current = false
     const { active, over } = event
     const draggedTask = activeTask
     const originalListId = activeTaskOriginalListId
@@ -483,14 +604,14 @@ function TasksPage() {
     )
   }
 
-  const totalTasks = (optimisticTasks || []).length
+  const totalTasks = (displayTasks || []).length
   const allTasksCount = (tasks || []).length
   const finalStateListIds = new Set(visibleLists.filter((l) => l.is_final_state).map((l) => l.id))
   const completedTasks = (tasks || []).filter(
     (t) => t.completed_at || finalStateListIds.has(t.task_list_id)
   ).length
   const inProgressList = visibleLists.find((l) => !l.is_final_state && l !== visibleLists[0])
-  const inProgressCount = inProgressList ? (optimisticTasks || []).filter(
+  const inProgressCount = inProgressList ? (displayTasks || []).filter(
     (t) => t.task_list_id === inProgressList.id && !t.completed_at
   ).length : 0
 
@@ -558,17 +679,18 @@ function TasksPage() {
             />
             {org?.plan === 'pro' && (
               <div
-                className="flex items-center px-3 py-1.5 rounded-lg"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg"
                 style={{
                   background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
                   boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
                 }}
               >
+                <Star size={10} fill="white" style={{ color: 'white' }} />
                 <span
                   className="text-[10px] font-bold uppercase"
                   style={{ color: '#FFFFFF', letterSpacing: '0.05em' }}
                 >
-                  ⭐ PRO
+                  PRO
                 </span>
               </div>
             )}
@@ -645,7 +767,7 @@ function TasksPage() {
               fontFamily: typography.fontFamily,
             }}
           >
-            <span style={{ fontSize: '11px' }}>≡</span>
+            <List size={14} />
             All Issues
           </button>
 
@@ -662,11 +784,11 @@ function TasksPage() {
                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
               }}
             >
-              <span className="text-base" style={{ opacity: 0.5 }}>🔍</span>
+              <Search size={16} style={{ color: '#64748B' }} />
               <input
                 type="text"
-                value={searchQuery}
-                onChange={(e) => updateSearchParam('search', e.target.value)}
+                value={localSearchQuery}
+                onChange={(e) => setLocalSearchQuery(e.target.value)}
                 placeholder="Search tasks..."
                 className="flex-1 bg-transparent border-none outline-none text-sm"
                 style={{
@@ -674,16 +796,16 @@ function TasksPage() {
                   fontFamily: typography.fontFamily,
                 }}
               />
-              {searchQuery && (
+              {localSearchQuery && (
                 <button
-                  onClick={() => updateSearchParam('search', '')}
-                  className="text-xs font-bold px-2 py-1 rounded transition-opacity hover:opacity-70"
+                  onClick={() => setLocalSearchQuery('')}
+                  className="flex items-center justify-center p-1 rounded transition-opacity hover:opacity-70"
                   style={{
-                    background: 'rgba(0, 0, 0, 0.05)',
                     color: '#64748B',
                   }}
+                  aria-label="Clear search"
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               )}
             </div>
@@ -881,44 +1003,109 @@ function TasksPage() {
             )
           })()}
 
+          {/* Column visibility toggle */}
+          <div ref={columnToggleRef} className="relative">
+            <button
+              onClick={() => setShowColumnToggle(!showColumnToggle)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition-all"
+              style={{
+                background: showColumnToggle ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0,0,0,0.05)',
+                color: showColumnToggle ? '#6366F1' : '#64748B',
+                fontFamily: typography.fontFamily,
+                border: '1px solid rgba(0,0,0,0.08)',
+              }}
+            >
+              <Menu size={14} />
+              Columns
+              {hiddenColumnIds.size > 0 && (
+                <span
+                  className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold"
+                  style={{
+                    background: '#6366F1',
+                    color: 'white',
+                  }}
+                >
+                  {(taskLists || []).filter(l => l.is_active).length - hiddenColumnIds.size}
+                </span>
+              )}
+            </button>
+            
+            {showColumnToggle && (
+              <div
+                className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border z-50"
+                style={{
+                  border: '1px solid #DFE1E6',
+                  minWidth: '200px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                }}
+              >
+                <div
+                  className="px-3 py-2 border-b text-xs font-bold"
+                  style={{
+                    borderColor: '#DFE1E6',
+                    color: '#2C3E50',
+                    fontFamily: typography.fontFamily,
+                  }}
+                >
+                  Show/Hide Columns
+                </div>
+                <div className="py-1">
+                  {(taskLists || [])
+                    .filter((list) => list.is_active)
+                    .sort((a, b) => a.position - b.position)
+                    .map((list) => (
+                      <label
+                        key={list.id}
+                        className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!hiddenColumnIds.has(list.id)}
+                          onChange={() => toggleColumnVisibility(list.id)}
+                          className="w-4 h-4 rounded cursor-pointer"
+                          style={{
+                            accentColor: '#6366F1',
+                          }}
+                        />
+                        <span
+                          className="text-sm flex-1"
+                          style={{
+                            color: '#2C3E50',
+                            fontFamily: typography.fontFamily,
+                          }}
+                        >
+                          {list.name}
+                        </span>
+                      </label>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Filters */}
           <Dropdown
             value={selectedPriority}
             onChange={(value) => updateSearchParam('priority', value)}
             options={[
               { value: '', label: 'Priority' },
-              { value: 'urgent', label: 'Urgent', badge: '🔥' },
-              { value: 'high', label: 'High' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'low', label: 'Low' },
+              { value: 'urgent', label: 'Urgent', icon: Flame, iconColor: '#EF4444' },
+              { value: 'high', label: 'High', icon: TrendingUp, iconColor: '#F59E0B' },
+              { value: 'medium', label: 'Medium', icon: Minus, iconColor: '#3B82F6' },
+              { value: 'low', label: 'Low', icon: TrendingDown, iconColor: '#64748B' },
             ]}
             placeholder="Priority"
             style={{
-              background: 'white',
-              border: '1px solid #DFE1E6',
-              color: selectedPriority ? '#2C3E50' : '#64748B',
-              fontSize: '13px',
-              fontWeight: selectedPriority ? '600' : '400',
+              background: selectedPriority ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0,0,0,0.05)',
+              border: '1px solid rgba(0,0,0,0.08)',
+              color: selectedPriority ? '#6366F1' : '#64748B',
+              fontSize: '12px',
+              fontWeight: '700',
               fontFamily: typography.fontFamily,
-              padding: '6px 12px',
+              padding: '8px 12px',
             }}
           />
-
-          {canEditOrgSettings && (
-            <button
-              onClick={() => setShowFieldsPanel(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all hover:bg-black/5"
-              style={{
-                background: 'white',
-                color: '#64748B',
-                border: '1px solid #DFE1E6',
-                fontFamily: typography.fontFamily,
-              }}
-            >
-              <span>⊞</span>
-              Fields
-            </button>
-          )}
 
           </> /* end board-only filters */}
 
@@ -932,10 +1119,10 @@ function TasksPage() {
                 on_leave: workloadData.filter(e => e.workload.status === 'on_leave').length,
               }
               const statusConfig = [
-                { key: 'available', icon: '✓', label: 'available', color: '#10B981' },
-                { key: 'warning', icon: '⚡', label: 'busy', color: '#F59E0B' },
-                { key: 'overloaded', icon: '🔥', label: 'overloaded', color: '#EF4444' },
-                { key: 'on_leave', icon: '✈', label: 'on leave', color: '#8B5CF6' },
+                { key: 'available', icon: Check, label: 'available', color: '#10B981' },
+                { key: 'warning', icon: Zap, label: 'busy', color: '#F59E0B' },
+                { key: 'overloaded', icon: Flame, label: 'overloaded', color: '#EF4444' },
+                { key: 'on_leave', icon: Plane, label: 'on leave', color: '#8B5CF6' },
               ]
 
               return (
@@ -970,7 +1157,7 @@ function TasksPage() {
                               cursor: 'pointer',
                             }}
                           >
-                            <span className="text-xs">{status.icon}</span>
+                            <status.icon size={12} style={{ color: status.color }} />
                             <span
                               className="text-xs font-semibold"
                               style={{
@@ -1014,7 +1201,8 @@ function TasksPage() {
                                   letterSpacing: '0.5px',
                                 }}
                               >
-                                {status.icon} {status.label} ({count})
+                                <status.icon size={14} style={{ color: status.color, display: 'inline-block', marginRight: '4px' }} />
+                                {status.label} ({count})
                               </div>
                               
                               <div className="max-h-[320px] overflow-y-auto space-y-2">
@@ -1080,7 +1268,7 @@ function TasksPage() {
         <div className="flex-1 min-h-0 px-1 pb-6">
           <AllIssuesTable
             employees={employees}
-            onTaskClick={(task) => setSelectedTask(task)}
+            onTaskClick={(task) => navigate({ search: (prev) => ({ ...prev, task: task.code || task.id }), replace: false })}
           />
         </div>
       )}
@@ -1107,7 +1295,7 @@ function TasksPage() {
       >
         <div className="flex gap-6 pb-4 -mx-6 px-6 md:-mx-11 md:px-11 overflow-x-auto" style={{ minHeight: '400px', scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}>
           {columnConfig.map((col, idx) => {
-            const columnTasks = (optimisticTasks || [])
+            const columnTasks = (displayTasks || [])
               .filter((t) => t.task_list_id === col.id)
               .sort((a, b) => {
                 // Pin approval tasks to the top
@@ -1154,9 +1342,9 @@ function TasksPage() {
                       setNewTaskTitle('')
                       setNewTaskAssignee('')
                     }}
-                    onStartCreateModal={setCreateModalListId}
+                    onStartCreateModal={(listId) => navigate({ search: (prev) => ({ ...prev, create: listId }), replace: false })}
                     onStartCreateInline={setCreatingInListId}
-                    onTaskClick={setSelectedTask}
+                    onTaskClick={(task) => navigate({ search: (prev) => ({ ...prev, task: task.code || task.id }), replace: false })}
                     isFinalState={col.is_final_state}
                   />
                 </div>
@@ -1205,14 +1393,14 @@ function TasksPage() {
         </DragOverlay>
       </DndContext>}
 
-      {/* Task Detail Modal - Used for both create and edit */}
-      {selectedTask && (
+      {/* Task Detail Modal - Used for viewing/editing */}
+      {selectedTaskId && (
         <TaskDetailModal
-          task={selectedTask}
+          taskId={selectedTaskId}
           employees={employees}
           taskLists={visibleLists}
           getEmployeeWorkload={getEmployeeWorkload}
-          onClose={() => setSelectedTask(null)}
+          onClose={() => navigate({ search: (prev) => { const { task, ...rest } = prev; return rest; }, replace: false })}
         />
       )}
 
@@ -1225,15 +1413,11 @@ function TasksPage() {
           taskLists={visibleLists}
           getEmployeeWorkload={getEmployeeWorkload}
           onClose={() => {
-            setCreateModalListId(null)
+            navigate({ search: (prev) => { const { create, ...rest } = prev; return rest; }, replace: false })
             setNewTaskTitle('')
             setNewTaskAssignee('')
           }}
         />
-      )}
-
-      {showFieldsPanel && (
-        <FieldDefinitionsPanel onClose={() => setShowFieldsPanel(false)} />
       )}
     </div>
   )
@@ -1331,16 +1515,6 @@ function StatusColumn({
                 {label}
               </h3>
             </div>
-            {/* Hand-drawn underline */}
-            <svg width="100%" height="8" style={{ overflow: 'visible' }}>
-              <path
-                d={`M 0 4 Q ${Math.random() * 20 + 40} ${Math.random() * 2 + 3}, ${Math.random() * 20 + 80} 4 T ${Math.random() * 20 + 160} 4`}
-                stroke="#2C3E50"
-                strokeWidth="2.5"
-                fill="none"
-                opacity="0.8"
-              />
-            </svg>
           </div>
           {/* Add Task Button in Header */}
           <button
@@ -1425,12 +1599,12 @@ function StatusColumn({
                   const workload = getEmployeeWorkload(emp.id)
                   const badge = workload 
                     ? workload.workload.status === 'on_leave' 
-                      ? '🏖️ On Leave' 
+                      ? '(On Leave)' 
                       : workload.workload.status === 'overloaded' 
-                        ? `🔴 ${workload.workload.active_tasks} tasks` 
+                        ? `(${workload.workload.active_tasks} tasks)` 
                         : workload.workload.status === 'warning'
-                          ? `⚠️ ${workload.workload.active_tasks} tasks`
-                          : '✅'
+                          ? `(${workload.workload.active_tasks} tasks)`
+                          : ''
                     : ''
                   return (
                     <option key={emp.id} value={emp.id} style={{ background: '#FFFFFF' }}>

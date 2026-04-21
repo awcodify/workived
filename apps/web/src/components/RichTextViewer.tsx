@@ -4,6 +4,9 @@ import Link from '@tiptap/extension-link'
 import { AuthenticatedImageExtension } from '@/lib/tiptap/AuthenticatedImageExtension'
 import { typography } from '@/design/tokens'
 
+// Create a uniquely named Link extension to avoid duplicate warnings with RichTextEditor
+const ViewerLink = Link.extend({ name: 'viewerLink' })
+
 interface RichTextViewerProps {
   content: string
   textColor?: string
@@ -22,7 +25,7 @@ export function RichTextViewer({
           levels: [1, 2, 3],
         },
       }),
-      Link.configure({
+      ViewerLink.configure({
         openOnClick: true,
         HTMLAttributes: {
           style: 'color: inherit; text-decoration: underline; cursor: pointer;',

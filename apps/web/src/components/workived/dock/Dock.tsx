@@ -111,6 +111,7 @@ export function Dock() {
             <Link
               key={item.to}
               to={item.to}
+              preload={false}
               className={cn("group relative", item.hideOnMobile && "hidden md:flex")}
               data-tour={`dock-${item.module}`}
               data-testid={`dock-${item.module}-link`}
