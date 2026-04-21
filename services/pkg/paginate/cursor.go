@@ -6,11 +6,11 @@ import (
 )
 
 const DefaultLimit = 20
-const MaxLimit = 100
+const MaxLimit = 500 // Allow larger limits for board views with many tasks
 
 // Cursor is an opaque token encoding the last-seen value(s) for stable pagination.
 type Cursor struct {
-	Value string `json:"v"` // last-seen sort key (e.g. full_name or created_at RFC3339)
+	Value string `json:"v"`  // last-seen sort key (e.g. full_name or created_at RFC3339)
 	ID    string `json:"id"` // last-seen id to break ties
 }
 

@@ -91,7 +91,7 @@ function TasksPage() {
   const { data: org } = useOrganisation()
   
   const { data: taskLists = [], isLoading: listsLoading } = useTaskLists()
-  const { data: tasks = [], isLoading: tasksLoading } = useTasks()
+  const { data: tasks = [], isLoading: tasksLoading } = useTasks({ include_completed: true })
   
   // Memoize employee query options to prevent React Query from reconfiguring on every render
   const employeeQueryOptions = useMemo(() => ({ status: 'active' as const, limit: 100 }), [])
