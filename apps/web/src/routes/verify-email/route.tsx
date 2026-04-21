@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react'
 import { authApi } from '@/lib/api/auth'
+import { getSetupStatus } from '@/lib/api/setup'
+import { isAxiosError } from 'axios'
 import { colors } from '@/design/tokens'
 
 export const Route = createFileRoute('/verify-email')({
@@ -20,11 +22,24 @@ function VerifyEmailPage() {
 
   const verifyMutation = useMutation({
     mutationFn: (token: string) => authApi.verifyEmail(token).then((r) => r.data),
-    onSuccess: () => {
+    onSuccess: async () => {
       setStatus('success')
-      // Redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate({ to: '/login', search: { redirect: undefined } })
+      
+      // Check if user already has an organization
+      setTimeout(async () => {
+        try {
+          const setupStatus = await getSetupStatus()
+          // User has org - redirect to app
+          navigate({ to: '/overview' })
+        } catch (err) {
+          if (isAxiosError(err) && err.response?.status === 403) {
+            // User has no org - redirect to setup-org
+            navigate({ to: '/setup-org' })
+          } else {
+            // Other error - redirect to login
+            navigate({ to: '/login', search: { redirect: undefined } })
+          }
+        }
       }, 2000)
     },
     onError: (error: any) => {
