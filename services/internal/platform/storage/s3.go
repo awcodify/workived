@@ -25,9 +25,9 @@ type Config struct {
 
 // Client wraps S3/MinIO operations.
 type Client struct {
-	s3Client       *s3.Client // used for internal ops (upload, delete)
-	presignS3      *s3.Client // used for generating presigned URLs; may target a different host
-	bucket         string
+	s3Client  *s3.Client // used for internal ops (upload, delete)
+	presignS3 *s3.Client // used for generating presigned URLs; may target a different host
+	bucket    string
 }
 
 // NewClient creates an S3/MinIO client.
@@ -141,4 +141,20 @@ func (c *Client) Delete(ctx context.Context, key string) error {
 		return fmt.Errorf("s3 delete object: %w", err)
 	}
 	return nil
+}
+
+// Get retrieves a file from S3/MinIO.
+func (c *Client) Get(ctx context.Context, key string) (io.ReadCloser, string, error) {
+	resp, err := c.s3Client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(c.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, "", fmt.Errorf("s3 get object: %w", err)
+	}
+	contentType := "application/octet-stream"
+	if resp.ContentType != nil {
+		contentType = *resp.ContentType
+	}
+	return resp.Body, contentType, nil
 }

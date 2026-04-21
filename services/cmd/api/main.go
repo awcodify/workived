@@ -223,13 +223,19 @@ func main() {
 		return emp.ID, nil
 	}, log)
 
-	uploadHandler := upload.NewHandler(storageClient, func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
-		emp, err := empRepo.GetByUserID(ctx, orgID, userID)
-		if err != nil {
-			return uuid.Nil, err
-		}
-		return emp.ID, nil
-	}, log)
+	uploadHandler := upload.NewHandler(
+		storageClient,
+		storageClient, // Also implements StorageGetter
+		func(ctx context.Context, orgID, userID uuid.UUID) (uuid.UUID, error) {
+			emp, err := empRepo.GetByUserID(ctx, orgID, userID)
+			if err != nil {
+				return uuid.Nil, err
+			}
+			return emp.ID, nil
+		},
+		cfg.APIURL,
+		log,
+	)
 
 	setupHandler := setup.NewHandler(setupSvc, log)
 	calendarHandler := calendar.NewHandler(calendarSvc, log)
@@ -310,7 +316,6 @@ func main() {
 	authOnly := v1.Group("")
 	authOnly.Use(middleware.Auth(cfg.JWTSecret))
 	authHandler.RegisterPublicRoutes(authOnly)
-	orgHandler.RegisterPublicRoutes(authOnly)
 
 	// Authenticated + tenant-scoped routes.
 	authed := v1.Group("")

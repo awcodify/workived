@@ -2947,6 +2947,142 @@ paths:
                     items:
                       $ref: "#/components/schemas/MonthlySummary"
 
+  # ── Uploads ───────────────────────────────────────────────────────────────
+  /uploads/presign:
+    post:
+      operationId: getPresignedUploadUrl
+      summary: Get presigned URL for image upload
+      description: |
+        Returns a presigned S3 URL for uploading an image. Supports multiple purposes:
+        - clock_in/clock_out: Attendance photos (employee permission required)
+        - task_attachment: Images attached to task descriptions
+        - comment_attachment: Images attached to task comments
+      tags: [Uploads]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content_type
+                - purpose
+              properties:
+                content_type:
+                  type: string
+                  enum:
+                    - image/jpeg
+                    - image/png
+                    - image/gif
+                    - image/webp
+                  description: MIME type of the image to upload
+                purpose:
+                  type: string
+                  enum:
+                    - clock_in
+                    - clock_out
+                    - task_attachment
+                    - comment_attachment
+                  description: Purpose of the upload
+                employee_id:
+                  type: string
+                  format: uuid
+                  description: Required for clock_in/clock_out purposes
+              example:
+                content_type: image/jpeg
+                purpose: task_attachment
+      responses:
+        "200":
+          description: Presigned upload URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    required:
+                      - presigned_url
+                      - key
+                    properties:
+                      presigned_url:
+                        type: string
+                        format: uri
+                        description: S3 presigned URL for PUT request
+                      key:
+                        type: string
+                        description: Storage key for the uploaded file
+                      public_url:
+                        type: string
+                        format: uri
+                        description: Authenticated API URL for accessing the uploaded file
+                    example:
+                      presigned_url: https://s3.amazonaws.com/bucket/...
+                      key: "00000000-0000-0000-0000-000000000001/task_attachment/20260421-120000_abc12345.jpg"
+                      public_url: http://localhost:8080/api/v1/uploads/00000000-0000-0000-0000-000000000001/task_attachment/20260421-120000_abc12345.jpg
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "403":
+          description: Forbidden (e.g., missing employee permission for attendance uploads)
+
+  /uploads/{key}:
+    get:
+      operationId: serveUploadedFile
+      summary: Serve uploaded file (authenticated)
+      description: |
+        Proxies uploaded files from S3 through our API with authentication and
+        organisation-based permission checks. Users can only access files that
+        belong to their organisation. Files are cached for 1 hour.
+        
+        Security: Requires authentication. Verifies user belongs to the organisation
+        that owns the file (extracted from key format: org_id/purpose/filename).
+      tags: [Uploads]
+      parameters:
+        - in: path
+          name: key
+          required: true
+          schema:
+            type: string
+          description: Storage key returned from presign endpoint
+          example: "00000000-0000-0000-0000-000000000001/task_attachment/20260421-120000_abc12345.jpg"
+      responses:
+        "200":
+          description: File content
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                example: image/jpeg
+              description: MIME type of the file
+            Cache-Control:
+              schema:
+                type: string
+                example: "private, max-age=3600"
+              description: Cache policy (1 hour for authenticated content)
+          content:
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Invalid key format
+        "403":
+          description: User does not belong to the organisation that owns this file
+        "404":
+          description: File not found
+
   # ── Features ──────────────────────────────────────────────────────────────
   /features:
     get:
