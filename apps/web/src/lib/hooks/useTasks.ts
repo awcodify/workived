@@ -7,6 +7,10 @@ import type {
   UpdateTaskInput,
   MoveTaskInput,
   CreateTaskCommentInput,
+  CreateTaskLinkInput,
+  CreateSubtaskInput,
+  ChangeParentInput,
+  ReorderSubtasksInput,
   TaskFilters,
   CreateFieldDefinitionInput,
   UpdateFieldDefinitionInput,
@@ -26,6 +30,9 @@ export const tasksKeys = {
   reactions: (commentId: string) => [...tasksKeys.all, 'reactions', commentId] as const,
 
   fieldDefs: () => [...tasksKeys.all, 'field-definitions'] as const,
+
+  links: (taskId: string) => [...tasksKeys.all, 'links', taskId] as const,
+  subtasks: (parentTaskId: string) => [...tasksKeys.all, 'subtasks', parentTaskId] as const,
 }
 
 // ── Task List Hooks ──────────────────────────────────────────
@@ -108,6 +115,7 @@ export function useTask(id: string) {
   return useQuery({
     queryKey: tasksKeys.taskDetail(id),
     queryFn: () => tasksApi.getTask(id).then((r) => r.data.data),
+    enabled: !!id,
     staleTime: 60 * 1000, // 1 min
   })
 }
@@ -284,7 +292,88 @@ export function useClearFieldValue() {
       tasksApi.clearFieldValue(taskId, fieldId),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: tasksKeys.taskDetail(variables.taskId) })
+    },
+  })
+}
+
+// ── Task Links Hooks ─────────────────────────────────────────
+export function useTaskLinks(taskId: string) {
+  return useQuery({
+    queryKey: tasksKeys.links(taskId),
+    queryFn: () => tasksApi.listTaskLinks(taskId).then((r) => r.data.data || []),
+    staleTime: 30 * 1000, // 30 sec
+  })
+}
+
+export function useCreateTaskLink() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ taskId, data }: { taskId: string; data: CreateTaskLinkInput }) =>
+      tasksApi.createTaskLink(taskId, data).then((r) => r.data.data),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: tasksKeys.links(variables.taskId) })
+      // Also invalidate the target task's links since we create bidirectional links
+      qc.invalidateQueries({ queryKey: tasksKeys.links(variables.data.target_task_id) })
+    },
+  })
+}
+
+export function useDeleteTaskLink() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ taskId, linkId }: { taskId: string; linkId: string }) =>
+      tasksApi.deleteTaskLink(taskId, linkId),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: tasksKeys.links(variables.taskId) })
+      // Invalidate all links to catch reciprocal deletions
+      qc.invalidateQueries({ queryKey: [...tasksKeys.all, 'links'] })
+    },
+  })
+}
+
+// ── Subtasks Hooks ───────────────────────────────────────────
+export function useSubtasks(parentTaskId: string) {
+  return useQuery({
+    queryKey: tasksKeys.subtasks(parentTaskId),
+    queryFn: () => tasksApi.listSubtasks(parentTaskId).then((r) => r.data.data || []),
+    staleTime: 30 * 1000, // 30 sec
+  })
+}
+
+export function useCreateSubtask() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ parentTaskId, data }: { parentTaskId: string; data: CreateSubtaskInput }) =>
+      tasksApi.createSubtask(parentTaskId, data).then((r) => r.data.data),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: tasksKeys.subtasks(variables.parentTaskId) })
+      qc.invalidateQueries({ queryKey: tasksKeys.taskDetail(variables.parentTaskId) })
       qc.invalidateQueries({ queryKey: tasksKeys.tasks() })
+    },
+  })
+}
+
+export function useChangeTaskParent() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ taskId, data }: { taskId: string; data: ChangeParentInput }) =>
+      tasksApi.changeTaskParent(taskId, data),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: tasksKeys.taskDetail(variables.taskId) })
+      qc.invalidateQueries({ queryKey: tasksKeys.tasks() })
+      // Invalidate all subtasks queries since parent changed
+      qc.invalidateQueries({ queryKey: [...tasksKeys.all, 'subtasks'] })
+    },
+  })
+}
+
+export function useReorderSubtasks() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ parentTaskId, data }: { parentTaskId: string; data: ReorderSubtasksInput }) =>
+      tasksApi.reorderSubtasks(parentTaskId, data),
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: tasksKeys.subtasks(variables.parentTaskId) })
     },
   })
 }

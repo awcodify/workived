@@ -1177,3 +1177,303 @@ func validateSelectValue(raw json.RawMessage, options []FieldOption, fieldType s
 	}
 	return nil
 }
+
+// ── Task Links ───────────────────────────────────────────────────────────────
+
+func (s *Service) CreateTaskLink(ctx context.Context, orgID, sourceTaskID uuid.UUID, req CreateTaskLinkRequest, createdBy uuid.UUID, actorUserID ...uuid.UUID) (*TaskLink, error) {
+	// Validate: cannot link task to itself
+	if sourceTaskID == req.TargetTaskID {
+		return nil, ErrSelfLinking()
+	}
+
+	// Verify both tasks exist and belong to same org
+	sourceTask, err := s.repo.GetTask(ctx, orgID, sourceTaskID)
+	if err != nil {
+		return nil, err
+	}
+	targetTask, err := s.repo.GetTask(ctx, orgID, req.TargetTaskID)
+	if err != nil {
+		return nil, err
+	}
+	if sourceTask.OrganisationID != targetTask.OrganisationID {
+		return nil, ErrTasksNotInSameOrg()
+	}
+
+	// Check if link already exists
+	exists, err := s.repo.LinkExists(ctx, orgID, sourceTaskID, req.TargetTaskID, req.LinkType)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return nil, ErrLinkAlreadyExists()
+	}
+
+	// Detect circular dependencies for blocking links
+	if req.LinkType == LinkTypeBlocks || req.LinkType == LinkTypeBlockedBy {
+		if err := s.checkCircularDependency(ctx, orgID, sourceTaskID, req.TargetTaskID, req.LinkType); err != nil {
+			return nil, err
+		}
+	}
+
+	// Create the primary link
+	link, err := s.repo.CreateTaskLink(ctx, orgID, sourceTaskID, req.TargetTaskID, createdBy, req.LinkType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create bidirectional link automatically
+	reciprocalType := getReciprocalLinkType(req.LinkType)
+	if reciprocalType != "" {
+		_, err := s.repo.CreateTaskLink(ctx, orgID, req.TargetTaskID, sourceTaskID, createdBy, reciprocalType)
+		if err != nil {
+			s.log.Warn().Err(err).Msg("failed to create reciprocal task link")
+		}
+	}
+
+	// Audit log
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.link.created",
+			ResourceType: "task_link",
+			ResourceID:   link.ID,
+		})
+	}
+
+	return link, nil
+}
+
+func (s *Service) ListTaskLinks(ctx context.Context, orgID, taskID uuid.UUID) ([]TaskLinkWithTask, error) {
+	return s.repo.ListTaskLinks(ctx, orgID, taskID)
+}
+
+func (s *Service) DeleteTaskLink(ctx context.Context, orgID, linkID uuid.UUID, actorUserID ...uuid.UUID) error {
+	// TODO: Optionally also delete the reciprocal link
+	err := s.repo.DeleteTaskLink(ctx, orgID, linkID)
+	if err != nil {
+		return err
+	}
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.link.deleted",
+			ResourceType: "task_link",
+			ResourceID:   linkID,
+		})
+	}
+
+	return nil
+}
+
+// getReciprocalLinkType returns the opposite link type for bidirectional links
+func getReciprocalLinkType(linkType string) string {
+	switch linkType {
+	case LinkTypeBlocks:
+		return LinkTypeBlockedBy
+	case LinkTypeBlockedBy:
+		return LinkTypeBlocks
+	case LinkTypeFollows:
+		return LinkTypePrecedes
+	case LinkTypePrecedes:
+		return LinkTypeFollows
+	case LinkTypeDuplicates:
+		return LinkTypeDuplicateOf
+	case LinkTypeDuplicateOf:
+		return LinkTypeDuplicates
+	case LinkTypeRelatedTo:
+		return LinkTypeRelatedTo // Symmetric
+	default:
+		return ""
+	}
+}
+
+// checkCircularDependency detects if creating a link would cause a cycle
+func (s *Service) checkCircularDependency(ctx context.Context, orgID, sourceTaskID, targetTaskID uuid.UUID, linkType string) error {
+	// If A blocks B, then B cannot block A (directly or transitively)
+	// Use BFS to check if targetTask already blocks sourceTask
+	visited := make(map[uuid.UUID]bool)
+	queue := []uuid.UUID{targetTaskID}
+
+	for len(queue) > 0 {
+		currentID := queue[0]
+		queue = queue[1:]
+
+		if visited[currentID] {
+			continue
+		}
+		visited[currentID] = true
+
+		// Get all tasks that currentTask blocks
+		links, err := s.repo.ListTaskLinks(ctx, orgID, currentID)
+		if err != nil {
+			return err
+		}
+
+		for _, link := range links {
+			if link.LinkType == LinkTypeBlocks {
+				if link.TargetTaskID == sourceTaskID {
+					// Cycle detected!
+					return ErrCircularDependency()
+				}
+				queue = append(queue, link.TargetTaskID)
+			}
+		}
+	}
+
+	return nil
+}
+
+// ── Subtasks / Hierarchy ─────────────────────────────────────────────────────
+
+const MaxHierarchyDepth = 2 // 0=root, 1=subtask, 2=sub-subtask
+
+func (s *Service) CreateSubtask(ctx context.Context, orgID, parentTaskID, createdBy uuid.UUID, req CreateSubtaskRequest, actorUserID ...uuid.UUID) (*Task, error) {
+	// Get parent task
+	parentTask, err := s.repo.GetTask(ctx, orgID, parentTaskID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check max hierarchy depth
+	if parentTask.HierarchyLevel >= MaxHierarchyDepth {
+		return nil, ErrMaxHierarchyDepth(MaxHierarchyDepth + 1)
+	}
+
+	// Create task with parent relationship
+	// Subtasks inherit the same task_list_id from parent
+	createReq := CreateTaskRequest{
+		TaskListID:  parentTask.TaskListID,
+		Title:       req.Title,
+		Description: req.Description,
+		AssigneeID:  req.AssigneeID,
+		Priority:    req.Priority,
+		DueDate:     req.DueDate,
+	}
+
+	task, err := s.repo.CreateTask(ctx, orgID, createdBy, createReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update to set parent and hierarchy level
+	newHierarchyLevel := parentTask.HierarchyLevel + 1
+	if err := s.repo.ChangeTaskParent(ctx, orgID, task.ID, &parentTaskID, newHierarchyLevel); err != nil {
+		return nil, err
+	}
+
+	// Reload to get updated fields
+	updatedTask, err := s.repo.GetTask(ctx, orgID, task.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Audit log
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.subtask.created",
+			ResourceType: "task",
+			ResourceID:   task.ID,
+		})
+	}
+
+	return &updatedTask.Task, nil
+}
+
+func (s *Service) ListSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID) ([]TaskWithDetails, error) {
+	return s.repo.ListSubtasks(ctx, orgID, parentTaskID)
+}
+
+func (s *Service) GetSubtaskCounts(ctx context.Context, orgID, parentTaskID uuid.UUID) (*SubtaskCounts, error) {
+	return s.repo.GetSubtaskCounts(ctx, orgID, parentTaskID)
+}
+
+func (s *Service) ChangeTaskParent(ctx context.Context, orgID, taskID uuid.UUID, req ChangeParentRequest, actorUserID ...uuid.UUID) error {
+	// Get the task
+	_, err := s.repo.GetTask(ctx, orgID, taskID)
+	if err != nil {
+		return err
+	}
+
+	var newHierarchyLevel int
+
+	if req.ParentTaskID == nil {
+		// Promote to root level
+		newHierarchyLevel = 0
+	} else {
+		// Get new parent
+		newParent, err := s.repo.GetTask(ctx, orgID, *req.ParentTaskID)
+		if err != nil {
+			return err
+		}
+
+		// Check max depth
+		if newParent.HierarchyLevel >= MaxHierarchyDepth {
+			return ErrMaxHierarchyDepth(MaxHierarchyDepth + 1)
+		}
+
+		// Prevent setting as child of own descendant (circular hierarchy)
+		path, err := s.repo.GetTaskHierarchyPath(ctx, orgID, *req.ParentTaskID)
+		if err != nil {
+			return err
+		}
+		for _, ancestorID := range path {
+			if ancestorID == taskID {
+				return ErrCircularDependency()
+			}
+		}
+
+		newHierarchyLevel = newParent.HierarchyLevel + 1
+	}
+
+	// Update parent relationship
+	if err := s.repo.ChangeTaskParent(ctx, orgID, taskID, req.ParentTaskID, newHierarchyLevel); err != nil {
+		return err
+	}
+
+	// Audit log
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.parent.changed",
+			ResourceType: "task",
+			ResourceID:   taskID,
+		})
+	}
+
+	return nil
+}
+
+func (s *Service) ReorderSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID, req ReorderSubtasksRequest, actorUserID ...uuid.UUID) error {
+	// Verify all subtasks belong to the parent
+	for _, subtaskID := range req.SubtaskIDs {
+		task, err := s.repo.GetTask(ctx, orgID, subtaskID)
+		if err != nil {
+			return err
+		}
+		if task.ParentTaskID == nil || *task.ParentTaskID != parentTaskID {
+			return apperr.New(apperr.CodeValidation, "task is not a subtask of the specified parent")
+		}
+	}
+
+	if err := s.repo.ReorderSubtasks(ctx, orgID, parentTaskID, req.SubtaskIDs); err != nil {
+		return err
+	}
+
+	if len(actorUserID) > 0 {
+		s.logAudit(ctx, audit.LogEntry{
+			OrgID:        orgID,
+			ActorUserID:  actorUserID[0],
+			Action:       "task.subtasks.reordered",
+			ResourceType: "task",
+			ResourceID:   parentTaskID,
+		})
+	}
+
+	return nil
+}

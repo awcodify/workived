@@ -37,6 +37,8 @@ type Task struct {
 	CompletedAt    *time.Time `json:"completed_at,omitempty"`
 	ApprovalType   *string    `json:"approval_type,omitempty"` // 'leave' | 'claim' | NULL
 	ApprovalID     *uuid.UUID `json:"approval_id,omitempty"`   // FK to leave_requests.id or claims.id
+	ParentTaskID   *uuid.UUID `json:"parent_task_id,omitempty"`
+	HierarchyLevel int        `json:"hierarchy_level"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 }
@@ -48,6 +50,50 @@ type TaskWithDetails struct {
 	CreatorName  string                     `json:"creator_name"`
 	ListName     string                     `json:"list_name"`
 	FieldValues  []FieldValueWithDefinition `json:"field_values,omitempty"`
+	SubtaskCount *SubtaskCounts             `json:"subtask_counts,omitempty"`
+}
+
+// SubtaskCounts represents the completion stats for subtasks
+type SubtaskCounts struct {
+	Total     int `json:"total"`
+	Completed int `json:"completed"`
+}
+
+// LinkType constants for task relationships
+const (
+	LinkTypeBlocks      = "blocks"
+	LinkTypeBlockedBy   = "blocked_by"
+	LinkTypeRelatedTo   = "related_to"
+	LinkTypeDuplicates  = "duplicates"
+	LinkTypeDuplicateOf = "duplicate_of"
+	LinkTypeFollows     = "follows"
+	LinkTypePrecedes    = "precedes"
+)
+
+// TaskLink represents a relationship between two tasks
+type TaskLink struct {
+	ID             uuid.UUID `json:"id"`
+	OrganisationID uuid.UUID `json:"organisation_id"`
+	SourceTaskID   uuid.UUID `json:"source_task_id"`
+	TargetTaskID   uuid.UUID `json:"target_task_id"`
+	LinkType       string    `json:"link_type"`
+	CreatedAt      time.Time `json:"created_at"`
+	CreatedBy      uuid.UUID `json:"created_by"`
+}
+
+// TaskLinkWithTask includes the linked task details
+type TaskLinkWithTask struct {
+	TaskLink
+	TargetTask TaskSummary `json:"target_task"`
+}
+
+// TaskSummary is a minimal task representation for links
+type TaskSummary struct {
+	ID          uuid.UUID  `json:"id"`
+	Title       string     `json:"title"`
+	Priority    string     `json:"priority"`
+	CompletedAt *time.Time `json:"completed_at,omitempty"`
+	ListName    string     `json:"list_name"`
 }
 
 type TaskComment struct {
@@ -139,6 +185,27 @@ type CreateCommentRequest struct {
 
 type ToggleReactionRequest struct {
 	Emoji string `json:"emoji" binding:"required,max=10"`
+}
+
+type CreateTaskLinkRequest struct {
+	TargetTaskID uuid.UUID `json:"target_task_id" binding:"required"`
+	LinkType     string    `json:"link_type" binding:"required,oneof=blocks blocked_by related_to duplicates duplicate_of follows precedes"`
+}
+
+type CreateSubtaskRequest struct {
+	Title       string     `json:"title" binding:"required,max=500"`
+	Description *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
+	AssigneeID  *uuid.UUID `json:"assignee_id,omitempty"`
+	Priority    string     `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
+	DueDate     *string    `json:"due_date,omitempty"` // YYYY-MM-DD or RFC3339 datetime
+}
+
+type ChangeParentRequest struct {
+	ParentTaskID *uuid.UUID `json:"parent_task_id"` // null to promote to root
+}
+
+type ReorderSubtasksRequest struct {
+	SubtaskIDs []uuid.UUID `json:"subtask_ids" binding:"required,min=1"`
 }
 
 // ── Filter types ─────────────────────────────────────────────────────────────
@@ -306,6 +373,19 @@ type RepositoryInterface interface {
 	ClearFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID) error
 	GetTaskFieldValues(ctx context.Context, orgID, taskID uuid.UUID) ([]FieldValueWithDefinition, error)
 	BatchGetFieldValues(ctx context.Context, orgID uuid.UUID, taskIDs []uuid.UUID) (map[uuid.UUID][]FieldValueWithDefinition, error)
+
+	// Task Links
+	CreateTaskLink(ctx context.Context, orgID, sourceTaskID, targetTaskID, createdBy uuid.UUID, linkType string) (*TaskLink, error)
+	ListTaskLinks(ctx context.Context, orgID, taskID uuid.UUID) ([]TaskLinkWithTask, error)
+	DeleteTaskLink(ctx context.Context, orgID, linkID uuid.UUID) error
+	LinkExists(ctx context.Context, orgID, sourceTaskID, targetTaskID uuid.UUID, linkType string) (bool, error)
+
+	// Subtasks / Hierarchy
+	ListSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID) ([]TaskWithDetails, error)
+	GetSubtaskCounts(ctx context.Context, orgID, parentTaskID uuid.UUID) (*SubtaskCounts, error)
+	ChangeTaskParent(ctx context.Context, orgID, taskID uuid.UUID, newParentID *uuid.UUID, newHierarchyLevel int) error
+	GetTaskHierarchyPath(ctx context.Context, orgID, taskID uuid.UUID) ([]uuid.UUID, error)
+	ReorderSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID, subtaskIDs []uuid.UUID) error
 }
 
 // ── Service Interface ────────────────────────────────────────────────────────
@@ -346,6 +426,18 @@ type ServiceInterface interface {
 	// Field Values
 	SetFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, req SetFieldValueRequest, actorUserID ...uuid.UUID) (*FieldValueWithDefinition, error)
 	ClearFieldValue(ctx context.Context, orgID, taskID, fieldID uuid.UUID, actorUserID ...uuid.UUID) error
+
+	// Task Links
+	CreateTaskLink(ctx context.Context, orgID, sourceTaskID uuid.UUID, req CreateTaskLinkRequest, createdBy uuid.UUID, actorUserID ...uuid.UUID) (*TaskLink, error)
+	ListTaskLinks(ctx context.Context, orgID, taskID uuid.UUID) ([]TaskLinkWithTask, error)
+	DeleteTaskLink(ctx context.Context, orgID, linkID uuid.UUID, actorUserID ...uuid.UUID) error
+
+	// Subtasks / Hierarchy
+	CreateSubtask(ctx context.Context, orgID, parentTaskID, createdBy uuid.UUID, req CreateSubtaskRequest, actorUserID ...uuid.UUID) (*Task, error)
+	ListSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID) ([]TaskWithDetails, error)
+	GetSubtaskCounts(ctx context.Context, orgID, parentTaskID uuid.UUID) (*SubtaskCounts, error)
+	ChangeTaskParent(ctx context.Context, orgID, taskID uuid.UUID, req ChangeParentRequest, actorUserID ...uuid.UUID) error
+	ReorderSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID, req ReorderSubtasksRequest, actorUserID ...uuid.UUID) error
 }
 
 // ── Error Constructors ───────────────────────────────────────────────────────
@@ -420,4 +512,28 @@ func ErrFieldValueNotFound() *apperr.AppError {
 
 func ErrTaskFieldNotFound() *apperr.AppError {
 	return apperr.NotFound("task or field")
+}
+
+func ErrTaskLinkNotFound() *apperr.AppError {
+	return apperr.NotFound("task link")
+}
+
+func ErrCircularDependency() *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, "circular dependency detected")
+}
+
+func ErrSelfLinking() *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, "cannot link task to itself")
+}
+
+func ErrMaxHierarchyDepth(maxDepth int) *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, fmt.Sprintf("maximum hierarchy depth is %d levels", maxDepth))
+}
+
+func ErrLinkAlreadyExists() *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, "link already exists between these tasks")
+}
+
+func ErrTasksNotInSameOrg() *apperr.AppError {
+	return apperr.New(apperr.CodeValidation, "tasks must belong to the same organisation")
 }

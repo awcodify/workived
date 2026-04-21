@@ -754,6 +754,8 @@ export interface Task {
   completed_at?: string
   approval_type?: 'leave' | 'claim'
   approval_id?: string
+  parent_task_id?: string
+  hierarchy_level: number
   created_at: string
   updated_at: string
 }
@@ -821,6 +823,43 @@ export interface TaskWithDetails extends Task {
   creator_name: string
   list_name: string
   field_values?: FieldValueWithDefinition[]
+  subtask_counts?: SubtaskCounts
+}
+
+export interface SubtaskCounts {
+  total: number
+  completed: number
+}
+
+export type TaskLinkType =
+  | 'blocks'
+  | 'blocked_by'
+  | 'related_to'
+  | 'duplicates'
+  | 'duplicate_of'
+  | 'follows'
+  | 'precedes'
+
+export interface TaskLink {
+  id: string
+  organisation_id: string
+  source_task_id: string
+  target_task_id: string
+  link_type: TaskLinkType
+  created_at: string
+  created_by: string
+}
+
+export interface TaskSummary {
+  id: string
+  title: string
+  priority: TaskPriority
+  completed_at?: string
+  list_name: string
+}
+
+export interface TaskLinkWithTask extends TaskLink {
+  target_task: TaskSummary
 }
 
 export interface TaskComment {
@@ -881,6 +920,27 @@ export interface CreateTaskCommentInput {
   parent_id?: string
   body: string
   content_type?: 'plain' | 'markdown'
+}
+
+export interface CreateTaskLinkInput {
+  target_task_id: string
+  link_type: TaskLinkType
+}
+
+export interface CreateSubtaskInput {
+  title: string
+  description?: string
+  assignee_id?: string
+  priority?: TaskPriority
+  due_date?: string
+}
+
+export interface ChangeParentInput {
+  parent_task_id?: string | null
+}
+
+export interface ReorderSubtasksInput {
+  subtask_ids: string[]
 }
 
 export interface TaskFilters {

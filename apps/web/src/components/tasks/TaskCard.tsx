@@ -4,6 +4,7 @@
  */
 
 import { useMemo } from 'react'
+import { ListTodo } from 'lucide-react'
 import { typography } from '@/design/tokens'
 import { formatRelativeDueDate } from '@/lib/utils/date'
 import type { TaskWithDetails, TaskPriority, Employee, EmployeeWorkload, FieldValueWithDefinition, FieldType } from '@/types/api'
@@ -355,7 +356,7 @@ export function TaskCard({
           </div>
         )}
 
-        {/* Footer: Priority + Due date + Completed badge */}
+        {/* Footer: Priority + Subtask indicator + Due date + Completed badge */}
         <div className="flex items-center justify-between gap-2 mt-auto pt-2">
           <div className="flex items-center gap-2 flex-wrap">
             {/* Priority badge */}
@@ -370,6 +371,22 @@ export function TaskCard({
             >
               {task.priority}
             </div>
+
+            {/* Subtask indicator - shows this task IS a subtask */}
+            {task.parent_task_id && (
+              <div
+                className="flex items-center gap-1 px-2 py-1 rounded text-xs font-semibold"
+                style={{
+                  background: 'rgba(99, 102, 241, 0.15)',
+                  color: '#4F46E5',
+                  fontFamily: typography.fontFamily,
+                }}
+                title="This is a subtask"
+              >
+                <ListTodo size={12} />
+                <span>Subtask</span>
+              </div>
+            )}
 
             {/* Due date */}
             { formattedDueDate && (

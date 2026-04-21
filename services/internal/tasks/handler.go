@@ -66,6 +66,17 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Field Values (per-task, any member can set)
 	tasks.PUT("/:id/fields/:fid", middleware.Require(middleware.PermTasksRead), h.SetFieldValue)
 	tasks.DELETE("/:id/fields/:fid", middleware.Require(middleware.PermTasksRead), h.ClearFieldValue)
+
+	// Task Links
+	tasks.POST("/:id/links", middleware.Require(middleware.PermTasksRead), h.CreateTaskLink)
+	tasks.GET("/:id/links", middleware.Require(middleware.PermTasksRead), h.ListTaskLinks)
+	tasks.DELETE("/:id/links/:lid", middleware.Require(middleware.PermTasksRead), h.DeleteTaskLink)
+
+	// Subtasks
+	tasks.POST("/:id/subtasks", middleware.Require(middleware.PermTasksRead), h.CreateSubtask)
+	tasks.GET("/:id/subtasks", middleware.Require(middleware.PermTasksRead), h.ListSubtasks)
+	tasks.PATCH("/:id/parent", middleware.Require(middleware.PermTasksRead), h.ChangeTaskParent)
+	tasks.PATCH("/:id/subtasks/reorder", middleware.Require(middleware.PermTasksRead), h.ReorderSubtasks)
 }
 
 // logAndRespondError logs error with context and responds with proper HTTP status
@@ -737,6 +748,213 @@ func (h *Handler) ClearFieldValue(c *gin.Context) {
 			"org_id":   orgID.String(),
 			"task_id":  taskID.String(),
 			"field_id": fieldID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}
+
+// ── Task Links ───────────────────────────────────────────────────────────────
+
+func (h *Handler) CreateTaskLink(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	taskID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	// Get employee ID from user ID
+	empID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to lookup employee", map[string]string{"org_id": orgID.String(), "user_id": userID.String()})
+		return
+	}
+
+	var req CreateTaskLinkRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	link, err := h.service.CreateTaskLink(c.Request.Context(), orgID, taskID, req, empID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to create task link", map[string]string{
+			"org_id":  orgID.String(),
+			"task_id": taskID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"data": link})
+}
+
+func (h *Handler) ListTaskLinks(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	taskID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	links, err := h.service.ListTaskLinks(c.Request.Context(), orgID, taskID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to list task links", map[string]string{
+			"org_id":  orgID.String(),
+			"task_id": taskID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"data": links})
+}
+
+func (h *Handler) DeleteTaskLink(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	taskID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	linkID, err := uuid.Parse(c.Param("lid"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.DeleteTaskLink(c.Request.Context(), orgID, linkID, userID); err != nil {
+		h.logAndRespondError(c, err, "failed to delete task link", map[string]string{
+			"org_id":  orgID.String(),
+			"task_id": taskID.String(),
+			"link_id": linkID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}
+
+// ── Subtasks / Hierarchy ─────────────────────────────────────────────────────
+
+func (h *Handler) CreateSubtask(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	parentTaskID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	// Get employee ID from user ID
+	empID, err := h.empLookup(c.Request.Context(), orgID, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to lookup employee", map[string]string{"org_id": orgID.String(), "user_id": userID.String()})
+		return
+	}
+
+	var req CreateSubtaskRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	task, err := h.service.CreateSubtask(c.Request.Context(), orgID, parentTaskID, empID, req, userID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to create subtask", map[string]string{
+			"org_id":         orgID.String(),
+			"parent_task_id": parentTaskID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"data": task})
+}
+
+func (h *Handler) ListSubtasks(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	parentTaskID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	subtasks, err := h.service.ListSubtasks(c.Request.Context(), orgID, parentTaskID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to list subtasks", map[string]string{
+			"org_id":         orgID.String(),
+			"parent_task_id": parentTaskID.String(),
+		})
+		return
+	}
+
+	// Also get subtask counts for the parent
+	counts, err := h.service.GetSubtaskCounts(c.Request.Context(), orgID, parentTaskID)
+	if err != nil {
+		h.log.Warn().Err(err).Msg("failed to get subtask counts")
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"data":   subtasks,
+		"counts": counts,
+	})
+}
+
+func (h *Handler) ChangeTaskParent(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	taskID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	var req ChangeParentRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.ChangeTaskParent(c.Request.Context(), orgID, taskID, req, userID); err != nil {
+		h.logAndRespondError(c, err, "failed to change task parent", map[string]string{
+			"org_id":  orgID.String(),
+			"task_id": taskID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *Handler) ReorderSubtasks(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+
+	parentTaskID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	var req ReorderSubtasksRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, apperr.ValidationError(err))
+		return
+	}
+
+	if err := h.service.ReorderSubtasks(c.Request.Context(), orgID, parentTaskID, req, userID); err != nil {
+		h.logAndRespondError(c, err, "failed to reorder subtasks", map[string]string{
+			"org_id":         orgID.String(),
+			"parent_task_id": parentTaskID.String(),
 		})
 		return
 	}

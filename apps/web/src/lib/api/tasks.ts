@@ -16,6 +16,11 @@ import type {
   UpdateTaskInput,
   MoveTaskInput,
   CreateTaskCommentInput,
+  CreateTaskLinkInput,
+  CreateSubtaskInput,
+  ChangeParentInput,
+  ReorderSubtasksInput,
+  TaskLinkWithTask,
   TaskFilters,
   ApiResponse,
   CursorMeta,
@@ -124,4 +129,40 @@ export const tasksApi = {
 
   clearFieldValue: (taskId: string, fieldId: string) =>
     apiClient.delete(`/api/v1/tasks/${taskId}/fields/${fieldId}`),
+
+  // ── Task Links ─────────────────────────────────────────────
+  createTaskLink: (taskId: string, data: CreateTaskLinkInput) =>
+    apiClient.post<ApiResponse<TaskLinkWithTask>>(
+      `/api/v1/tasks/${taskId}/links`,
+      data,
+    ),
+
+  listTaskLinks: (taskId: string) =>
+    apiClient.get<ApiResponse<TaskLinkWithTask[]>>(
+      `/api/v1/tasks/${taskId}/links`,
+    ),
+
+  deleteTaskLink: (taskId: string, linkId: string) =>
+    apiClient.delete(`/api/v1/tasks/${taskId}/links/${linkId}`),
+
+  // ── Subtasks ───────────────────────────────────────────────
+  createSubtask: (parentTaskId: string, data: CreateSubtaskInput) =>
+    apiClient.post<ApiResponse<Task>>(
+      `/api/v1/tasks/${parentTaskId}/subtasks`,
+      data,
+    ),
+
+  listSubtasks: (parentTaskId: string) =>
+    apiClient.get<ApiResponse<TaskWithDetails[]>>(
+      `/api/v1/tasks/${parentTaskId}/subtasks`,
+    ),
+
+  changeTaskParent: (taskId: string, data: ChangeParentInput) =>
+    apiClient.patch(`/api/v1/tasks/${taskId}/parent`, data),
+
+  reorderSubtasks: (parentTaskId: string, data: ReorderSubtasksInput) =>
+    apiClient.patch(
+      `/api/v1/tasks/${parentTaskId}/subtasks/reorder`,
+      data,
+    ),
 }

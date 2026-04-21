@@ -205,7 +205,7 @@ export function RichTextEditor({
     <div>
       {/* Toolbar */}
       <div 
-        className="flex flex-wrap gap-1 mb-2 p-2 rounded-t-lg border-b"
+        className="flex flex-wrap gap-1 p-2 rounded-t-lg border-b"
         style={{
           background: `${textColor}05`,
           borderColor: `${textColor}20`,

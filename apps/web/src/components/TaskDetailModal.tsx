@@ -1,8 +1,11 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { User, Tag, Calendar, MessageSquare, CheckCircle2, Trash2, Sparkles, Reply, X as XIcon, Loader2, ListTodo, Link2, ArrowLeft, CornerLeftUp } from 'lucide-react'
 import { RichTextEditor } from './RichTextEditor'
 import { RichTextViewer } from './RichTextViewer'
 import { ApprovalTaskView } from './ApprovalTaskView'
 import { ReactionPicker } from './ReactionPicker'
+import { TaskLinksSection } from './TaskLinksSection'
+import { SubtasksSection } from './SubtasksSection'
 import { Dropdown, type DropdownOption } from './workived/shared/Dropdown'
 import { typography, colors } from '@/design/tokens'
 import { orgTimeToUTC, utcToZonedDateTime } from '@/lib/utils/date'
@@ -13,6 +16,7 @@ import {
   useDeleteTask,
   useMoveTask,
   useCreateTask,
+  useTask,
   useTaskComments,
   useCreateTaskComment,
   useDeleteTaskComment,
@@ -408,7 +412,7 @@ function TaskFieldsSection({ task, employees, pendingFieldValues, onFieldChange,
           </button>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+      <div className="space-y-3">
         {visible.map((fd) => {
           const current = isCreateMode ? undefined : getCurrentValue(fd, fieldValues)
           return (
@@ -448,11 +452,48 @@ interface TaskDetailModalProps {
   onClose: () => void
 }
 
-export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, employees, taskLists, getEmployeeWorkload, onClose }: TaskDetailModalProps) {
+export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: initialListId, employees, taskLists, getEmployeeWorkload, onClose }: TaskDetailModalProps) {
+  const [taskStack, setTaskStack] = useState<string[]>([])
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null)
+
+  // Fetch the navigated-to task
+  const { data: navigatedTask, isLoading: isNavigating } = useTask(currentTaskId || '')
+
+  // The task to display: navigated task or the initial task
+  const task = currentTaskId ? navigatedTask : initialTask
+
+  const handleTaskNavigate = (taskId: string) => {
+    // Push current task onto the stack before navigating
+    const currentId = currentTaskId || initialTask?.id
+    if (currentId) {
+      setTaskStack((prev) => [...prev, currentId])
+    }
+    setCurrentTaskId(taskId)
+  }
+
+  const handleGoBack = () => {
+    const prev = taskStack[taskStack.length - 1]
+    setTaskStack((s) => s.slice(0, -1))
+    if (prev === initialTask?.id) {
+      setCurrentTaskId(null)
+    } else {
+      setCurrentTaskId(prev || null)
+    }
+  }
+
+  const handleClose = () => {
+    setTaskStack([])
+    setCurrentTaskId(null)
+    onClose()
+  }
+
   const isCreateMode = mode === 'create'
   const isApprovalTask = task?.approval_type && task?.approval_id && !task?.completed_at
   const { data: org } = useOrganisation()
   const orgTz = org?.timezone ?? 'UTC'
+
+  // Fetch parent task title if task has a parent
+  const { data: parentTask } = useTask(task?.parent_task_id || '')
 
   // If it's an approval task, show the approval view
   if (isApprovalTask && task) {
@@ -463,7 +504,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
           background: 'rgba(0,0,0,0.5)',
           backdropFilter: 'blur(4px)',
         }}
-        onClick={onClose}
+        onClick={handleClose}
       >
         <div
           className="w-full max-w-3xl overflow-y-auto max-h-[90vh] relative"
@@ -478,7 +519,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <ApprovalTaskView task={task} onClose={onClose} />
+          <ApprovalTaskView task={task} onClose={handleClose} />
         </div>
       </div>
     )
@@ -615,7 +656,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape') handleClose()
     }
     document.addEventListener('keydown', handleEscape)
     return () => document.removeEventListener('keydown', handleEscape)
@@ -707,7 +748,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
 
     deleteTaskMutation.mutate(task.id, {
       onSuccess: () => {
-        onClose()
+        handleClose()
       },
     })
   }
@@ -734,7 +775,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               createFieldValueMutation.mutate({ taskId: newTask.id, fieldId, value })
             }
           })
-          onClose()
+          handleClose()
         },
       }
     )
@@ -811,15 +852,6 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
     )
   }
 
-  // Get vibrant sticky note colors for the modal
-  const stickyColors: Record<TaskPriority, { bg: string; text: string; pin: string; tape: string }> = {
-    urgent: { bg: '#FF9999', text: '#5C1A1A', pin: '#CC0000', tape: '#FFD6D6' },
-    high: { bg: '#B19CD9', text: '#3D2A56', pin: '#6A4C9C', tape: '#E6D9FF' },
-    medium: { bg: '#99EBFF', text: '#0D4552', pin: '#0099CC', tape: '#D6F7FF' },
-    low: { bg: '#FFE066', text: '#5C4D00', pin: '#CCAA00', tape: '#FFF4CC' },
-  }
-  const colors = stickyColors[priority as TaskPriority]
-
   // Comment reactions component
   const CommentReactions = ({ taskId, commentId }: { taskId: string; commentId: string }) => {
     const { data: reactions = [] } = useCommentReactions(taskId, commentId)
@@ -850,7 +882,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
           className="rounded-lg p-3 relative group"
           style={{
             background: depth === 0 ? '#F8FAFC' : '#FFFFFF',
-            border: '2px solid #E2E8F0',
+            border: '1px solid #E2E8F0',
           }}
         >
           <div className="flex items-start justify-between gap-2 mb-2">
@@ -882,7 +914,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
                       setCommentText(`@${comment.author_name} `)
                     }
                   }}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-bold px-2 py-1 rounded"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1.5"
                   style={{
                     background: isReplyingToThis ? '#DBEAFE' : '#EFF6FF',
                     color: '#2563EB',
@@ -890,21 +922,29 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
                   }}
                   title={isReplyingToThis ? 'Cancel Reply' : 'Reply'}
                 >
-                  {isReplyingToThis ? '✕ Cancel' : '↩️ Reply'}
+                  {isReplyingToThis ? (
+                    <>
+                      <XIcon size={14} />
+                      Cancel
+                    </>
+                  ) : (
+                    <>
+                      <Reply size={14} />
+                      Reply
+                    </>
+                  )}
                 </button>
               )}
               <button
                 onClick={() => handleDeleteComment(comment.id)}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded"
+                className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md"
                 style={{
-                  background: '#FEE2E2',
+                  background: '#FEF2F2',
                   color: '#EF4444',
                 }}
                 title="Delete comment"
               >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-                  <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
+                <Trash2 size={13} />
               </button>
             </div>
           </div>
@@ -925,22 +965,23 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               className="px-3 py-2 rounded-t-lg"
               style={{
                 background: '#EFF6FF',
-                border: '2px solid #BFDBFE',
+                border: '1px solid #BFDBFE',
                 borderBottom: 'none',
               }}
             >
               <span
-                className="text-xs font-bold"
+                className="text-xs font-bold flex items-center gap-1.5"
                 style={{ color: '#1E40AF', fontFamily: typography.fontFamily }}
               >
-                💬 Replying to {comment.author_name}
+                <MessageSquare size={14} />
+                Replying to {comment.author_name}
               </span>
             </div>
             <div
               className="p-3 rounded-b-lg"
               style={{
                 background: '#FFFFFF',
-                border: '2px solid #BFDBFE',
+                border: '1px solid #BFDBFE',
               }}
             >
               <RichTextEditor
@@ -997,372 +1038,347 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       style={{
-        background: 'rgba(0,0,0,0.5)',
+        background: 'rgba(0,0,0,0.45)',
         backdropFilter: 'blur(4px)',
       }}
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
-        className="w-full max-w-3xl overflow-y-auto max-h-[90vh] relative"
+        className="w-full max-w-6xl flex flex-col relative"
         style={{
           background: '#FFFFFF',
-          boxShadow: `
-            0 24px 48px rgba(0,0,0,0.12),
-            0 12px 24px rgba(0,0,0,0.08),
-            0 0 0 1px rgba(0,0,0,0.05)
-          `,
-          borderRadius: '16px',
+          boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+          borderRadius: '12px',
+          maxHeight: 'calc(100vh - 48px)',
+          overflow: 'hidden',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-8 relative">
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute top-6 right-6 text-3xl leading-none transition-opacity hover:opacity-70"
-            style={{ color: '#64748B', opacity: 0.6 }}
-          >
-            ×
-          </button>
+        {/* Loading overlay when navigating */}
+        {isNavigating && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.7)' }}>
+            <Loader2 size={24} className="animate-spin" style={{ color: '#64748B' }} />
+          </div>
+        )}
 
-          {/* Saving indicator */}
-          {isSaving && (
-            <div
-              className="absolute top-6 right-16 flex items-center gap-2 text-xs font-semibold"
-              style={{ color: '#64748B' }}
-            >
-              <svg
-                className="animate-spin"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="3"
+        {/* ── Sticky Header ── */}
+        <div
+          className="flex items-center justify-between px-6 py-3 flex-shrink-0"
+          style={{ borderBottom: '1px solid #E2E8F0' }}
+        >
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {/* Back button when navigated into a subtask/link */}
+            {taskStack.length > 0 && (
+              <button
+                onClick={handleGoBack}
+                className="p-1 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0"
+                style={{ color: '#64748B' }}
+                title="Go back"
               >
-                <circle cx="12" cy="12" r="10" opacity="0.25" />
-                <path d="M12 2a10 10 0 0 1 10 10" opacity="0.75" />
-              </svg>
-              Saving...
-            </div>
-          )}
+                <ArrowLeft size={16} />
+              </button>
+            )}
 
-          {/* Header */}
-          <div className="mb-6">
+            {!isCreateMode && (
+              <div className="relative inline-block flex-shrink-0">
+                <select
+                  value={listId}
+                  onChange={(e) => handleListChange(e.target.value)}
+                  disabled={moveMutation.isPending}
+                  className="text-xs font-semibold px-2.5 py-1 rounded-md appearance-none cursor-pointer pr-6"
+                  style={{
+                    background: '#F1F5F9',
+                    color: '#475569',
+                    fontFamily: typography.fontFamily,
+                    border: '1px solid #E2E8F0',
+                  }}
+                >
+                  {taskLists.map((list) => (
+                    <option key={list.id} value={list.id}>
+                      {list.name}
+                    </option>
+                  ))}
+                </select>
+                <svg className="absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none" width="10" height="10" viewBox="0 0 12 12" fill="none">
+                  <path d="M3 5l3 3 3-3" stroke="#94A3B8" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+              </div>
+            )}
+            {task?.completed_at && (
+              <span
+                className="text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 flex-shrink-0"
+                style={{ background: '#DCFCE7', color: '#16A34A' }}
+              >
+                <CheckCircle2 size={12} />
+                Done
+              </span>
+            )}
+            {isSaving && (
+              <span className="text-xs flex items-center gap-1.5 flex-shrink-0" style={{ color: '#94A3B8' }}>
+                <Loader2 size={12} className="animate-spin" />
+                Saving
+              </span>
+            )}
+            {!isCreateMode && task && (
+              <span className="text-xs truncate" style={{ color: '#94A3B8', fontFamily: typography.fontFamily }}>
+                Created by {task.creator_name} · {formatRelativeTime(task.created_at)}
+              </span>
+            )}
+          </div>
+          <button
+            onClick={handleClose}
+            className="p-1.5 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0"
+            style={{ color: '#94A3B8' }}
+          >
+            <XIcon size={18} />
+          </button>
+        </div>
+
+        {/* ── Body: Two-column layout ── */}
+        <div className="flex flex-1 min-h-0">
+          {/* Left: Main content (scrollable) */}
+          <div className="flex-1 overflow-y-auto px-6 py-5" style={{ borderRight: '1px solid #E2E8F0' }}>
+            {/* Parent task banner */}
+            {!isCreateMode && task?.parent_task_id && parentTask && (
+              <button
+                onClick={() => handleTaskNavigate(task.parent_task_id!)}
+                className="w-full flex items-center gap-2 p-3 mb-4 rounded-lg hover:shadow-md transition-all group"
+                style={{
+                  background: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
+                  border: '1px solid #BFDBFE',
+                }}
+              >
+                <div className="flex-shrink-0 p-1.5 rounded-md" style={{ background: '#2563EB20' }}>
+                  <CornerLeftUp size={16} style={{ color: '#2563EB' }} />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="text-xs font-semibold" style={{ color: '#1E40AF', fontFamily: typography.fontFamily }}>
+                    Subtask of
+                  </div>
+                  <div className="font-bold text-sm truncate group-hover:underline" style={{ color: '#2563EB', fontFamily: typography.fontFamily }}>
+                    {parentTask.title}
+                  </div>
+                </div>
+                <ArrowLeft size={16} className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{ color: '#2563EB' }} />
+              </button>
+            )}
+
+            {/* Title */}
             <input
               type="text"
               value={title}
               onChange={(e) => handleTitleChange(e.target.value)}
               onBlur={handleTitleBlur}
-              className="text-3xl font-bold w-full bg-transparent border-none outline-none mb-4"
-              style={{ 
-                color: '#1E293B',
-                fontFamily: typography.fontFamily,
-              }}
-              placeholder={isCreateMode ? "Enter task name..." : "Task title"}
+              className="text-xl font-bold w-full bg-transparent border-none outline-none mb-4"
+              style={{ color: '#0F172A', fontFamily: typography.fontFamily }}
+              placeholder={isCreateMode ? 'Enter task name...' : 'Task title'}
             />
-            
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Priority badge */}
-              <div
-                className="text-xs font-bold px-3 py-1.5 uppercase rounded-full"
-                style={{
-                  background: colors.bg,
-                  color: colors.text,
-                  letterSpacing: '0.5px',
-                }}
-              >
-                {priority}
-              </div>
-              {/* Status dropdown badge - Only in edit mode */}
-              {!isCreateMode && (
-                <div className="relative inline-block">
-                  <select
-                    value={listId}
-                    onChange={(e) => handleListChange(e.target.value)}
-                    disabled={moveMutation.isPending}
-                    className="text-xs font-semibold px-2 py-1 rounded appearance-none cursor-pointer pr-6"
-                    style={{
-                      background: `${colors.text}15`,
-                      color: colors.text,
-                      fontFamily: typography.fontFamily,
-                      border: 'none',
-                      outline: 'none',
-                    }}
-                  >
-                    {taskLists.map((list) => (
-                      <option key={list.id} value={list.id}>
-                        📋 {list.name}
-                      </option>
-                    ))}
-                  </select>
-                  <svg
-                    className="absolute right-1 top-1/2 -translate-y-1/2 pointer-events-none"
-                    width="12"
-                    height="12"
-                    viewBox="0 0 12 12"
-                    fill="none"
-                    style={{ opacity: 0.5 }}
-                  >
-                    <path
-                      d="M3 5l3 3 3-3"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{ color: colors.text }}
-                    />
-                  </svg>
-                </div>
-              )}
-              {task?.completed_at && (
-                <span
-                  className="text-xs font-bold px-2 py-1 rounded"
-                  style={{
-                    background: '#10B98115',
-                    color: '#10B981',
-                    fontFamily: typography.fontFamily,
-                  }}
-                >
-                  ✓ Completed
-                </span>
-              )}
+
+            {/* Description */}
+            <div className="mb-6">
+              <RichTextEditor
+                value={description}
+                onChange={handleDescriptionChange}
+                onBlur={handleDescriptionBlur}
+                placeholder="Add a description..."
+                textColor="#1E293B"
+                bgColor="#F8FAFC"
+                minHeight="80px"
+                purpose="task_attachment"
+              />
             </div>
 
-            {/* Creator metadata - Only show in edit mode */}
+            {/* Subtasks */}
+            {!isCreateMode && task && <SubtasksSection task={task} onSubtaskClick={handleTaskNavigate} />}
+
+            {/* Task Links */}
+            {!isCreateMode && task && <TaskLinksSection task={task} onTaskNavigate={handleTaskNavigate} />}
+
+            {/* Comments */}
             {!isCreateMode && task && (
-              <div className="flex items-center gap-2 mt-3">
-                <span
-                  className="text-xs font-semibold"
-                  style={{ color: '#94A3B8', fontFamily: typography.fontFamily }}
+              <div>
+                <h3
+                  className="text-sm font-bold mb-4 flex items-center gap-2"
+                  style={{ color: '#0F172A', fontFamily: typography.fontFamily }}
                 >
-                  Created by {task.creator_name}
-                </span>
-                <span style={{ color: '#CBD5E1' }}>•</span>
-                <span
-                  className="text-xs font-semibold"
-                  style={{ color: '#94A3B8', fontFamily: typography.fontFamily }}
-                >
-                  {formatRelativeTime(task.created_at)}
-                </span>
+                  <MessageSquare size={16} />
+                  Comments ({comments.length})
+                </h3>
+
+                <div className="space-y-3 mb-4">
+                  {comments.map((comment: any) => renderComment(comment, 0))}
+                </div>
+
+                {!replyingToId && (
+                  <div>
+                    <RichTextEditor
+                      value={commentText}
+                      onChange={setCommentText}
+                      placeholder="Add a comment..."
+                      textColor="#1E293B"
+                      bgColor="#F8FAFC"
+                      minHeight="70px"
+                      purpose="comment_attachment"
+                    />
+                    <button
+                      onClick={handleAddComment}
+                      disabled={!commentText.trim() || createCommentMutation.isPending}
+                      className="mt-2 px-4 py-1.5 rounded-md text-sm font-semibold transition-all disabled:opacity-40"
+                      style={{
+                        background: commentText.trim() ? '#2563EB' : '#E2E8F0',
+                        color: commentText.trim() ? '#FFFFFF' : '#94A3B8',
+                        fontFamily: typography.fontFamily,
+                      }}
+                    >
+                      {createCommentMutation.isPending ? 'Posting...' : 'Comment'}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Description */}
-          <div className="mb-6">
-            <label
-              className="block text-sm font-bold mb-2"
-              style={{ color: '#64748B', fontFamily: typography.fontFamily }}
-            >
-              Description
-            </label>
-            <RichTextEditor
-              value={description}
-              onChange={handleDescriptionChange}
-              onBlur={handleDescriptionBlur}
-              placeholder="Add a description..."
-              textColor={colors.text}
-              bgColor={`${colors.text}08`}
-              minHeight="120px"
-              purpose="task_attachment"
-            />
-          </div>
-
-          {/* Properties Grid */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            {/* Assignee with workload indicators */}
-            <div>
-              <label
-                className="block text-xs font-semibold mb-2"
-                style={{ color:'#64748B', fontFamily: typography.fontFamily }}
-              >
-                👤 Assignee
-              </label>
-              <Dropdown
-                value={assigneeId}
-                onChange={handleAssigneeChange}
-                options={assigneeOptions}
-                fullWidth
-                style={{
-                  background: `${colors.text}08`,
-                  border: `2px solid ${colors.text}20`,
-                  color: colors.text,
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  fontFamily: typography.fontFamily,
-                  width: '100%',
-                }}
-              />
-            </div>
-
-            {/* Priority */}
-            <div>
-              <label
-                className="block text-xs font-semibold mb-2"
-                style={{ color:'#64748B', fontFamily: typography.fontFamily }}
-              >
-                🏷️ Priority
-              </label>
-              <Dropdown
-                value={priority}
-                onChange={handlePriorityChange}
-                options={[
-                  { value: 'low', label: 'Low', description: 'Can wait for later' },
-                  { value: 'medium', label: 'Medium', description: 'Normal priority' },
-                  { value: 'high', label: 'High', description: 'Important task' },
-                  { value: 'urgent', label: 'Urgent', description: 'Needs immediate attention', badge: '🔥' },
-                ]}
-                fullWidth
-                style={{
-                  background: `${colors.text}08`,
-                  border: `2px solid ${colors.text}20`,
-                  color: colors.text,
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  fontFamily: typography.fontFamily,
-                  width: '100%',
-                }}
-              />
-            </div>
-
-            {/* Due Date */}
-            <div>
-              <label
-                className="block text-xs font-semibold mb-2"
-                style={{ color:'#64748B', fontFamily: typography.fontFamily }}
-              >
-                📅 Due Date
-              </label>
-              <input
-                type="datetime-local"
-                data-testid="task-due-datetime-input"
-                value={dueDatetime}
-                onChange={(e) => handleDueDatetimeChange(e.target.value)}
-                onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
-                className="w-full rounded-lg px-3 py-2 text-xs outline-none font-medium cursor-pointer"
-                style={{
-                  background: `${colors.text}08`,
-                  border: `2px solid ${colors.text}20`,
-                  color: colors.text,
-                  fontFamily: typography.fontFamily,
-                  colorScheme: 'light',
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Custom Fields */}
-          {isCreateMode ? (
-            <TaskFieldsSection
-              employees={employees}
-              pendingFieldValues={pendingFieldValues}
-              onFieldChange={(fieldId, value) =>
-                setPendingFieldValues((prev) => ({ ...prev, [fieldId]: value }))
-              }
-            />
-          ) : (
-            task && (
-              <TaskFieldsSection
-                task={task}
-                employees={employees}
-                onSavingChange={setIsSaving}
-              />
-            )
-          )}
-
-          {/* Actions */}
-          {isCreateMode ? (
-            <div className="flex items-center gap-3 pb-6 mb-6 border-b-2"
-              style={{ borderColor: `${colors.text}20` }}
-            >
-              <button
-                onClick={handleCreate}
-                disabled={!title.trim() || createTaskMutation.isPending}
-                className="flex-1 px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 hover:scale-105"
-                style={{
-                  background: title.trim() ? '#F59E0B' : '#E2E8F0',
-                  color: title.trim() ? '#000' : '#94A3B8',
-                  fontFamily: typography.fontFamily,
-                }}
-              >
-                {createTaskMutation.isPending ? 'Creating...' : '✨ Create Task'}
-              </button>
-              <button
-                onClick={onClose}
-                className="px-5 py-2.5 rounded-lg text-sm font-bold transition-all hover:bg-black/5"
-                style={{
-                  background: '#F1F5F9',
-                  color: '#64748B',
-                  fontFamily: typography.fontFamily,
-                }}
-              >
-                Cancel
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 pb-6 mb-6 border-b-2"
-            style={{ borderColor: `${colors.text}20` }}
-          >
-            <button
-              onClick={handleDelete}
-              disabled={deleteTaskMutation.isPending}
-              className="px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 hover:scale-105"
-              style={{
-                background: '#EF444415',
-                color: '#EF4444',
-                border: '2px solid #EF444430',
-                fontFamily: typography.fontFamily,
-              }}
-            >
-              {deleteTaskMutation.isPending ? 'Deleting...' : '🗑️ Delete'}
-            </button>
-          </div>
-          )}
-
-          {/* Comments Section - Only in edit mode */}
-          {!isCreateMode && task && (
-            <div>
-              <h3
-                className="text-base font-bold mb-4"
-                style={{ color: colors.text, fontFamily: typography.fontFamily }}
-              >
-                💬 Comments ({comments.length})
-              </h3>
-
-              {/* Comment List */}
-              <div className="space-y-3 mb-4">
-                {comments.map((comment: any) => renderComment(comment, 0))}
+          {/* Right: Sidebar (scrollable independently) */}
+          <div className="w-72 flex-shrink-0 overflow-y-auto px-5 py-5">
+            <div className="space-y-5">
+              {/* Assignee */}
+              <div>
+                <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
+                  <User size={13} />
+                  Assignee
+                </label>
+                <Dropdown
+                  value={assigneeId}
+                  onChange={handleAssigneeChange}
+                  options={assigneeOptions}
+                  fullWidth
+                  style={{
+                    background: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    color: '#1E293B',
+                    fontSize: '13px',
+                    fontFamily: typography.fontFamily,
+                    width: '100%',
+                  }}
+                />
               </div>
 
-              {/* Add Root Comment - Only show when not replying */}
-              {!replyingToId && (
-                <div>
-                  <RichTextEditor
-                    value={commentText}
-                    onChange={setCommentText}
-                    placeholder="Add a comment..."
-                    textColor={colors.text}
-                    bgColor={`${colors.text}08`}
-                    minHeight="100px"
-                    purpose="comment_attachment"
+              {/* Priority */}
+              <div>
+                <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
+                  <Tag size={13} />
+                  Priority
+                </label>
+                <Dropdown
+                  value={priority}
+                  onChange={handlePriorityChange}
+                  options={[
+                    { value: 'low', label: 'Low' },
+                    { value: 'medium', label: 'Medium' },
+                    { value: 'high', label: 'High' },
+                    { value: 'urgent', label: 'Urgent' },
+                  ]}
+                  fullWidth
+                  style={{
+                    background: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    color: '#1E293B',
+                    fontSize: '13px',
+                    fontFamily: typography.fontFamily,
+                    width: '100%',
+                  }}
+                />
+              </div>
+
+              {/* Due Date */}
+              <div>
+                <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
+                  <Calendar size={13} />
+                  Due Date
+                </label>
+                <input
+                  type="datetime-local"
+                  data-testid="task-due-datetime-input"
+                  value={dueDatetime}
+                  onChange={(e) => handleDueDatetimeChange(e.target.value)}
+                  onClick={(e) => (e.currentTarget as HTMLInputElement).showPicker?.()}
+                  className="w-full rounded-md px-3 py-1.5 text-xs outline-none cursor-pointer"
+                  style={{
+                    background: '#F8FAFC',
+                    border: '1px solid #E2E8F0',
+                    color: '#1E293B',
+                    fontFamily: typography.fontFamily,
+                  }}
+                />
+              </div>
+
+              {/* Custom Fields */}
+              <div className="pt-4" style={{ borderTop: '1px solid #F1F5F9' }}>
+                {isCreateMode ? (
+                  <TaskFieldsSection
+                    employees={employees}
+                    pendingFieldValues={pendingFieldValues}
+                    onFieldChange={(fieldId, value) =>
+                      setPendingFieldValues((prev) => ({ ...prev, [fieldId]: value }))
+                    }
                   />
+                ) : (
+                  task && (
+                    <TaskFieldsSection
+                      task={task}
+                      employees={employees}
+                      onSavingChange={setIsSaving}
+                    />
+                  )
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="pt-4" style={{ borderTop: '1px solid #F1F5F9' }}>
+                {isCreateMode ? (
+                  <div className="space-y-2">
+                    <button
+                      onClick={handleCreate}
+                      disabled={!title.trim() || createTaskMutation.isPending}
+                      className="w-full px-4 py-2 rounded-md text-sm font-bold transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+                      style={{
+                        background: title.trim() ? '#F59E0B' : '#E2E8F0',
+                        color: title.trim() ? '#000' : '#94A3B8',
+                        fontFamily: typography.fontFamily,
+                      }}
+                    >
+                      {createTaskMutation.isPending ? 'Creating...' : (
+                        <><Sparkles size={14} /> Create Task</>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleClose}
+                      className="w-full px-4 py-2 rounded-md text-sm font-semibold transition-all hover:bg-gray-100"
+                      style={{ color: '#64748B', fontFamily: typography.fontFamily }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={handleAddComment}
-                    disabled={!commentText.trim() || createCommentMutation.isPending}
-                    className="mt-2 w-full px-5 py-2.5 rounded-lg text-sm font-bold transition-all disabled:opacity-40 hover:scale-105"
+                    onClick={handleDelete}
+                    disabled={deleteTaskMutation.isPending}
+                    className="w-full px-4 py-2 rounded-md text-sm font-semibold transition-all disabled:opacity-40 flex items-center justify-center gap-2"
                     style={{
-                      background: commentText.trim() ? colors.text : `${colors.text}20`,
-                      color: colors.bg,
+                      background: '#FEF2F2',
+                      color: '#DC2626',
+                      border: '1px solid #FECACA',
                       fontFamily: typography.fontFamily,
                     }}
                   >
-                    {createCommentMutation.isPending ? 'Posting...' : 'Add Comment'}
+                    {deleteTaskMutation.isPending ? 'Deleting...' : (
+                      <><Trash2 size={14} /> Delete Task</>
+                    )}
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

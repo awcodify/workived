@@ -1470,7 +1470,7 @@ function StatusColumn({
             </div>
           ) : (
             <button
-              onClick={() => onStartCreateInline(listId)}
+              onClick={() => onStartCreateModal(listId)}
               className="rounded-xl px-4 py-3 text-left text-sm font-medium transition-all hover:shadow-md"
               style={{
                 background: 'rgba(0,0,0,0.03)',
