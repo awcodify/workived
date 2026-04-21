@@ -12,6 +12,7 @@ export interface DropdownOption {
   description?: string
   badge?: string
   icon?: LucideIcon
+  iconColor?: string
 }
 
 export interface DropdownTheme {
@@ -174,7 +175,7 @@ export function Dropdown({
         }}
       >
         <span className={`flex items-center gap-2 ${!selectedOption ? 'text-opacity-50' : ''}`}>
-          {selectedOption?.icon && <selectedOption.icon size={14} style={{ color: colors.accent }} />}
+          {selectedOption?.icon && <selectedOption.icon size={14} style={{ color: selectedOption.iconColor || colors.accent }} />}
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown
@@ -243,7 +244,7 @@ export function Dropdown({
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
-                      {option.icon && <option.icon size={14} style={{ color: colors.accent }} />}
+                      {option.icon && <option.icon size={14} style={{ color: option.iconColor || colors.accent }} />}
                       <span className="text-sm font-semibold" style={{ color: t.text }}>
                         {option.label}
                       </span>

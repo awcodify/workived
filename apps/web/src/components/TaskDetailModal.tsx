@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { User, Tag, Calendar, MessageSquare, CheckCircle2, Trash2, Sparkles, Reply, X as XIcon, Loader2, ListTodo, Link2, ArrowLeft, CornerLeftUp } from 'lucide-react'
+import { User, Tag, Calendar, MessageSquare, CheckCircle2, Trash2, Sparkles, Reply, X as XIcon, Loader2, ListTodo, Link2, ArrowLeft, CornerLeftUp, AlertCircle, AlertTriangle, Info, Circle } from 'lucide-react'
 import { RichTextEditor } from './RichTextEditor'
 import { RichTextViewer } from './RichTextViewer'
 import { ApprovalTaskView } from './ApprovalTaskView'
@@ -1273,10 +1273,10 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: init
                   value={priority}
                   onChange={handlePriorityChange}
                   options={[
-                    { value: 'low', label: 'Low' },
-                    { value: 'medium', label: 'Medium' },
-                    { value: 'high', label: 'High' },
-                    { value: 'urgent', label: 'Urgent' },
+                    { value: 'low', label: 'Low', icon: Circle, iconColor: '#6B7280' },
+                    { value: 'medium', label: 'Medium', icon: Info, iconColor: '#2563EB' },
+                    { value: 'high', label: 'High', icon: AlertTriangle, iconColor: '#D97706' },
+                    { value: 'urgent', label: 'Urgent', icon: AlertCircle, iconColor: '#DC2626' },
                   ]}
                   fullWidth
                   style={{
