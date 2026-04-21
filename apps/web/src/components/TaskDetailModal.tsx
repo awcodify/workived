@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { User, Tag, Calendar, MessageSquare, CheckCircle2, Trash2, Sparkles, Reply, X as XIcon, Loader2, ListTodo, Link2, ArrowLeft, CornerLeftUp, Flame, TrendingUp, Minus, TrendingDown } from 'lucide-react'
+import { User, Tag, Calendar, MessageSquare, CheckCircle2, Trash2, Sparkles, Reply, X as XIcon, Loader2, ListTodo, Link2, ArrowLeft, CornerLeftUp, Flame, TrendingUp, Minus, TrendingDown, Check, Zap, Plane } from 'lucide-react'
 import { RichTextEditor } from './RichTextEditor'
 import { RichTextViewer } from './RichTextViewer'
 import { ApprovalTaskView } from './ApprovalTaskView'
@@ -174,9 +174,11 @@ function FieldInput({
       <div className="flex-1 min-w-0">{input}</div>
       {hasValue && (
         <button type="button" onClick={clear} title="Clear value"
-          className="flex-shrink-0 text-xs px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+          className="flex-shrink-0 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
           style={{ color: '#94A3B8' }}
-        >✕</button>
+        >
+          <XIcon size={12} />
+        </button>
       )}
     </div>
   )
@@ -234,9 +236,11 @@ function FieldInput({
           ))}
           {hasValue && (
             <button type="button" onClick={clear}
-              className="text-xs ml-1 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+              className="ml-1 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
               style={{ color: '#94A3B8' }}
-            >✕</button>
+            >
+              <XIcon size={12} />
+            </button>
           )}
         </div>
       )
@@ -322,9 +326,11 @@ function FieldInput({
           })}
           {hasValue && (
             <button type="button" onClick={clear}
-              className="text-xs px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+              className="px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
               style={{ color: '#94A3B8' }}
-            >✕</button>
+            >
+              <XIcon size={12} />
+            </button>
           )}
         </div>
       )
@@ -535,6 +541,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: init
   const [listId, setListId] = useState(initialListId || task?.task_list_id || '')
   const [commentText, setCommentText] = useState('')
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
+  const replyEditorRef = useRef<HTMLDivElement>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [pendingFieldValues, setPendingFieldValues] = useState<Record<string, unknown>>({})
 
@@ -621,32 +628,39 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: init
     sortedEmployees.forEach((emp) => {
       const workload = getEmployeeWorkload(emp.id)
       let description = ''
-      let badge = ''
+      let icon = undefined
+      let iconColor = undefined
 
       if (workload) {
         if (workload.workload.status === 'on_leave') {
           description = 'On Leave'
-          badge = '🏖️'
+          icon = Plane
+          iconColor = '#8B5CF6'
         } else if (workload.workload.status === 'overloaded') {
           description = `Overloaded • ${workload.workload.active_tasks} tasks`
-          badge = '🔴'
+          icon = Flame
+          iconColor = '#EF4444'
         } else if (workload.workload.status === 'warning') {
           description = `Busy • ${workload.workload.active_tasks} tasks`
-          badge = '⚠️'
+          icon = Zap
+          iconColor = '#F59E0B'
         } else {
           description = `Available • ${workload.workload.active_tasks} tasks`
-          badge = '✅'
+          icon = Check
+          iconColor = '#10B981'
         }
       } else {
         description = 'Available'
-        badge = '✅'
+        icon = Check
+        iconColor = '#10B981'
       }
 
       options.push({
         value: emp.id,
         label: emp.full_name,
         description,
-        badge,
+        icon,
+        iconColor,
       })
     })
 
@@ -912,6 +926,10 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: init
                     } else {
                       setReplyingToId(comment.id)
                       setCommentText(`@${comment.author_name} `)
+                      // Focus and scroll to reply editor after a short delay
+                      setTimeout(() => {
+                        replyEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                      }, 100)
                     }
                   }}
                   className="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold px-2 py-1 rounded-md flex items-center gap-1.5"
@@ -960,7 +978,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, listId: init
 
         {/* Inline Reply Editor */}
         {isReplyingToThis && (
-          <div className="mt-2" style={{ marginLeft: '0px' }}>
+          <div ref={replyEditorRef} className="mt-2" style={{ marginLeft: '0px' }}>
             <div
               className="px-3 py-2 rounded-t-lg"
               style={{

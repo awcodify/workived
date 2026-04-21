@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { Settings, Flame, TrendingUp, Minus, TrendingDown } from 'lucide-react'
+import { Settings, Flame, TrendingUp, Minus, TrendingDown, Search, Check, Zap, Plane, Menu, List, Star, X } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
@@ -658,17 +658,18 @@ function TasksPage() {
             />
             {org?.plan === 'pro' && (
               <div
-                className="flex items-center px-3 py-1.5 rounded-lg"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg"
                 style={{
                   background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
                   boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
                 }}
               >
+                <Star size={10} fill="white" style={{ color: 'white' }} />
                 <span
                   className="text-[10px] font-bold uppercase"
                   style={{ color: '#FFFFFF', letterSpacing: '0.05em' }}
                 >
-                  ⭐ PRO
+                  PRO
                 </span>
               </div>
             )}
@@ -745,7 +746,7 @@ function TasksPage() {
               fontFamily: typography.fontFamily,
             }}
           >
-            <span style={{ fontSize: '11px' }}>≡</span>
+            <List size={14} />
             All Issues
           </button>
 
@@ -762,7 +763,7 @@ function TasksPage() {
                 boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
               }}
             >
-              <span className="text-base" style={{ opacity: 0.5 }}>🔍</span>
+              <Search size={16} style={{ color: '#64748B' }} />
               <input
                 type="text"
                 value={localSearchQuery}
@@ -777,13 +778,13 @@ function TasksPage() {
               {localSearchQuery && (
                 <button
                   onClick={() => setLocalSearchQuery('')}
-                  className="text-xs font-bold px-2 py-1 rounded transition-opacity hover:opacity-70"
+                  className="flex items-center justify-center p-1 rounded transition-opacity hover:opacity-70"
                   style={{
-                    background: 'rgba(0, 0, 0, 0.05)',
                     color: '#64748B',
                   }}
+                  aria-label="Clear search"
                 >
-                  ✕
+                  <X size={14} />
                 </button>
               )}
             </div>
@@ -993,7 +994,7 @@ function TasksPage() {
                 border: '1px solid rgba(0,0,0,0.08)',
               }}
             >
-              <span style={{ fontSize: '11px' }}>☰</span>
+              <Menu size={14} />
               Columns
               {hiddenColumnIds.size > 0 && (
                 <span
@@ -1097,10 +1098,10 @@ function TasksPage() {
                 on_leave: workloadData.filter(e => e.workload.status === 'on_leave').length,
               }
               const statusConfig = [
-                { key: 'available', icon: '✓', label: 'available', color: '#10B981' },
-                { key: 'warning', icon: '⚡', label: 'busy', color: '#F59E0B' },
-                { key: 'overloaded', icon: '🔥', label: 'overloaded', color: '#EF4444' },
-                { key: 'on_leave', icon: '✈', label: 'on leave', color: '#8B5CF6' },
+                { key: 'available', icon: Check, label: 'available', color: '#10B981' },
+                { key: 'warning', icon: Zap, label: 'busy', color: '#F59E0B' },
+                { key: 'overloaded', icon: Flame, label: 'overloaded', color: '#EF4444' },
+                { key: 'on_leave', icon: Plane, label: 'on leave', color: '#8B5CF6' },
               ]
 
               return (
@@ -1135,7 +1136,7 @@ function TasksPage() {
                               cursor: 'pointer',
                             }}
                           >
-                            <span className="text-xs">{status.icon}</span>
+                            <status.icon size={12} style={{ color: status.color }} />
                             <span
                               className="text-xs font-semibold"
                               style={{
@@ -1179,7 +1180,8 @@ function TasksPage() {
                                   letterSpacing: '0.5px',
                                 }}
                               >
-                                {status.icon} {status.label} ({count})
+                                <status.icon size={14} style={{ color: status.color, display: 'inline-block', marginRight: '4px' }} />
+                                {status.label} ({count})
                               </div>
                               
                               <div className="max-h-[320px] overflow-y-auto space-y-2">
@@ -1576,12 +1578,12 @@ function StatusColumn({
                   const workload = getEmployeeWorkload(emp.id)
                   const badge = workload 
                     ? workload.workload.status === 'on_leave' 
-                      ? '🏖️ On Leave' 
+                      ? '(On Leave)' 
                       : workload.workload.status === 'overloaded' 
-                        ? `🔴 ${workload.workload.active_tasks} tasks` 
+                        ? `(${workload.workload.active_tasks} tasks)` 
                         : workload.workload.status === 'warning'
-                          ? `⚠️ ${workload.workload.active_tasks} tasks`
-                          : '✅'
+                          ? `(${workload.workload.active_tasks} tasks)`
+                          : ''
                     : ''
                   return (
                     <option key={emp.id} value={emp.id} style={{ background: '#FFFFFF' }}>
