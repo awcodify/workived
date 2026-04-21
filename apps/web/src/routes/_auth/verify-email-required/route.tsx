@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { Mail } from 'lucide-react'
 import { authApi } from '@/lib/api/auth'
+import { getSetupStatus } from '@/lib/api/setup'
 import { useAuthStore } from '@/lib/stores/auth'
+import { isAxiosError } from 'axios'
 import { colors } from '@/design/tokens'
 
 export const Route = createFileRoute('/_auth/verify-email-required')({
@@ -27,10 +29,26 @@ function VerifyEmailRequiredPage() {
 
   const checkStatusMutation = useMutation({
     mutationFn: () => authApi.checkVerificationStatus().then((r) => r.data.data),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       if (data.is_verified) {
         setMessage({ type: 'success', text: 'Email verified! Redirecting...' })
-        setTimeout(() => navigate({ to: '/setup-org' }), 1500)
+        
+        // Check if user already has an organization
+        setTimeout(async () => {
+          try {
+            const setupStatus = await getSetupStatus()
+            // User has org - redirect to app
+            navigate({ to: '/overview' })
+          } catch (err) {
+            if (isAxiosError(err) && err.response?.status === 403) {
+              // User has no org - redirect to setup-org
+              navigate({ to: '/setup-org' })
+            } else {
+              // Other error - stay on page
+              setMessage({ type: 'error', text: 'Failed to check organization status.' })
+            }
+          }
+        }, 1500)
       } else {
         setMessage({ type: 'error', text: 'Email not verified yet. Please check your inbox.' })
       }
