@@ -19,6 +19,7 @@ import { Route as AuthRegisterRouteRouteImport } from './routes/_auth/register/r
 import { Route as AuthLoginRouteRouteImport } from './routes/_auth/login/route'
 import { Route as AuthInviteRouteRouteImport } from './routes/_auth/invite/route'
 import { Route as AuthForgotPasswordRouteRouteImport } from './routes/_auth/forgot-password/route'
+import { Route as AppTasksRouteRouteImport } from './routes/_app/tasks/route'
 import { Route as AppSettingsRouteRouteImport } from './routes/_app/settings/route'
 import { Route as AppPeopleRouteRouteImport } from './routes/_app/people/route'
 import { Route as AppOverviewRouteRouteImport } from './routes/_app/overview/route'
@@ -103,6 +104,11 @@ const AuthForgotPasswordRouteRoute = AuthForgotPasswordRouteRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => AuthRouteRoute,
 } as any)
+const AppTasksRouteRoute = AppTasksRouteRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppSettingsRouteRoute = AppSettingsRouteRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -164,9 +170,9 @@ const AppAnnouncementsRouteRoute = AppAnnouncementsRouteRouteImport.update({
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppTasksIndexRoute = AppTasksIndexRouteImport.update({
-  id: '/tasks/',
-  path: '/tasks/',
-  getParentRoute: () => AppRouteRoute,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppTasksRouteRoute,
 } as any)
 const AppSetupIndexRoute = AppSetupIndexRouteImport.update({
   id: '/setup/',
@@ -235,9 +241,9 @@ const AppPeoplePerformanceRoute = AppPeoplePerformanceRouteImport.update({
   getParentRoute: () => AppPeopleRouteRoute,
 } as any)
 const AppTasksSettingsRouteRoute = AppTasksSettingsRouteRouteImport.update({
-  id: '/tasks/settings',
-  path: '/tasks/settings',
-  getParentRoute: () => AppRouteRoute,
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppTasksRouteRoute,
 } as any)
 const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
   id: '/members',
@@ -298,6 +304,7 @@ export interface FileRoutesByFullPath {
   '/overview': typeof AppOverviewRouteRoute
   '/people': typeof AppPeopleRouteRouteWithChildren
   '/settings': typeof AppSettingsRouteRouteWithChildren
+  '/tasks': typeof AppTasksRouteRouteWithChildren
   '/forgot-password': typeof AuthForgotPasswordRouteRoute
   '/invite': typeof AuthInviteRouteRoute
   '/login': typeof AuthLoginRouteRoute
@@ -386,6 +393,7 @@ export interface FileRoutesById {
   '/_app/overview': typeof AppOverviewRouteRoute
   '/_app/people': typeof AppPeopleRouteRouteWithChildren
   '/_app/settings': typeof AppSettingsRouteRouteWithChildren
+  '/_app/tasks': typeof AppTasksRouteRouteWithChildren
   '/_auth/forgot-password': typeof AuthForgotPasswordRouteRoute
   '/_auth/invite': typeof AuthInviteRouteRoute
   '/_auth/login': typeof AuthLoginRouteRoute
@@ -433,6 +441,7 @@ export interface FileRouteTypes {
     | '/overview'
     | '/people'
     | '/settings'
+    | '/tasks'
     | '/forgot-password'
     | '/invite'
     | '/login'
@@ -520,6 +529,7 @@ export interface FileRouteTypes {
     | '/_app/overview'
     | '/_app/people'
     | '/_app/settings'
+    | '/_app/tasks'
     | '/_auth/forgot-password'
     | '/_auth/invite'
     | '/_auth/login'
@@ -630,6 +640,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthForgotPasswordRouteRouteImport
       parentRoute: typeof AuthRouteRoute
     }
+    '/_app/tasks': {
+      id: '/_app/tasks'
+      path: '/tasks'
+      fullPath: '/tasks'
+      preLoaderRoute: typeof AppTasksRouteRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/_app/settings': {
       id: '/_app/settings'
       path: '/settings'
@@ -716,10 +733,10 @@ declare module '@tanstack/react-router' {
     }
     '/_app/tasks/': {
       id: '/_app/tasks/'
-      path: '/tasks'
+      path: '/'
       fullPath: '/tasks/'
       preLoaderRoute: typeof AppTasksIndexRouteImport
-      parentRoute: typeof AppRouteRoute
+      parentRoute: typeof AppTasksRouteRoute
     }
     '/_app/setup/': {
       id: '/_app/setup/'
@@ -814,10 +831,10 @@ declare module '@tanstack/react-router' {
     }
     '/_app/tasks/settings': {
       id: '/_app/tasks/settings'
-      path: '/tasks/settings'
+      path: '/settings'
       fullPath: '/tasks/settings'
       preLoaderRoute: typeof AppTasksSettingsRouteRouteImport
-      parentRoute: typeof AppRouteRoute
+      parentRoute: typeof AppTasksRouteRoute
     }
     '/_app/settings/members': {
       id: '/_app/settings/members'
@@ -963,6 +980,20 @@ const AppSettingsRouteRouteChildren: AppSettingsRouteRouteChildren = {
 const AppSettingsRouteRouteWithChildren =
   AppSettingsRouteRoute._addFileChildren(AppSettingsRouteRouteChildren)
 
+interface AppTasksRouteRouteChildren {
+  AppTasksSettingsRouteRoute: typeof AppTasksSettingsRouteRoute
+  AppTasksIndexRoute: typeof AppTasksIndexRoute
+}
+
+const AppTasksRouteRouteChildren: AppTasksRouteRouteChildren = {
+  AppTasksSettingsRouteRoute: AppTasksSettingsRouteRoute,
+  AppTasksIndexRoute: AppTasksIndexRoute,
+}
+
+const AppTasksRouteRouteWithChildren = AppTasksRouteRoute._addFileChildren(
+  AppTasksRouteRouteChildren,
+)
+
 interface AppRouteRouteChildren {
   AppAnnouncementsRouteRoute: typeof AppAnnouncementsRouteRoute
   AppApprovalsRouteRoute: typeof AppApprovalsRouteRoute
@@ -976,8 +1007,8 @@ interface AppRouteRouteChildren {
   AppOverviewRouteRoute: typeof AppOverviewRouteRoute
   AppPeopleRouteRoute: typeof AppPeopleRouteRouteWithChildren
   AppSettingsRouteRoute: typeof AppSettingsRouteRouteWithChildren
+  AppTasksRouteRoute: typeof AppTasksRouteRouteWithChildren
   AppOrgChartRoute: typeof AppOrgChartRoute
-  AppTasksSettingsRouteRoute: typeof AppTasksSettingsRouteRoute
   AppReportsDashboardsRoute: typeof AppReportsDashboardsRoute
   AppReportsPerformanceRoute: typeof AppReportsPerformanceRoute
   AppReportsPerformanceOldRoute: typeof AppReportsPerformanceOldRoute
@@ -985,7 +1016,6 @@ interface AppRouteRouteChildren {
   AppProfileIndexRoute: typeof AppProfileIndexRoute
   AppReportsIndexRoute: typeof AppReportsIndexRoute
   AppSetupIndexRoute: typeof AppSetupIndexRoute
-  AppTasksIndexRoute: typeof AppTasksIndexRoute
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
@@ -1001,8 +1031,8 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppOverviewRouteRoute: AppOverviewRouteRoute,
   AppPeopleRouteRoute: AppPeopleRouteRouteWithChildren,
   AppSettingsRouteRoute: AppSettingsRouteRouteWithChildren,
+  AppTasksRouteRoute: AppTasksRouteRouteWithChildren,
   AppOrgChartRoute: AppOrgChartRoute,
-  AppTasksSettingsRouteRoute: AppTasksSettingsRouteRoute,
   AppReportsDashboardsRoute: AppReportsDashboardsRoute,
   AppReportsPerformanceRoute: AppReportsPerformanceRoute,
   AppReportsPerformanceOldRoute: AppReportsPerformanceOldRoute,
@@ -1010,7 +1040,6 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppProfileIndexRoute: AppProfileIndexRoute,
   AppReportsIndexRoute: AppReportsIndexRoute,
   AppSetupIndexRoute: AppSetupIndexRoute,
-  AppTasksIndexRoute: AppTasksIndexRoute,
 }
 
 const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
