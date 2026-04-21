@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { Settings } from 'lucide-react'
+import { Settings, Flame, TrendingUp, Minus, TrendingDown } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
@@ -145,6 +145,15 @@ function TasksPage() {
   // Local state for search input to prevent race conditions with URL updates
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
   
+  // Column visibility state (persisted to localStorage)
+  const [hiddenColumnIds, setHiddenColumnIds] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set()
+    const stored = localStorage.getItem('workived:hiddenColumns')
+    return stored ? new Set(JSON.parse(stored)) : new Set()
+  })
+  const [showColumnToggle, setShowColumnToggle] = useState(false)
+  const columnToggleRef = useRef<HTMLDivElement>(null)
+  
   // Track if we've initialized mobile column to prevent infinite loops
   const mobileColumnInitialized = useRef(false)
   
@@ -246,13 +255,45 @@ function TasksPage() {
     return () => document.removeEventListener('click', handleClickOutside)
   }, [expandedWorkloadStatus])
   
-  // Render all active lists in position order
+  // Close column toggle dropdown when clicking outside
+  useEffect(() => {
+    if (!showColumnToggle) return
+    
+    const handleClickOutside = (event: MouseEvent) => {
+      if (columnToggleRef.current && !columnToggleRef.current.contains(event.target as Node)) {
+        setShowColumnToggle(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [showColumnToggle])
+  
+  // Persist hidden columns to localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    localStorage.setItem('workived:hiddenColumns', JSON.stringify([...hiddenColumnIds]))
+  }, [hiddenColumnIds])
+  
+  // Toggle column visibility
+  const toggleColumnVisibility = useCallback((columnId: string) => {
+    setHiddenColumnIds(prev => {
+      const next = new Set(prev)
+      if (next.has(columnId)) {
+        next.delete(columnId)
+      } else {
+        next.add(columnId)
+      }
+      return next
+    })
+  }, [])
+  
+  // Render all active lists in position order, excluding hidden columns
   const visibleLists = useMemo(() => {
     const lists = taskLists || []
     return lists
-      .filter((list) => list.is_active)
+      .filter((list) => list.is_active && !hiddenColumnIds.has(list.id))
       .sort((a, b) => a.position - b.position)
-  }, [taskLists])
+  }, [taskLists, hiddenColumnIds])
   
   // Check if any filters are active (showCompleted=true is the default, so only count it if false)
   const hasActiveFilters = !!(localSearchQuery || selectedAssignee || selectedPriority || showCompleted === false)
@@ -940,26 +981,107 @@ function TasksPage() {
             )
           })()}
 
+          {/* Column visibility toggle */}
+          <div ref={columnToggleRef} className="relative">
+            <button
+              onClick={() => setShowColumnToggle(!showColumnToggle)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-md text-xs font-bold transition-all"
+              style={{
+                background: showColumnToggle ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0,0,0,0.05)',
+                color: showColumnToggle ? '#6366F1' : '#64748B',
+                fontFamily: typography.fontFamily,
+                border: '1px solid rgba(0,0,0,0.08)',
+              }}
+            >
+              <span style={{ fontSize: '11px' }}>☰</span>
+              Columns
+              {hiddenColumnIds.size > 0 && (
+                <span
+                  className="flex items-center justify-center w-4 h-4 rounded-full text-[9px] font-bold"
+                  style={{
+                    background: '#6366F1',
+                    color: 'white',
+                  }}
+                >
+                  {(taskLists || []).filter(l => l.is_active).length - hiddenColumnIds.size}
+                </span>
+              )}
+            </button>
+            
+            {showColumnToggle && (
+              <div
+                className="absolute top-full mt-2 right-0 bg-white rounded-lg shadow-lg border z-50"
+                style={{
+                  border: '1px solid #DFE1E6',
+                  minWidth: '200px',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                }}
+              >
+                <div
+                  className="px-3 py-2 border-b text-xs font-bold"
+                  style={{
+                    borderColor: '#DFE1E6',
+                    color: '#2C3E50',
+                    fontFamily: typography.fontFamily,
+                  }}
+                >
+                  Show/Hide Columns
+                </div>
+                <div className="py-1">
+                  {(taskLists || [])
+                    .filter((list) => list.is_active)
+                    .sort((a, b) => a.position - b.position)
+                    .map((list) => (
+                      <label
+                        key={list.id}
+                        className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={!hiddenColumnIds.has(list.id)}
+                          onChange={() => toggleColumnVisibility(list.id)}
+                          className="w-4 h-4 rounded cursor-pointer"
+                          style={{
+                            accentColor: '#6366F1',
+                          }}
+                        />
+                        <span
+                          className="text-sm flex-1"
+                          style={{
+                            color: '#2C3E50',
+                            fontFamily: typography.fontFamily,
+                          }}
+                        >
+                          {list.name}
+                        </span>
+                      </label>
+                    ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Filters */}
           <Dropdown
             value={selectedPriority}
             onChange={(value) => updateSearchParam('priority', value)}
             options={[
               { value: '', label: 'Priority' },
-              { value: 'urgent', label: 'Urgent', badge: '🔥' },
-              { value: 'high', label: 'High' },
-              { value: 'medium', label: 'Medium' },
-              { value: 'low', label: 'Low' },
+              { value: 'urgent', label: 'Urgent', icon: Flame, iconColor: '#EF4444' },
+              { value: 'high', label: 'High', icon: TrendingUp, iconColor: '#F59E0B' },
+              { value: 'medium', label: 'Medium', icon: Minus, iconColor: '#3B82F6' },
+              { value: 'low', label: 'Low', icon: TrendingDown, iconColor: '#64748B' },
             ]}
             placeholder="Priority"
             style={{
-              background: 'white',
-              border: '1px solid #DFE1E6',
-              color: selectedPriority ? '#2C3E50' : '#64748B',
-              fontSize: '13px',
-              fontWeight: selectedPriority ? '600' : '400',
+              background: selectedPriority ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0,0,0,0.05)',
+              border: '1px solid rgba(0,0,0,0.08)',
+              color: selectedPriority ? '#6366F1' : '#64748B',
+              fontSize: '12px',
+              fontWeight: '700',
               fontFamily: typography.fontFamily,
-              padding: '6px 12px',
+              padding: '8px 12px',
             }}
           />
 
