@@ -9,10 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyEmailRouteRouteImport } from './routes/verify-email/route'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppOrgChartRouteImport } from './routes/_app/org-chart'
+import { Route as AuthVerifyEmailRequiredRouteRouteImport } from './routes/_auth/verify-email-required/route'
 import { Route as AuthSetupOrgRouteRouteImport } from './routes/_auth/setup-org/route'
 import { Route as AuthResetPasswordRouteRouteImport } from './routes/_auth/reset-password/route'
 import { Route as AuthRegisterRouteRouteImport } from './routes/_auth/register/route'
@@ -56,6 +58,11 @@ import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/p
 import { Route as AppClaimsCategoriesIndexRouteImport } from './routes/_app/claims/categories/index'
 import { Route as AppCalendarHolidaysIndexRouteImport } from './routes/_app/calendar/holidays/index'
 
+const VerifyEmailRouteRoute = VerifyEmailRouteRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRouteRoute = AuthRouteRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
@@ -74,6 +81,12 @@ const AppOrgChartRoute = AppOrgChartRouteImport.update({
   path: '/org-chart',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AuthVerifyEmailRequiredRouteRoute =
+  AuthVerifyEmailRequiredRouteRouteImport.update({
+    id: '/verify-email-required',
+    path: '/verify-email-required',
+    getParentRoute: () => AuthRouteRoute,
+  } as any)
 const AuthSetupOrgRouteRoute = AuthSetupOrgRouteRouteImport.update({
   id: '/setup-org',
   path: '/setup-org',
@@ -292,6 +305,7 @@ const AppCalendarHolidaysIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/verify-email': typeof VerifyEmailRouteRoute
   '/announcements': typeof AppAnnouncementsRouteRoute
   '/approvals': typeof AppApprovalsRouteRoute
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
@@ -311,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/register': typeof AuthRegisterRouteRoute
   '/reset-password': typeof AuthResetPasswordRouteRoute
   '/setup-org': typeof AuthSetupOrgRouteRoute
+  '/verify-email-required': typeof AuthVerifyEmailRequiredRouteRoute
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/new': typeof AppPeopleNewRouteRoute
@@ -338,6 +353,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/verify-email': typeof VerifyEmailRouteRoute
   '/announcements': typeof AppAnnouncementsRouteRoute
   '/approvals': typeof AppApprovalsRouteRoute
   '/changelog': typeof AppChangelogRouteRoute
@@ -351,6 +367,7 @@ export interface FileRoutesByTo {
   '/register': typeof AuthRegisterRouteRoute
   '/reset-password': typeof AuthResetPasswordRouteRoute
   '/setup-org': typeof AuthSetupOrgRouteRoute
+  '/verify-email-required': typeof AuthVerifyEmailRequiredRouteRoute
   '/org-chart': typeof AppOrgChartRoute
   '/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/people/new': typeof AppPeopleNewRouteRoute
@@ -381,6 +398,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteRouteWithChildren
   '/_auth': typeof AuthRouteRouteWithChildren
+  '/verify-email': typeof VerifyEmailRouteRoute
   '/_app/announcements': typeof AppAnnouncementsRouteRoute
   '/_app/approvals': typeof AppApprovalsRouteRoute
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
@@ -400,6 +418,7 @@ export interface FileRoutesById {
   '/_auth/register': typeof AuthRegisterRouteRoute
   '/_auth/reset-password': typeof AuthResetPasswordRouteRoute
   '/_auth/setup-org': typeof AuthSetupOrgRouteRoute
+  '/_auth/verify-email-required': typeof AuthVerifyEmailRequiredRouteRoute
   '/_app/org-chart': typeof AppOrgChartRoute
   '/_app/attendance/monthly': typeof AppAttendanceMonthlyRouteRoute
   '/_app/people/new': typeof AppPeopleNewRouteRoute
@@ -429,6 +448,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/verify-email'
     | '/announcements'
     | '/approvals'
     | '/attendance'
@@ -448,6 +468,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/setup-org'
+    | '/verify-email-required'
     | '/org-chart'
     | '/attendance/monthly'
     | '/people/new'
@@ -475,6 +496,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/verify-email'
     | '/announcements'
     | '/approvals'
     | '/changelog'
@@ -488,6 +510,7 @@ export interface FileRouteTypes {
     | '/register'
     | '/reset-password'
     | '/setup-org'
+    | '/verify-email-required'
     | '/org-chart'
     | '/attendance/monthly'
     | '/people/new'
@@ -517,6 +540,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/_auth'
+    | '/verify-email'
     | '/_app/announcements'
     | '/_app/approvals'
     | '/_app/attendance'
@@ -536,6 +560,7 @@ export interface FileRouteTypes {
     | '/_auth/register'
     | '/_auth/reset-password'
     | '/_auth/setup-org'
+    | '/_auth/verify-email-required'
     | '/_app/org-chart'
     | '/_app/attendance/monthly'
     | '/_app/people/new'
@@ -566,10 +591,18 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
+  VerifyEmailRouteRoute: typeof VerifyEmailRouteRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_auth': {
       id: '/_auth'
       path: ''
@@ -597,6 +630,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/org-chart'
       preLoaderRoute: typeof AppOrgChartRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/_auth/verify-email-required': {
+      id: '/_auth/verify-email-required'
+      path: '/verify-email-required'
+      fullPath: '/verify-email-required'
+      preLoaderRoute: typeof AuthVerifyEmailRequiredRouteRouteImport
+      parentRoute: typeof AuthRouteRoute
     }
     '/_auth/setup-org': {
       id: '/_auth/setup-org'
@@ -1053,6 +1093,7 @@ interface AuthRouteRouteChildren {
   AuthRegisterRouteRoute: typeof AuthRegisterRouteRoute
   AuthResetPasswordRouteRoute: typeof AuthResetPasswordRouteRoute
   AuthSetupOrgRouteRoute: typeof AuthSetupOrgRouteRoute
+  AuthVerifyEmailRequiredRouteRoute: typeof AuthVerifyEmailRequiredRouteRoute
 }
 
 const AuthRouteRouteChildren: AuthRouteRouteChildren = {
@@ -1062,6 +1103,7 @@ const AuthRouteRouteChildren: AuthRouteRouteChildren = {
   AuthRegisterRouteRoute: AuthRegisterRouteRoute,
   AuthResetPasswordRouteRoute: AuthResetPasswordRouteRoute,
   AuthSetupOrgRouteRoute: AuthSetupOrgRouteRoute,
+  AuthVerifyEmailRequiredRouteRoute: AuthVerifyEmailRequiredRouteRoute,
 }
 
 const AuthRouteRouteWithChildren = AuthRouteRoute._addFileChildren(
@@ -1072,6 +1114,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
   AuthRouteRoute: AuthRouteRouteWithChildren,
+  VerifyEmailRouteRoute: VerifyEmailRouteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -41,6 +41,8 @@ function LoginPage() {
     mutationFn: (data: LoginForm) => authApi.login(data).then((r) => r.data.data),
     onSuccess: (data) => {
       setAuth(data)
+      
+      // Redirect - auth guard will handle verification check
       if (safeRedirect) {
         window.location.href = safeRedirect
       } else {

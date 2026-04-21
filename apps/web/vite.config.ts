@@ -50,8 +50,13 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         runtimeCaching: [
           {
+            // Auth endpoints — ALWAYS fetch fresh, NEVER cache
+            urlPattern: /^https?:\/\/.*\/api\/v\d+\/auth\/.*/i,
+            handler: 'NetworkOnly',
+          },
+          {
             // API calls — NetworkFirst with 5s timeout (HR data must be fresh)
-            urlPattern: /^https?:\/\/.*\/api\/(?!auth).*/i,
+            urlPattern: /^https?:\/\/.*\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
@@ -64,11 +69,6 @@ export default defineConfig({
                 statuses: [0, 200],
               },
             },
-          },
-          {
-            // Auth endpoints — never cache
-            urlPattern: /^https?:\/\/.*\/api\/auth\/.*/i,
-            handler: 'NetworkOnly',
           },
           {
             // Image uploads — CacheFirst with 30-day expiry

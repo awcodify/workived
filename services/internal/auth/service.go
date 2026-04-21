@@ -31,6 +31,7 @@ type Repo interface {
 	GetValidToken(ctx context.Context, tokenHash, tokenType string) (*AuthToken, error)
 	ConsumeToken(ctx context.Context, tokenHash string) error
 	ConsumeAllPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
+	ConsumeAllTokensByType(ctx context.Context, userID uuid.UUID, tokenType string) error
 }
 
 // OrgRepo is the narrow interface the auth service needs from the organisation module.
@@ -103,12 +104,16 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, err
 		return nil, fmt.Errorf("create verify token: %w", err)
 	}
 
-	// Send welcome email asynchronously
+	// Send verification email asynchronously
 	if s.email != nil {
-		go s.sendWelcomeEmail(context.Background(), user.FullName, user.Email, rawToken)
+		go s.sendVerificationEmail(context.Background(), user.FullName, user.Email, rawToken)
 	}
 
 	return user, nil
+}
+
+func (s *Service) GetUserByID(ctx context.Context, userID uuid.UUID) (*User, error) {
+	return s.repo.GetUserByID(ctx, userID)
 }
 
 func (s *Service) Login(ctx context.Context, req LoginRequest) (*LoginResponse, string, error) {
@@ -197,6 +202,68 @@ func (s *Service) VerifyEmail(ctx context.Context, req VerifyEmailRequest) error
 		return err
 	}
 	return s.repo.MarkEmailVerified(ctx, stored.UserID)
+}
+
+// resendVerificationRateLimit returns an error when the per-user hourly limit is reached.
+// Fails open on Redis errors so a Redis outage never blocks legitimate users.
+func (s *Service) resendVerificationRateLimit(ctx context.Context, userID uuid.UUID) error {
+	if s.rdb == nil {
+		return nil
+	}
+	key := fmt.Sprintf("rate:resend_verify:%s:%d", userID, time.Now().UTC().Unix()/3600)
+	count, err := s.rdb.Incr(ctx, key).Result()
+	if err != nil {
+		// Fail open — Redis outage must not block verification resends
+		s.log.Warn().Err(err).Str("user_id", userID.String()).Msg("rate limit redis error, failing open")
+		return nil
+	}
+	if count == 1 {
+		// Set TTL on first hit; use 2h so it covers the full bucket window
+		_ = s.rdb.Expire(ctx, key, 2*time.Hour)
+	}
+	const maxPerHour = 3
+	if count > maxPerHour {
+		return apperr.New(apperr.CodeRateLimit, "too many verification emails sent — please try again later")
+	}
+	return nil
+}
+
+func (s *Service) ResendVerificationEmail(ctx context.Context, userID uuid.UUID) error {
+	// Rate limit before any DB lookup
+	if err := s.resendVerificationRateLimit(ctx, userID); err != nil {
+		return err
+	}
+
+	// Get user by ID
+	user, err := s.repo.GetUserByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// If already verified, return success (idempotent)
+	if user.IsVerified {
+		return nil
+	}
+
+	// Invalidate any existing email_verify tokens for this user
+	if err := s.repo.ConsumeAllTokensByType(ctx, userID, "email_verify"); err != nil {
+		s.log.Warn().Err(err).Str("user_id", userID.String()).Msg("failed to invalidate old verification tokens")
+		// Non-fatal — proceed to issue new token
+	}
+
+	// Issue new email verification token
+	rawToken, tokenHash := generateToken()
+	expiresAt := time.Now().UTC().Add(24 * time.Hour)
+	if err := s.repo.CreateToken(ctx, userID, tokenHash, "email_verify", expiresAt); err != nil {
+		return fmt.Errorf("create verify token: %w", err)
+	}
+
+	// Send verification email asynchronously
+	if s.email != nil {
+		go s.sendVerificationEmail(context.Background(), user.FullName, user.Email, rawToken)
+	}
+
+	return nil
 }
 
 // forgotPasswordRateLimit returns an error when the per-email hourly limit is reached.
@@ -342,21 +409,19 @@ func (s *Service) sendPasswordResetEmail(_ context.Context, fullName, userEmail,
 	s.log.Info().Str("email", userEmail).Msg("auth.password_reset_email_sent")
 }
 
-// sendWelcomeEmail renders and sends the welcome email with verification link.
-func (s *Service) sendWelcomeEmail(_ context.Context, fullName, userEmail, verifyToken string) {
+// sendVerificationEmail renders and sends the email verification link.
+func (s *Service) sendVerificationEmail(_ context.Context, fullName, userEmail, verifyToken string) {
 	verifyURL := fmt.Sprintf("%s/verify-email?token=%s", s.appURL, verifyToken)
 
-	subject, body, _, err := email.WelcomeTemplate.Render(struct {
+	subject, body, _, err := email.VerificationTemplate.Render(struct {
 		UserName  string
-		AppURL    string
 		VerifyURL string
 	}{
 		UserName:  fullName,
-		AppURL:    s.appURL,
 		VerifyURL: verifyURL,
 	})
 	if err != nil {
-		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to render welcome email")
+		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to render verification email")
 		return
 	}
 
@@ -366,9 +431,9 @@ func (s *Service) sendWelcomeEmail(_ context.Context, fullName, userEmail, verif
 		Body:    body,
 		IsHTML:  true,
 	}); err != nil {
-		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to send welcome email")
+		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to send verification email")
 		return
 	}
 
-	s.log.Info().Str("email", userEmail).Msg("auth.welcome_email_sent")
+	s.log.Info().Str("email", userEmail).Msg("auth.verification_email_sent")
 }

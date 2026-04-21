@@ -2,9 +2,27 @@ import axios from 'axios'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useUpgradeStore } from '@/lib/stores/upgrade'
 
+// Public API client (no auth token, for unauthenticated requests like email verification)
+export const publicApiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL ?? '',
+  withCredentials: true,
+  headers: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  },
+})
+
+// Authenticated API client (adds JWT token automatically)
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL ?? '',
   withCredentials: true, // Send httpOnly cookies (refresh_token)
+  // Disable caching for all auth-related requests
+  headers: {
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  },
 })
 
 apiClient.interceptors.request.use((config) => {

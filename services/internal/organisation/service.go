@@ -58,6 +58,19 @@ type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
 }
 
+// UserRepository provides user data for verification checks.
+type UserRepository interface {
+	GetUserByID(ctx context.Context, id uuid.UUID) (*User, error)
+	MarkEmailVerified(ctx context.Context, userID uuid.UUID) error
+}
+
+// User represents a user account (minimal projection for verification).
+type User struct {
+	ID         uuid.UUID
+	Email      string
+	IsVerified bool
+}
+
 // OnEmployeeJoinedFunc is called after an employee successfully joins an org via invitation.
 // It receives the org ID and employee ID so downstream services (e.g. leave) can initialise data.
 type OnEmployeeJoinedFunc func(ctx context.Context, orgID, employeeID uuid.UUID)
@@ -69,6 +82,7 @@ type Service struct {
 	authRepo         AuthTokenCreator
 	tokenIssuer      AccessTokenIssuer
 	employeeRepo     EmployeeInfoProvider
+	userRepo         UserRepository
 	cache            *cache.Store
 	auditLog         audit.Logger
 	log              zerolog.Logger
@@ -77,12 +91,13 @@ type Service struct {
 	onEmployeeJoined []OnEmployeeJoinedFunc
 }
 
-func NewService(repo RepoInterface, authRepo AuthTokenCreator, tokenIssuer AccessTokenIssuer, employeeRepo EmployeeInfoProvider, appURL string, opts ...ServiceOption) *Service {
+func NewService(repo RepoInterface, authRepo AuthTokenCreator, tokenIssuer AccessTokenIssuer, employeeRepo EmployeeInfoProvider, userRepo UserRepository, appURL string, opts ...ServiceOption) *Service {
 	s := &Service{
 		repo:         repo,
 		authRepo:     authRepo,
 		tokenIssuer:  tokenIssuer,
 		employeeRepo: employeeRepo,
+		userRepo:     userRepo,
 		appURL:       appURL,
 	}
 	for _, opt := range opts {
@@ -146,6 +161,15 @@ var reservedSlugs = map[string]bool{
 }
 
 func (s *Service) Create(ctx context.Context, ownerID uuid.UUID, req CreateOrgRequest) (*CreateOrgResponse, error) {
+	// Check if user's email is verified before allowing org creation
+	user, err := s.userRepo.GetUserByID(ctx, ownerID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+	if !user.IsVerified {
+		return nil, apperr.New(apperr.CodeForbidden, "please verify your email before creating an organisation")
+	}
+
 	// Validate slug: min 3 chars, not reserved
 	slug := strings.ToLower(strings.TrimSpace(req.Slug))
 	if len(slug) < 3 {
@@ -396,6 +420,12 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 	})
 	if err != nil {
 		return nil, fmt.Errorf("accept invitation: %w", err)
+	}
+
+	// 4a. Mark user's email as verified (invitation implies trusted email).
+	if err := s.userRepo.MarkEmailVerified(ctx, userID); err != nil {
+		// Log but don't fail — verification is nice-to-have, not critical
+		s.log.Warn().Err(err).Str("user_id", userID.String()).Msg("failed to mark email verified after invitation acceptance")
 	}
 
 	// 5. Issue a new JWT with the new org context.

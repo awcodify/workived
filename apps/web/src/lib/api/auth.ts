@@ -1,4 +1,4 @@
-import { apiClient } from './client'
+import { apiClient, publicApiClient } from './client'
 import type {
   LoginRequest,
   LoginResponse,
@@ -30,4 +30,14 @@ export const authApi = {
 
   resetPassword: (data: ResetPasswordRequest) =>
     apiClient.post<ApiResponse<{ message: string }>>('/api/v1/auth/reset-password', data),
+
+  // Use publicApiClient for email verification - user is not logged in when clicking link
+  verifyEmail: (token: string) =>
+    publicApiClient.post<ApiResponse<{ message: string }>>('/api/v1/auth/verify-email', { token }),
+
+  resendVerificationEmail: () =>
+    apiClient.post<ApiResponse<{ message: string }>>('/api/v1/auth/resend-verification'),
+
+  checkVerificationStatus: () =>
+    apiClient.get<ApiResponse<{ is_verified: boolean }>>('/api/v1/auth/verification-status'),
 }

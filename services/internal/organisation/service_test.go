@@ -390,6 +390,53 @@ func (f *fakeEmployeeRepo) GetEmployeeProfile(_ context.Context, _, _ uuid.UUID)
 	return name, nil, nil, nil
 }
 
+// ── Fake user repository ─────────────────────────────────────────────────────
+
+type fakeUserRepo struct {
+	users map[uuid.UUID]*organisation.User
+}
+
+func newFakeUserRepo() *fakeUserRepo {
+	return &fakeUserRepo{
+		users: make(map[uuid.UUID]*organisation.User),
+	}
+}
+
+func (f *fakeUserRepo) GetUserByID(_ context.Context, id uuid.UUID) (*organisation.User, error) {
+	u, ok := f.users[id]
+	if !ok {
+		return nil, apperr.NotFound("user")
+	}
+	return u, nil
+}
+
+func (f *fakeUserRepo) MarkEmailVerified(_ context.Context, userID uuid.UUID) error {
+	u, ok := f.users[userID]
+	if !ok {
+		return apperr.NotFound("user")
+	}
+	u.IsVerified = true
+	return nil
+}
+
+// createVerifiedUser creates a verified user for testing.
+func (f *fakeUserRepo) createVerifiedUser(id uuid.UUID) {
+	f.users[id] = &organisation.User{
+		ID:         id,
+		Email:      id.String() + "@example.com",
+		IsVerified: true,
+	}
+}
+
+// createUnverifiedUser creates an unverified user for testing.
+func (f *fakeUserRepo) createUnverifiedUser(id uuid.UUID) {
+	f.users[id] = &organisation.User{
+		ID:         id,
+		Email:      id.String() + "@example.com",
+		IsVerified: false,
+	}
+}
+
 // ── Test helpers ─────────────────────────────────────────────────────────────
 
 func hashToken(raw string) string {
@@ -397,32 +444,38 @@ func hashToken(raw string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func newTestService(t *testing.T) (*organisation.Service, *fakeRepo) {
+func newTestService(t *testing.T) (*organisation.Service, *fakeRepo, *fakeUserRepo) {
 	t.Helper()
 	repo := newFakeRepo()
-	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, "https://app.workived.com")
-	return svc, repo
+	userRepo := newFakeUserRepo()
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, userRepo, "https://app.workived.com")
+	return svc, repo, userRepo
 }
 
-func newTestServiceWithAudit(t *testing.T) (*organisation.Service, *fakeRepo, *fakeAuditLogger) {
+func newTestServiceWithAudit(t *testing.T) (*organisation.Service, *fakeRepo, *fakeUserRepo, *fakeAuditLogger) {
 	t.Helper()
 	repo := newFakeRepo()
+	userRepo := newFakeUserRepo()
 	al := &fakeAuditLogger{}
-	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, "https://app.workived.com", organisation.WithAuditLog(al))
-	return svc, repo, al
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, userRepo, "https://app.workived.com", organisation.WithAuditLog(al))
+	return svc, repo, userRepo, al
 }
 
-func newTestServiceWithIssuer(t *testing.T, issuer *fakeTokenIssuer) (*organisation.Service, *fakeRepo) {
+func newTestServiceWithIssuer(t *testing.T, issuer *fakeTokenIssuer) (*organisation.Service, *fakeRepo, *fakeUserRepo) {
 	t.Helper()
 	repo := newFakeRepo()
-	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, issuer, &fakeEmployeeRepo{}, "https://app.workived.com")
-	return svc, repo
+	userRepo := newFakeUserRepo()
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, issuer, &fakeEmployeeRepo{}, userRepo, "https://app.workived.com")
+	return svc, repo, userRepo
 }
 
-func setupOrgAndInvitation(t *testing.T, svc *organisation.Service, repo *fakeRepo) (uuid.UUID, uuid.UUID, *organisation.InviteResponse) {
+func setupOrgAndInvitation(t *testing.T, svc *organisation.Service, repo *fakeRepo, userRepo *fakeUserRepo) (uuid.UUID, uuid.UUID, *organisation.InviteResponse) {
 	t.Helper()
 	ctx := context.Background()
 	ownerID := uuid.New()
+
+	// Create verified user for owner
+	userRepo.createVerifiedUser(ownerID)
 
 	resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
 		Name: "Test Org", Slug: "testorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
@@ -445,9 +498,11 @@ func setupOrgAndInvitation(t *testing.T, svc *organisation.Service, repo *fakeRe
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 func TestOrgService_Create(t *testing.T) {
-	svc, _ := newTestService(t)
+	svc, _, userRepo := newTestService(t)
+	ownerID := uuid.New()
+	userRepo.createVerifiedUser(ownerID)
 
-	resp, err := svc.Create(context.Background(), uuid.New(), organisation.CreateOrgRequest{
+	resp, err := svc.Create(context.Background(), ownerID, organisation.CreateOrgRequest{
 		Name: "Acme Corp", Slug: "acmecorp", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
 	})
 	if err != nil {
@@ -466,8 +521,8 @@ func TestOrgService_Create(t *testing.T) {
 
 func TestOrgService_InviteMember(t *testing.T) {
 	t.Run("success returns invite URL", func(t *testing.T) {
-		svc, _ := newTestService(t)
-		orgID, ownerID, inv := setupOrgAndInvitation(t, svc, nil)
+		svc, repo, userRepo := newTestService(t)
+		orgID, ownerID, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
 		_ = orgID
 		_ = ownerID
 
@@ -483,7 +538,7 @@ func TestOrgService_InviteMember(t *testing.T) {
 	})
 
 	t.Run("pro role rejected on free plan", func(t *testing.T) {
-		svc, _ := newTestService(t)
+		svc, _, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -504,7 +559,7 @@ func TestOrgService_InviteMember(t *testing.T) {
 	})
 
 	t.Run("pro role allowed on pro plan", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -530,8 +585,8 @@ func TestOrgService_InviteMember(t *testing.T) {
 
 func TestOrgService_AcceptInvitation(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		svc, repo := newTestService(t)
-		orgID, _, inv := setupOrgAndInvitation(t, svc, repo)
+		svc, repo, userRepo := newTestService(t)
+		orgID, _, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
 
 		// Extract raw token from URL (after ?token=)
 		rawToken := extractTokenFromURL(inv.InviteURL)
@@ -557,7 +612,7 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 	t.Run("calls onEmployeeJoined callback when employee_id present", func(t *testing.T) {
 		repo := newFakeRepo()
 		var callbackOrgID, callbackEmpID uuid.UUID
-		svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, "https://app.workived.com",
+		svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, newFakeUserRepo(), "https://app.workived.com",
 			organisation.WithOnEmployeeJoined(func(_ context.Context, orgID, empID uuid.UUID) {
 				callbackOrgID = orgID
 				callbackEmpID = empID
@@ -598,8 +653,8 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("expired invitation rejected", func(t *testing.T) {
-		svc, repo := newTestService(t)
-		_, _, inv := setupOrgAndInvitation(t, svc, repo)
+		svc, repo, userRepo := newTestService(t)
+		_, _, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
 
 		rawToken := extractTokenFromURL(inv.InviteURL)
 		tokenHash := hashToken(rawToken)
@@ -619,8 +674,8 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("already accepted invitation rejected", func(t *testing.T) {
-		svc, repo := newTestService(t)
-		_, _, inv := setupOrgAndInvitation(t, svc, repo)
+		svc, repo, userRepo := newTestService(t)
+		_, _, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
 
 		rawToken := extractTokenFromURL(inv.InviteURL)
 		tokenHash := hashToken(rawToken)
@@ -641,8 +696,8 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("already a member rejected", func(t *testing.T) {
-		svc, repo := newTestService(t)
-		orgID, _, inv := setupOrgAndInvitation(t, svc, repo)
+		svc, repo, userRepo := newTestService(t)
+		orgID, _, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
 
 		rawToken := extractTokenFromURL(inv.InviteURL)
 
@@ -665,7 +720,7 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 	})
 
 	t.Run("invalid token rejected", func(t *testing.T) {
-		svc, _ := newTestService(t)
+		svc, _, _ := newTestService(t)
 
 		_, err := svc.AcceptInvitation(context.Background(), uuid.New(), organisation.AcceptInvitationRequest{
 			Token: "totally-invalid-token",
@@ -678,8 +733,8 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 	t.Run("token issuer error propagates", func(t *testing.T) {
 		// failAfter: 1 — Create succeeds (call 1), AcceptInvitation fails (call 2+)
 		issuer := &fakeTokenIssuer{err: errors.New("jwt signing failed"), failAfter: 1}
-		svc, repo := newTestServiceWithIssuer(t, issuer)
-		_, _, inv := setupOrgAndInvitation(t, svc, repo)
+		svc, repo, userRepo := newTestServiceWithIssuer(t, issuer)
+		_, _, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
 
 		rawToken := extractTokenFromURL(inv.InviteURL)
 
@@ -694,8 +749,8 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 
 func TestOrgService_RevokeInvitation(t *testing.T) {
 	t.Run("success", func(t *testing.T) {
-		svc, repo := newTestService(t)
-		orgID, ownerID, inv := setupOrgAndInvitation(t, svc, repo)
+		svc, repo, userRepo := newTestService(t)
+		orgID, ownerID, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
 
 		err := svc.RevokeInvitation(context.Background(), orgID, inv.ID, ownerID)
 		if err != nil {
@@ -704,7 +759,7 @@ func TestOrgService_RevokeInvitation(t *testing.T) {
 	})
 
 	t.Run("not found", func(t *testing.T) {
-		svc, _ := newTestService(t)
+		svc, _, _ := newTestService(t)
 
 		err := svc.RevokeInvitation(context.Background(), uuid.New(), uuid.New(), uuid.New())
 		if err == nil {
@@ -714,8 +769,8 @@ func TestOrgService_RevokeInvitation(t *testing.T) {
 }
 
 func TestOrgService_ListPendingInvitations(t *testing.T) {
-	svc, repo := newTestService(t)
-	orgID, _, _ := setupOrgAndInvitation(t, svc, repo)
+	svc, repo, userRepo := newTestService(t)
+	orgID, _, _ := setupOrgAndInvitation(t, svc, repo, userRepo)
 
 	invitations, err := svc.ListPendingInvitations(context.Background(), orgID)
 	if err != nil {
@@ -728,7 +783,7 @@ func TestOrgService_ListPendingInvitations(t *testing.T) {
 
 func TestOrgService_ListUnlinkedMembers(t *testing.T) {
 	t.Run("returns members with no employee record", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -768,7 +823,7 @@ func TestOrgService_ListUnlinkedMembers(t *testing.T) {
 	})
 
 	t.Run("excludes linked members", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -803,8 +858,8 @@ func TestOrgService_ListUnlinkedMembers(t *testing.T) {
 
 func TestOrgService_GetMyInvitations(t *testing.T) {
 	t.Run("returns pending invitations for user", func(t *testing.T) {
-		svc, repo := newTestService(t)
-		orgID, _, inv := setupOrgAndInvitation(t, svc, repo)
+		svc, repo, userRepo := newTestService(t)
+		orgID, _, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
 		_ = orgID
 
 		invitations, err := svc.GetMyInvitations(context.Background(), uuid.New())
@@ -827,7 +882,7 @@ func TestOrgService_GetMyInvitations(t *testing.T) {
 	})
 
 	t.Run("returns empty when no pending invitations", func(t *testing.T) {
-		svc, _ := newTestService(t)
+		svc, _, _ := newTestService(t)
 
 		invitations, err := svc.GetMyInvitations(context.Background(), uuid.New())
 		if err != nil {
@@ -841,7 +896,7 @@ func TestOrgService_GetMyInvitations(t *testing.T) {
 
 func TestOrgService_ListMembers(t *testing.T) {
 	t.Run("returns all active members with HR profile status", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -903,7 +958,7 @@ func TestOrgService_ListMembers(t *testing.T) {
 	})
 
 	t.Run("excludes inactive members", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -965,7 +1020,7 @@ func TestOrgService_GetDetail(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			svc, repo := newTestService(t)
+			svc, repo, _ := newTestService(t)
 			orgID := tt.setup(svc, repo)
 
 			detail, err := svc.GetDetail(context.Background(), orgID)
@@ -1031,7 +1086,7 @@ func TestOrgService_Update(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			svc, repo := newTestService(t)
+			svc, repo, _ := newTestService(t)
 			ctx := context.Background()
 
 			ownerID := uuid.New()
@@ -1123,7 +1178,7 @@ func TestOrgService_TransferOwnership(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			svc, repo := newTestService(t)
+			svc, repo, _ := newTestService(t)
 			orgID, ownerID, newOwnerID := tt.setup(svc, repo)
 
 			req := organisation.TransferOwnershipRequest{NewOwnerUserID: newOwnerID}
@@ -1148,7 +1203,7 @@ func TestOrgService_TransferOwnership(t *testing.T) {
 
 func TestOrgService_UpdateMemberRole(t *testing.T) {
 	t.Run("happy path changes role", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -1181,7 +1236,7 @@ func TestOrgService_UpdateMemberRole(t *testing.T) {
 	})
 
 	t.Run("cannot change own role", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -1206,7 +1261,7 @@ func TestOrgService_UpdateMemberRole(t *testing.T) {
 	})
 
 	t.Run("cannot change owner role", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -1236,7 +1291,7 @@ func TestOrgService_UpdateMemberRole(t *testing.T) {
 	})
 
 	t.Run("pro role rejected on free plan", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -1265,7 +1320,7 @@ func TestOrgService_UpdateMemberRole(t *testing.T) {
 	})
 
 	t.Run("pro role allowed on pro plan", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -1298,7 +1353,7 @@ func TestOrgService_UpdateMemberRole(t *testing.T) {
 	})
 
 	t.Run("member not found", func(t *testing.T) {
-		svc, _ := newTestService(t)
+		svc, _, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -1319,7 +1374,7 @@ func TestOrgService_UpdateMemberRole(t *testing.T) {
 	})
 
 	t.Run("same role is no-op", func(t *testing.T) {
-		svc, repo := newTestService(t)
+		svc, repo, _ := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
 
@@ -1347,7 +1402,7 @@ func TestOrgService_UpdateMemberRole(t *testing.T) {
 }
 
 func TestOrgService_UpdateMemberRole_AuditLog(t *testing.T) {
-	svc, repo, al := newTestServiceWithAudit(t)
+	svc, repo, _, al := newTestServiceWithAudit(t)
 	ctx := context.Background()
 	ownerID := uuid.New()
 
@@ -1389,7 +1444,7 @@ func TestOrgService_UpdateMemberRole_AuditLog(t *testing.T) {
 }
 
 func TestOrgService_AuditLog_InviteMember(t *testing.T) {
-	svc, _, al := newTestServiceWithAudit(t)
+	svc, _, _, al := newTestServiceWithAudit(t)
 	ctx := context.Background()
 	ownerID := uuid.New()
 
@@ -1426,7 +1481,7 @@ func TestOrgService_AuditLog_InviteMember(t *testing.T) {
 }
 
 func TestOrgService_AuditLog_AcceptInvitation(t *testing.T) {
-	svc, repo, al := newTestServiceWithAudit(t)
+	svc, repo, _, al := newTestServiceWithAudit(t)
 	_, _, inv := setupOrgAndInvitationWithService(t, svc, repo)
 
 	rawToken := extractTokenFromURL(inv.InviteURL)
@@ -1453,7 +1508,7 @@ func TestOrgService_AuditLog_AcceptInvitation(t *testing.T) {
 }
 
 func TestOrgService_AuditLog_RevokeInvitation(t *testing.T) {
-	svc, repo, al := newTestServiceWithAudit(t)
+	svc, repo, _, al := newTestServiceWithAudit(t)
 	orgID, ownerID, inv := setupOrgAndInvitationWithService(t, svc, repo)
 
 	err := svc.RevokeInvitation(context.Background(), orgID, inv.ID, ownerID)
@@ -1476,7 +1531,7 @@ func TestOrgService_AuditLog_RevokeInvitation(t *testing.T) {
 }
 
 func TestOrgService_AuditLog_TransferOwnership(t *testing.T) {
-	svc, repo, al := newTestServiceWithAudit(t)
+	svc, repo, _, al := newTestServiceWithAudit(t)
 	ctx := context.Background()
 	ownerID := uuid.New()
 
@@ -1516,7 +1571,7 @@ func TestOrgService_AuditLog_TransferOwnership(t *testing.T) {
 func TestOrgService_AuditLog_ErrorDoesNotBreakOperation(t *testing.T) {
 	repo := newFakeRepo()
 	al := &fakeAuditLogger{err: errors.New("audit db down")}
-	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, "https://app.workived.com", organisation.WithAuditLog(al))
+	svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, newFakeUserRepo(), "https://app.workived.com", organisation.WithAuditLog(al))
 	ctx := context.Background()
 	ownerID := uuid.New()
 

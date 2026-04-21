@@ -36,6 +36,13 @@ var (
 		BodyText: welcomeText,
 	}
 
+	// VerificationTemplate is used for email verification (initial + resend).
+	VerificationTemplate = Template{
+		Subject:  "Verify your email to continue",
+		BodyHTML: verificationHTML,
+		BodyText: verificationText,
+	}
+
 	// ClaimPendingApprovalTemplate notifies managers of new claim submissions.
 	ClaimPendingApprovalTemplate = Template{
 		Subject:  "New claim from {{.EmployeeName}} requires your approval",
@@ -228,6 +235,41 @@ Get started here:
 {{.AppURL}}
 
 Need help? Reply to this email or check out our docs.`
+
+const verificationHTML = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #6357E8; font-size: 24px; margin-bottom: 20px;">Verify Your Email Address</h1>
+        <p>Hi {{.UserName}},</p>
+        <p>Please verify your email address to continue using Workived.</p>
+        <p style="margin: 30px 0;">
+            <a href="{{.VerifyURL}}" style="background: #6357E8; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Verify Email</a>
+        </p>
+        <p style="font-size: 14px; color: #666;">
+            This link will expire in 24 hours. If you didn't create a Workived account, you can safely ignore this email.
+        </p>
+        <p style="font-size: 12px; color: #999; margin-top: 30px;">
+            If the button doesn't work, copy and paste this link into your browser:<br>
+            {{.VerifyURL}}
+        </p>
+    </div>
+</body>
+</html>`
+
+const verificationText = `Verify Your Email Address
+
+Hi {{.UserName}},
+
+Please verify your email address to continue using Workived.
+
+Verify your email here:
+{{.VerifyURL}}
+
+This link will expire in 24 hours. If you didn't create a Workived account, you can safely ignore this email.`
 
 // ── Claims Notifications ──────────────────────────────────────────────────────
 
