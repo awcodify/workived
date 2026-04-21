@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { RichTextEditor } from './RichTextEditor'
+import { RichTextViewer } from './RichTextViewer'
 import { ApprovalTaskView } from './ApprovalTaskView'
 import { ReactionPicker } from './ReactionPicker'
 import { Dropdown, type DropdownOption } from './workived/shared/Dropdown'
@@ -907,15 +908,10 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               </button>
             </div>
           </div>
-          <div
-            className="text-sm prose prose-sm max-w-none"
-            style={{ 
-              color: '#334155',
-              fontFamily: typography.fontFamily,
-            }}
-            dangerouslySetInnerHTML={{ 
-              __html: comment.content_type === 'markdown' ? comment.body : `<p>${comment.body}</p>` 
-            }}
+          
+          <RichTextViewer 
+            content={comment.content_type === 'markdown' ? comment.body : `<p>${comment.body}</p>`}
+            textColor="#334155"
           />
 
           {/* Emoji Reactions */}
@@ -954,6 +950,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
                 textColor="#1E293B"
                 bgColor="#F8FAFC"
                 minHeight="80px"
+                purpose="comment_attachment"
               />
               <div className="flex gap-2 mt-2">
                 <button
@@ -1168,6 +1165,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
               textColor={colors.text}
               bgColor={`${colors.text}08`}
               minHeight="120px"
+              purpose="task_attachment"
             />
           </div>
 
@@ -1347,6 +1345,7 @@ export function TaskDetailModal({ mode = 'edit', task, listId: initialListId, em
                     textColor={colors.text}
                     bgColor={`${colors.text}08`}
                     minHeight="100px"
+                    purpose="comment_attachment"
                   />
                   <button
                     onClick={handleAddComment}

@@ -1,6 +1,7 @@
 package upload_test
 
 import (
+	"io"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -29,16 +30,27 @@ var (
 // ── Mock storage presigner ────────────────────────────────────────────────────
 
 type mockPresigner struct {
-	fn func(ctx context.Context, key, contentType string) (string, error)
+	uploadFn func(ctx context.Context, key, contentType string) (string, error)
+	getFn    func(ctx context.Context, key string) (io.ReadCloser, string, error)
 }
 
 func (m *mockPresigner) GetPresignedUploadURL(ctx context.Context, key, contentType string) (string, error) {
-	return m.fn(ctx, key, contentType)
+	if m.uploadFn != nil {
+		return m.uploadFn(ctx, key, contentType)
+	}
+	return "https://s3.example.com/presigned-upload", nil
+}
+
+func (m *mockPresigner) Get(ctx context.Context, key string) (io.ReadCloser, string, error) {
+	if m.getFn != nil {
+		return m.getFn(ctx, key)
+	}
+	return io.NopCloser(strings.NewReader("mock file content")), "image/jpeg", nil
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-func newRouter(presigner upload.StoragePresigner, empErr error) *gin.Engine {
+func newRouter(presigner *mockPresigner, empErr error) *gin.Engine {
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		c.Set("org_id", testOrgID)
@@ -52,7 +64,7 @@ func newRouter(presigner upload.StoragePresigner, empErr error) *gin.Engine {
 		}
 		return testEmpID, nil
 	})
-	h := upload.NewHandler(presigner, lookup, zerolog.Nop())
+	h := upload.NewHandler(presigner, presigner, lookup, "http://localhost:8080", zerolog.Nop())
 	h.RegisterRoutes(r.Group("/api/v1"))
 	return r
 }
@@ -77,7 +89,7 @@ func assertStatus(t *testing.T, w *httptest.ResponseRecorder, want int) {
 
 func TestPresign_Success_ClockIn(t *testing.T) {
 	presigner := &mockPresigner{
-		fn: func(_ context.Context, key, contentType string) (string, error) {
+		uploadFn: func(_ context.Context, key, contentType string) (string, error) {
 			if !strings.Contains(key, "clock_in") {
 				t.Errorf("key %q should contain clock_in", key)
 			}
@@ -110,6 +122,9 @@ func TestPresign_Success_ClockIn(t *testing.T) {
 	if resp.Data.UploadURL != "https://s3.example.com/presigned-upload" {
 		t.Errorf("upload_url = %q, want presigned URL", resp.Data.UploadURL)
 	}
+	if resp.Data.PublicURL == "" {
+		t.Error("public_url should not be empty")
+	}
 	if !strings.Contains(resp.Data.Key, testOrgID.String()) {
 		t.Errorf("key %q should contain org_id", resp.Data.Key)
 	}
@@ -120,7 +135,7 @@ func TestPresign_Success_ClockIn(t *testing.T) {
 
 func TestPresign_Success_ClockOut_PNG(t *testing.T) {
 	presigner := &mockPresigner{
-		fn: func(_ context.Context, key, contentType string) (string, error) {
+		uploadFn: func(_ context.Context, key, contentType string) (string, error) {
 			if !strings.Contains(key, "clock_out") {
 				t.Errorf("key %q should contain clock_out", key)
 			}
@@ -149,7 +164,7 @@ func TestPresign_Success_ClockOut_PNG(t *testing.T) {
 }
 
 func TestPresign_InvalidContentType(t *testing.T) {
-	presigner := &mockPresigner{fn: func(_ context.Context, _, _ string) (string, error) {
+	presigner := &mockPresigner{uploadFn: func(_ context.Context, _, _ string) (string, error) {
 		t.Fatal("should not call presigner on validation error")
 		return "", nil
 	}}
@@ -169,7 +184,7 @@ func TestPresign_InvalidContentType(t *testing.T) {
 }
 
 func TestPresign_InvalidPurpose(t *testing.T) {
-	presigner := &mockPresigner{fn: func(_ context.Context, _, _ string) (string, error) {
+	presigner := &mockPresigner{uploadFn: func(_ context.Context, _, _ string) (string, error) {
 		t.Fatal("should not call presigner on validation error")
 		return "", nil
 	}}
@@ -189,7 +204,7 @@ func TestPresign_InvalidPurpose(t *testing.T) {
 }
 
 func TestPresign_MissingBody(t *testing.T) {
-	presigner := &mockPresigner{fn: func(_ context.Context, _, _ string) (string, error) {
+	presigner := &mockPresigner{uploadFn: func(_ context.Context, _, _ string) (string, error) {
 		t.Fatal("should not call presigner on validation error")
 		return "", nil
 	}}
@@ -205,7 +220,7 @@ func TestPresign_MissingBody(t *testing.T) {
 }
 
 func TestPresign_EmpLookupError(t *testing.T) {
-	presigner := &mockPresigner{fn: func(_ context.Context, _, _ string) (string, error) {
+	presigner := &mockPresigner{uploadFn: func(_ context.Context, _, _ string) (string, error) {
 		t.Fatal("should not call presigner when emp lookup fails")
 		return "", nil
 	}}
@@ -226,7 +241,7 @@ func TestPresign_EmpLookupError(t *testing.T) {
 
 func TestPresign_StorageError(t *testing.T) {
 	presigner := &mockPresigner{
-		fn: func(_ context.Context, _, _ string) (string, error) {
+		uploadFn: func(_ context.Context, _, _ string) (string, error) {
 			return "", errors.New("s3 unavailable")
 		},
 	}
@@ -248,7 +263,7 @@ func TestPresign_StorageError(t *testing.T) {
 func TestPresign_KeyContainsAttendancePath(t *testing.T) {
 	var capturedKey string
 	presigner := &mockPresigner{
-		fn: func(_ context.Context, key, _ string) (string, error) {
+		uploadFn: func(_ context.Context, key, _ string) (string, error) {
 			capturedKey = key
 			return "https://s3.example.com/presigned", nil
 		},
@@ -272,4 +287,80 @@ func TestPresign_KeyContainsAttendancePath(t *testing.T) {
 	if !strings.HasSuffix(capturedKey, ".jpg") {
 		t.Errorf("key %q should end with .jpg", capturedKey)
 	}
+}
+
+// ── Sprint 24: Task & Comment Attachment Tests ───────────────────────────────
+
+func TestPresign_TaskAttachment_WebP(t *testing.T) {
+	presigner := &mockPresigner{
+		uploadFn: func(_ context.Context, key, contentType string) (string, error) {
+			if !strings.Contains(key, "task_attachment") {
+				t.Errorf("key %q should contain task_attachment", key)
+			}
+			if !strings.HasSuffix(key, ".webp") {
+				t.Errorf("key %q should end with .webp", key)
+			}
+			if contentType != "image/webp" {
+				t.Errorf("contentType = %q, want image/webp", contentType)
+			}
+			// Task attachments should NOT contain employee_id or attendance/
+			if strings.Contains(key, "attendance/") {
+				t.Errorf("task attachment key %q should not contain attendance/", key)
+			}
+			return "https://s3.example.com/presigned-upload", nil
+		},
+	}
+
+	r := newRouter(presigner, nil)
+	body := jsonBody(t, map[string]string{
+		"content_type": "image/webp",
+		"purpose":      "task_attachment",
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/uploads/presign", body)
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
+
+	var resp struct {
+		Data upload.PresignResponse `json:"data"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal response: %v", err)
+	}
+	if !strings.Contains(resp.Data.Key, testOrgID.String()) {
+		t.Errorf("key %q should contain org_id", resp.Data.Key)
+	}
+}
+
+func TestPresign_CommentAttachment_GIF(t *testing.T) {
+	presigner := &mockPresigner{
+		uploadFn: func(_ context.Context, key, contentType string) (string, error) {
+			if !strings.Contains(key, "comment_attachment") {
+				t.Errorf("key %q should contain comment_attachment", key)
+			}
+			if !strings.HasSuffix(key, ".gif") {
+				t.Errorf("key %q should end with .gif", key)
+			}
+			if contentType != "image/gif" {
+				t.Errorf("contentType = %q, want image/gif", contentType)
+			}
+			return "https://s3.example.com/presigned-upload", nil
+		},
+	}
+
+	r := newRouter(presigner, nil)
+	body := jsonBody(t, map[string]string{
+		"content_type": "image/gif",
+		"purpose":      "comment_attachment",
+	})
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/uploads/presign", body)
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
 }
