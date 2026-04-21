@@ -322,6 +322,13 @@ function TaskBoardSettingsPage() {
   }
 
   const handleUpdateList = (id: string, updates: { name?: string; is_final_state?: boolean }) => {
+    // Optimistic update for immediate UI feedback
+    setLocalLists((items) => 
+      items.map(item => 
+        item.id === id ? { ...item, ...updates } : item
+      )
+    )
+
     updateList.mutate(
       { id, data: updates },
       {
@@ -331,6 +338,8 @@ function TaskBoardSettingsPage() {
         },
         onError: (err) => {
           setError(extractApiError(err) ?? 'Failed to update column')
+          // Revert optimistic update on error
+          setLocalLists(taskLists)
         },
       },
     )
