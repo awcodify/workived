@@ -251,6 +251,8 @@ function TaskBoardSettingsPage() {
   const [newFieldName, setNewFieldName] = useState('')
   const [newFieldType, setNewFieldType] = useState<FieldType>('text')
   const [newFieldDescription, setNewFieldDescription] = useState('')
+  const [newFieldOptions, setNewFieldOptions] = useState<{ value: string; label: string }[]>([])
+  const [optionInput, setOptionInput] = useState('')
 
   // Sync server lists to local state
   useState(() => {
@@ -367,17 +369,26 @@ function TaskBoardSettingsPage() {
       return
     }
 
+    // Validate options for select/multi_select types
+    if (TYPES_NEEDING_OPTIONS.includes(newFieldType) && newFieldOptions.length === 0) {
+      setError('Please add at least one option for this field type')
+      return
+    }
+
     createField.mutate(
       {
         name: newFieldName.trim(),
         field_type: newFieldType,
         description: newFieldDescription.trim() || undefined,
+        options: TYPES_NEEDING_OPTIONS.includes(newFieldType) ? newFieldOptions : undefined,
       },
       {
         onSuccess: () => {
           setNewFieldName('')
           setNewFieldType('text')
           setNewFieldDescription('')
+          setNewFieldOptions([])
+          setOptionInput('')
           setShowFieldForm(false)
           setSuccess('Custom field created successfully')
           setTimeout(() => setSuccess(null), 3000)
@@ -707,6 +718,73 @@ function TaskBoardSettingsPage() {
                     data-testid="custom-field-description-input"
                   />
                 </div>
+
+                {/* Options for select/multi_select types */}
+                {TYPES_NEEDING_OPTIONS.includes(newFieldType) && (
+                  <div>
+                    <label className="block text-xs font-medium mb-1" style={{ color: textSec, fontFamily: typography.fontFamily }}>
+                      Options <span style={{ color: C.err }}>*</span>
+                    </label>
+                    <div className="space-y-2">
+                      {newFieldOptions.map((opt, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <div
+                            className="flex-1 px-3 py-2 rounded-md text-sm"
+                            style={{ background: '#F9FAFB', border: `1px solid ${inputBdr}`, color: text, fontFamily: typography.fontFamily }}
+                          >
+                            {opt.label}
+                          </div>
+                          <button
+                            onClick={() => setNewFieldOptions(opts => opts.filter((_, i) => i !== idx))}
+                            className="p-2 hover:bg-red-50 rounded transition-colors"
+                            style={{ color: C.err }}
+                            title="Remove option"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={optionInput}
+                          onChange={(e) => setOptionInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && optionInput.trim()) {
+                              e.preventDefault()
+                              const value = optionInput.trim().toLowerCase().replace(/\s+/g, '_')
+                              setNewFieldOptions(opts => [...opts, { value, label: optionInput.trim() }])
+                              setOptionInput('')
+                            }
+                          }}
+                          placeholder="Type option and press Enter"
+                          className="flex-1 rounded-md px-3 py-2 text-sm outline-none"
+                          style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, fontFamily: typography.fontFamily }}
+                        />
+                        <button
+                          onClick={() => {
+                            if (optionInput.trim()) {
+                              const value = optionInput.trim().toLowerCase().replace(/\s+/g, '_')
+                              setNewFieldOptions(opts => [...opts, { value, label: optionInput.trim() }])
+                              setOptionInput('')
+                            }
+                          }}
+                          disabled={!optionInput.trim()}
+                          className="px-3 py-2 rounded-md text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                          style={{ background: C.accent, color: '#fff' }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                      {newFieldOptions.length === 0 && (
+                        <p className="text-xs" style={{ color: textDim, fontFamily: typography.fontFamily }}>
+                          Add at least one option for this field type
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-2 pt-1">
                   <button
                     onClick={handleCreateField}
