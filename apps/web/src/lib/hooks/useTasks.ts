@@ -90,9 +90,12 @@ export function useReorderTaskLists() {
 
 // ── Task Hooks ───────────────────────────────────────────────
 export function useTasks(filters?: TaskFilters) {
+  // Merge with default limit (200) to ensure all tasks are loaded for board view
+  const mergedFilters = { ...filters, limit: filters?.limit ?? 300 }
+  
   return useQuery({
     queryKey: tasksKeys.taskList(filters),
-    queryFn: () => tasksApi.listTasks(filters).then((r) => r.data.data || []),
+    queryFn: () => tasksApi.listTasks(mergedFilters).then((r) => r.data.data || []),
     staleTime: 60 * 1000, // 1 min — tasks change frequently
   })
 }
