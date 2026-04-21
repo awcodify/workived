@@ -130,7 +130,9 @@ export function TaskFilters({
           className="absolute left-0 right-0 top-full mt-3 px-4 py-4 rounded-xl z-10"
           style={{
             background: '#FFF9E6',
-            border: '2px solid #E5DCC5',
+            borderTop: '2px solid #E5DCC5',
+            borderRight: '2px solid #E5DCC5',
+            borderBottom: '2px solid #E5DCC5',
             borderLeft: '4px solid #F59E0B',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06)',
             transform: 'rotate(-0.25deg)',

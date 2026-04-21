@@ -196,7 +196,17 @@ export function TaskCard({
         width: '100%',
         position: 'relative' as const,
         marginTop: '8px',
-        border: task.approval_type === 'claim'
+        borderTop: task.approval_type === 'claim'
+          ? '1px solid rgba(16, 185, 129, 0.2)'
+          : task.approval_type === 'leave'
+            ? '1px solid rgba(139, 92, 246, 0.2)'
+            : '1px solid rgba(0,0,0,0.08)',
+        borderRight: task.approval_type === 'claim'
+          ? '1px solid rgba(16, 185, 129, 0.2)'
+          : task.approval_type === 'leave'
+            ? '1px solid rgba(139, 92, 246, 0.2)'
+            : '1px solid rgba(0,0,0,0.08)',
+        borderBottom: task.approval_type === 'claim'
           ? '1px solid rgba(16, 185, 129, 0.2)'
           : task.approval_type === 'leave'
             ? '1px solid rgba(139, 92, 246, 0.2)'
