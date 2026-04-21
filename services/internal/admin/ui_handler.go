@@ -24,11 +24,13 @@ const (
 
 // UIHandler serves HTML pages for the admin interface.
 type UIHandler struct {
-	svc       *Service
-	staffSvc  *staff.Service
-	staffRepo *staff.Repository
-	templates map[string]*template.Template
-	log       zerolog.Logger
+	svc           *Service
+	staffSvc      *staff.Service
+	staffRepo     *staff.Repository
+	templates     map[string]*template.Template
+	importHandler *ImportHandler
+	jwtSecret     string
+	log           zerolog.Logger
 }
 
 // NewUIHandler creates a new UI handler and loads templates.
@@ -40,7 +42,7 @@ func NewUIHandler(svc *Service, staffSvc *staff.Service, staffRepo *staff.Reposi
 	templates := make(map[string]*template.Template)
 
 	// Parse each page template with base
-	pages := []string{"dashboard.html", "feature-flags.html", "licenses.html", "organizations.html", "error.html"}
+	pages := []string{"dashboard.html", "feature-flags.html", "licenses.html", "organizations.html", "error.html", "import.html"}
 	for _, page := range pages {
 		pagePath := filepath.Join(templatesDir, page)
 		tmpl, err := template.ParseFiles(basePath, pagePath)
@@ -74,8 +76,17 @@ func NewUIHandler(svc *Service, staffSvc *staff.Service, staffRepo *staff.Reposi
 	}, nil
 }
 
+// WithImportHandler sets the import handler for data migration features
+func (h *UIHandler) WithImportHandler(importHandler *ImportHandler) *UIHandler {
+	h.importHandler = importHandler
+	return h
+}
+
 // RegisterUIRoutes registers all admin UI routes under /_system
 func (h *UIHandler) RegisterUIRoutes(r *gin.Engine, jwtSecret string) {
+	// Store jwtSecret for later use (e.g., in SaveLinearAPIKey)
+	h.jwtSecret = jwtSecret
+
 	admin := r.Group("/_system")
 
 	// One-time setup routes (only accessible if no internal admins exist)
@@ -105,6 +116,18 @@ func (h *UIHandler) RegisterUIRoutes(r *gin.Engine, jwtSecret string) {
 		protected.POST("/organizations/:id/suspend", h.SuspendOrganization)
 		protected.POST("/organizations/:id/reactivate", h.ReactivateOrganization)
 		protected.GET("/configs", h.Configs)
+		protected.GET("/import", h.ImportPage)
+
+		// Import API endpoints (used by import page JavaScript)
+		protected.GET("/api/import/linear-api-key", h.GetLinearAPIKey)
+		protected.GET("/api/import/linear-api-key/unmasked", h.GetLinearAPIKeyUnmasked)
+		protected.POST("/api/import/linear-api-key", h.SaveLinearAPIKey)
+		protected.POST("/api/import/employees", h.FetchEmployees)
+		protected.POST("/api/import/task-lists", h.FetchTaskLists)
+		protected.POST("/api/import/linear-states", h.FetchLinearWorkflowStates)
+		protected.POST("/api/import/linear-users", h.FetchLinearUsers)
+		protected.POST("/api/import/linear-tasks", h.ImportLinearTasks)
+
 		protected.POST("/logout", h.Logout)
 	}
 }
@@ -659,6 +682,118 @@ func (h *UIHandler) ReactivateOrganization(c *gin.Context) {
 	}
 
 	c.Redirect(http.StatusSeeOther, "/_system/organizations")
+}
+
+// ImportPage displays the Linear import form
+func (h *UIHandler) ImportPage(c *gin.Context) {
+	// Fetch organizations for dropdown
+	orgs, err := h.svc.ListOrganisations(c.Request.Context())
+	if err != nil {
+		h.renderError(c, err)
+		return
+	}
+
+	userEmail, _ := c.Cookie("admin_user_email")
+
+	// Get admin user ID from session for actor_user_id
+	adminUserIDRaw, _ := c.Get("internal_admin_id")
+	adminUserID := adminUserIDRaw.(uuid.UUID)
+
+	data := gin.H{
+		"User":            gin.H{"Email": userEmail},
+		"Organizations":   orgs,
+		"Title":           "Import from Linear",
+		"CurrentUserID":   adminUserID.String(),
+		"ActorEmployeeID": adminUserID.String(), // Use admin ID as employee ID placeholder
+	}
+
+	c.Writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if renderErr := h.templates["import.html"].ExecuteTemplate(c.Writer, "base.html", data); renderErr != nil {
+		c.String(http.StatusInternalServerError, "Template error: %v", renderErr)
+	}
+}
+
+// FetchLinearWorkflowStates delegates to the import handler
+func (h *UIHandler) FetchEmployees(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "import functionality not enabled"})
+		return
+	}
+	h.importHandler.FetchEmployees(c)
+}
+
+func (h *UIHandler) FetchTaskLists(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "import functionality not enabled"})
+		return
+	}
+	h.importHandler.FetchTaskLists(c)
+}
+
+func (h *UIHandler) FetchLinearWorkflowStates(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "import functionality not enabled"})
+		return
+	}
+	h.importHandler.FetchLinearWorkflowStates(c)
+}
+
+// FetchLinearUsers delegates to the import handler
+func (h *UIHandler) FetchLinearUsers(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "import functionality not enabled"})
+		return
+	}
+	h.importHandler.FetchLinearUsers(c)
+}
+
+// ImportLinearTasks delegates to the import handler
+func (h *UIHandler) ImportLinearTasks(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "import functionality not enabled"})
+		return
+	}
+	h.importHandler.ImportLinearTasks(c)
+}
+
+// GetLinearAPIKey delegates to the import handler
+func (h *UIHandler) GetLinearAPIKey(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "import functionality not enabled"})
+		return
+	}
+	h.importHandler.GetLinearAPIKey(c)
+}
+
+// GetLinearAPIKeyUnmasked delegates to the import handler
+func (h *UIHandler) GetLinearAPIKeyUnmasked(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "import functionality not enabled"})
+		return
+	}
+	h.importHandler.GetLinearAPIKeyUnmasked(c)
+}
+
+// SaveLinearAPIKey delegates to the import handler
+func (h *UIHandler) SaveLinearAPIKey(c *gin.Context) {
+	if h.importHandler == nil {
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "import functionality not enabled"})
+		return
+	}
+
+	// Extract staff admin ID from session token for audit logging
+	sessionToken, _ := c.Cookie(adminSessionCookie)
+	if sessionToken != "" {
+		claims := &staff.Claims{}
+		token, err := jwt.ParseWithClaims(sessionToken, claims, func(t *jwt.Token) (any, error) {
+			return []byte(h.jwtSecret), nil
+		})
+		if err == nil && token.Valid {
+			c.Set("staff_admin_id", claims.InternalAdminID)
+		}
+	}
+
+	h.importHandler.SaveLinearAPIKey(c)
 }
 
 // Logout handles logout and clears session cookie.

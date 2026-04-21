@@ -1,0 +1,1252 @@
+{{define "title"}}Import from Linear — Workived Admin{{end}}
+
+{{define "content"}}
+<div class="px-4 sm:px-0">
+    <h1 class="text-3xl font-bold text-gray-900">Import Tasks from Linear</h1>
+    <p class="mt-2 text-sm text-gray-600">Migrate all tasks from Linear to Workived including markdown, images, and comments</p>
+</div>
+
+<!-- Quick Start Guide -->
+<div class="mt-6 bg-blue-50 border-l-4 border-blue-400 p-4 max-w-3xl">
+    <div class="flex">
+        <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+            </svg>
+        </div>
+        <div class="ml-3">
+            <h3 class="text-sm font-medium text-blue-800">Quick Start</h3>
+            <div class="mt-2 text-sm text-blue-700">
+                <ol class="list-decimal list-inside space-y-1">
+                    <li>Get your Linear API key from <a href="https://linear.app/settings/api" target="_blank" class="underline">Linear Settings → API</a></li>
+                    <li>Select the target organization and enter the Linear API key</li>
+                    <li>Click <strong>"1. Load Task Lists"</strong> → <strong>"2. Load States"</strong> → Click <strong>"Smart map by type"</strong> for intelligent auto-mapping</li>
+                    <li>Optionally: Click <strong>"1. Load Employees"</strong> → <strong>"2. Load Users"</strong> → Auto-matches by email instantly!</li>
+                    <li>Review mappings and use <strong>Dry Run</strong> to preview before importing</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Form -->
+<div class="mt-8 max-w-3xl">
+    <div class="bg-white shadow rounded-lg">
+        <form id="importForm" class="p-6 space-y-6">
+            <!-- Required Settings -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium text-gray-900 border-b pb-2">Required Settings</h3>
+                
+                <!-- Linear API Key -->
+                <div>
+                    <label for="linear_api_key" class="block text-sm font-medium text-gray-700">
+                        Linear API Key *
+                    </label>
+                    <div class="mt-1 flex gap-2">
+                        <input type="password" name="linear_api_key" id="linear_api_key"
+                            class="flex-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                            placeholder="lin_api_...">
+                        <button type="button" id="toggleApiKey" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            Show
+                        </button>
+                        <button type="button" id="saveApiKey" class="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700">
+                            Save
+                        </button>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">API key is auto-loaded from config. Enter a new one to override.</p>
+                </div>
+
+                <!-- Organization Selection -->
+                <div>
+                    <label for="organisation_id" class="block text-sm font-medium text-gray-700">
+                        Target Organization *
+                    </label>
+                    <select name="organisation_id" id="organisation_id" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                        <option value="">Select an organization...</option>
+                        {{range .Organizations}}
+                        <option value="{{.ID}}">{{.Name}}</option>
+                        {{end}}
+                    </select>
+                </div>
+
+                <!-- Actor Employee ID -->
+                <div>
+                    <label for="actor_employee_id" class="block text-sm font-medium text-gray-700">
+                        Actor Employee ID <span class="text-gray-400">(optional if using actor mapping)</span>
+                    </label>
+                    <input type="text" name="actor_employee_id" id="actor_employee_id"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Employee UUID from the target organization (for audit trail)">
+                    <p class="mt-1 text-xs text-gray-500">
+                        💡 Tip: Either provide this OR use the "Load Users from Linear" button below to map each Linear user to a Workived employee
+                    </p>
+                </div>
+            </div>
+
+            <!-- Task Status Mapping -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Task Status to Task List Mapping</h3>
+                <p class="text-sm text-gray-500 mb-4">Map each Linear task status to a Workived task list - tasks will be automatically sorted</p>
+                
+                <div class="mb-4 space-y-3">
+                    <div>
+                        <button type="button" id="loadTaskListsBtn" 
+                            class="inline-flex items-center px-4 py-2 border border-indigo-600 bg-indigo-600 shadow-sm text-sm font-medium rounded-md text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <svg class="-ml-1 mr-2 h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+                            </svg>
+                            1. Load Task Lists from Organization
+                        </button>
+                        <span id="loadingTaskListsText" class="ml-3 text-sm text-gray-500 hidden">Loading...</span>
+                        <span id="taskListsLoadedText" class="ml-3 text-sm text-green-600 hidden">✓ Loaded</span>
+                    </div>
+                    <div>
+                        <button type="button" id="loadStatesBtn" 
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                            </svg>
+                            2. Load Task States from Linear
+                        </button>
+                        <span id="loadingStatesText" class="ml-3 text-sm text-gray-500 hidden">Loading...</span>
+                        <button type="button" id="autoMapStatesBtn" class="ml-2 hidden inline-flex items-center px-3 py-2 border border-green-600 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <svg class="-ml-0.5 mr-2 h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Smart map by type
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mapping Table (hidden until loaded) -->
+                <div id="stateMappingTable" class="hidden">
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-3 mb-4 rounded">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    For each Linear task status, select the Workived task list where tasks with that status should be imported. This allows automatic organization (e.g., "Backlog" → List A, "In Progress" → List B, "Done" → List C).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-300 border border-gray-300 rounded-md">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Team</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tasks</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">→ Workived Task List *</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stateMappingRows" class="bg-white divide-y divide-gray-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actor/User Mapping -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">User/Actor Mapping</h3>
+                <p class="text-sm text-gray-500 mb-4">Map Linear users to Workived employees for task assignment and audit trail</p>
+                
+                <div class="mb-4 space-y-3">
+                    <div>
+                        <button type="button" id="loadEmployeesBtn" 
+                            class="inline-flex items-center px-4 py-2 border border-indigo-600 bg-indigo-600 shadow-sm text-sm font-medium rounded-md text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <svg class="-ml-1 mr-2 h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            1. Load Employees from Organization
+                        </button>
+                        <span id="loadingEmployeesText" class="ml-3 text-sm text-gray-500 hidden">Loading...</span>
+                        <span id="employeesLoadedText" class="ml-3 text-sm text-green-600 hidden">✓ Loaded</span>
+                    </div>
+                    <div>
+                        <button type="button" id="loadUsersBtn" 
+                            class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <svg class="-ml-1 mr-2 h-5 w-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                            </svg>
+                            2. Load Users from Linear
+                        </button>
+                        <span id="loadingUsersText" class="ml-3 text-sm text-gray-500 hidden">Loading...</span>
+                        <button type="button" id="autoMapUsersBtn" class="ml-2 hidden inline-flex items-center px-3 py-2 border border-green-600 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                            <svg class="-ml-0.5 mr-2 h-4 w-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Auto-map by email
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Mapping Table (hidden until loaded) -->
+                <div id="userMappingTable" class="hidden">
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-3 mb-4 rounded">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    Select the Workived employee for each Linear user. Click "Auto-map by email" to automatically match users with the same email address.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-300 border border-gray-300 rounded-md">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Linear User</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">→ Workived Employee</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userMappingRows" class="bg-white divide-y divide-gray-200">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optional Filters -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Optional Filters</h3>
+                <p class="text-sm text-gray-500 mb-4">Leave empty to import <strong>all tasks from all Linear projects</strong></p>
+                
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="team_id" class="block text-sm font-medium text-gray-700">
+                                Linear Team ID
+                            </label>
+                            <input type="text" name="team_id" id="team_id"
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                placeholder="Optional - filter by specific team">
+                        </div>
+                        <div>
+                            <label for="project_id" class="block text-sm font-medium text-gray-700">
+                                Linear Project ID
+                            </label>
+                            <input type="text" name="project_id" id="project_id"
+                                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                                placeholder="Optional - filter by specific project">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            State Filter (leave unchecked to import all states)
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" name="state_filter" value="backlog" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Backlog</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" name="state_filter" value="unstarted" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Unstarted</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" name="state_filter" value="started" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Started</span>
+                            </label>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" name="state_filter" value="completed" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <span class="ml-2 text-sm text-gray-700">Completed</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- What Will Be Imported -->
+            <div class="border-t border-gray-200 pt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Import Mapping</h3>
+                <p class="text-sm text-gray-500 mb-4">How Linear tasks will be mapped to Workived</p>
+                
+                <div class="bg-gray-50 rounded-lg p-4 space-y-3 mb-4">
+                    <div class="flex items-start text-sm">
+                        <svg class="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                        <div>
+                            <strong class="text-gray-900">Linear Task Status → Workived Task List</strong>
+                            <p class="text-gray-600 mt-1">Tasks will be automatically sorted into different task lists based on their Linear workflow state (e.g., "Backlog" → List A, "In Progress" → List B, "Done" → List C).</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start text-sm">
+                        <svg class="h-5 w-5 text-green-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div>
+                            <strong class="text-gray-900">Linear States → Workived Completion Status</strong>
+                            <p class="text-gray-600 mt-1">Completed/Canceled tasks in Linear will be marked as complete in Workived. Others will remain active.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start text-sm">
+                        <svg class="h-5 w-5 text-purple-600 mr-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                        </svg>
+                        <div>
+                            <strong class="text-gray-900">Linear Priority → Workived Priority</strong>
+                            <p class="text-gray-600 mt-1">Urgent→Urgent, High→High, Normal→Medium, Low→Low</p>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 class="text-lg font-medium text-gray-900 mb-4">What Will Be Imported</h3>
+                
+                <div class="bg-green-50 rounded-lg p-4 space-y-2">
+                    <div class="flex items-center text-sm text-green-800">
+                        <svg class="h-5 w-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span><strong>Task Details:</strong> Title, description, priority, due date, assignee</span>
+                    </div>
+                    <div class="flex items-center text-sm text-green-800">
+                        <svg class="h-5 w-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span><strong>Markdown Content:</strong> All formatting preserved (bold, italic, code blocks, lists)</span>
+                    </div>
+                    <div class="flex items-center text-sm text-green-800" id="commentsIndicator">
+                        <svg class="h-5 w-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span><strong>Comments:</strong> All comments with markdown and timestamps</span>
+                    </div>
+                    <div class="flex items-center text-sm text-green-800" id="imagesIndicator">
+                        <svg class="h-5 w-5 text-green-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <span><strong>Images:</strong> Downloaded from Linear and uploaded to Workived storage</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4 space-y-3">
+                    <label class="flex items-start">
+                        <input type="checkbox" name="include_comments" id="include_comments" checked 
+                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mt-0.5"
+                            onchange="updateImportIndicators()">
+                        <span class="ml-2 text-sm">
+                            <span class="font-medium text-gray-700">Include Comments</span>
+                            <span class="text-gray-500 block mt-0.5">Import all task comments (recommended)</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start">
+                        <input type="checkbox" name="include_attachments" id="include_attachments" checked 
+                            class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 mt-0.5"
+                            onchange="updateImportIndicators()">
+                        <span class="ml-2 text-sm">
+                            <span class="font-medium text-gray-700">Include Images & Attachments</span>
+                            <span class="text-gray-500 block mt-0.5">Download and migrate all images (recommended)</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start bg-yellow-50 p-3 rounded border border-yellow-200">
+                        <input type="checkbox" name="dry_run" id="dry_run" 
+                            class="rounded border-gray-300 text-yellow-600 focus:ring-yellow-500 mt-0.5">
+                        <span class="ml-2 text-sm">
+                            <span class="font-medium text-yellow-800">🔍 Dry Run (Preview Mode)</span>
+                            <span class="text-yellow-700 block mt-0.5">Check this to preview what will be imported without creating any tasks</span>
+                        </span>
+                    </label>
+                    <label class="flex items-start bg-blue-50 p-3 rounded border border-blue-200">
+                        <input type="checkbox" name="test_mode" id="test_mode" 
+                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-0.5">
+                        <span class="ml-2 text-sm">
+                            <span class="font-medium text-blue-800">🧪 Test Mode (1 Task + 1 Comment)</span>
+                            <span class="text-blue-700 block mt-0.5">Import only 1 task with 1 comment to test ProseMirror formatting conversion</span>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="flex items-center justify-between border-t border-gray-200 pt-6">
+                <button type="button" id="cancelBtn" onclick="window.location.href='/_system'"
+                    class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Cancel
+                </button>
+                <button type="submit" id="submitBtn"
+                    class="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    <span id="submitBtnText">Start Import</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+
+<!-- Progress Modal -->
+<div id="progressModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-md w-full">
+        <div class="text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-indigo-100 mb-4">
+                <svg class="animate-spin h-6 w-6 text-indigo-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Importing Tasks...</h3>
+            <p class="text-sm text-gray-500">This may take a few minutes depending on the number of tasks.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Results Modal -->
+<div id="resultsModal" class="hidden fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+        <div id="resultsContent"></div>
+        <div class="mt-6 flex justify-end">
+            <button onclick="window.location.href='/_system/import'"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700">
+                Close
+            </button>
+        </div>
+    </div>
+// Update import indicators based on checkbox state
+function updateImportIndicators() {
+    const includeComments = document.getElementById('include_comments').checked;
+    const includeAttachments = document.getElementById('include_attachments').checked;
+    const dryRun = document.getElementById('dry_run').checked;
+    
+    const commentsIndicator = document.getElementById('commentsIndicator');
+    const imagesIndicator = document.getElementById('imagesIndicator');
+    const submitBtnText = document.getElementById('submitBtnText');
+    
+    if (includeComments) {
+        commentsIndicator.classList.remove('opacity-50');
+        commentsIndicator.querySelector('svg').classList.replace('text-gray-400', 'text-green-600');
+    } else {
+        commentsIndicator.classList.add('opacity-50');
+        commentsIndicator.querySelector('svg').classList.replace('text-green-600', 'text-gray-400');
+    }
+    
+    if (includeAttachments) {
+        imagesIndicator.classList.remove('opacity-50');
+        imagesIndicator.querySelector('svg').classList.replace('text-gray-400', 'text-green-600');
+    } else {
+        imagesIndicator.classList.add('opacity-50');
+        imagesIndicator.querySelector('svg').classList.replace('text-green-600', 'text-gray-400');
+    }
+    
+    submitBtnText.textContent = dryRun ? 'Preview Import (Dry Run)' : 'Start Import';
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    updateImportIndicators();
+    
+    // Update button text on dry run toggle
+    document.getElementById('dry_run').addEventListener('change', updateImportIndicators);
+});
+
+</div>
+
+<script>
+// Global variables - declare these FIRST before any code that uses them
+let currentApiKey = '';
+let taskLists = [];
+let linearStates = [];
+let workivedEmployees = [];
+let linearUsers = [];
+
+// Load Linear API key on page load
+async function loadLinearAPIKey() {
+    try {
+        const response = await fetch('/_system/api/import/linear-api-key', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        
+        const result = await response.json();
+        
+        if (result.has_key && result.masked_key) {
+            currentApiKey = result.masked_key;
+            const input = document.getElementById('linear_api_key');
+            input.value = result.masked_key;
+            input.placeholder = result.masked_key;
+            // Make it read-only initially
+            input.setAttribute('readonly', 'readonly');
+            input.style.backgroundColor = '#f9fafb';
+        }
+    } catch (error) {
+        console.error('Failed to load Linear API key:', error);
+    }
+}
+
+// Toggle API key visibility
+document.getElementById('toggleApiKey').addEventListener('click', async function() {
+    const input = document.getElementById('linear_api_key');
+    const btn = this;
+    
+    if (input.type === 'password') {
+        // Showing - fetch the actual key
+        btn.disabled = true;
+        btn.textContent = 'Loading...';
+        
+        try {
+            const response = await fetch('/_system/api/import/linear-api-key/unmasked', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.has_key && result.api_key) {
+                input.type = 'text';
+                input.value = result.api_key;
+                btn.textContent = 'Hide';
+            } else {
+                alert('Failed to load API key: ' + (result.error || 'Not found'));
+            }
+        } catch (error) {
+            alert('Network error: ' + error.message);
+        } finally {
+            btn.disabled = false;
+        }
+    } else {
+        // Hiding - restore masked version
+        input.type = 'password';
+        input.value = currentApiKey;
+        btn.textContent = 'Show';
+    }
+});
+
+// Save Linear API key
+document.getElementById('saveApiKey').addEventListener('click', async function() {
+    const input = document.getElementById('linear_api_key');
+    const apiKey = input.value.trim();
+    
+    if (!apiKey) {
+        alert('Please enter an API key');
+        return;
+    }
+    
+    // Don't save if it's the masked key
+    if (apiKey.includes('...')) {
+        alert('Please enter a new API key to save');
+        return;
+    }
+    
+    const btn = this;
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    
+    try {
+        const response = await fetch('/_system/api/import/linear-api-key', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                api_key: apiKey
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.masked_key) {
+            currentApiKey = result.masked_key;
+            input.value = result.masked_key;
+            input.placeholder = result.masked_key;
+            input.setAttribute('readonly', 'readonly');
+            input.style.backgroundColor = '#f9fafb';
+            input.type = 'password';
+            document.getElementById('toggleApiKey').textContent = 'Show';
+            alert('API key saved successfully!');
+        } else {
+            alert('Failed to save API key: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Network error: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save';
+    }
+});
+
+// Allow editing when user clicks on the input
+document.getElementById('linear_api_key').addEventListener('click', function() {
+    if (this.hasAttribute('readonly')) {
+        this.removeAttribute('readonly');
+        this.style.backgroundColor = 'white';
+        this.value = '';
+        this.placeholder = 'Enter new API key...';
+    }
+});
+
+// Load API key on page load
+loadLinearAPIKey();
+
+document.getElementById('importForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    
+    // Get state filters
+    const stateFilters = Array.from(document.querySelectorAll('input[name="state_filter"]:checked'))
+        .map(cb => cb.value);
+    
+    // Collect state mappings if table is visible
+    const mappingTable = document.getElementById('stateMappingTable');
+    const stateMappings = {};
+    
+    if (!mappingTable.classList.contains('hidden')) {
+        // User has loaded states - collect mappings
+        const mappingInputs = document.querySelectorAll('[data-state-id]');
+        let hasEmptyMapping = false;
+        
+        mappingInputs.forEach(input => {
+            const stateId = input.dataset.stateId;
+            const taskListId = input.value.trim();
+            
+            if (taskListId) {
+                stateMappings[stateId] = taskListId;
+            } else {
+                hasEmptyMapping = true;
+            }
+        });
+        
+        if (hasEmptyMapping) {
+            alert('Please provide a task list UUID for all states, or remove the states you don\'t want to import.');
+            return;
+        }
+        
+        if (Object.keys(stateMappings).length === 0) {
+            alert('Please map at least one state to a task list.');
+            return;
+        }
+    }
+    
+    // Collect actor mappings if table is visible
+    const userMappingTable = document.getElementById('userMappingTable');
+    const actorMappings = {};
+    
+    if (!userMappingTable.classList.contains('hidden')) {
+        // User has loaded users - collect mappings
+        const actorInputs = document.querySelectorAll('[data-user-email]');
+        let hasEmptyActorMapping = false;
+        
+        actorInputs.forEach(input => {
+            const userEmail = input.dataset.userEmail;
+            const employeeUUID = input.value.trim();
+            
+            if (employeeUUID) {
+                actorMappings[userEmail] = employeeUUID;
+            } else {
+                hasEmptyActorMapping = true;
+            }
+        });
+        
+        if (hasEmptyActorMapping) {
+            alert('Please provide an employee UUID for all Linear users, or skip loading users.');
+            return;
+        }
+    }
+    
+    // Build request payload
+    const apiKeyValue = formData.get('linear_api_key');
+    const payload = {
+        organisation_id: formData.get('organisation_id'),
+        actor_user_id: "{{.CurrentUserID}}", // Admin user ID
+        linear_api_key: (apiKeyValue && !apiKeyValue.includes('...')) ? apiKeyValue : '', // Send empty if masked, backend will use admin_config
+        dry_run: formData.get('dry_run') === 'on',
+        test_mode: formData.get('test_mode') === 'on',
+        include_comments: formData.get('include_comments') === 'on',
+        include_attachments: formData.get('include_attachments') === 'on',
+    };
+    
+    // Add actor_employee_id if not using mappings
+    if (Object.keys(actorMappings).length === 0 && formData.get('actor_employee_id')) {
+        payload.actor_employee_id = formData.get('actor_employee_id');
+    }
+    
+    // Add state mappings if available
+    if (Object.keys(stateMappings).length > 0) {
+        payload.state_mappings = stateMappings;
+    }
+    
+    // Add actor mappings if available
+    if (Object.keys(actorMappings).length > 0) {
+        payload.actor_mappings = actorMappings;
+    }
+    
+    // Add optional fields
+    if (formData.get('team_id')) payload.team_id = formData.get('team_id');
+    if (formData.get('project_id')) payload.project_id = formData.get('project_id');
+    if (stateFilters.length > 0) payload.state_filter = stateFilters;
+    
+    // Show progress modal
+    document.getElementById('progressModal').classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/_system/api/import/linear-tasks', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        // Hide progress modal
+        document.getElementById('progressModal').classList.add('hidden');
+        
+        if (!response.ok) {
+            showResults({
+                success: false,
+                message: result.message || 'Import failed',
+                error: result
+            });
+            return;
+        }
+        
+        showResults({
+            success: true,
+            data: result.data
+        });
+        
+    } catch (error) {
+        document.getElementById('progressModal').classList.add('hidden');
+        showResults({
+            success: false,
+            message: 'Network error: ' + error.message
+        });
+    }
+});
+
+function showResults(result) {
+    const modal = document.getElementById('resultsModal');
+    const content = document.getElementById('resultsContent');
+    
+    if (result.success) {
+        const data = result.data;
+        content.innerHTML = `
+            <div class="text-center mb-6">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                    <svg class="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900">${data.dry_run ? 'Dry Run Complete' : 'Import Complete'}</h3>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Total Issues:</span>
+                    <span class="text-sm font-semibold text-gray-900">${data.total_issues}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Successful:</span>
+                    <span class="text-sm font-semibold text-green-600">${data.successful_tasks}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Failed:</span>
+                    <span class="text-sm font-semibold text-red-600">${data.failed_tasks}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Comments Migrated:</span>
+                    <span class="text-sm font-semibold text-gray-900">${data.migrated_comments}</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-sm text-gray-600">Images Migrated:</span>
+                    <span class="text-sm font-semibold text-gray-900">${data.migrated_images}</span>
+                </div>
+            </div>
+            
+            ${data.errors && data.errors.length > 0 ? `
+                <div class="mt-4">
+                    <h4 class="text-sm font-medium text-gray-900 mb-2">Errors:</h4>
+                    <div class="bg-red-50 border border-red-200 rounded-md p-3 max-h-40 overflow-y-auto">
+                        ${data.errors.map(err => `
+                            <div class="text-sm text-red-800 mb-1">
+                                <strong>${err.issue}:</strong> ${err.error}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            ` : ''}
+        `;
+    } else {
+        content.innerHTML = `
+            <div class="text-center mb-6">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                    <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900">Import Failed</h3>
+            </div>
+            
+            <div class="bg-red-50 border border-red-200 rounded-md p-4">
+                <p class="text-sm text-red-800">${result.message}</p>
+            </div>
+        `;
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+// Load employees for the selected organization
+document.getElementById('loadEmployeesBtn').addEventListener('click', async () => {
+    const orgId = document.getElementById('organisation_id').value;
+    if (!orgId) {
+        alert('Please select an organization first');
+        return;
+    }
+    
+    const btn = document.getElementById('loadEmployeesBtn');
+    const loadingText = document.getElementById('loadingEmployeesText');
+    const loadedText = document.getElementById('employeesLoadedText');
+    
+    btn.disabled = true;
+    loadingText.classList.remove('hidden');
+    loadedText.classList.add('hidden');
+    
+    try {
+        const response = await fetch('/_system/api/import/employees', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                organisation_id: orgId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            alert('Failed to load employees: ' + (result.error?.message || 'Unknown error'));
+            btn.disabled = false;
+            loadingText.classList.add('hidden');
+            return;
+        }
+        
+        workivedEmployees = result.data || [];
+        
+        if (workivedEmployees.length === 0) {
+            alert('No employees found in the selected organization. Please create employees first.');
+            btn.disabled = false;
+            loadingText.classList.add('hidden');
+            return;
+        }
+        
+        loadingText.classList.add('hidden');
+        loadedText.classList.remove('hidden');
+        
+        // If Linear users are already loaded, regenerate the table with dropdowns
+        if (linearUsers.length > 0) {
+            populateUserMappingTable(linearUsers);
+        }
+        
+    } catch (error) {
+        alert('Network error: ' + error.message);
+        btn.disabled = false;
+        loadingText.classList.add('hidden');
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+// Load task lists for the selected organization
+document.getElementById('loadTaskListsBtn').addEventListener('click', async () => {
+    const orgId = document.getElementById('organisation_id').value;
+    if (!orgId) {
+        alert('Please select an organization first');
+        return;
+    }
+    
+    const btn = document.getElementById('loadTaskListsBtn');
+    const loadingText = document.getElementById('loadingTaskListsText');
+    const loadedText = document.getElementById('taskListsLoadedText');
+    
+    btn.disabled = true;
+    loadingText.classList.remove('hidden');
+    loadedText.classList.add('hidden');
+    
+    try {
+        const response = await fetch('/_system/api/import/task-lists', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                organisation_id: orgId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            alert('Failed to load task lists: ' + (result.error?.message || 'Unknown error'));
+            btn.disabled = false;
+            loadingText.classList.add('hidden');
+            return;
+        }
+        
+        taskLists = result.data || [];
+        
+        if (taskLists.length === 0) {
+            alert('No task lists found in the selected organization. Please create at least one task list first.');
+            btn.disabled = false;
+            loadingText.classList.add('hidden');
+            return;
+        }
+        
+        loadingText.classList.add('hidden');
+        loadedText.classList.remove('hidden');
+        
+        // If states are already loaded, regenerate the table with dropdowns
+        if (linearStates.length > 0) {
+            populateStateMappingTable(linearStates);
+        }
+        
+    } catch (error) {
+        alert('Network error: ' + error.message);
+        btn.disabled = false;
+        loadingText.classList.add('hidden');
+    } finally {
+        btn.disabled = false;
+    }
+});
+
+// Load Linear workflow states for mapping
+document.getElementById('loadStatesBtn').addEventListener('click', async () => {
+    const apiKeyInput = document.getElementById('linear_api_key').value;
+    const apiKey = (apiKeyInput && !apiKeyInput.includes('...')) ? apiKeyInput : ''; // Send empty if masked
+    
+    if (taskLists.length === 0) {
+        alert('Please load task lists first (click "1. Load Task Lists from Organization")');
+        return;
+    }
+    
+    const btn = document.getElementById('loadStatesBtn');
+    const loadingText = document.getElementById('loadingStatesText');
+    
+    btn.disabled = true;
+    loadingText.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/_system/api/import/linear-states', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                linear_api_key: apiKey
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            alert('Failed to load workflow states: ' + (result.error?.message || result.message || 'Unknown error'));
+            btn.disabled = false;
+            loadingText.classList.add('hidden');
+            return;
+        }
+        
+        const states = result.data;
+        
+        if (states.length === 0) {
+            alert('No workflow states found in your Linear workspace');
+            btn.disabled = false;
+            loadingText.classList.add('hidden');
+            return;
+        }
+        
+        linearStates = states;
+        populateStateMappingTable(states);
+        
+        // Show auto-map button if we have task lists
+        if (taskLists.length > 0) {
+            document.getElementById('autoMapStatesBtn').classList.remove('hidden');
+        }
+        
+    } catch (error) {
+        alert('Network error: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        loadingText.classList.add('hidden');
+    }
+});
+
+// Helper function to populate state mapping table with dropdowns
+function populateStateMappingTable(states) {
+    const tbody = document.getElementById('stateMappingRows');
+    
+    // Build task list options HTML
+    const taskListOptions = taskLists.map(list => 
+        `<option value="${list.id}">${list.name}${list.is_archive ? ' (Archived)' : ''}</option>`
+    ).join('');
+    
+    tbody.innerHTML = states.map((state, idx) => `
+        <tr>
+            <td class="px-4 py-3 text-sm">
+                <div class="flex items-center">
+                    <div class="w-3 h-3 rounded-full mr-2" style="background-color: ${state.color}"></div>
+                    <span class="font-medium text-gray-900">${state.name}</span>
+                </div>
+            </td>
+            <td class="px-4 py-3 text-sm">
+                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getTypeColor(state.type)}">
+                    ${state.type}
+                </span>
+            </td>
+            <td class="px-4 py-3 text-sm text-gray-600">${state.teamName || 'N/A'} <span class="text-gray-400">(${state.teamKey || 'N/A'})</span></td>
+            <td class="px-4 py-3 text-sm text-gray-600">${state.issueCount}</td>
+            <td class="px-4 py-3">
+                <select 
+                    class="block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-2 text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" 
+                    data-state-id="${state.id}"
+                    data-state-name="${state.name}"
+                    data-state-type="${state.type}"
+                    id="state_mapping_${idx}">
+                    <option value="">-- Select Task List --</option>
+                    ${taskListOptions}
+                </select>
+            </td>
+        </tr>
+    `).join('');
+    
+    // Show the table
+    document.getElementById('stateMappingTable').classList.remove('hidden');
+}
+
+// Auto-map states by intelligent matching
+document.getElementById('autoMapStatesBtn').addEventListener('click', () => {
+    let mapped = 0;
+    
+    linearStates.forEach((state, idx) => {
+        const select = document.getElementById(`state_mapping_${idx}`);
+        if (!select || select.value) return; // Skip if already mapped
+        
+        // Smart matching logic:
+        // 1. Try exact name match (case-insensitive)
+        // 2. Try type-based matching (backlog → Backlog, started → In Progress, completed → Done)
+        // 3. Try name similarity
+        
+        let matchedList = null;
+        const stateName = state.name.toLowerCase();
+        const stateType = state.type.toLowerCase();
+        
+        // Try exact name match first
+        matchedList = taskLists.find(list => 
+            list.name.toLowerCase() === stateName
+        );
+        
+        // Try type-based matching
+        if (!matchedList) {
+            const typeMapping = {
+                'backlog': ['backlog', 'todo', 'to do'],
+                'unstarted': ['todo', 'to do', 'backlog', 'planned'],
+                'started': ['in progress', 'doing', 'active', 'working'],
+                'completed': ['done', 'completed', 'finished', 'closed'],
+                'canceled': ['canceled', 'cancelled', 'archived']
+            };
+            
+            const keywords = typeMapping[stateType] || [];
+            matchedList = taskLists.find(list => {
+                const listName = list.name.toLowerCase();
+                return keywords.some(kw => listName.includes(kw) || kw.includes(listName));
+            });
+        }
+        
+        // Try partial name matching
+        if (!matchedList) {
+            matchedList = taskLists.find(list => {
+                const listName = list.name.toLowerCase();
+                return listName.includes(stateName) || stateName.includes(listName);
+            });
+        }
+        
+        if (matchedList) {
+            select.value = matchedList.id;
+            mapped++;
+            // Highlight the row
+            select.parentElement.parentElement.classList.add('bg-green-50');
+        }
+    });
+    
+    alert(`Smart-mapped ${mapped} out of ${linearStates.length} states.${mapped < linearStates.length ? ' Please review and complete the remaining mappings manually.' : ''}`);
+});
+
+// Helper function for type badge colors
+function getTypeColor(type) {
+    switch(type) {
+        case 'completed': return 'bg-green-100 text-green-800';
+        case 'started': return 'bg-blue-100 text-blue-800';
+        case 'unstarted': return 'bg-gray-100 text-gray-800';
+        case 'backlog': return 'bg-purple-100 text-purple-800';
+        case 'canceled': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+}
+
+// Load Linear users for actor mapping
+document.getElementById('loadUsersBtn').addEventListener('click', async () => {
+    const apiKeyInput = document.getElementById('linear_api_key').value;
+    const apiKey = (apiKeyInput && !apiKeyInput.includes('...')) ? apiKeyInput : ''; // Send empty if masked
+    
+    if (workivedEmployees.length === 0) {
+        alert('Please load employees first (click "1. Load Employees from Organization")');
+        return;
+    }
+    
+    const btn = document.getElementById('loadUsersBtn');
+    const loadingText = document.getElementById('loadingUsersText');
+    
+    btn.disabled = true;
+    loadingText.classList.remove('hidden');
+    
+    try {
+        const response = await fetch('/_system/api/import/linear-users', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                linear_api_key: apiKey
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            alert('Failed to load users: ' + (result.error?.message || result.message || 'Unknown error'));
+            btn.disabled = false;
+            loadingText.classList.add('hidden');
+            return;
+        }
+        
+        const users = result.data;
+        
+        if (users.length === 0) {
+            alert('No active users found in your Linear workspace');
+            btn.disabled = false;
+            loadingText.classList.add('hidden');
+            return;
+        }
+        
+        linearUsers = users;
+        populateUserMappingTable(users);
+        
+        // Show auto-map button
+        document.getElementById('autoMapUsersBtn').classList.remove('hidden');
+        
+    } catch (error) {
+        alert('Network error: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        loadingText.classList.add('hidden');
+    }
+});
+
+// Helper function to populate user mapping table with employee dropdowns
+function populateUserMappingTable(users) {
+    const tbody = document.getElementById('userMappingRows');
+    
+    // Build employee options HTML
+    const employeeOptions = workivedEmployees.map(emp => 
+        `<option value="${emp.id}" data-email="${emp.email}">${emp.name}${emp.email ? ` (${emp.email})` : ''}</option>`
+    ).join('');
+    
+    tbody.innerHTML = users.map((user, idx) => {
+        // Try to find matching employee by email for auto-select
+        const matchingEmp = workivedEmployees.find(emp => 
+            emp.email && user.email && emp.email.toLowerCase() === user.email.toLowerCase()
+        );
+        
+        return `
+            <tr${matchingEmp ? ' class="bg-green-50"' : ''}>
+                <td class="px-4 py-3 text-sm text-gray-900">${user.name}</td>
+                <td class="px-4 py-3 text-sm text-gray-600">${user.email}</td>
+                <td class="px-4 py-3">
+                    <select 
+                        class="block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-2 text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500${matchingEmp ? ' border-green-400' : ''}" 
+                        data-user-id="${user.id}"
+                        data-user-email="${user.email}"
+                        data-user-name="${user.name}"
+                        id="actor_mapping_${idx}">
+                        <option value="">-- Select Employee --</option>
+                        ${employeeOptions}
+                    </select>
+                    ${matchingEmp ? '<div class="mt-1 text-xs text-green-600">✓ Auto-matched by email</div>' : ''}
+                </td>
+            </tr>
+        `;
+    }).join('');
+    
+    // If there were auto-matches, select them
+    users.forEach((user, idx) => {
+        const matchingEmp = workivedEmployees.find(emp => 
+            emp.email && user.email && emp.email.toLowerCase() === user.email.toLowerCase()
+        );
+        if (matchingEmp) {
+            // Use setTimeout to ensure DOM is ready
+            setTimeout(() => {
+                const select = document.getElementById(`actor_mapping_${idx}`);
+                if (select) {
+                    select.value = matchingEmp.id;
+                }
+            }, 0);
+        }
+    });
+    
+    // Show the table
+    document.getElementById('userMappingTable').classList.remove('hidden');
+}
+
+// Auto-map users by email
+document.getElementById('autoMapUsersBtn').addEventListener('click', () => {
+    let mapped = 0;
+    linearUsers.forEach((user, idx) => {
+        const select = document.getElementById(`actor_mapping_${idx}`);
+        if (!select) return;
+        
+        const matchingEmp = workivedEmployees.find(emp => 
+            emp.email && user.email && emp.email.toLowerCase() === user.email.toLowerCase()
+        );
+        
+        if (matchingEmp) {
+            select.value = matchingEmp.id;
+            mapped++;
+        }
+    });
+    
+    alert(`Auto-mapped ${mapped} out of ${linearUsers.length} users by email.`);
+});
+
+</script>
+
+{{end}}
+
+{{template "base.html" .}}

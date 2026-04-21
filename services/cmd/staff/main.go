@@ -10,9 +10,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/workived/services/internal/admin"
+	"github.com/workived/services/internal/audit"
 	"github.com/workived/services/internal/platform/config"
 	"github.com/workived/services/internal/platform/database"
+	"github.com/workived/services/internal/platform/storage"
 	"github.com/workived/services/internal/staff"
+	"github.com/workived/services/internal/tasks"
 	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/logger"
 )
@@ -49,9 +52,26 @@ func main() {
 	// ── Repositories ─────────────────────────────────────────────────────────
 	staffRepo := staff.NewRepository(db)
 	adminRepo := admin.NewRepository(db)
+	auditRepo := audit.NewRepository(db)
+	tasksRepo := tasks.NewRepository(db, log)
+
+	// ── Storage Client ───────────────────────────────────────────────────────
+	storageClient, err := storage.NewClient(ctx, storage.Config{
+		Endpoint:        cfg.S3Endpoint,
+		PublicEndpoint:  cfg.S3PublicEndpoint,
+		Region:          cfg.S3Region,
+		Bucket:          cfg.S3Bucket,
+		AccessKeyID:     cfg.AWSAccessKeyID,
+		SecretAccessKey: cfg.AWSSecretAccessKey,
+		UseSSL:          cfg.S3UseSSL,
+	})
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to connect to storage")
+	}
 
 	// ── Services ─────────────────────────────────────────────────────────────
 	staffSvc := staff.NewService(staffRepo, cfg.JWTSecret, cfg.JWTAccessTTL)
+	tasksSvc := tasks.NewService(tasksRepo, tasks.WithAuditLog(auditRepo), tasks.WithLogger(log))
 
 	// Build admin service with optional cache
 	adminOpts := []admin.ServiceOption{admin.WithLogger(log), admin.WithConfig(cfg)}
@@ -85,6 +105,11 @@ func main() {
 	// ── Handlers ─────────────────────────────────────────────────────────────
 	adminHandler := admin.NewHandler(adminSvc, log)
 
+	// Import handler for data migration tools (requires tasks + storage + db)
+	importHandler := admin.NewImportHandler(tasksSvc, storageClient, db, log)
+	adminHandler = adminHandler.WithImportHandler(importHandler)
+	adminUIHandler = adminUIHandler.WithImportHandler(importHandler)
+
 	// Register admin UI routes at /_system
 	adminUIHandler.RegisterUIRoutes(r, cfg.JWTSecret)
 
@@ -102,9 +127,9 @@ func main() {
 	srv := &http.Server{
 		Addr:         ":" + port,
 		Handler:      r,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  10 * time.Minute, // Long timeout for import operations with large downloads
+		WriteTimeout: 10 * time.Minute, // Long timeout for import responses
+		IdleTimeout:  2 * time.Minute,
 	}
 
 	// Graceful shutdown
