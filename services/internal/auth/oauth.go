@@ -276,7 +276,17 @@ func (s *Service) getOrCreateUserFromGoogle(ctx context.Context, userInfo *Googl
 		return existingUser, nil
 	}
 
+	// Check if error is "not found" - only then create new user
+	if !apperr.IsCode(err, apperr.CodeNotFound) {
+		// Some other database error occurred
+		return nil, fmt.Errorf("get user by email: %w", err)
+	}
+
 	// User doesn't exist - create new account
+	s.log.Info().
+		Str("email", userInfo.Email).
+		Msg("oauth.creating_new_user")
+
 	newUser, err := s.repo.CreateUserWithOAuth(ctx, userInfo.Email, userInfo.Name, string(AuthProviderGoogle))
 	if err != nil {
 		return nil, fmt.Errorf("create oauth user: %w", err)
