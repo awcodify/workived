@@ -522,6 +522,15 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
   const [isSaving, setIsSaving] = useState(false)
   const [pendingFieldValues, setPendingFieldValues] = useState<Record<string, unknown>>({})
 
+  // Helper to get text length from HTML (for validation)
+  const getTextLength = (html: string): number => {
+    const div = document.createElement('div')
+    div.innerHTML = html
+    return div.textContent?.length || 0
+  }
+
+  const isCommentTooLong = getTextLength(commentText) > 10000
+
   const updateTaskMutation = useUpdateTask()
   const deleteTaskMutation = useDeleteTask()
   const moveMutation = useMoveTask()
@@ -1082,14 +1091,15 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
                 bgColor="#F8FAFC"
                 minHeight="80px"
                 purpose="comment_attachment"
+                maxLength={10000}
               />
               <div className="flex gap-2 mt-2">
                 <button
                   onClick={handleAddComment}
-                  disabled={!commentText.trim() || createCommentMutation.isPending}
+                  disabled={!commentText.trim() || isCommentTooLong || createCommentMutation.isPending}
                   className="flex-1 px-4 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-40"
                   style={{
-                    background: commentText.trim() ? '#2563EB' : '#CBD5E1',
+                    background: commentText.trim() && !isCommentTooLong ? '#2563EB' : '#CBD5E1',
                     color: '#FFFFFF',
                     fontFamily: typography.fontFamily,
                   }}
@@ -1321,6 +1331,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
                 bgColor="#F8FAFC"
                 minHeight="80px"
                 purpose="task_attachment"
+                maxLength={8000}
               />
             </div>
 
@@ -1355,14 +1366,15 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
                       bgColor="#F8FAFC"
                       minHeight="70px"
                       purpose="comment_attachment"
+                      maxLength={10000}
                     />
                     <button
                       onClick={handleAddComment}
-                      disabled={!commentText.trim() || createCommentMutation.isPending}
+                      disabled={!commentText.trim() || isCommentTooLong || createCommentMutation.isPending}
                       className="mt-2 px-4 py-1.5 rounded-md text-sm font-semibold transition-all disabled:opacity-40"
                       style={{
-                        background: commentText.trim() ? '#2563EB' : '#E2E8F0',
-                        color: commentText.trim() ? '#FFFFFF' : '#94A3B8',
+                        background: commentText.trim() && !isCommentTooLong ? '#2563EB' : '#E2E8F0',
+                        color: commentText.trim() && !isCommentTooLong ? '#FFFFFF' : '#94A3B8',
                         fontFamily: typography.fontFamily,
                       }}
                     >

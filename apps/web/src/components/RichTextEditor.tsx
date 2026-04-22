@@ -21,6 +21,7 @@ interface RichTextEditorProps {
   bgColor: string
   minHeight?: string
   purpose?: 'task_attachment' | 'comment_attachment'
+  maxLength?: number
 }
 
 export function RichTextEditor({ 
@@ -31,10 +32,12 @@ export function RichTextEditor({
   textColor,
   bgColor,
   minHeight = '80px',
-  purpose = 'task_attachment'
+  purpose = 'task_attachment',
+  maxLength
 }: RichTextEditorProps) {
   const [isUploading, setIsUploading] = useState(false)
   const [showImageModal, setShowImageModal] = useState(false)
+  const [charCount, setCharCount] = useState(0)
   
   const editor = useEditor({
     extensions: [
@@ -60,6 +63,10 @@ export function RichTextEditor({
     content: value,
     onUpdate: ({ editor }) => {
       const html = editor.getHTML()
+      const text = editor.getText()
+      const currentCharCount = text.length
+      
+      setCharCount(currentCharCount)
       onChange(html)
     },
     onBlur: () => {
@@ -84,6 +91,7 @@ export function RichTextEditor({
   useEffect(() => {
     if (editor && value !== editor.getHTML()) {
       editor.commands.setContent(value)
+      setCharCount(editor.getText().length)
     }
   }, [editor, value])
 
@@ -604,6 +612,24 @@ export function RichTextEditor({
         `}</style>
         <EditorContent editor={editor} />
       </div>
+
+      {/* Character Counter */}
+      {maxLength && (
+        <div
+          className="text-xs text-right mt-1 px-2"
+          style={{
+            color: charCount > maxLength ? '#EF4444' : `${textColor}60`,
+            fontFamily: typography.fontFamily,
+          }}
+        >
+          {charCount.toLocaleString()} / {maxLength.toLocaleString()}
+          {charCount > maxLength && (
+            <span className="ml-1 font-bold" style={{ color: '#EF4444' }}>
+              (Exceeds limit by {(charCount - maxLength).toLocaleString()})
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Image Upload Modal */}
       {showImageModal && (

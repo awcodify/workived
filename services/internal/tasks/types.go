@@ -181,7 +181,7 @@ type MoveTaskRequest struct {
 
 type CreateCommentRequest struct {
 	ParentID    *uuid.UUID `json:"parent_id,omitempty"`
-	Body        string     `json:"body" binding:"required,max=5000"`
+	Body        string     `json:"body" binding:"required,max=10000"`
 	ContentType string     `json:"content_type,omitempty" binding:"omitempty,oneof=plain markdown"`
 }
 
@@ -196,7 +196,7 @@ type CreateTaskLinkRequest struct {
 
 type CreateSubtaskRequest struct {
 	Title       string     `json:"title" binding:"required,max=500"`
-	Description *string    `json:"description,omitempty" binding:"omitempty,max=5000"`
+	Description *string    `json:"description,omitempty" binding:"omitempty,max=10000"`
 	AssigneeID  *uuid.UUID `json:"assignee_id,omitempty"`
 	Priority    string     `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
 	DueDate     *string    `json:"due_date,omitempty"` // YYYY-MM-DD or RFC3339 datetime
