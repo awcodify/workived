@@ -32,9 +32,18 @@ export const Route = createFileRoute('/_auth')({
       if (!data.data.is_verified) {
         throw redirect({ to: '/verify-email-required' })
       }
-    } catch (err) {
-      // If verification check fails, assume unverified and redirect
-      throw redirect({ to: '/verify-email-required' })
+    } catch (err: any) {
+      // Handle specific error types
+      if (err?.response?.status === 403 || err?.response?.status === 401) {
+        // User exists but needs verification
+        throw redirect({ to: '/verify-email-required' })
+      }
+      // Network error or 5xx - backend is down
+      if (!err?.response || err?.response?.status >= 500) {
+        throw redirect({ to: '/service-unavailable' })
+      }
+      // Other errors - let them propagate
+      throw err
     }
   },
   component: AuthLayout,

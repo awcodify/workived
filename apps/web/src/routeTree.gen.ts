@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VerifyEmailRouteRouteImport } from './routes/verify-email/route'
+import { Route as ServiceUnavailableRouteRouteImport } from './routes/service-unavailable/route'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
 import { Route as AppRouteRouteImport } from './routes/_app/route'
 import { Route as IndexRouteImport } from './routes/index'
@@ -61,6 +62,11 @@ import { Route as AppCalendarHolidaysIndexRouteImport } from './routes/_app/cale
 const VerifyEmailRouteRoute = VerifyEmailRouteRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ServiceUnavailableRouteRoute = ServiceUnavailableRouteRouteImport.update({
+  id: '/service-unavailable',
+  path: '/service-unavailable',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRouteRoute = AuthRouteRouteImport.update({
@@ -305,6 +311,7 @@ const AppCalendarHolidaysIndexRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/service-unavailable': typeof ServiceUnavailableRouteRoute
   '/verify-email': typeof VerifyEmailRouteRoute
   '/announcements': typeof AppAnnouncementsRouteRoute
   '/approvals': typeof AppApprovalsRouteRoute
@@ -353,6 +360,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/service-unavailable': typeof ServiceUnavailableRouteRoute
   '/verify-email': typeof VerifyEmailRouteRoute
   '/announcements': typeof AppAnnouncementsRouteRoute
   '/approvals': typeof AppApprovalsRouteRoute
@@ -398,6 +406,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_app': typeof AppRouteRouteWithChildren
   '/_auth': typeof AuthRouteRouteWithChildren
+  '/service-unavailable': typeof ServiceUnavailableRouteRoute
   '/verify-email': typeof VerifyEmailRouteRoute
   '/_app/announcements': typeof AppAnnouncementsRouteRoute
   '/_app/approvals': typeof AppApprovalsRouteRoute
@@ -448,6 +457,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/service-unavailable'
     | '/verify-email'
     | '/announcements'
     | '/approvals'
@@ -496,6 +506,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/service-unavailable'
     | '/verify-email'
     | '/announcements'
     | '/approvals'
@@ -540,6 +551,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_app'
     | '/_auth'
+    | '/service-unavailable'
     | '/verify-email'
     | '/_app/announcements'
     | '/_app/approvals'
@@ -591,6 +603,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
+  ServiceUnavailableRouteRoute: typeof ServiceUnavailableRouteRoute
   VerifyEmailRouteRoute: typeof VerifyEmailRouteRoute
 }
 
@@ -601,6 +614,13 @@ declare module '@tanstack/react-router' {
       path: '/verify-email'
       fullPath: '/verify-email'
       preLoaderRoute: typeof VerifyEmailRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/service-unavailable': {
+      id: '/service-unavailable'
+      path: '/service-unavailable'
+      fullPath: '/service-unavailable'
+      preLoaderRoute: typeof ServiceUnavailableRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_auth': {
@@ -1114,6 +1134,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
   AuthRouteRoute: AuthRouteRouteWithChildren,
+  ServiceUnavailableRouteRoute: ServiceUnavailableRouteRoute,
   VerifyEmailRouteRoute: VerifyEmailRouteRoute,
 }
 export const routeTree = rootRouteImport

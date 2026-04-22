@@ -27,9 +27,18 @@ export const Route = createFileRoute('/_app')({
       if (!data.data.is_verified) {
         throw redirect({ to: '/verify-email-required' })
       }
-    } catch (err) {
-      // If verification check fails, assume unverified and redirect
-      throw redirect({ to: '/verify-email-required' })
+    } catch (err: any) {
+      // Handle specific error types
+      if (err?.response?.status === 403 || err?.response?.status === 401) {
+        // User exists but needs verification
+        throw redirect({ to: '/verify-email-required' })
+      }
+      // Network error or 5xx - backend is down
+      if (!err?.response || err?.response?.status >= 500) {
+        throw redirect({ to: '/service-unavailable' })
+      }
+      // Other errors - let them propagate
+      throw err
     }
 
     // Setup wizard guard: redirect to /setup if setup is needed and not skipped
@@ -40,13 +49,17 @@ export const Route = createFileRoute('/_app')({
         if (setupStatus.needs_setup && !setupStatus.skipped) {
           throw redirect({ to: '/setup' })
         }
-      } catch (err) {
+      } catch (err: any) {
         // Re-throw TanStack Router redirects (from the setup check above)
         if (isRedirect(err)) throw err
         // If user has no org (403 from tenant middleware), send to setup-org
         // where they can accept invitations or create a workspace
         if (isAxiosError(err) && err.response?.status === 403) {
           throw redirect({ to: '/setup-org' })
+        }
+        // Network error or 5xx - backend is down
+        if (!err?.response || err?.response?.status >= 500) {
+          throw redirect({ to: '/service-unavailable' })
         }
         throw err
       }
