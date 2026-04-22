@@ -105,13 +105,9 @@ func (s *Service) ValidateOAuthState(ctx context.Context, state string) error {
 	}
 
 	key := fmt.Sprintf("oauth:state:%s", state)
-	val, err := s.rdb.Get(ctx, key).Result()
+	_, err := s.rdb.Get(ctx, key).Result()
 	if err != nil {
 		return apperr.New(apperr.CodeUnauthorized, "invalid or expired state")
-	}
-
-	if val != "1" {
-		return apperr.New(apperr.CodeUnauthorized, "invalid state")
 	}
 
 	// Delete the state after validation (one-time use)
@@ -212,6 +208,11 @@ func (s *Service) LoginWithGoogle(ctx context.Context, code, state string) (*Log
 
 	// Get org context
 	orgID, role, hasSubordinate, _ := s.orgRepo.GetMemberOrgID(ctx, user.ID)
+
+	// Only show "welcome back" if user already existed AND has an org
+	if !isExisting || orgID == uuid.Nil {
+		isExisting = false
+	}
 
 	// Issue tokens
 	accessToken, err := s.IssueAccessToken(user.ID, orgID, role, hasSubordinate)
