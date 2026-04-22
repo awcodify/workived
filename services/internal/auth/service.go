@@ -32,6 +32,10 @@ type Repo interface {
 	ConsumeToken(ctx context.Context, tokenHash string) error
 	ConsumeAllPasswordResetTokens(ctx context.Context, userID uuid.UUID) error
 	ConsumeAllTokensByType(ctx context.Context, userID uuid.UUID, tokenType string) error
+	// OAuth methods
+	CreateUserWithOAuth(ctx context.Context, email, fullName, provider string) (*User, error)
+	UpsertOAuthProvider(ctx context.Context, provider *OAuthProvider) error
+	GetOAuthProvider(ctx context.Context, userID uuid.UUID, provider AuthProvider) (*OAuthProvider, error)
 }
 
 // OrgRepo is the narrow interface the auth service needs from the organisation module.
@@ -49,6 +53,7 @@ type Service struct {
 	appURL     string
 	log        zerolog.Logger
 	rdb        *redis.Client
+	oauthCfg   OAuthConfig
 }
 
 type ServiceOption func(*Service)
@@ -67,6 +72,10 @@ func WithLogger(log zerolog.Logger) ServiceOption {
 
 func WithRedis(rdb *redis.Client) ServiceOption {
 	return func(s *Service) { s.rdb = rdb }
+}
+
+func WithOAuthConfig(cfg OAuthConfig) ServiceOption {
+	return func(s *Service) { s.oauthCfg = cfg }
 }
 
 func NewService(repo Repo, orgRepo OrgRepo, jwtSecret string, accessTTL, refreshTTL time.Duration, opts ...ServiceOption) *Service {
@@ -437,3 +446,37 @@ func (s *Service) sendVerificationEmail(_ context.Context, fullName, userEmail, 
 
 	s.log.Info().Str("email", userEmail).Msg("auth.verification_email_sent")
 }
+
+// GetAppURL returns the frontend app URL
+func (s *Service) GetAppURL() string {
+	return s.appURL
+}
+
+// LogInfo logs an info message with structured fields
+func (s *Service) LogInfo(msg string, fields map[string]interface{}) {
+	event := s.log.Info()
+	for k, v := range fields {
+		event = event.Interface(k, v)
+	}
+	event.Msg(msg)
+}
+
+// LogWarn logs a warning message with structured fields
+func (s *Service) LogWarn(msg string, fields map[string]interface{}) {
+	event := s.log.Warn()
+	for k, v := range fields {
+		event = event.Interface(k, v)
+	}
+	event.Msg(msg)
+}
+
+// LogError logs an error message with structured fields
+func (s *Service) LogError(msg string, err error, fields map[string]interface{}) {
+	event := s.log.Error().Err(err)
+	for k, v := range fields {
+		event = event.Interface(k, v)
+	}
+	event.Msg(msg)
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────

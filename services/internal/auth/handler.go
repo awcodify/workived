@@ -9,6 +9,7 @@ import (
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/validate"
+	"golang.org/x/oauth2"
 )
 
 // ServiceInterface is the subset of Service that the handler depends on.
@@ -22,6 +23,15 @@ type ServiceInterface interface {
 	GetUserByID(ctx context.Context, userID uuid.UUID) (*User, error)
 	ForgotPassword(ctx context.Context, req ForgotPasswordRequest) error
 	ResetPassword(ctx context.Context, req ResetPasswordRequest) error
+	// OAuth methods
+	GenerateOAuthState(ctx context.Context) (string, error)
+	GetGoogleOAuthConfig() *oauth2.Config
+	LoginWithGoogle(ctx context.Context, code, state string) (*LoginResponse, string, error)
+	GetAppURL() string
+	// Logging methods
+	LogInfo(msg string, fields map[string]interface{})
+	LogWarn(msg string, fields map[string]interface{})
+	LogError(msg string, err error, fields map[string]interface{})
 }
 
 type Handler struct {
@@ -41,6 +51,10 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	auth.POST("/verify-email", h.VerifyEmail)
 	auth.POST("/forgot-password", h.ForgotPassword)
 	auth.POST("/reset-password", h.ResetPassword)
+
+	// OAuth routes
+	auth.GET("/google", h.HandleGoogleLogin)
+	auth.GET("/google/callback", h.HandleGoogleCallback)
 
 	// MCP SSO endpoints (public)
 	mcp := rg.Group("/mcp")

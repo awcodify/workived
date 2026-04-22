@@ -184,3 +184,79 @@ func containsCode(msg, code string) bool {
 	}
 	return false
 }
+
+// ── OAuth Provider Methods ────────────────────────────────────────────────────
+
+// CreateUserWithOAuth creates a user account for OAuth authentication
+func (r *Repository) CreateUserWithOAuth(ctx context.Context, email, fullName, provider string) (*User, error) {
+	u := &User{}
+	err := r.db.QueryRow(ctx, `
+		INSERT INTO users (email, password_hash, full_name, auth_provider, is_verified)
+		VALUES ($1, NULL, $2, $3, true)
+		RETURNING id, email, full_name, is_verified, is_active, last_login_at, created_at
+	`, email, fullName, provider).Scan(
+		&u.ID, &u.Email, &u.FullName,
+		&u.IsVerified, &u.IsActive, &u.LastLoginAt, &u.CreatedAt,
+	)
+	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, apperr.Conflict("a user with this email already exists")
+		}
+		return nil, err
+	}
+	return u, nil
+}
+
+// UpsertOAuthProvider creates or updates OAuth provider connection
+func (r *Repository) UpsertOAuthProvider(ctx context.Context, provider *OAuthProvider) error {
+	_, err := r.db.Exec(ctx, `
+		INSERT INTO user_oauth_providers (
+			user_id, provider, provider_user_id, provider_email,
+			access_token, refresh_token, token_expires_at, scope, profile_data
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (user_id, provider)
+		DO UPDATE SET
+			provider_user_id = EXCLUDED.provider_user_id,
+			provider_email = EXCLUDED.provider_email,
+			access_token = EXCLUDED.access_token,
+			refresh_token = EXCLUDED.refresh_token,
+			token_expires_at = EXCLUDED.token_expires_at,
+			scope = EXCLUDED.scope,
+			profile_data = EXCLUDED.profile_data,
+			updated_at = NOW()
+	`,
+		provider.UserID,
+		provider.Provider,
+		provider.ProviderUserID,
+		provider.ProviderEmail,
+		provider.AccessToken,
+		provider.RefreshToken,
+		provider.TokenExpiresAt,
+		provider.Scope,
+		provider.ProfileData,
+	)
+	return err
+}
+
+// GetOAuthProvider retrieves OAuth provider connection
+func (r *Repository) GetOAuthProvider(ctx context.Context, userID uuid.UUID, provider AuthProvider) (*OAuthProvider, error) {
+	p := &OAuthProvider{}
+	err := r.db.QueryRow(ctx, `
+		SELECT id, user_id, provider, provider_user_id, provider_email,
+		       access_token, refresh_token, token_expires_at, scope, profile_data,
+		       created_at, updated_at
+		FROM user_oauth_providers
+		WHERE user_id = $1 AND provider = $2
+	`, userID, provider).Scan(
+		&p.ID, &p.UserID, &p.Provider, &p.ProviderUserID, &p.ProviderEmail,
+		&p.AccessToken, &p.RefreshToken, &p.TokenExpiresAt, &p.Scope, &p.ProfileData,
+		&p.CreatedAt, &p.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperr.NotFound("oauth provider not found")
+		}
+		return nil, err
+	}
+	return p, nil
+}

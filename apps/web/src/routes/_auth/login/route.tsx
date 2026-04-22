@@ -6,6 +6,7 @@ import { useMutation } from '@tanstack/react-query'
 import { authApi } from '@/lib/api/auth'
 import { useAuthStore } from '@/lib/stores/auth'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
+import { GoogleButton } from '@/components/auth/GoogleButton'
 import { colors, moduleBackgrounds } from '@/design/tokens'
 import type { ApiError } from '@/types/api'
 import { AxiosError } from 'axios'
@@ -313,6 +314,24 @@ function LoginPage() {
                 {login.isPending ? 'Signing in...' : 'Sign in'}
               </button>
             </form>
+
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full" style={{ borderTop: `1px solid ${colors.ink200}` }}></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span
+                  className="px-3"
+                  style={{ background: colors.ink0, color: colors.ink400, fontSize: 13 }}
+                >
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            {/* Google Sign In */}
+            <GoogleButton />
 
             <p className="text-center mt-6" style={{ fontSize: 14, color: colors.ink500 }}>
               Don't have an account?{' '}

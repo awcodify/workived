@@ -44,6 +44,11 @@ type Config struct {
 
 	DocsUsername string `mapstructure:"DOCS_USERNAME"`
 	DocsPassword string `mapstructure:"DOCS_PASSWORD"`
+
+	// OAuth Configuration
+	GoogleClientID     string `mapstructure:"GOOGLE_CLIENT_ID"`
+	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
+	GoogleRedirectURL  string `mapstructure:"GOOGLE_REDIRECT_URL"` // e.g., http://localhost:8080/api/v1/auth/google/callback
 }
 
 func Load() (*Config, error) {
@@ -95,6 +100,9 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("API_URL")
 	_ = v.BindEnv("DOCS_USERNAME")
 	_ = v.BindEnv("DOCS_PASSWORD")
+	_ = v.BindEnv("GOOGLE_CLIENT_ID")
+	_ = v.BindEnv("GOOGLE_CLIENT_SECRET")
+	_ = v.BindEnv("GOOGLE_REDIRECT_URL")
 
 	// best-effort read of .env file; env vars take precedence
 	_ = v.ReadInConfig()

@@ -7,6 +7,7 @@ import { authApi } from '@/lib/api/auth'
 import { organisationsApi } from '@/lib/api/organisations'
 import { useAuthStore } from '@/lib/stores/auth'
 import { WorkivedLogo } from '@/components/workived/layout/WorkivedLogo'
+import { GoogleButton } from '@/components/auth/GoogleButton'
 import { colors, moduleBackgrounds } from '@/design/tokens'
 import { extractApiError } from '@/lib/utils/errors'
 import { useEffect } from 'react'
@@ -304,6 +305,24 @@ function RegisterPage() {
                 {register.isPending ? 'Creating account...' : 'Create account'}
               </button>
             </form>
+
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full" style={{ borderTop: `1px solid ${colors.ink200}` }}></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span
+                  className="px-3"
+                  style={{ background: colors.ink0, color: colors.ink400, fontSize: 13 }}
+                >
+                  Or continue with
+                </span>
+              </div>
+            </div>
+
+            {/* Google Sign In */}
+            <GoogleButton text="Sign up with Google" />
 
             <p className="text-center mt-6" style={{ fontSize: 14, color: colors.ink500 }}>
               Already have an account?{' '}
