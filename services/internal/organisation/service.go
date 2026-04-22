@@ -421,13 +421,11 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 	if err != nil {
 		return nil, fmt.Errorf("accept invitation: %w", err)
 	}
-
-	// 4a. Mark user's email as verified (invitation implies trusted email).
+	// Mark user's email as verified (invitation via email confirms ownership)
 	if err := s.userRepo.MarkEmailVerified(ctx, userID); err != nil {
 		// Log but don't fail — verification is nice-to-have, not critical
 		s.log.Warn().Err(err).Str("user_id", userID.String()).Msg("failed to mark email verified after invitation acceptance")
 	}
-
 	// 5. Issue a new JWT with the new org context.
 	// Get has_subordinate from the member record
 	accessToken, err := s.tokenIssuer.IssueAccessToken(userID, inv.OrgID, inv.Role, member.HasSubordinate)
@@ -435,7 +433,13 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 		return nil, fmt.Errorf("issue access token: %w", err)
 	}
 
-	// 6. Get org for response.
+	// 6. Get user for response (with updated is_verified status)
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user after acceptance: %w", err)
+	}
+
+	// 7. Get org for response.
 	org, err := s.repo.GetByID(ctx, inv.OrgID)
 	if err != nil {
 		return nil, fmt.Errorf("get org after acceptance: %w", err)
@@ -459,6 +463,7 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 
 	return &AcceptInvitationResponse{
 		AccessToken:  accessToken,
+		User:         user,
 		Organisation: org,
 		Member:       member,
 	}, nil

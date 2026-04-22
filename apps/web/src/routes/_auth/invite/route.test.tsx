@@ -139,7 +139,8 @@ describe('InviteAcceptPage', () => {
     vi.spyOn(Route, 'useSearch').mockReturnValue({ token: 'abc-token-123' })
     vi.mocked(organisationsApi.acceptInvitation).mockResolvedValue({
       data: { data: { 
-        access_token: 'new-tok', 
+        access_token: 'new-tok',
+        user: { id: 'u1', email: 'test@example.com', full_name: 'Test User', is_verified: true, is_active: true },
         organisation: null as any, 
         member: null as any 
       } },
@@ -162,7 +163,8 @@ describe('InviteAcceptPage', () => {
     vi.spyOn(Route, 'useSearch').mockReturnValue({ token: 'abc-token-123' })
     vi.mocked(organisationsApi.acceptInvitation).mockResolvedValue({
       data: { data: { 
-        access_token: 'new-tok', 
+        access_token: 'new-tok',
+        user: { id: 'u1', email: 'test@example.com', full_name: 'Test User', is_verified: true, is_active: true },
         organisation: null as any, 
         member: null as any 
       } },

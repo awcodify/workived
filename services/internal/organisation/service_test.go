@@ -592,6 +592,8 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 		rawToken := extractTokenFromURL(inv.InviteURL)
 
 		inviteeID := uuid.New()
+		userRepo.createUnverifiedUser(inviteeID)
+
 		resp, err := svc.AcceptInvitation(context.Background(), inviteeID, organisation.AcceptInvitationRequest{
 			Token: rawToken,
 		})
@@ -600,6 +602,12 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 		}
 		if resp.AccessToken == "" {
 			t.Error("access token should not be empty")
+		}
+		if resp.User == nil {
+			t.Error("user should not be nil")
+		}
+		if resp.User != nil && !resp.User.IsVerified {
+			t.Error("user should be verified after accepting invitation")
 		}
 		if resp.Organisation.ID != orgID {
 			t.Errorf("org ID = %s, want %s", resp.Organisation.ID, orgID)
@@ -611,8 +619,9 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 
 	t.Run("calls onEmployeeJoined callback when employee_id present", func(t *testing.T) {
 		repo := newFakeRepo()
+		userRepo := newFakeUserRepo()
 		var callbackOrgID, callbackEmpID uuid.UUID
-		svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, newFakeUserRepo(), "https://app.workived.com",
+		svc := organisation.NewService(repo, &fakeAuthTokenCreator{}, &fakeTokenIssuer{}, &fakeEmployeeRepo{}, userRepo, "https://app.workived.com",
 			organisation.WithOnEmployeeJoined(func(_ context.Context, orgID, empID uuid.UUID) {
 				callbackOrgID = orgID
 				callbackEmpID = empID
@@ -621,6 +630,8 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 
 		ctx := context.Background()
 		ownerID := uuid.New()
+		userRepo.createVerifiedUser(ownerID)
+
 		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
 			Name: "Callback Org", Slug: "callbackorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
 		})
@@ -639,7 +650,10 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 		}
 
 		rawToken := extractTokenFromURL(inv.InviteURL)
-		_, err = svc.AcceptInvitation(ctx, uuid.New(), organisation.AcceptInvitationRequest{Token: rawToken})
+		inviteeID := uuid.New()
+		userRepo.createUnverifiedUser(inviteeID)
+
+		_, err = svc.AcceptInvitation(ctx, inviteeID, organisation.AcceptInvitationRequest{Token: rawToken})
 		if err != nil {
 			t.Fatalf("accept invitation: %v", err)
 		}

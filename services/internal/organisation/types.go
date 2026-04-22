@@ -80,6 +80,7 @@ type AcceptInvitationRequest struct {
 
 type AcceptInvitationResponse struct {
 	AccessToken  string        `json:"access_token"`
+	User         *User         `json:"user"`
 	Organisation *Organisation `json:"organisation"`
 	Member       *Member       `json:"member"`
 }

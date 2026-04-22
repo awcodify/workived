@@ -7,13 +7,13 @@ export const Route = createFileRoute('/_auth')({
     const { accessToken } = useAuthStore.getState()
     
     // Public routes (no auth needed)
-    const publicRoutes = ['/login', '/register']
+    const publicRoutes = ['/login', '/register', '/invite', '/forgot-password', '/reset-password']
     if (publicRoutes.includes(location.pathname)) {
       return
     }
 
     // Routes that only need login (not verification)
-    const loginOnlyRoutes = ['/verify-email-required', '/invite']
+    const loginOnlyRoutes = ['/verify-email-required']
     if (loginOnlyRoutes.includes(location.pathname)) {
       if (!accessToken) {
         throw redirect({ to: '/login', search: { redirect: undefined } })

@@ -110,6 +110,7 @@ export interface AcceptInvitationRequest {
 
 export interface AcceptInvitationResponse {
   access_token: string
+  user: User
   organisation: Organisation
   member: {
     id: string

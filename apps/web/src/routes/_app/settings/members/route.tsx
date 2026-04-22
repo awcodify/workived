@@ -100,7 +100,6 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
   const inviteMember = useInviteMember()
   const canInvite = useCanInvite()
   const [lastInvite, setLastInvite] = useState<InviteResponse | null>(null)
-  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const form = useForm<InviteForm>({
     resolver: zodResolver(inviteSchema),
@@ -119,12 +118,6 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
         form.reset()
       },
     })
-  }
-
-  const handleCopyLink = async (url: string, id: string) => {
-    await navigator.clipboard.writeText(url)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
   }
 
   if (!canInvite) return null
@@ -182,16 +175,7 @@ function InviteSection({ isFreePlan }: { isFreePlan: boolean }) {
 
       {lastInvite && (
         <Banner variant="success">
-          <div className="flex items-center justify-between gap-3">
-            <span style={{ fontWeight: 600 }}>Invitation sent to {lastInvite.email}</span>
-            <button
-              onClick={() => handleCopyLink(lastInvite.invite_url, lastInvite.id)}
-              className="px-3 py-1 shrink-0 transition-all hover:opacity-80"
-              style={{ background: 'rgba(18,160,92,0.25)', color: '#6EE7B7', borderRadius: radius.md, fontSize: typography.caption.size, fontWeight: 600 }}
-            >
-              {copiedId === lastInvite.id ? 'Copied!' : 'Copy link'}
-            </button>
-          </div>
+          <span style={{ fontWeight: 600 }}>✓ Invitation sent to {lastInvite.email}</span>
         </Banner>
       )}
 
@@ -423,13 +407,6 @@ function MemberRow({ member, isFreePlan = false }: { member: MemberWithProfile; 
 function PendingInvitationsSection() {
   const { data: invitations, isLoading, refetch } = useInvitations()
   const revokeInvitation = useRevokeInvitation()
-  const [copiedId, setCopiedId] = useState<string | null>(null)
-
-  const handleCopyLink = async (url: string, id: string) => {
-    await navigator.clipboard.writeText(url)
-    setCopiedId(id)
-    setTimeout(() => setCopiedId(null), 2000)
-  }
 
   return (
     <section className="flex flex-col gap-5">
@@ -458,15 +435,13 @@ function PendingInvitationsSection() {
           <div className="grid grid-cols-[1fr_80px_auto] gap-4 px-4 py-2.5">
             <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking }}>Email</span>
             <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking }}>Role</span>
-            <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking, textAlign: 'right' }}>Actions</span>
+            <span style={{ fontSize: typography.caption.size, fontWeight: typography.tiny.weight, color: textDim, textTransform: 'uppercase', letterSpacing: typography.tiny.tracking, textAlign: 'right' }}>Action</span>
           </div>
           <div style={{ height: 1, background: border }} />
           {invitations.map((inv: PendingInvitation) => (
             <InvitationRow
               key={inv.id}
               invitation={inv}
-              copiedId={copiedId}
-              onCopyLink={handleCopyLink}
               onRevoke={(id) => revokeInvitation.mutate(id)}
               revoking={revokeInvitation.isPending}
             />
@@ -479,14 +454,10 @@ function PendingInvitationsSection() {
 
 function InvitationRow({
   invitation,
-  copiedId,
-  onCopyLink,
   onRevoke,
   revoking,
 }: {
   invitation: PendingInvitation
-  copiedId: string | null
-  onCopyLink: (url: string, id: string) => void
   onRevoke: (id: string) => void
   revoking: boolean
 }) {
@@ -516,17 +487,8 @@ function InvitationRow({
         {invitation.role}
       </span>
 
-      {/* Actions */}
-      <div className="flex items-center gap-2 justify-end">
-        {!isExpired && (
-          <button
-            onClick={() => onCopyLink(invitation.invite_url, invitation.id)}
-            className="px-3 py-1.5 transition-all hover:bg-white/5"
-            style={{ color: textSec, borderRadius: radius.lg, fontSize: typography.label.size, fontWeight: 600 }}
-          >
-            {copiedId === invitation.id ? 'Copied!' : 'Copy link'}
-          </button>
-        )}
+      {/* Action */}
+      <div className="flex items-center justify-end">
         <button
           onClick={() => onRevoke(invitation.id)}
           disabled={revoking}

@@ -530,9 +530,12 @@ function ScorecardConfigSection() {
   }
 
   function handleSave() {
-    if (!canSave) return
+    if (!canSave || !weights || !grades || !flags) return
     const payload: ConfigUpdateInput = {
-      ...weights,
+      attendance_weight: weights.attendance_weight,
+      punctuality_weight: weights.punctuality_weight,
+      leave_weight: weights.leave_weight,
+      tasks_weight: weights.tasks_weight,
       grade_a_min: grades.a,
       grade_b_min: grades.b,
       grade_c_min: grades.c,
@@ -767,15 +770,11 @@ function NoOrgView() {
   const { data: myInvitationsData } = useMyInvitations()
   const myInvitations = myInvitationsData ?? []
   const setAuth = useAuthStore((s) => s.setAuth)
-  const currentUser = useAuthStore((s) => s.user)
-
   const acceptInvitation = useMutation({
     mutationFn: (token: string) =>
       organisationsApi.acceptInvitation({ token }).then((r) => r.data.data),
     onSuccess: (result) => {
-      if (currentUser) {
-        setAuth({ access_token: result.access_token, user: currentUser })
-      }
+      setAuth({ access_token: result.access_token, user: result.user })
       navigate({ to: '/overview' })
     },
   })

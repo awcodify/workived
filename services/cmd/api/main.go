@@ -319,6 +319,7 @@ func main() {
 	authOnly := v1.Group("")
 	authOnly.Use(middleware.Auth(cfg.JWTSecret))
 	authHandler.RegisterPublicRoutes(authOnly)
+	orgHandler.RegisterPublicRoutes(authOnly)
 
 	// Authenticated + tenant-scoped routes.
 	authed := v1.Group("")

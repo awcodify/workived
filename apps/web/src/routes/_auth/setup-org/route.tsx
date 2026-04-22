@@ -107,9 +107,7 @@ function SetupOrgPage() {
     mutationFn: (token: string) =>
       organisationsApi.acceptInvitation({ token }).then((r) => r.data.data),
     onSuccess: (result) => {
-      if (currentUser) {
-        setAccessToken({ access_token: result.access_token, user: currentUser })
-      }
+      setAccessToken({ access_token: result.access_token, user: result.user })
       navigate({ to: '/overview' })
     },
   })

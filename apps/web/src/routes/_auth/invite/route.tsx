@@ -26,7 +26,7 @@ function InviteAcceptPage() {
     mutationFn: (inviteToken: string) =>
       organisationsApi.acceptInvitation({ token: inviteToken }).then((r) => r.data.data),
     onSuccess: (data) => {
-      setAuth({ access_token: data.access_token, user: useAuthStore.getState().user! })
+      setAuth({ access_token: data.access_token, user: data.user })
       navigate({ to: '/overview' })
     },
   })
