@@ -9,6 +9,11 @@ import (
 
 // HandleGoogleLogin initiates the Google OAuth flow
 func (h *Handler) HandleGoogleLogin(c *gin.Context) {
+	// Prevent caching of OAuth endpoints
+	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
+
 	state, err := h.service.GenerateOAuthState(c.Request.Context())
 	if err != nil {
 		h.service.LogError("oauth.generate_state_failed", err, nil)
@@ -30,6 +35,11 @@ func (h *Handler) HandleGoogleLogin(c *gin.Context) {
 
 // HandleGoogleCallback handles the OAuth callback from Google
 func (h *Handler) HandleGoogleCallback(c *gin.Context) {
+	// Prevent caching of OAuth endpoints
+	c.Header("Cache-Control", "no-store, no-cache, must-revalidate, private")
+	c.Header("Pragma", "no-cache")
+	c.Header("Expires", "0")
+
 	code := c.Query("code")
 	state := c.Query("state")
 	errorParam := c.Query("error")
