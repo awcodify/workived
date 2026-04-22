@@ -53,6 +53,31 @@ func (f *fakeAuthRepo) CreateUser(_ context.Context, email, passwordHash, fullNa
 	return u, nil
 }
 
+func (f *fakeAuthRepo) CreateUserWithOAuth(_ context.Context, email, fullName, provider string) (*auth.User, error) {
+	if _, exists := f.users[email]; exists {
+		return nil, apperr.Conflict("a user with this email already exists")
+	}
+	u := &auth.User{
+		ID:         uuid.New(),
+		Email:      email,
+		FullName:   fullName,
+		IsVerified: true, // OAuth users are pre-verified
+		IsActive:   true,
+		CreatedAt:  time.Now().UTC(),
+	}
+	f.users[email] = u
+	f.hashes[email] = "" // OAuth users have no password hash
+	return u, nil
+}
+
+func (f *fakeAuthRepo) UpsertOAuthProvider(_ context.Context, provider *auth.OAuthProvider) error {
+	return nil // Not needed for password reset tests
+}
+
+func (f *fakeAuthRepo) GetOAuthProvider(_ context.Context, userID uuid.UUID, provider auth.AuthProvider) (*auth.OAuthProvider, error) {
+	return nil, apperr.NotFound("oauth provider")
+}
+
 func (f *fakeAuthRepo) GetUserByEmail(_ context.Context, email string) (*auth.User, string, error) {
 	u, ok := f.users[email]
 	if !ok {
@@ -739,6 +764,30 @@ func TestAuthService_ForgotPassword(t *testing.T) {
 		}
 		if active != 1 {
 			t.Errorf("expected 1 active password_reset token, got %d", active)
+		}
+	})
+
+	t.Run("OAuth users do not receive password reset emails", func(t *testing.T) {
+		svc, repo := newTestService(t)
+		// Create an OAuth user (signed in with Google)
+		_, _ = repo.CreateUserWithOAuth(context.Background(), "oauth@example.com", "OAuth User", "google")
+
+		// Request password reset — should succeed but not send email or create token
+		if err := svc.ForgotPassword(context.Background(), auth.ForgotPasswordRequest{
+			Email: "oauth@example.com",
+		}); err != nil {
+			t.Fatalf("forgot password for OAuth user: %v", err)
+		}
+
+		// No password_reset token should be created for OAuth users
+		count := 0
+		for _, tok := range repo.tokens {
+			if tok.TokenType == "password_reset" {
+				count++
+			}
+		}
+		if count != 0 {
+			t.Errorf("expected 0 password_reset tokens for OAuth user, got %d", count)
 		}
 	})
 }

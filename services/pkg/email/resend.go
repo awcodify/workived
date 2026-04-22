@@ -36,6 +36,13 @@ func (s *resendSender) Send(msg Message) error {
 		return fmt.Errorf("no recipients specified")
 	}
 
+	s.log.Info().
+		Str("from", s.from).
+		Strs("to", msg.To).
+		Str("subject", msg.Subject).
+		Bool("is_html", msg.IsHTML).
+		Msg("email.sending_via_resend")
+
 	params := &resend.SendEmailRequest{
 		From:    s.from,
 		To:      msg.To,
@@ -54,7 +61,7 @@ func (s *resendSender) Send(msg Message) error {
 			Err(err).
 			Strs("recipients", msg.To).
 			Str("subject", msg.Subject).
-			Msg("failed to send email via Resend")
+			Msg("email.send_failed_resend")
 		return fmt.Errorf("send email via resend: %w", err)
 	}
 
@@ -62,7 +69,7 @@ func (s *resendSender) Send(msg Message) error {
 		Str("resend_id", sent.Id).
 		Strs("recipients", msg.To).
 		Str("subject", msg.Subject).
-		Msg("email.sent")
+		Msg("email.sent_successfully_resend")
 
 	return nil
 }

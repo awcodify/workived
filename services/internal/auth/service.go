@@ -301,15 +301,27 @@ func (s *Service) forgotPasswordRateLimit(ctx context.Context, email string) err
 
 func (s *Service) ForgotPassword(ctx context.Context, req ForgotPasswordRequest) error {
 	req.Email = strings.ToLower(req.Email)
+	s.log.Info().Str("email", req.Email).Msg("auth.forgot_password_requested")
 
 	// Rate limit before any DB lookup — no info leakage since we check regardless of email existence
 	if err := s.forgotPasswordRateLimit(ctx, req.Email); err != nil {
+		s.log.Warn().Str("email", req.Email).Msg("auth.forgot_password_rate_limited")
 		return err
 	}
 
-	user, _, err := s.repo.GetUserByEmail(ctx, req.Email)
+	user, passwordHash, err := s.repo.GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		// Silent — never reveal whether email exists
+		s.log.Debug().Str("email", req.Email).Msg("auth.forgot_password_user_not_found")
+		return nil
+	}
+
+	s.log.Info().Str("email", req.Email).Str("user_id", user.ID.String()).Bool("has_password", passwordHash != "").Msg("auth.forgot_password_user_found")
+
+	// Skip OAuth users — they don't have passwords and should sign in with their OAuth provider
+	if passwordHash == "" {
+		s.log.Info().Str("email", req.Email).Msg("auth.forgot_password_oauth_user_skipped")
+		// Silent — never reveal whether email exists or if it's an OAuth account
 		return nil
 	}
 
@@ -322,12 +334,19 @@ func (s *Service) ForgotPassword(ctx context.Context, req ForgotPasswordRequest)
 	rawToken, tokenHash := generateToken()
 	expiresAt := time.Now().UTC().Add(time.Hour)
 	if err := s.repo.CreateToken(ctx, user.ID, tokenHash, "password_reset", expiresAt); err != nil {
+		s.log.Error().Err(err).Str("user_id", user.ID.String()).Msg("auth.forgot_password_token_creation_failed")
 		return fmt.Errorf("create password reset token: %w", err)
 	}
 
-	if s.email != nil {
-		go s.sendPasswordResetEmail(context.Background(), user.FullName, user.Email, rawToken)
+	s.log.Info().Str("user_id", user.ID.String()).Str("email", user.Email).Msg("auth.forgot_password_token_created")
+
+	if s.email == nil {
+		s.log.Warn().Str("email", user.Email).Msg("auth.forgot_password_email_sender_not_configured")
+		return nil
 	}
+
+	s.log.Info().Str("email", user.Email).Str("user_id", user.ID.String()).Msg("auth.forgot_password_sending_email")
+	go s.sendPasswordResetEmail(context.Background(), user.FullName, user.Email, rawToken)
 
 	return nil
 }
@@ -393,6 +412,8 @@ func hashToken(raw string) string {
 func (s *Service) sendPasswordResetEmail(_ context.Context, fullName, userEmail, resetToken string) {
 	resetURL := fmt.Sprintf("%s/reset-password?token=%s", s.appURL, resetToken)
 
+	s.log.Info().Str("email", userEmail).Str("reset_url", resetURL).Msg("auth.rendering_password_reset_email")
+
 	subject, body, _, err := email.PasswordResetTemplate.Render(struct {
 		UserName string
 		ResetURL string
@@ -401,9 +422,11 @@ func (s *Service) sendPasswordResetEmail(_ context.Context, fullName, userEmail,
 		ResetURL: resetURL,
 	})
 	if err != nil {
-		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to render password reset email")
+		s.log.Error().Err(err).Str("email", userEmail).Msg("auth.failed_to_render_password_reset_email")
 		return
 	}
+
+	s.log.Info().Str("email", userEmail).Str("subject", subject).Msg("auth.sending_password_reset_email")
 
 	if err := s.email.Send(email.Message{
 		To:      []string{userEmail},
@@ -411,7 +434,7 @@ func (s *Service) sendPasswordResetEmail(_ context.Context, fullName, userEmail,
 		Body:    body,
 		IsHTML:  true,
 	}); err != nil {
-		s.log.Error().Err(err).Str("email", userEmail).Msg("failed to send password reset email")
+		s.log.Error().Err(err).Str("email", userEmail).Msg("auth.failed_to_send_password_reset_email")
 		return
 	}
 
