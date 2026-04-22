@@ -40,7 +40,7 @@ func (r *Repository) CreateUser(ctx context.Context, email, passwordHash, fullNa
 
 func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*User, string, error) {
 	u := &User{}
-	var hash string
+	var hash *string // nullable for OAuth users
 	err := r.db.QueryRow(ctx, `
 		SELECT id, email, full_name, is_verified, is_active, last_login_at, created_at, password_hash
 		FROM users
@@ -55,7 +55,13 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*User, s
 		}
 		return nil, "", err
 	}
-	return u, hash, nil
+
+	// Return empty string if password_hash is NULL (OAuth users)
+	hashValue := ""
+	if hash != nil {
+		hashValue = *hash
+	}
+	return u, hashValue, nil
 }
 
 func (r *Repository) GetUserByID(ctx context.Context, id uuid.UUID) (*User, error) {
