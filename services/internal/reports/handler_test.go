@@ -23,10 +23,10 @@ func init() {
 // ── Mock service ───────────────────────────────────────────────────────────
 
 type mockService struct {
-	getConfigFn      func(ctx context.Context, orgID uuid.UUID) (*reports.ScorecardConfig, error)
-	updateConfigFn   func(ctx context.Context, orgID uuid.UUID, input reports.ConfigUpdateInput) (*reports.ScorecardConfig, error)
-	getEmpScorecardFn func(ctx context.Context, orgID, empID uuid.UUID, period string) (*reports.Scorecard, error)
-	getTeamScorecardFn func(ctx context.Context, orgID uuid.UUID, period string) (*reports.TeamScorecard, error)
+	getConfigFn         func(ctx context.Context, orgID uuid.UUID) (*reports.ScorecardConfig, error)
+	updateConfigFn      func(ctx context.Context, orgID uuid.UUID, input reports.ConfigUpdateInput) (*reports.ScorecardConfig, error)
+	getEmpScorecardFn   func(ctx context.Context, orgID, empID uuid.UUID, period string) (*reports.Scorecard, error)
+	getTeamScorecardFn  func(ctx context.Context, orgID uuid.UUID, period string) (*reports.TeamScorecard, error)
 	getCompanySummaryFn func(ctx context.Context, orgID uuid.UUID, period string) (*reports.CompanySummary, error)
 }
 
@@ -79,11 +79,15 @@ var defaultEmpLookup = reports.EmployeeLookupFunc(func(_ context.Context, _, _ u
 })
 
 func newRouter(svc reports.ServiceInterface) *gin.Engine {
+	return newRouterWithRole(svc, middleware.RoleAdmin)
+}
+
+func newRouterWithRole(svc reports.ServiceInterface, role string) *gin.Engine {
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
 		c.Set("org_id", hTestOrgID)
 		c.Set("user_id", hTestUserID)
-		c.Set("role", middleware.RoleAdmin)
+		c.Set("role", role)
 		c.Next()
 	})
 	h := reports.NewHandler(svc, defaultEmpLookup, zerolog.Nop())
@@ -393,4 +397,54 @@ func TestHandler_GetCompanySummary_Error(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assertStatus(t, w, http.StatusInternalServerError)
+}
+
+// ── Permission tests ───────────────────────────────────────────────────────
+
+func TestHandler_GetConfig_MemberAccess(t *testing.T) {
+	svc := &mockService{}
+	r := newRouterWithRole(svc, middleware.RoleMember)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/reports/config", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
+}
+
+func TestHandler_UpdateConfig_MemberForbidden(t *testing.T) {
+	svc := &mockService{}
+	r := newRouterWithRole(svc, middleware.RoleMember)
+
+	body := reports.ConfigUpdateInput{
+		AttendanceWeight:  30,
+		PunctualityWeight: 20,
+		LeaveWeight:       15,
+		TasksWeight:       35,
+	}
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("PUT", "/api/v1/reports/config", jsonBody(t, body))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusForbidden)
+}
+
+func TestHandler_GetCompanySummary_MemberAccess(t *testing.T) {
+	svc := &mockService{
+		getCompanySummaryFn: func(_ context.Context, _ uuid.UUID, _ string) (*reports.CompanySummary, error) {
+			return &reports.CompanySummary{
+				Period:   "this_month",
+				AvgScore: 78,
+			}, nil
+		},
+	}
+	r := newRouterWithRole(svc, middleware.RoleMember)
+
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/api/v1/reports/summary?period=this_month", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
 }

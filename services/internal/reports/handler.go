@@ -46,8 +46,8 @@ func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fiel
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	rpt := rg.Group("/reports")
 
-	// Config — admin/owner only
-	rpt.GET("/config", middleware.Require(middleware.PermOrgSettings), h.GetConfig)
+	// Config — read: any authenticated user, write: admin/owner only
+	rpt.GET("/config", middleware.Require(middleware.PermSelfRead), h.GetConfig)
 	rpt.PUT("/config", middleware.Require(middleware.PermOrgSettings), h.UpdateConfig)
 
 	// My scorecard — any authenticated employee
@@ -56,11 +56,11 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Individual employee scorecard — admin/hr/finance
 	rpt.GET("/scorecard/:employee_id", middleware.Require(middleware.PermReportsRead), h.GetEmployeeScorecardByID)
 
-	// Team scorecard — admin/hr/finance
-	rpt.GET("/scorecard/team", middleware.Require(middleware.PermReportsRead), h.GetTeamScorecard)
+	// Team scorecard — any authenticated user (shown on People page sidebar)
+	rpt.GET("/scorecard/team", middleware.Require(middleware.PermSelfRead), h.GetTeamScorecard)
 
-	// Company summary — admin/hr/finance
-	rpt.GET("/summary", middleware.Require(middleware.PermReportsRead), h.GetCompanySummary)
+	// Company summary — any authenticated user (shown on People page sidebar)
+	rpt.GET("/summary", middleware.Require(middleware.PermSelfRead), h.GetCompanySummary)
 }
 
 // GET /reports/config
