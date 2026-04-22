@@ -213,6 +213,10 @@ func (f *fakeService) DeleteTask(ctx context.Context, orgID, id uuid.UUID, actor
 	return nil
 }
 
+func (f *fakeService) GetUniqueLabels(ctx context.Context, orgID uuid.UUID) ([]string, error) {
+	return []string{}, nil
+}
+
 func (f *fakeService) CreateApprovalTask(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, assigneeID uuid.UUID, dueDate *string) error {
 	if f.createApprovalTaskFn != nil {
 		return f.createApprovalTaskFn(ctx, orgID, approvalType, approvalID, title, description, assigneeID, dueDate)

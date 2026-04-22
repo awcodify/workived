@@ -18,8 +18,8 @@ type SourceField struct {
 
 // Source describes a registered data source.
 type Source struct {
-	BaseTable   string            // e.g. "tasks t"
-	Joins       []string          // additional JOINs always applied
+	BaseTable   string   // e.g. "tasks t"
+	Joins       []string // additional JOINs always applied
 	Fields      map[string]SourceField
 	OrgIDCol    string   // e.g. "t.organisation_id"
 	DateCol     string   // default date column for date_range filtering and date_bucket

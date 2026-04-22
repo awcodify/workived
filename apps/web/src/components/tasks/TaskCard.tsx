@@ -16,8 +16,10 @@ function formatFieldValue(fv: FieldValueWithDefinition, employees: Employee[]): 
 
   switch (fv.field_type as FieldType) {
     case 'text':
-    case 'url':
     case 'select':
+      return fv.value_text ? truncate(fv.value_text) : null
+    
+    case 'url':
       return fv.value_text ? truncate(fv.value_text) : null
 
     case 'number':
@@ -104,11 +106,11 @@ export function TaskCard({
   // Top 2 non-empty custom field values for display on card
   const fieldChips = useMemo(() => {
     const values = task.field_values ?? []
-    const chips: { label: string; value: string }[] = []
+    const chips: { label: string; value: string; type: FieldType }[] = []
     for (const fv of values) {
       const formatted = formatFieldValue(fv, employees)
       if (formatted) {
-        chips.push({ label: fv.field_name, value: formatted })
+        chips.push({ label: fv.field_name, value: formatted, type: fv.field_type as FieldType })
         if (chips.length === 2) break
       }
     }
@@ -371,14 +373,60 @@ export function TaskCard({
                 <span style={{ color: '#94A3B8', fontWeight: 500 }}>
                   {chip.label}:
                 </span>
-                <span
-                  className="truncate"
-                  style={{ color: '#4B5563', fontWeight: 500 }}
-                >
-                  {chip.value}
-                </span>
+                {chip.type === 'url' ? (
+                  <a
+                    href={chip.value.match(/^https?:\/\//i) ? chip.value : `https://${chip.value}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="truncate underline hover:opacity-70 transition-opacity"
+                    style={{ color: '#3B82F6', fontWeight: 500 }}
+                  >
+                    {chip.value}
+                  </a>
+                ) : (
+                  <span
+                    className="truncate"
+                    style={{ color: '#4B5563', fontWeight: 500 }}
+                  >
+                    {chip.value}
+                  </span>
+                )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Labels */}
+        {task.labels && task.labels.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {task.labels.slice(0, 3).map((label) => (
+              <span
+                key={label}
+                className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
+                style={{
+                  background: '#EEF2FF',
+                  color: '#4F46E5',
+                  fontFamily: typography.fontFamily,
+                  fontSize: '11px',
+                }}
+              >
+                {label}
+              </span>
+            ))}
+            {task.labels.length > 3 && (
+              <span
+                className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
+                style={{
+                  background: '#F3F4F6',
+                  color: '#6B7280',
+                  fontFamily: typography.fontFamily,
+                  fontSize: '11px',
+                }}
+              >
+                +{task.labels.length - 3}
+              </span>
+            )}
           </div>
         )}
 

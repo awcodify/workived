@@ -40,6 +40,7 @@ type Task struct {
 	ApprovalID     *uuid.UUID `json:"approval_id,omitempty"`   // FK to leave_requests.id or claims.id
 	ParentTaskID   *uuid.UUID `json:"parent_task_id,omitempty"`
 	HierarchyLevel int        `json:"hierarchy_level"`
+	Labels         []string   `json:"labels"` // Array of label strings for categorization
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
 }
@@ -162,6 +163,7 @@ type CreateTaskRequest struct {
 	AssigneeID   *uuid.UUID `json:"assignee_id,omitempty"`
 	Priority     string     `json:"priority" binding:"omitempty,oneof=low medium high urgent"`
 	DueDate      *string    `json:"due_date,omitempty"` // YYYY-MM-DD or RFC3339 datetime
+	Labels       []string   `json:"labels,omitempty"`
 	ApprovalType *string    `json:"approval_type,omitempty" binding:"omitempty,oneof=leave claim"`
 	ApprovalID   *uuid.UUID `json:"approval_id,omitempty"`
 }
@@ -172,6 +174,7 @@ type UpdateTaskRequest struct {
 	AssigneeID  *uuid.UUID `json:"assignee_id,omitempty"`
 	Priority    *string    `json:"priority,omitempty" binding:"omitempty,oneof=low medium high urgent"`
 	DueDate     *string    `json:"due_date,omitempty"` // YYYY-MM-DD format
+	Labels      *[]string  `json:"labels,omitempty"`
 }
 
 type MoveTaskRequest struct {
@@ -366,6 +369,7 @@ type RepositoryInterface interface {
 	MoveTask(ctx context.Context, orgID, taskID uuid.UUID, newListID uuid.UUID, newPosition int) (*Task, error)
 	ToggleTaskCompletion(ctx context.Context, orgID, taskID uuid.UUID) (*Task, error)
 	DeleteTask(ctx context.Context, orgID, id uuid.UUID) error
+	GetUniqueLabels(ctx context.Context, orgID uuid.UUID) ([]string, error)
 
 	// Comments
 	ListComments(ctx context.Context, orgID, taskID uuid.UUID) ([]TaskCommentWithAuthor, error)
@@ -422,6 +426,7 @@ type ServiceInterface interface {
 	MoveTask(ctx context.Context, orgID, taskID uuid.UUID, req MoveTaskRequest, actorUserID ...uuid.UUID) (*Task, error)
 	ToggleTaskCompletion(ctx context.Context, orgID, taskID uuid.UUID, actorUserID ...uuid.UUID) (*Task, error)
 	DeleteTask(ctx context.Context, orgID, id uuid.UUID, actorUserID ...uuid.UUID) error
+	GetUniqueLabels(ctx context.Context, orgID uuid.UUID) ([]string, error)
 
 	// Comments
 	ListComments(ctx context.Context, orgID, taskID uuid.UUID) ([]TaskCommentWithAuthor, error)

@@ -758,6 +758,7 @@ export interface Task {
   approval_id?: string
   parent_task_id?: string
   hierarchy_level: number
+  labels: string[]  // Array of label strings for categorization
   created_at: string
   updated_at: string
 }
@@ -903,6 +904,7 @@ export interface CreateTaskInput {
   assignee_id?: string
   priority?: TaskPriority
   due_date?: string  // YYYY-MM-DD
+  labels?: string[]  // Array of label strings
 }
 
 export interface UpdateTaskInput {
@@ -911,6 +913,7 @@ export interface UpdateTaskInput {
   assignee_id?: string
   priority?: TaskPriority
   due_date?: string  // YYYY-MM-DD
+  labels?: string[]  // Array of label strings
 }
 
 export interface MoveTaskInput {

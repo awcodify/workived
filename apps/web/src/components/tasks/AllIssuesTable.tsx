@@ -46,8 +46,9 @@ function formatFieldCellValue(fd: FieldDefinition, task: TaskWithDetails, employ
 
   switch (fd.field_type) {
     case 'text':
-    case 'url':
       return fv.value_text ?? '—'
+    case 'url':
+      return fv.value_text ? fv.value_text : '—'
     case 'number':
       return fv.value_number !== undefined ? String(fv.value_number) : '—'
     case 'rating':
@@ -424,6 +425,7 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
                 <SortHeader label="Assignee"    sortKey="assignee_name" current={sortKey} dir={sortDir} onSort={handleSort} />
                 <SortHeader label="Due"         sortKey="due_date"     current={sortKey} dir={sortDir} onSort={handleSort} />
                 <SortHeader label="Priority"    sortKey="priority"     current={sortKey} dir={sortDir} onSort={handleSort} />
+                <th className="text-left px-3 py-2.5 text-xs font-bold" style={{ color: '#94A3B8', fontFamily: typography.fontFamily, borderBottom: '2px solid #E2E8F0' }}>Labels</th>
                 <SortHeader label="Completed"   sortKey="completed_at" current={sortKey} dir={sortDir} onSort={handleSort} />
                 {visibleCustomFields.map((fd) => (
                   <SortHeader
@@ -508,17 +510,73 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
                         {task.priority ?? 'medium'}
                       </span>
                     </td>
+                    {/* Labels */}
+                    <td className="px-3 py-2.5">
+                      {task.labels && task.labels.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 max-w-[200px]">
+                          {task.labels.slice(0, 2).map((label) => (
+                            <span
+                              key={label}
+                              className="inline-block px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap"
+                              style={{
+                                background: '#EEF2FF',
+                                color: '#4F46E5',
+                                fontFamily: typography.fontFamily,
+                                fontSize: '11px',
+                              }}
+                            >
+                              {label}
+                            </span>
+                          ))}
+                          {task.labels.length > 2 && (
+                            <span
+                              className="inline-block px-1.5 py-0.5 rounded text-xs font-medium"
+                              style={{
+                                background: '#F3F4F6',
+                                color: '#6B7280',
+                                fontFamily: typography.fontFamily,
+                                fontSize: '11px',
+                              }}
+                            >
+                              +{task.labels.length - 2}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs" style={{ color: '#94A3B8', fontFamily: typography.fontFamily }}>—</span>
+                      )}
+                    </td>
                     {/* Completed at */}
                     <td className="px-3 py-2.5 text-xs whitespace-nowrap" style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
                       {task.completed_at ? formatDate(task.completed_at) : '—'}
                     </td>
                     {/* Custom field columns */}
-                    {visibleCustomFields.map((fd) => (
-                      <td key={fd.id} className="px-3 py-2.5 text-xs max-w-[160px] truncate"
-                        style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
-                        {formatFieldCellValue(fd, task, employees)}
-                      </td>
-                    ))}
+                    {visibleCustomFields.map((fd) => {
+                      const cellValue = formatFieldCellValue(fd, task, employees)
+                      const isUrl = fd.field_type === 'url' && cellValue !== '—'
+                      // Ensure URL has protocol to prevent relative navigation
+                      const normalizedUrl = isUrl && cellValue.match(/^https?:\/\//i) ? cellValue : `https://${cellValue}`
+                      
+                      return (
+                        <td key={fd.id} className="px-3 py-2.5 text-xs max-w-[160px] truncate"
+                          style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
+                          {isUrl ? (
+                            <a
+                              href={normalizedUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="underline hover:opacity-70 transition-opacity"
+                              style={{ color: '#3B82F6' }}
+                            >
+                              {cellValue}
+                            </a>
+                          ) : (
+                            cellValue
+                          )}
+                        </td>
+                      )
+                    })}
                   </tr>
                 )
               })}

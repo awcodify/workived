@@ -25,6 +25,7 @@ import {
   useFieldDefinitions,
   useSetFieldValue,
   useClearFieldValue,
+  useTaskLabels,
 } from '@/lib/hooks/useTasks'
 import { DatePicker } from '@/components/ui'
 
@@ -184,15 +185,65 @@ function FieldInput({
   )
 
   switch (fd.field_type) {
-    case 'text':
-    case 'url': {
+    case 'text': {
       const textKey = isCreateMode
         ? `cm_${String(createValue ?? 'empty')}`
         : (optimistic !== null ? `opt_${JSON.stringify(optimistic.value)}` : (current?.value_text ?? 'empty'))
       return wrapper(
         <input
           key={textKey}
-          type={fd.field_type === 'url' ? 'url' : 'text'}
+          type="text"
+          defaultValue={dispText}
+          placeholder={fd.description || fd.name}
+          style={inputStyle}
+          onBlur={(e) => {
+            const v = e.target.value.trim()
+            if (v) save(v)
+            else if (isCreateMode ? hasValue : current) clear()
+          }}
+        />
+      )
+    }
+    
+    case 'url': {
+      const textKey = isCreateMode
+        ? `cm_${String(createValue ?? 'empty')}`
+        : (optimistic !== null ? `opt_${JSON.stringify(optimistic.value)}` : (current?.value_text ?? 'empty'))
+      
+      // If there's a value, show it as a clickable link with an edit button
+      if (dispText && !isCreateMode) {
+        // Ensure URL has protocol to prevent relative navigation
+        const normalizedUrl = dispText.match(/^https?:\/\//i) ? dispText : `https://${dispText}`
+        
+        return (
+          <div className="flex items-center gap-2">
+            <a
+              href={normalizedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs underline flex-1 truncate"
+              style={{ color: '#3B82F6', fontFamily: typography.fontFamily }}
+            >
+              {dispText}
+            </a>
+            <button
+              type="button"
+              onClick={clear}
+              className="px-1.5 py-1 rounded hover:bg-red-50 transition-colors flex-shrink-0"
+              style={{ color: '#94A3B8' }}
+              title="Remove link"
+            >
+              <XIcon size={12} />
+            </button>
+          </div>
+        )
+      }
+      
+      // Otherwise show input
+      return wrapper(
+        <input
+          key={textKey}
+          type="url"
           defaultValue={dispText}
           placeholder={fd.description || fd.name}
           style={inputStyle}
@@ -503,6 +554,9 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
   const { data: org } = useOrganisation()
   const orgTz = org?.timezone ?? 'UTC'
 
+  // Fetch all existing labels for suggestions
+  const { data: allExistingLabels = [] } = useTaskLabels()
+
   // Fetch parent task title if task has a parent
   const { data: parentTask } = useTask(task?.parent_task_id || '')
 
@@ -515,6 +569,12 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
   const [dueDatetime, setDueDatetime] = useState(
     initialDueParts ? `${initialDueParts.date}T${initialDueParts.time}` : ''
   )
+  const [labels, setLabels] = useState<string[]>(task?.labels || [])
+  const [labelInput, setLabelInput] = useState('')
+  const [showLabelSuggestions, setShowLabelSuggestions] = useState(false)
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(0)
+  const labelInputRef = useRef<HTMLInputElement>(null)
+  const suggestionRefs = useRef<(HTMLButtonElement | null)[]>([])
   const [listId, setListId] = useState(initialListId || task?.task_list_id || '')
   const [commentText, setCommentText] = useState('')
   const [replyingToId, setReplyingToId] = useState<string | null>(null)
@@ -550,6 +610,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
       setAssigneeId(task.assignee_id || '')
       setPriority(task.priority || 'medium')
       setDueDatetime(parts ? `${parts.date}T${parts.time}` : '')
+      setLabels(task.labels || [])
       setListId(task.task_list_id || '')
     }
   }, [task, orgTz])
@@ -682,6 +743,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
       assignee_id: assigneeId || undefined,
       priority: priority as 'low' | 'medium' | 'high' | 'urgent',
       due_date: buildDueDateUTC(dueDatetime),
+      labels: labels,
     }
 
     // Override with the specific field being changed
@@ -690,6 +752,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
     if (field === 'assignee_id') data.assignee_id = value || undefined
     if (field === 'priority') data.priority = value
     if (field === 'due_datetime') data.due_date = buildDueDateUTC(value)
+    if (field === 'labels') data.labels = value
 
     updateTaskMutation.mutate(
       { id: task!.id, data },
@@ -707,7 +770,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
         },
       }
     )
-  }, [isCreateMode, title, description, assigneeId, priority, dueDatetime, task, updateTaskMutation, buildDueDateUTC])
+  }, [isCreateMode, title, description, assigneeId, priority, dueDatetime, labels, task, updateTaskMutation, buildDueDateUTC])
 
   const handleTitleChange = (value: string) => {
     setTitle(value)
@@ -742,6 +805,115 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
     autoSave('due_datetime', value)
   }
 
+  const handleAddLabel = (label: string) => {
+    const trimmed = label.trim()
+    if (!trimmed || labels.includes(trimmed)) return
+    const newLabels = [...labels, trimmed]
+    setLabels(newLabels)
+    autoSave('labels', newLabels)
+  }
+
+  const handleRemoveLabel = (label: string) => {
+    const newLabels = labels.filter(l => l !== label)
+    setLabels(newLabels)
+    autoSave('labels', newLabels)
+  }
+
+  const handleLabelInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle suggestions navigation
+    if (showLabelSuggestions && labelSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedSuggestionIndex(prev => 
+          prev < labelSuggestions.length - 1 ? prev + 1 : 0
+        )
+        return
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedSuggestionIndex(prev => 
+          prev > 0 ? prev - 1 : labelSuggestions.length - 1
+        )
+        return
+      } else if (e.key === 'Tab') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          // Shift+Tab: navigate backwards
+          setSelectedSuggestionIndex(prev => 
+            prev > 0 ? prev - 1 : labelSuggestions.length - 1
+          )
+        } else {
+          // Tab: navigate forwards
+          setSelectedSuggestionIndex(prev => 
+            prev < labelSuggestions.length - 1 ? prev + 1 : 0
+          )
+        }
+        return
+      } else if (e.key === 'Enter') {
+        e.preventDefault()
+        const selectedLabel = labelSuggestions[selectedSuggestionIndex]
+        if (selectedLabel) {
+          handleSelectSuggestion(selectedLabel)
+        } else {
+          handleAddLabel(labelInput)
+          setLabelInput('')
+          setShowLabelSuggestions(false)
+        }
+        return
+      }
+    }
+    
+    // Handle normal input
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      handleAddLabel(labelInput)
+      setLabelInput('')
+      setShowLabelSuggestions(false)
+    } else if (e.key === 'Backspace' && labelInput === '' && labels.length > 0) {
+      // Remove last label if backspace on empty input
+      handleRemoveLabel(labels[labels.length - 1]!)
+    } else if (e.key === 'Escape') {
+      setShowLabelSuggestions(false)
+    }
+  }
+
+  const handleLabelInputChange = (value: string) => {
+    setLabelInput(value)
+    setShowLabelSuggestions(value.length > 0)
+    setSelectedSuggestionIndex(0) // Reset selection when typing
+  }
+
+  const handleSelectSuggestion = (label: string) => {
+    handleAddLabel(label)
+    setLabelInput('')
+    setShowLabelSuggestions(false)
+    setSelectedSuggestionIndex(0)
+    labelInputRef.current?.focus()
+  }
+
+  // Filter label suggestions based on input
+  const labelSuggestions = useMemo(() => {
+    if (!labelInput.trim()) return []
+    const input = labelInput.toLowerCase()
+    return allExistingLabels
+      .filter(label => label.toLowerCase().includes(input) && !labels.includes(label))
+      .slice(0, 5)
+  }, [labelInput, allExistingLabels, labels])
+
+  // Scroll selected suggestion into view
+  useEffect(() => {
+    if (showLabelSuggestions && suggestionRefs.current[selectedSuggestionIndex]) {
+      suggestionRefs.current[selectedSuggestionIndex]?.scrollIntoView({
+        block: 'nearest',
+        behavior: 'smooth',
+      })
+    }
+  }, [selectedSuggestionIndex, showLabelSuggestions])
+
+  // Reset suggestion refs when list changes
+  useEffect(() => {
+    suggestionRefs.current = suggestionRefs.current.slice(0, labelSuggestions.length)
+  }, [labelSuggestions])
+
   const handleDelete = () => {
     if (!task) return
     if (!confirm('Are you sure you want to delete this task?')) return
@@ -764,6 +936,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
         assignee_id: assigneeId || undefined,
         priority: priority as 'low' | 'medium' | 'high' | 'urgent',
         due_date: buildDueDateUTC(dueDatetime) || undefined,
+        labels: labels.length > 0 ? labels : undefined,
       },
       {
         onSuccess: (newTask) => {
@@ -1414,7 +1587,7 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
               {/* Priority */}
               <div>
                 <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
-                  <Tag size={13} />
+                  <Zap size={13} />
                   Priority
                 </label>
                 <Dropdown
@@ -1458,6 +1631,100 @@ export function TaskDetailModal({ mode = 'edit', task: initialTask, taskId: init
                     fontFamily: typography.fontFamily,
                   }}
                 />
+              </div>
+
+              {/* Labels */}
+              <div>
+                <label className="block text-xs font-semibold mb-1.5 flex items-center gap-1.5" style={{ color: '#64748B', fontFamily: typography.fontFamily }}>
+                  <Tag size={13} />
+                  Labels
+                </label>
+                <div className="relative">
+                  {/* Tag input container */}
+                  <div
+                    className="w-full rounded-md px-2 py-1.5 text-xs outline-none min-h-[34px] flex flex-wrap gap-1 items-center cursor-text"
+                    style={{
+                      background: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      fontFamily: typography.fontFamily,
+                    }}
+                    onClick={() => labelInputRef.current?.focus()}
+                  >
+                    {/* Display labels as chips inside the input */}
+                    {labels.map((label) => (
+                      <span
+                        key={label}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-medium flex-shrink-0"
+                        style={{
+                          background: '#EEF2FF',
+                          color: '#4F46E5',
+                          fontSize: '11px',
+                          fontFamily: typography.fontFamily,
+                        }}
+                      >
+                        {label}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleRemoveLabel(label)
+                          }}
+                          className="hover:opacity-70 transition-opacity"
+                        >
+                          <XIcon size={10} />
+                        </button>
+                      </span>
+                    ))}
+                    {/* Input for adding new labels */}
+                    <input
+                      ref={labelInputRef}
+                      type="text"
+                      value={labelInput}
+                      onChange={(e) => handleLabelInputChange(e.target.value)}
+                      onKeyDown={handleLabelInputKeyDown}
+                      onFocus={() => labelInput && setShowLabelSuggestions(true)}
+                      onBlur={() => setTimeout(() => setShowLabelSuggestions(false), 200)}
+                      placeholder={labels.length === 0 ? 'Add labels...' : ''}
+                      className="flex-1 min-w-[100px] outline-none bg-transparent"
+                      style={{
+                        color: '#1E293B',
+                        fontFamily: typography.fontFamily,
+                        fontSize: '12px',
+                      }}
+                    />
+                  </div>
+                  {/* Suggestions dropdown */}
+                  {showLabelSuggestions && labelSuggestions.length > 0 && (
+                    <div
+                      className="absolute z-50 w-full mt-1 rounded-md shadow-lg overflow-hidden"
+                      style={{
+                        background: '#FFFFFF',
+                        border: '1px solid #E2E8F0',
+                        maxHeight: '160px',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      {labelSuggestions.map((suggestion, index) => (
+                        <button
+                          key={suggestion}
+                          ref={(el) => { suggestionRefs.current[index] = el }}
+                          type="button"
+                          onClick={() => handleSelectSuggestion(suggestion)}
+                          className="w-full text-left px-3 py-2 text-xs transition-colors"
+                          style={{
+                            color: '#1E293B',
+                            fontFamily: typography.fontFamily,
+                            background: selectedSuggestionIndex === index ? '#EEF2FF' : 'transparent',
+                            fontWeight: selectedSuggestionIndex === index ? 500 : 400,
+                          }}
+                          onMouseEnter={() => setSelectedSuggestionIndex(index)}
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Custom Fields */}

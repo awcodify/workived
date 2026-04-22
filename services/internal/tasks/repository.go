@@ -275,7 +275,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 			t.id, t.organisation_id, t.task_list_id, t.code, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
 			t.completed_at, t.approval_type, t.approval_id, t.parent_task_id,
-			t.hierarchy_level, t.created_at, t.updated_at,
+			t.hierarchy_level, t.labels, t.created_at, t.updated_at,
 			assignee.full_name AS assignee_name,
 			creator.full_name AS creator_name,
 			tl.name AS list_name
@@ -306,7 +306,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 			  OR t.completed_at > NOW() - ($8::int || ' days')::interval
 		  )
 		  AND ($6::timestamptz IS NULL OR t.created_at < $6::timestamptz)
-		  AND ($10::varchar IS NULL OR t.title ILIKE '%' || $10 || '%')
+		  AND ($10::varchar IS NULL OR t.title ILIKE '%' || $10 || '%' OR t.code ILIKE '%' || $10 || '%')
 		  AND ($11::timestamptz IS NULL OR t.completed_at >= $11::timestamptz)
 		  AND ($12::timestamptz IS NULL OR t.completed_at <= $12::timestamptz)
 		ORDER BY t.created_at DESC
@@ -344,7 +344,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 			&t.ID, &t.OrganisationID, &t.TaskListID, &t.Code, &t.Title, &t.Description,
 			&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
 			&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.ParentTaskID,
-			&t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
+			&t.HierarchyLevel, &t.Labels, &t.CreatedAt, &t.UpdatedAt,
 			&t.AssigneeName, &t.CreatorName, &t.ListName,
 		); err != nil {
 			return nil, err
@@ -361,7 +361,7 @@ func (r *Repository) GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWit
 			t.id, t.organisation_id, t.task_list_id, t.code, t.title, t.description,
 			t.assignee_id, t.created_by, t.priority, t.due_date, t.position,
 			t.completed_at, t.approval_type, t.approval_id, t.parent_task_id,
-			t.hierarchy_level, t.created_at, t.updated_at,
+			t.hierarchy_level, t.labels, t.created_at, t.updated_at,
 			assignee.full_name AS assignee_name,
 			creator.full_name AS creator_name,
 			tl.name AS list_name
@@ -374,7 +374,7 @@ func (r *Repository) GetTask(ctx context.Context, orgID, id uuid.UUID) (*TaskWit
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Code, &t.Title, &t.Description,
 		&t.AssigneeID, &t.CreatedBy, &t.Priority, &t.DueDate, &t.Position,
 		&t.CompletedAt, &t.ApprovalType, &t.ApprovalID, &t.ParentTaskID,
-		&t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
+		&t.HierarchyLevel, &t.Labels, &t.CreatedAt, &t.UpdatedAt,
 		&t.AssigneeName, &t.CreatorName, &t.ListName,
 	)
 	if err != nil {
@@ -509,16 +509,16 @@ func (r *Repository) CreateTask(ctx context.Context, orgID, createdBy uuid.UUID,
 		INSERT INTO tasks (
 			organisation_id, task_list_id, code, title, description, assignee_id,
 			created_by, priority, due_date, position, completed_at, approval_type, approval_id,
-			parent_task_id, hierarchy_level
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, 0)
+			parent_task_id, hierarchy_level, labels
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, 0, $14)
 		RETURNING id, organisation_id, task_list_id, code, title, description, assignee_id,
 		          created_by, priority, due_date, position, completed_at, approval_type, approval_id,
-		          parent_task_id, hierarchy_level, created_at, updated_at
+		          parent_task_id, hierarchy_level, labels, created_at, updated_at
 	`, orgID, req.TaskListID, taskCode, req.Title, req.Description, req.AssigneeID,
-		createdBy, priority, dueDate, maxPosition+1000, completedAt, req.ApprovalType, req.ApprovalID).Scan(
+		createdBy, priority, dueDate, maxPosition+1000, completedAt, req.ApprovalType, req.ApprovalID, req.Labels).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Code, &t.Title, &t.Description, &t.AssigneeID,
 		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID,
-		&t.ParentTaskID, &t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
+		&t.ParentTaskID, &t.HierarchyLevel, &t.Labels, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -559,6 +559,11 @@ func (r *Repository) UpdateTask(ctx context.Context, orgID, id uuid.UUID, req Up
 		}
 		updates = append(updates, fmt.Sprintf("due_date = $%d", argIdx))
 		args = append(args, dueDate)
+		argIdx++
+	}
+	if req.Labels != nil {
+		updates = append(updates, fmt.Sprintf("labels = $%d", argIdx))
+		args = append(args, *req.Labels)
 		// argIdx++ // Not needed as this is the last field
 	}
 
@@ -575,15 +580,15 @@ func (r *Repository) UpdateTask(ctx context.Context, orgID, id uuid.UUID, req Up
 	query := fmt.Sprintf(`
 		UPDATE tasks SET %s
 		WHERE organisation_id = $1 AND id = $2
-		RETURNING id, organisation_id, task_list_id, title, description, assignee_id,
+		RETURNING id, organisation_id, task_list_id, code, title, description, assignee_id,
 		          created_by, priority, due_date, position, completed_at, approval_type, approval_id,
-		          parent_task_id, hierarchy_level, created_at, updated_at
+		          parent_task_id, hierarchy_level, labels, created_at, updated_at
 	`, strings.Join(updates, ", "))
 
 	err := r.db.QueryRow(ctx, query, args...).Scan(
-		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Title, &t.Description, &t.AssigneeID,
+		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Code, &t.Title, &t.Description, &t.AssigneeID,
 		&t.CreatedBy, &t.Priority, &t.DueDate, &t.Position, &t.CompletedAt, &t.ApprovalType, &t.ApprovalID,
-		&t.ParentTaskID, &t.HierarchyLevel, &t.CreatedAt, &t.UpdatedAt,
+		&t.ParentTaskID, &t.HierarchyLevel, &t.Labels, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -668,6 +673,30 @@ func (r *Repository) DeleteTask(ctx context.Context, orgID, id uuid.UUID) error 
 		return ErrTaskNotFound()
 	}
 	return nil
+}
+
+// GetUniqueLabels returns all unique labels used in tasks for an organisation
+func (r *Repository) GetUniqueLabels(ctx context.Context, orgID uuid.UUID) ([]string, error) {
+	rows, err := r.db.Query(ctx, `
+		SELECT DISTINCT unnest(labels) AS label
+		FROM tasks
+		WHERE organisation_id = $1 AND labels IS NOT NULL AND array_length(labels, 1) > 0
+		ORDER BY label
+	`, orgID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var labels []string
+	for rows.Next() {
+		var label string
+		if err := rows.Scan(&label); err != nil {
+			return nil, err
+		}
+		labels = append(labels, label)
+	}
+	return labels, rows.Err()
 }
 
 // ── Comments ─────────────────────────────────────────────────────────────────

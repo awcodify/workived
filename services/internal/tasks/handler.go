@@ -42,6 +42,7 @@ func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
 	// Tasks
 	tasks.GET("", middleware.Require(middleware.PermTasksRead), h.ListTasks)
 	tasks.POST("", middleware.Require(middleware.PermTasksRead), h.CreateTask)
+	tasks.GET("/labels", middleware.Require(middleware.PermTasksRead), h.GetUniqueLabels)
 	tasks.GET("/:id", middleware.Require(middleware.PermTasksRead), h.GetTask)
 	tasks.PUT("/:id", middleware.Require(middleware.PermTasksRead), h.UpdateTask)
 	tasks.PUT("/:id/move", middleware.Require(middleware.PermTasksRead), h.MoveTask)
@@ -432,6 +433,20 @@ func (h *Handler) DeleteTask(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusNoContent, nil)
+}
+
+func (h *Handler) GetUniqueLabels(c *gin.Context) {
+	orgID := middleware.OrgIDFromCtx(c)
+
+	labels, err := h.service.GetUniqueLabels(c.Request.Context(), orgID)
+	if err != nil {
+		h.logAndRespondError(c, err, "failed to get unique labels", map[string]string{
+			"org_id": orgID.String(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"labels": labels})
 }
 
 // ── Comments ─────────────────────────────────────────────────────────────────

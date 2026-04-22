@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useCallback } from 'react'
-import { ArrowLeft, Plus, Trash2, Type, Hash, Calendar, CheckSquare, ChevronDown, Link as LinkIcon, User, Star } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Type, Hash, Calendar, CheckSquare, ChevronDown, Link as LinkIcon, User, Star, Tag } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Dropdown } from '@/components/workived/shared/Dropdown'
 import type { DropdownOption } from '@/components/workived/shared/Dropdown'
@@ -670,6 +670,7 @@ function TaskBoardSettingsPage() {
             {/* Inline create form */}
             {showFieldForm && (
               <div className="px-5 py-4 space-y-3" style={{ borderBottom: `1px solid ${border}`, background: '#FAFBFC' }}>
+                {/* 1. Name */}
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: textSec, fontFamily: typography.fontFamily }}>
                     Name
@@ -684,26 +685,8 @@ function TaskBoardSettingsPage() {
                     data-testid="custom-field-name-input"
                   />
                 </div>
-                <div>
-                  <Dropdown
-                    label="Type"
-                    value={newFieldType}
-                    onChange={(v) => setNewFieldType(v as FieldType)}
-                    options={FIELD_TYPES.map(t => ({ value: t.value, label: t.label, icon: t.icon }))}
-                    fullWidth
-                    theme={{
-                      text,
-                      textMuted: textSec,
-                      input: inputBg,
-                      inputBorder: inputBdr,
-                      surface: surfaceBg,
-                      border,
-                      hoverBg: '#F9FAFB',
-                    }}
-                    labelStyle={{ color: textSec, fontFamily: typography.fontFamily, fontSize: '12px', fontWeight: 500 }}
-                    style={{ fontFamily: typography.fontFamily, fontSize: '14px' }}
-                  />
-                </div>
+
+                {/* 2. Description */}
                 <div>
                   <label className="block text-xs font-medium mb-1" style={{ color: textSec, fontFamily: typography.fontFamily }}>
                     Description <span style={{ color: textDim, fontWeight: 400 }}>(optional)</span>
@@ -719,7 +702,41 @@ function TaskBoardSettingsPage() {
                   />
                 </div>
 
-                {/* Options for select/multi_select types */}
+                {/* 3. Type */}
+                <div>
+                  <Dropdown
+                    label="Type"
+                    value={newFieldType}
+                    onChange={(v) => {
+                      const newType = v as FieldType
+                      const oldNeedsOptions = TYPES_NEEDING_OPTIONS.includes(newFieldType)
+                      const newNeedsOptions = TYPES_NEEDING_OPTIONS.includes(newType)
+                      
+                      // Clear options if switching between types with different option requirements
+                      if (oldNeedsOptions !== newNeedsOptions) {
+                        setNewFieldOptions([])
+                        setOptionInput('')
+                      }
+                      
+                      setNewFieldType(newType)
+                    }}
+                    options={FIELD_TYPES.map(t => ({ value: t.value, label: t.label, icon: t.icon }))}
+                    fullWidth
+                    theme={{
+                      text,
+                      textMuted: textSec,
+                      input: inputBg,
+                      inputBorder: inputBdr,
+                      surface: surfaceBg,
+                      border,
+                      hoverBg: '#F9FAFB',
+                    }}
+                    labelStyle={{ color: textSec, fontFamily: typography.fontFamily, fontSize: '12px', fontWeight: 500 }}
+                    style={{ fontFamily: typography.fontFamily, fontSize: '14px' }}
+                  />
+                </div>
+
+                {/* 4. Options */}
                 {TYPES_NEEDING_OPTIONS.includes(newFieldType) && (
                   <div>
                     <label className="block text-xs font-medium mb-1" style={{ color: textSec, fontFamily: typography.fontFamily }}>
@@ -796,7 +813,14 @@ function TaskBoardSettingsPage() {
                     {createField.isPending ? 'Creating…' : 'Create'}
                   </button>
                   <button
-                    onClick={() => { setShowFieldForm(false); setNewFieldName(''); setNewFieldType('text'); setNewFieldDescription('') }}
+                    onClick={() => {
+                      setShowFieldForm(false)
+                      setNewFieldName('')
+                      setNewFieldType('text')
+                      setNewFieldDescription('')
+                      setNewFieldOptions([])
+                      setOptionInput('')
+                    }}
                     className="rounded-md px-4 py-2 text-sm font-semibold transition-all hover:bg-gray-50"
                     style={{ color: textSec, border: `1px solid ${border}` }}
                     data-testid="cancel-custom-field-button"

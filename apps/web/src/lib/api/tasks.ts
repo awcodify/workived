@@ -82,6 +82,9 @@ export const tasksApi = {
   deleteTask: (id: string) =>
     apiClient.delete(`/api/v1/tasks/${id}`),
 
+  getTaskLabels: () =>
+    apiClient.get<{ labels: string[] }>('/api/v1/tasks/labels'),
+
   // ── Comments ───────────────────────────────────────────────
   listComments: (taskId: string) =>
     apiClient.get<CommentResponse>(`/api/v1/tasks/${taskId}/comments`),

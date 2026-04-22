@@ -724,6 +724,11 @@ func (s *Service) DeleteTask(ctx context.Context, orgID, id uuid.UUID, actorUser
 	return nil
 }
 
+// GetUniqueLabels returns all unique labels used in tasks for an organisation
+func (s *Service) GetUniqueLabels(ctx context.Context, orgID uuid.UUID) ([]string, error) {
+	return s.repo.GetUniqueLabels(ctx, orgID)
+}
+
 // ── Approval Task Helpers ────────────────────────────────────────────────────
 // These methods are called by leave and claims services to manage approval tasks
 

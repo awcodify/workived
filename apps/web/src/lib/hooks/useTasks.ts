@@ -114,6 +114,14 @@ export function useAllTasks(filters?: Omit<TaskFilters, 'include_completed'>) {
   })
 }
 
+export function useTaskLabels() {
+  return useQuery({
+    queryKey: [...tasksKeys.tasks(), 'labels'] as const,
+    queryFn: () => tasksApi.getTaskLabels().then((r) => r.data.labels || []),
+    staleTime: 60 * 1000, // 1 min
+  })
+}
+
 export function useTask(id: string) {
   return useQuery({
     queryKey: tasksKeys.taskDetail(id),
