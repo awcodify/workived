@@ -72,6 +72,7 @@ type CreateEmployeeRequest struct {
 	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`
 	Gender         *string    `json:"gender"           validate:"omitempty,oneof=male female"`
 	StartDate      string     `json:"start_date"       validate:"required"`
+	WorkScheduleID uuid.UUID  `json:"work_schedule_id" validate:"required"`
 	EmployeeCode   *string    `json:"employee_code"    validate:"omitempty,max=50"`
 }
 

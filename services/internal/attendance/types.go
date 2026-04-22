@@ -45,7 +45,6 @@ type WorkScheduleListItem struct {
 	WorkDays  []int     `json:"work_days"`
 	StartTime string    `json:"start_time"` // HH:MM
 	EndTime   string    `json:"end_time"`   // HH:MM
-	IsDefault bool      `json:"is_default"`
 }
 
 // PublicHoliday is a minimal projection of the public_holidays table.
@@ -153,7 +152,7 @@ type DailyReportFilters struct {
 
 // LocationBreakdownItem is a single location type count + percentage.
 type LocationBreakdownItem struct {
-	Type       string  `json:"type"`       // "office", "wfh", "remote", "unknown"
+	Type       string  `json:"type"` // "office", "wfh", "remote", "unknown"
 	Count      int     `json:"count"`
 	Percentage float64 `json:"percentage"` // 0–100
 }
@@ -198,31 +197,31 @@ type UpdateWorkScheduleRequest struct {
 
 // Correction is an employee's request to fix their clock-in / clock-out time.
 type Correction struct {
-	ID                 uuid.UUID  `json:"id"`
-	OrganisationID     uuid.UUID  `json:"organisation_id"`
-	EmployeeID         uuid.UUID  `json:"employee_id"`
-	EmployeeName       string     `json:"employee_name"`
-	RecordID           *uuid.UUID `json:"record_id,omitempty"`
-	Date               string     `json:"date"` // YYYY-MM-DD
-	OriginalClockIn    *time.Time `json:"original_clock_in,omitempty"`
-	OriginalClockOut   *time.Time `json:"original_clock_out,omitempty"`
-	RequestedClockIn   *time.Time `json:"requested_clock_in,omitempty"`
-	RequestedClockOut  *time.Time `json:"requested_clock_out,omitempty"`
-	Reason             string     `json:"reason"`
-	Status             string     `json:"status"` // pending | approved | rejected
-	ReviewedBy         *uuid.UUID `json:"reviewed_by,omitempty"`
-	ReviewedAt         *time.Time `json:"reviewed_at,omitempty"`
-	RejectionReason    *string    `json:"rejection_reason,omitempty"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
+	ID                uuid.UUID  `json:"id"`
+	OrganisationID    uuid.UUID  `json:"organisation_id"`
+	EmployeeID        uuid.UUID  `json:"employee_id"`
+	EmployeeName      string     `json:"employee_name"`
+	RecordID          *uuid.UUID `json:"record_id,omitempty"`
+	Date              string     `json:"date"` // YYYY-MM-DD
+	OriginalClockIn   *time.Time `json:"original_clock_in,omitempty"`
+	OriginalClockOut  *time.Time `json:"original_clock_out,omitempty"`
+	RequestedClockIn  *time.Time `json:"requested_clock_in,omitempty"`
+	RequestedClockOut *time.Time `json:"requested_clock_out,omitempty"`
+	Reason            string     `json:"reason"`
+	Status            string     `json:"status"` // pending | approved | rejected
+	ReviewedBy        *uuid.UUID `json:"reviewed_by,omitempty"`
+	ReviewedAt        *time.Time `json:"reviewed_at,omitempty"`
+	RejectionReason   *string    `json:"rejection_reason,omitempty"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
 }
 
 // SubmitCorrectionRequest is the employee-facing request body.
 type SubmitCorrectionRequest struct {
-	Date               string  `json:"date"                 validate:"required"`
-	RequestedClockIn   *string `json:"requested_clock_in"   validate:"omitempty"`
-	RequestedClockOut  *string `json:"requested_clock_out"  validate:"omitempty"`
-	Reason             string  `json:"reason"               validate:"required,min=10,max=500"`
+	Date              string  `json:"date"                 validate:"required"`
+	RequestedClockIn  *string `json:"requested_clock_in"   validate:"omitempty"`
+	RequestedClockOut *string `json:"requested_clock_out"  validate:"omitempty"`
+	Reason            string  `json:"reason"               validate:"required,min=10,max=500"`
 }
 
 // ReviewCorrectionRequest is the manager-facing request body.

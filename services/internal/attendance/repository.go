@@ -222,16 +222,16 @@ func (r *Repository) ListByMonth(ctx context.Context, orgID uuid.UUID, year, mon
 	return records, rows.Err()
 }
 
-// GetDefaultSchedule returns the default work schedule for an org.
-// Returns nil, nil if no default schedule exists.
+// GetDefaultSchedule returns the first active work schedule for an org.
+// Returns nil, nil if no schedules exist. Used for organization-wide defaults like working days.
 func (r *Repository) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*WorkSchedule, error) {
 	ws := &WorkSchedule{}
 	err := r.db.QueryRow(ctx, `
 		SELECT work_days, start_time, end_time
 		FROM work_schedules
 		WHERE organisation_id = $1
-		  AND is_default = TRUE
 		  AND is_active = TRUE
+		ORDER BY name ASC
 		LIMIT 1
 	`, orgID).Scan(&ws.WorkDays, &ws.StartTime, &ws.EndTime)
 	if err != nil {
@@ -243,20 +243,19 @@ func (r *Repository) GetDefaultSchedule(ctx context.Context, orgID uuid.UUID) (*
 	return ws, nil
 }
 
-// GetScheduleForEmployee resolves the work schedule for an employee.
-// Resolution order: employee.work_schedule_id → org default (is_default = TRUE).
-// Returns nil, nil if no schedule is found.
+// GetScheduleForEmployee returns the work schedule assigned to an employee.
+// Returns nil, nil if employee has no schedule assigned (work_schedule_id IS NULL).
 func (r *Repository) GetScheduleForEmployee(ctx context.Context, orgID, employeeID uuid.UUID) (*WorkSchedule, error) {
 	ws := &WorkSchedule{}
 	err := r.db.QueryRow(ctx, `
 		SELECT ws.work_days, ws.start_time, ws.end_time
 		FROM employees e
 		JOIN work_schedules ws
-		  ON ws.organisation_id = $1
+		  ON ws.id = e.work_schedule_id
+		  AND ws.organisation_id = $1
 		  AND ws.is_active = TRUE
-		  AND ws.id = COALESCE(e.work_schedule_id,
-		      (SELECT id FROM work_schedules WHERE organisation_id = $1 AND is_default = TRUE AND is_active = TRUE LIMIT 1))
-		WHERE e.organisation_id = $1 AND e.id = $2
+		WHERE e.organisation_id = $1 
+		  AND e.id = $2
 	`, orgID, employeeID).Scan(&ws.WorkDays, &ws.StartTime, &ws.EndTime)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -297,10 +296,9 @@ func (r *Repository) ListHolidays(ctx context.Context, countryCode string, start
 // Only includes employees whose start_date is on or before the given date.
 func (r *Repository) ListActiveEmployees(ctx context.Context, orgID uuid.UUID, date string) ([]ActiveEmployee, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT e.id, e.full_name, COALESCE(ws.name, dws.name) AS work_schedule_name
+		SELECT e.id, e.full_name, ws.name AS work_schedule_name
 		FROM employees e
 		LEFT JOIN work_schedules ws ON e.work_schedule_id = ws.id AND ws.is_active = TRUE
-		LEFT JOIN work_schedules dws ON dws.organisation_id = e.organisation_id AND dws.is_default = TRUE AND dws.is_active = TRUE
 		WHERE e.organisation_id = $1
 		  AND e.is_active = TRUE
 		  AND e.start_date <= $2::date
@@ -421,11 +419,11 @@ func (r *Repository) ListByEmployeesDateRange(ctx context.Context, orgID uuid.UU
 // ListWorkSchedules returns all active work schedules for an org.
 func (r *Repository) ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]WorkScheduleListItem, error) {
 	rows, err := r.db.Query(ctx, `
-		SELECT id, name, work_days, start_time::text, end_time::text, is_default
+		SELECT id, name, work_days, start_time::text, end_time::text
 		FROM work_schedules
 		WHERE organisation_id = $1
 		  AND is_active = TRUE
-		ORDER BY is_default DESC, name ASC
+		ORDER BY name ASC
 	`, orgID)
 	if err != nil {
 		return nil, err
@@ -435,7 +433,7 @@ func (r *Repository) ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]
 	var schedules []WorkScheduleListItem
 	for rows.Next() {
 		var s WorkScheduleListItem
-		if err := rows.Scan(&s.ID, &s.Name, &s.WorkDays, &s.StartTime, &s.EndTime, &s.IsDefault); err != nil {
+		if err := rows.Scan(&s.ID, &s.Name, &s.WorkDays, &s.StartTime, &s.EndTime); err != nil {
 			return nil, err
 		}
 		schedules = append(schedules, s)
@@ -449,9 +447,9 @@ func (r *Repository) CreateWorkSchedule(ctx context.Context, orgID uuid.UUID, re
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO work_schedules (organisation_id, name, work_days, start_time, end_time)
 		VALUES ($1, $2, $3, $4::TIME, $5::TIME)
-		RETURNING id, name, work_days, start_time::text, end_time::text, is_default
+		RETURNING id, name, work_days, start_time::text, end_time::text
 	`, orgID, req.Name, req.WorkDays, req.StartTime, req.EndTime).Scan(
-		&ws.ID, &ws.Name, &ws.WorkDays, &ws.StartTime, &ws.EndTime, &ws.IsDefault,
+		&ws.ID, &ws.Name, &ws.WorkDays, &ws.StartTime, &ws.EndTime,
 	)
 	if err != nil {
 		return nil, err
@@ -466,9 +464,9 @@ func (r *Repository) UpdateWorkSchedule(ctx context.Context, orgID, scheduleID u
 		UPDATE work_schedules
 		SET name = $3, work_days = $4, start_time = $5::TIME, end_time = $6::TIME, updated_at = NOW()
 		WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
-		RETURNING id, name, work_days, start_time::text, end_time::text, is_default
+		RETURNING id, name, work_days, start_time::text, end_time::text
 	`, orgID, scheduleID, req.Name, req.WorkDays, req.StartTime, req.EndTime).Scan(
-		&ws.ID, &ws.Name, &ws.WorkDays, &ws.StartTime, &ws.EndTime, &ws.IsDefault,
+		&ws.ID, &ws.Name, &ws.WorkDays, &ws.StartTime, &ws.EndTime,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -495,20 +493,22 @@ func (r *Repository) DeactivateWorkSchedule(ctx context.Context, orgID, schedule
 	return nil
 }
 
-// IsDefaultSchedule checks if a schedule is the org default.
+// IsDefaultSchedule checks if a schedule has assigned employees.
+// Returns false always since default schedule concept is removed.
 func (r *Repository) IsDefaultSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (bool, error) {
-	var isDefault bool
+	// Verify schedule exists
+	var exists bool
 	err := r.db.QueryRow(ctx, `
-		SELECT is_default FROM work_schedules
-		WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
-	`, orgID, scheduleID).Scan(&isDefault)
+		SELECT EXISTS(SELECT 1 FROM work_schedules WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE)
+	`, orgID, scheduleID).Scan(&exists)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return false, apperr.NotFound("work schedule")
-		}
 		return false, err
 	}
-	return isDefault, nil
+	if !exists {
+		return false, apperr.NotFound("work schedule")
+	}
+	// Always return false since we removed default schedule concept
+	return false, nil
 }
 
 // CountEmployeesBySchedule returns the number of employees assigned to a schedule.

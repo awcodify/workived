@@ -33,19 +33,18 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 		       e.is_active, e.created_at, e.updated_at,
 		       m.full_name AS manager_name,
 		       d.name AS department_name,
-		       COALESCE(ws.name, dws.name) AS work_schedule_name,
+		       ws.name AS work_schedule_name,
 		       (i.id IS NOT NULL) AS invitation_pending
 		FROM employees e
 		LEFT JOIN employees m ON e.reporting_to = m.id AND m.is_active = TRUE
 		LEFT JOIN departments d ON e.department_id = d.id AND d.is_active = TRUE
 		LEFT JOIN work_schedules ws ON e.work_schedule_id = ws.id AND ws.is_active = TRUE
-		LEFT JOIN work_schedules dws ON dws.organisation_id = e.organisation_id AND dws.is_default = TRUE AND dws.is_active = TRUE
 		LEFT JOIN invitations i ON i.organisation_id = e.organisation_id
 		          AND i.employee_id = e.id AND i.accepted_at IS NULL
 		WHERE e.organisation_id = $1
 		  AND ($2::varchar IS NULL OR e.status = $2)
 		  AND ($3::varchar IS NULL OR e.department_id::text = $3)
-		  AND ($4::varchar IS NULL OR COALESCE(e.work_schedule_id, dws.id)::text = $4)
+		  AND ($4::varchar IS NULL OR e.work_schedule_id::text = $4)
 		  AND ($5::varchar IS NULL OR e.full_name > $5)
 		  AND ($7::varchar IS NULL OR e.full_name ILIKE '%' || $7 || '%' OR e.email ILIKE '%' || $7 || '%')
 		ORDER BY e.full_name ASC
@@ -122,15 +121,17 @@ func (r *Repository) Create(ctx context.Context, orgID uuid.UUID, req CreateEmpl
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO employees (
 			organisation_id, user_id, employee_code, full_name, email, phone,
-			department_id, job_title, job_title_id, employment_type, reporting_to, gender, start_date
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::date)
+			department_id, job_title, job_title_id, employment_type, reporting_to, gender, 
+			start_date, work_schedule_id
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::date, $14)
 		RETURNING id, organisation_id, user_id, employee_code,
 		          full_name, email, phone, department_id, job_title, job_title_id,
 		          employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
 		          base_salary, salary_currency, custom_fields,
 		          is_active, created_at, updated_at
 	`, orgID, req.UserID, req.EmployeeCode, req.FullName, req.Email, req.Phone,
-		req.DepartmentID, req.JobTitle, req.JobTitleID, req.EmploymentType, req.ReportingTo, req.Gender, req.StartDate).
+		req.DepartmentID, req.JobTitle, req.JobTitleID, req.EmploymentType, req.ReportingTo, req.Gender,
+		req.StartDate, req.WorkScheduleID).
 		Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
@@ -158,13 +159,12 @@ func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employe
 		       e.is_active, e.created_at, e.updated_at,
 		       m.full_name AS manager_name,
 		       d.name AS department_name,
-		       COALESCE(ws.name, dws.name) AS work_schedule_name,
+		       ws.name AS work_schedule_name,
 		       (i.id IS NOT NULL) AS invitation_pending
 		FROM employees e
 		LEFT JOIN employees m ON e.reporting_to = m.id AND m.is_active = TRUE
 		LEFT JOIN departments d ON e.department_id = d.id AND d.is_active = TRUE
 		LEFT JOIN work_schedules ws ON e.work_schedule_id = ws.id AND ws.is_active = TRUE
-		LEFT JOIN work_schedules dws ON dws.organisation_id = e.organisation_id AND dws.is_default = TRUE AND dws.is_active = TRUE
 		LEFT JOIN invitations i ON i.organisation_id = e.organisation_id
 		          AND i.employee_id = e.id AND i.accepted_at IS NULL
 		WHERE e.organisation_id = $1 AND e.id = $2
@@ -466,10 +466,9 @@ func (r *Repository) GetEmployeeScheduleNamesBatch(ctx context.Context, orgID uu
 	}
 
 	rows, err := r.db.Query(ctx, `
-		SELECT e.id, COALESCE(ws.name, dws.name) AS schedule_name
+		SELECT e.id, ws.name AS schedule_name
 		FROM employees e
 		LEFT JOIN work_schedules ws ON e.work_schedule_id = ws.id AND ws.is_active = TRUE
-		LEFT JOIN work_schedules dws ON dws.organisation_id = e.organisation_id AND dws.is_default = TRUE AND dws.is_active = TRUE
 		WHERE e.organisation_id = $1
 		  AND e.id = ANY($2)
 		  AND e.is_active = TRUE

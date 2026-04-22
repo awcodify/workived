@@ -126,15 +126,17 @@ func (s *Service) ClockIn(ctx context.Context, orgID uuid.UUID, req ClockInReque
 		return nil, apperr.Conflict("already clocked in today")
 	}
 
-	// Determine late status using employee-specific schedule
-	isLate := false
+	// Get employee's work schedule - required for attendance tracking
 	schedule, err := s.getScheduleForEmployeeCached(ctx, orgID, req.EmployeeID)
 	if err != nil {
 		return nil, err
 	}
-	if schedule != nil {
-		isLate = s.checkLate(localNow, schedule)
+	if schedule == nil {
+		return nil, apperr.New(apperr.CodeValidation, "employee has no work schedule assigned")
 	}
+
+	// Determine late status
+	isLate := s.checkLate(localNow, schedule)
 
 	rec, err := s.repo.Create(ctx, orgID, req.EmployeeID, today, now, isLate, req.Note, req.Latitude, req.Longitude, req.PhotoURL)
 	if err != nil {
@@ -186,11 +188,15 @@ func (s *Service) ClockOut(ctx context.Context, orgID uuid.UUID, req ClockOutReq
 		return nil, apperr.Conflict("already clocked out today")
 	}
 
-	// Compute clock-out flags against the employee's schedule
+	// Get employee's work schedule - required for attendance tracking
 	schedule, err := s.repo.GetScheduleForEmployee(ctx, orgID, req.EmployeeID)
 	if err != nil {
 		return nil, fmt.Errorf("get employee schedule: %w", err)
 	}
+	if schedule == nil {
+		return nil, apperr.New(apperr.CodeValidation, "employee has no work schedule assigned")
+	}
+
 	localNow := now.In(loc)
 	isLeavingEarly := s.checkLeavingEarly(localNow, schedule)
 	isOvertime := s.checkOvertimeClockOut(localNow, schedule)
@@ -647,7 +653,7 @@ func (s *Service) GetEmployeeWeek(ctx context.Context, orgID, employeeID uuid.UU
 			weekDay.Note = rec.Note
 			weekDay.IsLeavingEarly = rec.IsLeavingEarly
 			weekDay.IsOvertime = rec.IsOvertime
-				weekDay.IsCorrected = rec.IsCorrected
+			weekDay.IsCorrected = rec.IsCorrected
 		} else if isHoliday {
 			// Public holiday with no attendance
 			weekDay.Status = "holiday"
@@ -1086,13 +1092,13 @@ func (s *Service) UpdateWorkSchedule(ctx context.Context, orgID, scheduleID uuid
 
 // DeactivateWorkSchedule soft-deletes a work schedule after validation.
 func (s *Service) DeactivateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) error {
-	// Cannot deactivate the default schedule
-	isDefault, err := s.repo.IsDefaultSchedule(ctx, orgID, scheduleID)
+	// Cannot deactivate if employees are using this schedule
+	count, err := s.repo.CountEmployeesBySchedule(ctx, orgID, scheduleID)
 	if err != nil {
 		return err
 	}
-	if isDefault {
-		return apperr.New(apperr.CodeValidation, "cannot deactivate the default work schedule")
+	if count > 0 {
+		return apperr.New(apperr.CodeValidation, fmt.Sprintf("cannot deactivate work schedule: %d employee(s) are currently assigned to it", count))
 	}
 
 	if err := s.repo.DeactivateWorkSchedule(ctx, orgID, scheduleID); err != nil {
@@ -1164,6 +1170,15 @@ func (s *Service) checkLate(localNow time.Time, schedule *WorkSchedule) bool {
 	// Compare time-of-day only
 	clockInTime := localNow.Hour()*60 + localNow.Minute()
 	scheduleTime := schedule.StartTime.Hour()*60 + schedule.StartTime.Minute()
+
+	// Debug logging for troubleshooting
+	s.log.Debug().
+		Str("local_now", localNow.Format("15:04:05 MST")).
+		Int("clock_in_minutes", clockInTime).
+		Str("schedule_start", schedule.StartTime.Format("15:04:05 MST")).
+		Int("schedule_minutes", scheduleTime).
+		Bool("is_late", clockInTime > scheduleTime).
+		Msg("checkLate comparison")
 
 	return clockInTime > scheduleTime
 }

@@ -67,6 +67,20 @@ func setupTestUser(t *testing.T, db *pgxpool.Pool) uuid.UUID {
 	return userID
 }
 
+func setupTestWorkSchedule(t *testing.T, db *pgxpool.Pool, orgID uuid.UUID) uuid.UUID {
+	scheduleID := uuid.New()
+
+	query := `
+		INSERT INTO work_schedules (id, organisation_id, name, work_days, start_time, end_time)
+		VALUES ($1, $2, $3, ARRAY[1,2,3,4,5], '09:00:00', '18:00:00')
+	`
+
+	_, err := db.Exec(context.Background(), query, scheduleID, orgID, "Test Schedule")
+	require.NoError(t, err)
+
+	return scheduleID
+}
+
 func cleanupTestData(t *testing.T, db *pgxpool.Pool, orgID uuid.UUID, userIDs ...uuid.UUID) {
 	// Clean up in reverse order of foreign key dependencies
 	tables := []string{
@@ -107,6 +121,7 @@ func TestRepository_Create(t *testing.T) {
 
 	orgID := setupTestOrg(t, db)
 	userID := setupTestUser(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	defer cleanupTestData(t, db, orgID, userID)
 
 	repo := employee.NewRepository(db)
@@ -119,6 +134,7 @@ func TestRepository_Create(t *testing.T) {
 		Email:          &email,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 
 	emp, err := repo.Create(context.Background(), orgID, req)
@@ -140,6 +156,7 @@ func TestRepository_GetByID(t *testing.T) {
 
 	orgID := setupTestOrg(t, db)
 	userID := setupTestUser(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	defer cleanupTestData(t, db, orgID, userID)
 
 	repo := employee.NewRepository(db)
@@ -152,6 +169,7 @@ func TestRepository_GetByID(t *testing.T) {
 		Email:          &email,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 
 	created, err := repo.Create(context.Background(), orgID, createReq)
@@ -175,6 +193,7 @@ func TestRepository_GetByUserID(t *testing.T) {
 
 	orgID := setupTestOrg(t, db)
 	userID := setupTestUser(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	defer cleanupTestData(t, db, orgID, userID)
 
 	repo := employee.NewRepository(db)
@@ -187,6 +206,7 @@ func TestRepository_GetByUserID(t *testing.T) {
 		Email:          &email,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 
 	created, err := repo.Create(context.Background(), orgID, createReq)
@@ -212,6 +232,7 @@ func TestRepository_List(t *testing.T) {
 	orgID := setupTestOrg(t, db)
 	userID1 := setupTestUser(t, db)
 	userID2 := setupTestUser(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	defer cleanupTestData(t, db, orgID, userID1, userID2)
 
 	repo := employee.NewRepository(db)
@@ -226,6 +247,7 @@ func TestRepository_List(t *testing.T) {
 		Email:          &email1,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 	emp2Req := employee.CreateEmployeeRequest{
 		UserID:         &userID2,
@@ -233,6 +255,7 @@ func TestRepository_List(t *testing.T) {
 		Email:          &email2,
 		EmploymentType: "part_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 
 	_, err := repo.Create(context.Background(), orgID, emp1Req)
@@ -290,6 +313,7 @@ func TestRepository_CountActive(t *testing.T) {
 
 	orgID := setupTestOrg(t, db)
 	userID := setupTestUser(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	defer cleanupTestData(t, db, orgID, userID)
 
 	repo := employee.NewRepository(db)
@@ -307,6 +331,7 @@ func TestRepository_CountActive(t *testing.T) {
 		Email:          &email,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 
 	_, err = repo.Create(context.Background(), orgID, createReq)
@@ -330,6 +355,7 @@ func TestRepository_Update(t *testing.T) {
 
 	orgID := setupTestOrg(t, db)
 	userID := setupTestUser(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	defer cleanupTestData(t, db, orgID, userID)
 
 	repo := employee.NewRepository(db)
@@ -342,6 +368,7 @@ func TestRepository_Update(t *testing.T) {
 		Email:          &email,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 
 	created, err := repo.Create(context.Background(), orgID, createReq)
@@ -383,6 +410,7 @@ func TestRepository_SoftDelete(t *testing.T) {
 
 	orgID := setupTestOrg(t, db)
 	userID := setupTestUser(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	defer cleanupTestData(t, db, orgID, userID)
 
 	repo := employee.NewRepository(db)
@@ -395,6 +423,7 @@ func TestRepository_SoftDelete(t *testing.T) {
 		Email:          &email,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 
 	created, err := repo.Create(context.Background(), orgID, createReq)
@@ -420,6 +449,7 @@ func TestRepository_GetDirectReports(t *testing.T) {
 	defer db.Close()
 
 	orgID := setupTestOrg(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	user1 := setupTestUser(t, db)
 	user2 := setupTestUser(t, db)
 	defer cleanupTestData(t, db, orgID, user1, user2)
@@ -436,6 +466,7 @@ func TestRepository_GetDirectReports(t *testing.T) {
 		Email:          &mgrEmail,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 	manager, err := repo.Create(context.Background(), orgID, managerReq)
 	require.NoError(t, err)
@@ -448,6 +479,7 @@ func TestRepository_GetDirectReports(t *testing.T) {
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
 		ReportingTo:    &manager.ID,
+		WorkScheduleID: scheduleID,
 	}
 	_, err = repo.Create(context.Background(), orgID, reportReq)
 	require.NoError(t, err)
@@ -481,6 +513,7 @@ func TestRepository_GetWorkload(t *testing.T) {
 	defer db.Close()
 
 	orgID := setupTestOrg(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	userID := setupTestUser(t, db)
 	defer cleanupTestData(t, db, orgID, userID)
 
@@ -494,6 +527,7 @@ func TestRepository_GetWorkload(t *testing.T) {
 		Email:          &email,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 
 	_, err := repo.Create(context.Background(), orgID, createReq)
@@ -516,6 +550,7 @@ func TestRepository_ListAllActive(t *testing.T) {
 	defer db.Close()
 
 	orgID := setupTestOrg(t, db)
+	scheduleID := setupTestWorkSchedule(t, db, orgID)
 	userID1 := setupTestUser(t, db)
 	userID2 := setupTestUser(t, db)
 	defer cleanupTestData(t, db, orgID, userID1, userID2)
@@ -532,6 +567,7 @@ func TestRepository_ListAllActive(t *testing.T) {
 		Email:          &activeEmail,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 	active, err := repo.Create(context.Background(), orgID, activeReq)
 	require.NoError(t, err)
@@ -543,6 +579,7 @@ func TestRepository_ListAllActive(t *testing.T) {
 		Email:          &inactiveEmail,
 		EmploymentType: "full_time",
 		StartDate:      "2026-04-01",
+		WorkScheduleID: scheduleID,
 	}
 	inactive, err := repo.Create(context.Background(), orgID, inactiveReq)
 	require.NoError(t, err)

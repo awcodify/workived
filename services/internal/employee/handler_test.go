@@ -178,11 +178,13 @@ func TestEmployeeHandler_List(t *testing.T) {
 // ── Create tests ──────────────────────────────────────────────────────────────
 
 func TestEmployeeHandler_Create(t *testing.T) {
-	validBody := map[string]string{
-		"full_name":       "Ahmad Rashid",
-		"email":           "ahmad@example.com",
-		"employment_type": "full_time",
-		"start_date":      "2026-01-01",
+	testScheduleID := uuid.New()
+	validBody := map[string]any{
+		"full_name":        "Ahmad Rashid",
+		"email":            "ahmad@example.com",
+		"employment_type":  "full_time",
+		"start_date":       "2026-01-01",
+		"work_schedule_id": testScheduleID.String(),
 	}
 
 	tests := []struct {
