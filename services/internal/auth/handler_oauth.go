@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/workived/services/pkg/apperr"
+	"golang.org/x/oauth2"
 )
 
 // HandleGoogleLogin initiates the Google OAuth flow
@@ -22,7 +23,7 @@ func (h *Handler) HandleGoogleLogin(c *gin.Context) {
 	}
 
 	oauthConfig := h.service.GetGoogleOAuthConfig()
-	url := oauthConfig.AuthCodeURL(state)
+	url := oauthConfig.AuthCodeURL(state, oauth2.SetAuthURLParam("prompt", "select_account"))
 
 	h.service.LogInfo("oauth.google_login_initiated", map[string]interface{}{
 		"state":        state[:8] + "...", // Log first 8 chars for tracking
@@ -70,7 +71,7 @@ func (h *Handler) HandleGoogleCallback(c *gin.Context) {
 	}
 
 	// Exchange code for token and login user
-	resp, refreshToken, err := h.service.LoginWithGoogle(c.Request.Context(), code, state)
+	resp, refreshToken, isExisting, err := h.service.LoginWithGoogle(c.Request.Context(), code, state)
 	if err != nil {
 		h.service.LogError("oauth.login_failed", err, map[string]interface{}{
 			"state": state[:8] + "...",
@@ -80,14 +81,18 @@ func (h *Handler) HandleGoogleCallback(c *gin.Context) {
 	}
 
 	h.service.LogInfo("oauth.login_success", map[string]interface{}{
-		"user_id": resp.User.ID,
-		"email":   resp.User.Email,
+		"user_id":     resp.User.ID,
+		"email":       resp.User.Email,
+		"is_existing": isExisting,
 	})
 
 	// Set refresh token in httpOnly cookie
 	c.SetCookie("refresh_token", refreshToken, 30*24*3600, "/", "", true, true)
 
 	redirectURL := appURL + "/#access_token=" + resp.AccessToken
+	if isExisting {
+		redirectURL += "&existing=true"
+	}
 	h.service.LogInfo("oauth.redirecting_to_frontend", map[string]interface{}{
 		"redirect_url": appURL + "/#access_token=***",
 		"user_id":      resp.User.ID,

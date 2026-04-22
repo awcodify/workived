@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WelcomeBackRouteRouteImport } from './routes/welcome-back/route'
 import { Route as VerifyEmailRouteRouteImport } from './routes/verify-email/route'
 import { Route as ServiceUnavailableRouteRouteImport } from './routes/service-unavailable/route'
 import { Route as AuthRouteRouteImport } from './routes/_auth/route'
@@ -59,6 +60,11 @@ import { Route as AppLeavePoliciesIndexRouteImport } from './routes/_app/leave/p
 import { Route as AppClaimsCategoriesIndexRouteImport } from './routes/_app/claims/categories/index'
 import { Route as AppCalendarHolidaysIndexRouteImport } from './routes/_app/calendar/holidays/index'
 
+const WelcomeBackRouteRoute = WelcomeBackRouteRouteImport.update({
+  id: '/welcome-back',
+  path: '/welcome-back',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VerifyEmailRouteRoute = VerifyEmailRouteRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
@@ -313,6 +319,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/service-unavailable': typeof ServiceUnavailableRouteRoute
   '/verify-email': typeof VerifyEmailRouteRoute
+  '/welcome-back': typeof WelcomeBackRouteRoute
   '/announcements': typeof AppAnnouncementsRouteRoute
   '/approvals': typeof AppApprovalsRouteRoute
   '/attendance': typeof AppAttendanceRouteRouteWithChildren
@@ -362,6 +369,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/service-unavailable': typeof ServiceUnavailableRouteRoute
   '/verify-email': typeof VerifyEmailRouteRoute
+  '/welcome-back': typeof WelcomeBackRouteRoute
   '/announcements': typeof AppAnnouncementsRouteRoute
   '/approvals': typeof AppApprovalsRouteRoute
   '/changelog': typeof AppChangelogRouteRoute
@@ -408,6 +416,7 @@ export interface FileRoutesById {
   '/_auth': typeof AuthRouteRouteWithChildren
   '/service-unavailable': typeof ServiceUnavailableRouteRoute
   '/verify-email': typeof VerifyEmailRouteRoute
+  '/welcome-back': typeof WelcomeBackRouteRoute
   '/_app/announcements': typeof AppAnnouncementsRouteRoute
   '/_app/approvals': typeof AppApprovalsRouteRoute
   '/_app/attendance': typeof AppAttendanceRouteRouteWithChildren
@@ -459,6 +468,7 @@ export interface FileRouteTypes {
     | '/'
     | '/service-unavailable'
     | '/verify-email'
+    | '/welcome-back'
     | '/announcements'
     | '/approvals'
     | '/attendance'
@@ -508,6 +518,7 @@ export interface FileRouteTypes {
     | '/'
     | '/service-unavailable'
     | '/verify-email'
+    | '/welcome-back'
     | '/announcements'
     | '/approvals'
     | '/changelog'
@@ -553,6 +564,7 @@ export interface FileRouteTypes {
     | '/_auth'
     | '/service-unavailable'
     | '/verify-email'
+    | '/welcome-back'
     | '/_app/announcements'
     | '/_app/approvals'
     | '/_app/attendance'
@@ -605,10 +617,18 @@ export interface RootRouteChildren {
   AuthRouteRoute: typeof AuthRouteRouteWithChildren
   ServiceUnavailableRouteRoute: typeof ServiceUnavailableRouteRoute
   VerifyEmailRouteRoute: typeof VerifyEmailRouteRoute
+  WelcomeBackRouteRoute: typeof WelcomeBackRouteRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/welcome-back': {
+      id: '/welcome-back'
+      path: '/welcome-back'
+      fullPath: '/welcome-back'
+      preLoaderRoute: typeof WelcomeBackRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/verify-email': {
       id: '/verify-email'
       path: '/verify-email'
@@ -1136,6 +1156,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRouteRoute: AuthRouteRouteWithChildren,
   ServiceUnavailableRouteRoute: ServiceUnavailableRouteRoute,
   VerifyEmailRouteRoute: VerifyEmailRouteRoute,
+  WelcomeBackRouteRoute: WelcomeBackRouteRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

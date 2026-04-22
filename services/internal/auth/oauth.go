@@ -159,7 +159,7 @@ func (s *Service) GetGoogleUserInfo(ctx context.Context, accessToken string) (*G
 }
 
 // LoginWithGoogle handles the OAuth callback and creates/logs in the user
-func (s *Service) LoginWithGoogle(ctx context.Context, code, state string) (*LoginResponse, string, error) {
+func (s *Service) LoginWithGoogle(ctx context.Context, code, state string) (*LoginResponse, string, bool, error) {
 	s.log.Info().
 		Str("state", state[:8]+"...").
 		Msg("oauth.exchange_starting")
@@ -167,7 +167,7 @@ func (s *Service) LoginWithGoogle(ctx context.Context, code, state string) (*Log
 	// Validate state to prevent CSRF
 	if err := s.ValidateOAuthState(ctx, state); err != nil {
 		s.log.Error().Err(err).Msg("oauth.state_validation_failed")
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	// Exchange code for token
@@ -175,7 +175,7 @@ func (s *Service) LoginWithGoogle(ctx context.Context, code, state string) (*Log
 	token, err := oauthConfig.Exchange(ctx, code)
 	if err != nil {
 		s.log.Error().Err(err).Msg("oauth.token_exchange_failed")
-		return nil, "", apperr.New(apperr.CodeUnauthorized, "failed to exchange code for token")
+		return nil, "", false, apperr.New(apperr.CodeUnauthorized, "failed to exchange code for token")
 	}
 
 	s.log.Info().Msg("oauth.token_exchange_success")
@@ -184,7 +184,7 @@ func (s *Service) LoginWithGoogle(ctx context.Context, code, state string) (*Log
 	userInfo, err := s.GetGoogleUserInfo(ctx, token.AccessToken)
 	if err != nil {
 		s.log.Error().Err(err).Msg("oauth.fetch_userinfo_failed")
-		return nil, "", apperr.New(apperr.CodeInternal, "failed to get user info from google")
+		return nil, "", false, apperr.New(apperr.CodeInternal, "failed to get user info from google")
 	}
 
 	s.log.Info().
@@ -196,10 +196,10 @@ func (s *Service) LoginWithGoogle(ctx context.Context, code, state string) (*Log
 	// No need to check email_verified since Google already verified it during sign-in
 
 	// Find or create user
-	user, err := s.getOrCreateUserFromGoogle(ctx, userInfo, token)
+	user, isExisting, err := s.getOrCreateUserFromGoogle(ctx, userInfo, token)
 	if err != nil {
 		s.log.Error().Err(err).Str("email", userInfo.Email).Msg("oauth.user_creation_failed")
-		return nil, "", err
+		return nil, "", false, err
 	}
 
 	s.log.Info().
@@ -216,13 +216,13 @@ func (s *Service) LoginWithGoogle(ctx context.Context, code, state string) (*Log
 	// Issue tokens
 	accessToken, err := s.IssueAccessToken(user.ID, orgID, role, hasSubordinate)
 	if err != nil {
-		return nil, "", fmt.Errorf("issue access token: %w", err)
+		return nil, "", false, fmt.Errorf("issue access token: %w", err)
 	}
 
 	refreshTokenRaw, refreshTokenHash := generateToken()
 	expiresAt := time.Now().UTC().Add(s.refreshTTL)
 	if err := s.repo.CreateToken(ctx, user.ID, refreshTokenHash, "refresh", expiresAt); err != nil {
-		return nil, "", fmt.Errorf("create refresh token: %w", err)
+		return nil, "", false, fmt.Errorf("create refresh token: %w", err)
 	}
 
 	user.OrgRole = role
@@ -230,11 +230,11 @@ func (s *Service) LoginWithGoogle(ctx context.Context, code, state string) (*Log
 	return &LoginResponse{
 		AccessToken: accessToken,
 		User:        user,
-	}, refreshTokenRaw, nil
+	}, refreshTokenRaw, isExisting, nil
 }
 
 // getOrCreateUserFromGoogle finds existing user or creates new one
-func (s *Service) getOrCreateUserFromGoogle(ctx context.Context, userInfo *GoogleUserInfo, token *oauth2.Token) (*User, error) {
+func (s *Service) getOrCreateUserFromGoogle(ctx context.Context, userInfo *GoogleUserInfo, token *oauth2.Token) (*User, bool, error) {
 	// Try to find existing user by email
 	existingUser, _, err := s.repo.GetUserByEmail(ctx, userInfo.Email)
 	if err == nil {
@@ -273,13 +273,13 @@ func (s *Service) getOrCreateUserFromGoogle(ctx context.Context, userInfo *Googl
 			s.log.Warn().Err(err).Msg("failed to store oauth provider")
 		}
 
-		return existingUser, nil
+		return existingUser, true, nil
 	}
 
 	// Check if error is "not found" - only then create new user
 	if !apperr.IsCode(err, apperr.CodeNotFound) {
 		// Some other database error occurred
-		return nil, fmt.Errorf("get user by email: %w", err)
+		return nil, false, fmt.Errorf("get user by email: %w", err)
 	}
 
 	// User doesn't exist - create new account
@@ -289,7 +289,7 @@ func (s *Service) getOrCreateUserFromGoogle(ctx context.Context, userInfo *Googl
 
 	newUser, err := s.repo.CreateUserWithOAuth(ctx, userInfo.Email, userInfo.Name, string(AuthProviderGoogle))
 	if err != nil {
-		return nil, fmt.Errorf("create oauth user: %w", err)
+		return nil, false, fmt.Errorf("create oauth user: %w", err)
 	}
 
 	// Store OAuth provider info
@@ -317,5 +317,5 @@ func (s *Service) getOrCreateUserFromGoogle(ctx context.Context, userInfo *Googl
 	// OAuth users are pre-verified
 	_ = s.repo.MarkEmailVerified(ctx, newUser.ID)
 
-	return newUser, nil
+	return newUser, false, nil
 }

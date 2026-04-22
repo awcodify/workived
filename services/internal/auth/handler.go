@@ -26,7 +26,7 @@ type ServiceInterface interface {
 	// OAuth methods
 	GenerateOAuthState(ctx context.Context) (string, error)
 	GetGoogleOAuthConfig() *oauth2.Config
-	LoginWithGoogle(ctx context.Context, code, state string) (*LoginResponse, string, error)
+	LoginWithGoogle(ctx context.Context, code, state string) (*LoginResponse, string, bool, error)
 	GetAppURL() string
 	// Logging methods
 	LogInfo(msg string, fields map[string]interface{})

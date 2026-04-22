@@ -7,6 +7,7 @@ export const Route = createFileRoute('/')({
     if (typeof window !== 'undefined' && window.location.hash) {
       const params = new URLSearchParams(window.location.hash.substring(1))
       const accessToken = params.get('access_token')
+      const isExisting = params.get('existing') === 'true'
       
       if (accessToken) {
         // TODO: We need user info - for now just store token
@@ -15,8 +16,13 @@ export const Route = createFileRoute('/')({
           access_token: accessToken,
           user: null as any, // Temporary - should fetch user info
         })
+
         // Redirect to overview and remove token from URL
         window.history.replaceState({}, '', '/')
+
+        if (isExisting) {
+          throw redirect({ to: '/welcome-back' })
+        }
         throw redirect({ to: '/overview' })
       }
     }
