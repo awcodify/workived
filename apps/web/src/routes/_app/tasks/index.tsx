@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { Settings, Flame, TrendingUp, Minus, TrendingDown, Search, Check, Zap, Plane, Menu, List, Star, X } from 'lucide-react'
+import { Settings, Flame, TrendingUp, Minus, TrendingDown, Search, Check, Zap, Plane, Menu, List, Star, X, MoreVertical, Filter, Download, Tag } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
@@ -53,6 +53,7 @@ type TasksSearch = {
   search?: string
   assignee?: string
   priority?: string
+  label?: string
   showCompleted: boolean
   column?: string // Mobile: active column ID
   task?: string // Active task ID (for shareable URLs)
@@ -67,6 +68,7 @@ export const Route = createFileRoute('/_app/tasks/')({
       search: typeof search.search === 'string' ? search.search : undefined,
       assignee: typeof search.assignee === 'string' ? search.assignee : undefined,
       priority: typeof search.priority === 'string' ? search.priority : undefined,
+      label: typeof search.label === 'string' ? search.label : undefined,
       column: typeof search.column === 'string' ? search.column : undefined,
       task: typeof search.task === 'string' ? search.task : undefined,
       create: typeof search.create === 'string' ? search.create : undefined,
@@ -108,8 +110,13 @@ function TasksPage() {
   const searchQuery = searchParams.search || ''
   const selectedAssignee = searchParams.assignee || ''
   const selectedPriority = searchParams.priority || ''
+  const selectedLabel = searchParams.label || ''
   const showCompleted = searchParams.showCompleted
   const activeColumnId = searchParams.column // Mobile: current active column
+  
+  // Parse multi-select values from comma-separated strings
+  const selectedPriorities = selectedPriority ? selectedPriority.split(',') : []
+  const selectedLabels = selectedLabel ? selectedLabel.split(',') : []
   
   // Update URL params
   const updateSearchParam = useCallback((key: keyof TasksSearch, value: string | boolean) => {
@@ -162,6 +169,9 @@ function TasksPage() {
   }, [taskParam, tasks])
   
   const [expandedWorkloadStatus, setExpandedWorkloadStatus] = useState<string | null>(null)
+  const [showMoreMenu, setShowMoreMenu] = useState(false)
+  const [showLabelPicker, setShowLabelPicker] = useState(false)
+  const [showPriorityPicker, setShowPriorityPicker] = useState(false)
   
   // Local state for search input to prevent race conditions with URL updates
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery)
@@ -232,9 +242,16 @@ function TasksPage() {
       }
     }
     
-    // Priority filter
-    if (selectedPriority) {
-      filtered = filtered.filter((task) => task.priority === selectedPriority)
+    // Priority filter (multi-select)
+    if (selectedPriorities.length > 0) {
+      filtered = filtered.filter((task) => selectedPriorities.includes(task.priority))
+    }
+
+    // Label filter (multi-select)
+    if (selectedLabels.length > 0) {
+      filtered = filtered.filter((task) => 
+        task.labels && task.labels.some(label => selectedLabels.includes(label))
+      )
     }
     
     // Show/hide completed
@@ -243,7 +260,7 @@ function TasksPage() {
     }
     
     return filtered
-  }, [optimisticTasks, viewMode, localSearchQuery, selectedAssignee, selectedPriority, showCompleted])
+  }, [optimisticTasks, viewMode, localSearchQuery, selectedAssignee, selectedPriorities, selectedLabels, showCompleted])
   
   // Sync optimistic state with server data (only when data genuinely changes)
   useEffect(() => {
@@ -316,8 +333,19 @@ function TasksPage() {
       .sort((a, b) => a.position - b.position)
   }, [taskLists, hiddenColumnIds])
   
+  // Extract all unique labels from tasks
+  const allLabels = useMemo(() => {
+    const labelSet = new Set<string>()
+    optimisticTasks.forEach(task => {
+      if (task.labels) {
+        task.labels.forEach(label => labelSet.add(label))
+      }
+    })
+    return Array.from(labelSet).sort()
+  }, [optimisticTasks])
+  
   // Check if any filters are active (showCompleted=true is the default, so only count it if false)
-  const hasActiveFilters = !!(localSearchQuery || selectedAssignee || selectedPriority || showCompleted === false)
+  const hasActiveFilters = !!(localSearchQuery || selectedAssignee || selectedPriorities.length > 0 || selectedLabels.length > 0 || showCompleted === false)
 
   // Mobile: Set default active column to first list if not specified (run only once)
   useEffect(() => {
@@ -620,6 +648,8 @@ function TasksPage() {
       className="min-h-screen px-6 py-8 md:px-11 md:py-10"
       style={{ background: moduleBackgrounds.tasks, paddingBottom: '160px' }}  // Use design tokens
     >
+      {/* Max-width container for content */}
+      <div className="max-w-[1600px] mx-auto">
       {/* Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between">
@@ -636,19 +666,155 @@ function TasksPage() {
             >
               Tasks
             </h1>
-          <p 
-            className="mt-3" 
-            style={{ 
-              fontSize: 13, 
-              color: '#7F8C8D',
-              fontFamily: typography.fontFamily,
-              fontWeight: 500,
-            }}
-          >
-            {hasActiveFilters && totalTasks !== allTasksCount
-              ? `${totalTasks} of ${allTasksCount} tasks`
-              : `${totalTasks} total`} · {inProgressCount} in progress · {completedTasks} done
-          </p>
+            
+            {/* Team Workload - Below Header */}
+            {workloadData.length > 0 && (() => {
+              const counts = {
+                available: workloadData.filter(e => e.workload.status === 'available').length,
+                warning: workloadData.filter(e => e.workload.status === 'warning').length,
+                overloaded: workloadData.filter(e => e.workload.status === 'overloaded').length,
+                on_leave: workloadData.filter(e => e.workload.status === 'on_leave').length,
+              }
+              const statusConfig = [
+                { key: 'available', icon: Check, label: 'available', color: '#10B981' },
+                { key: 'warning', icon: Zap, label: 'busy', color: '#F59E0B' },
+                { key: 'overloaded', icon: Flame, label: 'overloaded', color: '#EF4444' },
+                { key: 'on_leave', icon: Plane, label: 'on leave', color: '#8B5CF6' },
+              ]
+
+              return (
+                <div className="flex items-center gap-2 mt-3">
+                  <span
+                    className="text-xs font-medium"
+                    style={{
+                      color: '#64748B',
+                      fontFamily: typography.fontFamily,
+                    }}
+                  >
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {statusConfig.map((status) => {
+                      const count = counts[status.key as keyof typeof counts]
+                      if (count === 0) return null
+                      const isExpanded = expandedWorkloadStatus === status.key
+                      const employeesInStatus = workloadData.filter(e => e.workload.status === status.key)
+
+                      return (
+                        <div key={status.key} className="relative">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setExpandedWorkloadStatus(isExpanded ? null : status.key)
+                            }}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded transition-all"
+                            style={{
+                              background: isExpanded ? `${status.color}15` : 'white',
+                              border: `1px solid ${isExpanded ? status.color : '#DFE1E6'}`,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <status.icon size={12} style={{ color: status.color }} />
+                            <span
+                              className="text-xs font-semibold"
+                              style={{
+                                color: status.color,
+                                fontFamily: typography.fontFamily,
+                              }}
+                            >
+                              {count}
+                            </span>
+                            <span
+                              className="text-[10px] font-medium"
+                              style={{
+                                color: '#64748B',
+                                fontFamily: typography.fontFamily,
+                              }}
+                            >
+                              {status.label}
+                            </span>
+                          </button>
+
+                          {/* Dropdown with employee list */}
+                          {isExpanded && (
+                            <div
+                              onClick={(e) => e.stopPropagation()}
+                              className="absolute left-0 top-full mt-2 z-50 min-w-[280px]"
+                              style={{
+                                background: 'white',
+                                border: '1px solid #DFE1E6',
+                                borderRadius: '8px',
+                                boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                                padding: '12px',
+                              }}
+                            >
+                              <div
+                                className="text-xs font-semibold mb-3 pb-2"
+                                style={{
+                                  color: status.color,
+                                  fontFamily: typography.fontFamily,
+                                  borderBottom: '1px solid #F4F5F7',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.5px',
+                                }}
+                              >
+                                <status.icon size={14} style={{ color: status.color, display: 'inline-block', marginRight: '4px' }} />
+                                {status.label} ({count})
+                              </div>
+                              
+                              <div className="max-h-[320px] overflow-y-auto space-y-2">
+                                {employeesInStatus.map((emp) => (
+                                  <div
+                                    key={emp.employee_id}
+                                    className="p-2 rounded hover:bg-gray-50 transition-colors"
+                                  >
+                                    <div
+                                      className="text-sm font-medium"
+                                      style={{
+                                        color: '#2C3E50',
+                                        fontFamily: typography.fontFamily,
+                                      }}
+                                    >
+                                      {emp.full_name}
+                                    </div>
+                                    {emp.workload.status !== 'on_leave' && (
+                                      <div
+                                        className="text-xs mt-0.5"
+                                        style={{
+                                          color: '#64748B',
+                                          fontFamily: typography.fontFamily,
+                                        }}
+                                      >
+                                        {emp.workload.active_tasks} tasks
+                                        {emp.workload.overdue_tasks > 0 && (
+                                          <span style={{ color: '#DC2626', marginLeft: '4px' }}>
+                                            · {emp.workload.overdue_tasks} overdue
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {emp.leave.is_on_leave && emp.leave.leave_end && (
+                                      <div
+                                        className="text-xs mt-0.5"
+                                        style={{
+                                          color: status.color,
+                                          fontFamily: typography.fontFamily,
+                                        }}
+                                      >
+                                        Back {new Date(emp.leave.leave_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })()}
           </div>
           
           <div className="flex items-center gap-4">
@@ -775,7 +941,7 @@ function TasksPage() {
           {viewMode !== 'all-issues' && <>
 
           {/* Search box - centered and prominent */}
-          <div className="flex-1 min-w-[280px] max-w-[500px]">
+          <div className="flex-1 min-w-[280px] max-w-[600px]">
             <div
               className="flex items-center gap-2 px-4 py-2.5 rounded-lg"
               style={{
@@ -1085,181 +1251,284 @@ function TasksPage() {
           </div>
 
           {/* Filters */}
-          <Dropdown
-            value={selectedPriority}
-            onChange={(value) => updateSearchParam('priority', value)}
-            options={[
-              { value: '', label: 'Priority' },
-              { value: 'urgent', label: 'Urgent', icon: Flame, iconColor: '#EF4444' },
-              { value: 'high', label: 'High', icon: TrendingUp, iconColor: '#F59E0B' },
-              { value: 'medium', label: 'Medium', icon: Minus, iconColor: '#3B82F6' },
-              { value: 'low', label: 'Low', icon: TrendingDown, iconColor: '#64748B' },
-            ]}
-            placeholder="Priority"
-            style={{
-              background: selectedPriority ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0,0,0,0.05)',
-              border: '1px solid rgba(0,0,0,0.08)',
-              color: selectedPriority ? '#6366F1' : '#64748B',
-              fontSize: '12px',
-              fontWeight: '700',
-              fontFamily: typography.fontFamily,
-              padding: '8px 12px',
-            }}
-          />
-
-          </> /* end board-only filters */}
-
-          {/* Team Workload - Right side */}
-          <div className="ml-auto">
-            {workloadData.length > 0 && (() => {
-              const counts = {
-                available: workloadData.filter(e => e.workload.status === 'available').length,
-                warning: workloadData.filter(e => e.workload.status === 'warning').length,
-                overloaded: workloadData.filter(e => e.workload.status === 'overloaded').length,
-                on_leave: workloadData.filter(e => e.workload.status === 'on_leave').length,
-              }
-              const statusConfig = [
-                { key: 'available', icon: Check, label: 'available', color: '#10B981' },
-                { key: 'warning', icon: Zap, label: 'busy', color: '#F59E0B' },
-                { key: 'overloaded', icon: Flame, label: 'overloaded', color: '#EF4444' },
-                { key: 'on_leave', icon: Plane, label: 'on leave', color: '#8B5CF6' },
+          {/* Priority Filter (Multi-select) */}
+          <div className="relative">
+            {(() => {
+              const priorityConfig = [
+                { value: 'urgent', label: 'Urgent', icon: Flame, color: '#EF4444' },
+                { value: 'high', label: 'High', icon: TrendingUp, color: '#F59E0B' },
+                { value: 'medium', label: 'Medium', icon: Minus, color: '#3B82F6' },
+                { value: 'low', label: 'Low', icon: TrendingDown, color: '#64748B' },
               ]
-
+              
+              const singlePriority = selectedPriorities.length === 1 ? priorityConfig.find(p => p.value === selectedPriorities[0]) : null
+              const buttonColor = singlePriority ? singlePriority.color : (selectedPriorities.length > 0 ? '#6366F1' : '#64748B')
+              const buttonBg = singlePriority ? `${singlePriority.color}15` : (selectedPriorities.length > 0 ? 'rgba(99, 102, 241, 0.08)' : 'rgba(0,0,0,0.05)')
+              
               return (
-                <div className="flex items-center gap-2 relative">
-                  <span
-                    className="text-xs font-medium"
-                    style={{
-                      color: '#64748B',
-                      fontFamily: typography.fontFamily,
-                    }}
-                  >
-                    Team:
+                <button
+                  onClick={() => setShowPriorityPicker(!showPriorityPicker)}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all"
+                  style={{
+                    background: buttonBg,
+                    border: '1px solid rgba(0,0,0,0.08)',
+                    color: buttonColor,
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    fontFamily: typography.fontFamily,
+                  }}
+                  data-testid="priority-filter-button"
+                >
+                  {singlePriority && <singlePriority.icon size={14} />}
+                  <span>
+                    {selectedPriorities.length === 0
+                      ? 'All Priority'
+                      : selectedPriorities.length === 1 && singlePriority
+                      ? singlePriority.label
+                      : `${selectedPriorities.length} Priorities`}
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    {statusConfig.map((status) => {
-                      const count = counts[status.key as keyof typeof counts]
-                      if (count === 0) return null
-                      const isExpanded = expandedWorkloadStatus === status.key
-                      const employeesInStatus = workloadData.filter(e => e.workload.status === status.key)
-
+                  {selectedPriorities.length > 0 && (
+                    <X 
+                      size={14} 
+                      strokeWidth={3} 
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        updateSearchParam('priority', '')
+                      }}
+                      className="hover:opacity-70"
+                    />
+                  )}
+                </button>
+              )
+            })()}
+            
+            {showPriorityPicker && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40"
+                  onClick={() => setShowPriorityPicker(false)}
+                />
+                <div
+                  className="absolute left-0 top-full mt-2 w-48 rounded-lg shadow-lg z-50"
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E8ECF0',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                  }}
+                >
+                  <div className="py-2 px-2">
+                    {[
+                      { value: 'urgent', label: 'Urgent', icon: Flame, color: '#EF4444' },
+                      { value: 'high', label: 'High', icon: TrendingUp, color: '#F59E0B' },
+                      { value: 'medium', label: 'Medium', icon: Minus, color: '#3B82F6' },
+                      { value: 'low', label: 'Low', icon: TrendingDown, color: '#64748B' },
+                    ].map((priority) => {
+                      const isSelected = selectedPriorities.includes(priority.value)
                       return (
-                        <div key={status.key} className="relative">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setExpandedWorkloadStatus(isExpanded ? null : status.key)
-                            }}
-                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded transition-all"
-                            style={{
-                              background: isExpanded ? `${status.color}15` : 'white',
-                              border: `1px solid ${isExpanded ? status.color : '#DFE1E6'}`,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            <status.icon size={12} style={{ color: status.color }} />
-                            <span
-                              className="text-xs font-semibold"
-                              style={{
-                                color: status.color,
-                                fontFamily: typography.fontFamily,
-                              }}
-                            >
-                              {count}
-                            </span>
-                            <span
-                              className="text-[10px] font-medium"
-                              style={{
-                                color: '#64748B',
-                                fontFamily: typography.fontFamily,
-                              }}
-                            >
-                              {status.label}
-                            </span>
-                          </button>
-
-                          {/* Dropdown with employee list */}
-                          {isExpanded && (
-                            <div
-                              onClick={(e) => e.stopPropagation()}
-                              className="absolute right-0 top-full mt-2 z-50 min-w-[280px]"
-                              style={{
-                                background: 'white',
-                                border: '1px solid #DFE1E6',
-                                borderRadius: '8px',
-                                boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
-                                padding: '12px',
-                              }}
-                            >
-                              <div
-                                className="text-xs font-semibold mb-3 pb-2"
-                                style={{
-                                  color: status.color,
-                                  fontFamily: typography.fontFamily,
-                                  borderBottom: '1px solid #F4F5F7',
-                                  textTransform: 'uppercase',
-                                  letterSpacing: '0.5px',
-                                }}
-                              >
-                                <status.icon size={14} style={{ color: status.color, display: 'inline-block', marginRight: '4px' }} />
-                                {status.label} ({count})
-                              </div>
-                              
-                              <div className="max-h-[320px] overflow-y-auto space-y-2">
-                                {employeesInStatus.map((emp) => (
-                                  <div
-                                    key={emp.employee_id}
-                                    className="p-2 rounded hover:bg-gray-50 transition-colors"
-                                  >
-                                    <div
-                                      className="text-sm font-medium"
-                                      style={{
-                                        color: '#2C3E50',
-                                        fontFamily: typography.fontFamily,
-                                      }}
-                                    >
-                                      {emp.full_name}
-                                    </div>
-                                    {emp.workload.status !== 'on_leave' && (
-                                      <div
-                                        className="text-xs mt-0.5"
-                                        style={{
-                                          color: '#64748B',
-                                          fontFamily: typography.fontFamily,
-                                        }}
-                                      >
-                                        {emp.workload.active_tasks} tasks
-                                        {emp.workload.overdue_tasks > 0 && (
-                                          <span style={{ color: '#DC2626', marginLeft: '4px' }}>
-                                            · {emp.workload.overdue_tasks} overdue
-                                          </span>
-                                        )}
-                                      </div>
-                                    )}
-                                    {emp.leave.is_on_leave && emp.leave.leave_end && (
-                                      <div
-                                        className="text-xs mt-0.5"
-                                        style={{
-                                          color: status.color,
-                                          fontFamily: typography.fontFamily,
-                                        }}
-                                      >
-                                        Back {new Date(emp.leave.leave_end).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        <button
+                          key={priority.value}
+                          onClick={() => {
+                            const newPriorities = isSelected
+                              ? selectedPriorities.filter(p => p !== priority.value)
+                              : [...selectedPriorities, priority.value]
+                            updateSearchParam('priority', newPriorities.join(','))
+                          }}
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 rounded transition-colors flex items-center gap-2"
+                          style={{
+                            color: '#2C3E50',
+                            fontFamily: typography.fontFamily,
+                            background: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                          }}
+                        >
+                          <priority.icon size={14} style={{ color: priority.color }} />
+                          <span className="flex-1">{priority.label}</span>
+                          {isSelected && <Check size={14} style={{ color: colors.accent }} />}
+                        </button>
                       )
                     })}
                   </div>
                 </div>
-              )
-            })()}
+              </>
+            )}
           </div>
+
+          {/* Active Label Filter Chips */}
+          {selectedLabels.length > 0 && (
+            <button
+              onClick={() => updateSearchParam('label', '')}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all hover:opacity-80"
+              style={{
+                background: colors.accent,
+                color: '#FFFFFF',
+                fontSize: '12px',
+                fontWeight: '700',
+                fontFamily: typography.fontFamily,
+                border: 'none',
+              }}
+              data-testid="active-label-filter-chip"
+            >
+              <Tag size={12} />
+              <span>
+                {selectedLabels.length === 1
+                  ? selectedLabels[0]
+                  : `${selectedLabels.length} Labels`}
+              </span>
+              <X size={14} strokeWidth={3} />
+            </button>
+          )}
+
+          {/* More menu button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowMoreMenu(!showMoreMenu)}
+              className="flex items-center justify-center rounded-lg transition-all"
+              style={{
+                background: 'rgba(0,0,0,0.05)',
+                border: '1px solid rgba(0,0,0,0.08)',
+                width: '36px',
+                height: '36px',
+                color: '#64748B',
+              }}
+              data-testid="tasks-more-menu-button"
+            >
+              <MoreVertical size={16} />
+            </button>
+            
+            {showMoreMenu && (
+              <>
+                {/* Backdrop */}
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => {
+                    setShowMoreMenu(false)
+                    setShowLabelPicker(false)
+                  }}
+                />
+                
+                {/* Dropdown menu */}
+                <div
+                  className="absolute right-0 mt-2 w-64 rounded-lg shadow-lg z-50"
+                  style={{
+                    background: '#FFFFFF',
+                    border: '1px solid #E8ECF0',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                  }}
+                  data-testid="tasks-more-menu-dropdown"
+                >
+                  <div className="py-1">
+                    <button
+                      onClick={() => {
+                        if (allLabels.length === 0) {
+                          setShowMoreMenu(false)
+                          alert('No labels found in your tasks yet. Add labels to tasks to use this filter.')
+                          return
+                        }
+                        // Toggle label picker
+                        setShowLabelPicker(!showLabelPicker)
+                      }}
+                      className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                      style={{
+                        color: '#2C3E50',
+                        fontSize: '14px',
+                        fontFamily: typography.fontFamily,
+                        background: showLabelPicker ? 'rgba(99, 102, 241, 0.04)' : 'transparent',
+                      }}
+                      data-testid="filter-by-label-option"
+                    >
+                      <Filter size={16} style={{ color: colors.accent }} />
+                      <div className="flex-1">
+                        <div className="font-medium">Filter by Label</div>
+                        <div className="text-xs" style={{ color: '#A0AEC0' }}>
+                          {selectedLabels.length > 0 ? `${selectedLabels.length} selected` : `${allLabels.length} available`}
+                        </div>
+                      </div>
+                      {allLabels.length > 0 && (
+                        <span style={{ color: '#A0AEC0', fontSize: '12px' }}>
+                          {showLabelPicker ? '▲' : '▼'}
+                        </span>
+                      )}
+                    </button>
+                    
+                    {/* Label picker inline view (multi-select) */}
+                    {showLabelPicker && allLabels.length > 0 && (
+                      <div 
+                        className="px-4 py-3 bg-gray-50 border-t border-gray-200"
+                        style={{
+                          fontFamily: typography.fontFamily,
+                        }}
+                      >
+                        <div className="text-xs font-medium mb-2" style={{ color: '#64748B' }}>
+                          Select labels (multi-select):
+                        </div>
+                        <div className="space-y-1">
+                          {allLabels.map(label => {
+                            const isSelected = selectedLabels.includes(label)
+                            return (
+                              <button
+                                key={label}
+                                onClick={() => {
+                                  const newLabels = isSelected
+                                    ? selectedLabels.filter(l => l !== label)
+                                    : [...selectedLabels, label]
+                                  updateSearchParam('label', newLabels.join(','))
+                                }}
+                                className="w-full px-3 py-2 text-left text-sm hover:bg-white rounded transition-colors flex items-center gap-2"
+                                style={{
+                                  color: '#2C3E50',
+                                  fontFamily: typography.fontFamily,
+                                  background: isSelected ? 'rgba(99, 102, 241, 0.08)' : 'transparent',
+                                }}
+                              >
+                                <Tag size={14} style={{ color: colors.accent }} />
+                                <span className="flex-1">{label}</span>
+                                {isSelected && <Check size={14} style={{ color: colors.accent }} />}
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="my-1" style={{ borderTop: '1px solid #E8ECF0' }} />
+                    
+                    <button
+                      onClick={() => {
+                        setShowMoreMenu(false)
+                        // Export tasks as JSON
+                        const exportData = {
+                          tasks: tasks,
+                          lists: taskLists,
+                          exportedAt: new Date().toISOString(),
+                        }
+                        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = `tasks-${new Date().toISOString().split('T')[0]}.json`
+                        a.click()
+                        URL.revokeObjectURL(url)
+                      }}
+                      className="w-full px-4 py-2.5 text-left flex items-center gap-3 hover:bg-gray-50 transition-colors"
+                      style={{
+                        color: '#2C3E50',
+                        fontSize: '14px',
+                        fontFamily: typography.fontFamily,
+                      }}
+                      data-testid="export-tasks-option"
+                    >
+                      <Download size={16} style={{ color: '#7F8C8D' }} />
+                      <div>
+                        <div className="font-medium">Export Tasks</div>
+                        <div className="text-xs" style={{ color: '#A0AEC0' }}>Download as JSON</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          </> /* end board-only filters */}
         </div>
       </div>
 
@@ -1419,6 +1688,7 @@ function TasksPage() {
           }}
         />
       )}
+      </div> {/* Close max-width container */}
     </div>
   )
 }
