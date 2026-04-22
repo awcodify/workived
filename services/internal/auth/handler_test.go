@@ -13,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/workived/services/internal/auth"
 	"github.com/workived/services/pkg/apperr"
+	"golang.org/x/oauth2"
 )
 
 func init() {
@@ -66,6 +67,25 @@ func (m *mockAuthService) ForgotPassword(ctx context.Context, req auth.ForgotPas
 func (m *mockAuthService) ResetPassword(ctx context.Context, req auth.ResetPasswordRequest) error {
 	return m.resetPasswordFn(ctx, req)
 }
+
+// OAuth methods (stubs for tests)
+func (m *mockAuthService) GenerateOAuthState(_ context.Context) (string, error) {
+	return "mock-state", nil
+}
+func (m *mockAuthService) GetGoogleOAuthConfig() *oauth2.Config {
+	return &oauth2.Config{}
+}
+func (m *mockAuthService) LoginWithGoogle(_ context.Context, code, state string) (*auth.LoginResponse, string, bool, error) {
+	return nil, "", false, nil
+}
+func (m *mockAuthService) GetAppURL() string {
+	return "http://localhost:3000"
+}
+
+// Logging methods (stubs for tests)
+func (m *mockAuthService) LogInfo(msg string, fields map[string]interface{})             {}
+func (m *mockAuthService) LogWarn(msg string, fields map[string]interface{})             {}
+func (m *mockAuthService) LogError(msg string, err error, fields map[string]interface{}) {}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 

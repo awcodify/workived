@@ -50,6 +50,15 @@ func (s *smtpSender) Send(msg Message) error {
 		return fmt.Errorf("no recipients specified")
 	}
 
+	s.log.Debug().
+		Str("smtp_host", s.config.Host).
+		Int("smtp_port", s.config.Port).
+		Str("from", s.config.From).
+		Strs("to", msg.To).
+		Str("subject", msg.Subject).
+		Bool("has_auth", s.config.Username != "").
+		Msg("email.sending_via_smtp")
+
 	// Build SMTP message
 	body := s.buildMessage(msg)
 
@@ -69,14 +78,14 @@ func (s *smtpSender) Send(msg Message) error {
 			Int("smtp_port", s.config.Port).
 			Strs("recipients", msg.To).
 			Str("subject", msg.Subject).
-			Msg("failed to send email")
+			Msg("email.send_failed")
 		return fmt.Errorf("send email: %w", err)
 	}
 
 	s.log.Info().
 		Strs("recipients", msg.To).
 		Str("subject", msg.Subject).
-		Msg("email.sent")
+		Msg("email.sent_successfully")
 
 	return nil
 }
