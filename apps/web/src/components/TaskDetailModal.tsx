@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { User, Tag, Calendar, MessageSquare, CheckCircle2, Trash2, Sparkles, Reply, X as XIcon, Loader2, ListTodo, Link2, ArrowLeft, CornerLeftUp, Flame, TrendingUp, Minus, TrendingDown, Check, Zap, Plane } from 'lucide-react'
+import { User, Tag, Calendar, MessageSquare, CheckCircle2, Trash2, Sparkles, Reply, X as XIcon, Loader2, ListTodo, Link2, ArrowLeft, CornerLeftUp, Flame, TrendingUp, Minus, TrendingDown, Check, Zap, Plane, Pencil } from 'lucide-react'
 import { RichTextEditor } from './RichTextEditor'
 import { RichTextViewer } from './RichTextViewer'
 import { ApprovalTaskView } from './ApprovalTaskView'
@@ -99,11 +99,13 @@ function FieldInput({
 
   // Optimistic state: set immediately on user action, cleared when server value arrives
   const [optimistic, setOptimistic] = useState<{ value: unknown } | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
   const prevCurrent = useRef(current)
   useEffect(() => {
     // Cache updated → discard optimistic overlay
     if (prevCurrent.current !== current) {
       setOptimistic(null)
+      setIsEditing(false)
       prevCurrent.current = current
     }
   }, [current])
@@ -210,8 +212,8 @@ function FieldInput({
         ? `cm_${String(createValue ?? 'empty')}`
         : (optimistic !== null ? `opt_${JSON.stringify(optimistic.value)}` : (current?.value_text ?? 'empty'))
       
-      // If there's a value, show it as a clickable link with an edit button
-      if (dispText && !isCreateMode) {
+      // If there's a value and not editing, show it as a clickable link with edit/delete buttons
+      if (dispText && !isCreateMode && !isEditing) {
         // Ensure URL has protocol to prevent relative navigation
         const normalizedUrl = dispText.match(/^https?:\/\//i) ? dispText : `https://${dispText}`
         
@@ -228,6 +230,15 @@ function FieldInput({
             </a>
             <button
               type="button"
+              onClick={() => setIsEditing(true)}
+              className="px-1.5 py-1 rounded hover:bg-blue-50 transition-colors flex-shrink-0"
+              style={{ color: '#3B82F6' }}
+              title="Edit link"
+            >
+              <Pencil size={12} />
+            </button>
+            <button
+              type="button"
               onClick={clear}
               className="px-1.5 py-1 rounded hover:bg-red-50 transition-colors flex-shrink-0"
               style={{ color: '#94A3B8' }}
@@ -239,7 +250,7 @@ function FieldInput({
         )
       }
       
-      // Otherwise show input
+      // Otherwise show input (for create mode, editing, or no value)
       return wrapper(
         <input
           key={textKey}
@@ -247,10 +258,25 @@ function FieldInput({
           defaultValue={dispText}
           placeholder={fd.description || fd.name}
           style={inputStyle}
+          autoFocus={isEditing}
           onBlur={(e) => {
             const v = e.target.value.trim()
-            if (v) save(v)
-            else if (isCreateMode ? hasValue : current) clear()
+            if (v) {
+              save(v)
+              setIsEditing(false)
+            } else if (isCreateMode ? hasValue : current) {
+              clear()
+            } else {
+              setIsEditing(false)
+            }
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setIsEditing(false)
+              e.currentTarget.blur()
+            } else if (e.key === 'Enter') {
+              e.currentTarget.blur()
+            }
           }}
         />
       )
