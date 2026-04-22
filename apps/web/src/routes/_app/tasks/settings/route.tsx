@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useState, useCallback } from 'react'
-import { ArrowLeft, Plus, Trash2, Type, Hash, Calendar, CheckSquare, ChevronDown, Link as LinkIcon, User, Star, Tag } from 'lucide-react'
+import { ArrowLeft, Plus, Trash2, Type, Hash, Calendar, CheckSquare, ChevronDown, Link as LinkIcon, User, Star, Tag, Pencil } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { Dropdown } from '@/components/workived/shared/Dropdown'
 import type { DropdownOption } from '@/components/workived/shared/Dropdown'
@@ -247,7 +247,11 @@ function TaskBoardSettingsPage() {
 
   // Custom field form state
   const [showFieldForm, setShowFieldForm] = useState(false)
-  const [editingField, setEditingField] = useState<FieldDefinition | null>(null)
+  const [editingField, setEditingField] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editOptions, setEditOptions] = useState<{ value: string; label: string }[]>([])
+  const [editOptionInput, setEditOptionInput] = useState('')
   const [newFieldName, setNewFieldName] = useState('')
   const [newFieldType, setNewFieldType] = useState<FieldType>('text')
   const [newFieldDescription, setNewFieldDescription] = useState('')
@@ -396,6 +400,48 @@ function TaskBoardSettingsPage() {
         },
         onError: (err) => {
           setError(extractApiError(err) ?? 'Failed to create field')
+        },
+      },
+    )
+  }
+
+  const handleUpdateField = (fieldId: string, name: string, description: string, options: { value: string; label: string }[]) => {
+    if (!name.trim()) {
+      setError('Field name cannot be empty')
+      return
+    }
+
+    const field = fieldDefinitions.find(f => f.id === fieldId)
+    if (!field) return
+
+    // Validate options for select/multi_select types
+    if (TYPES_NEEDING_OPTIONS.includes(field.field_type as FieldType) && options.length === 0) {
+      setError('Please add at least one option for this field type')
+      return
+    }
+
+    updateField.mutate(
+      {
+        id: fieldId,
+        data: {
+          name: name.trim(),
+          description: description.trim() || undefined,
+          options: TYPES_NEEDING_OPTIONS.includes(field.field_type as FieldType) ? options : undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          setEditingField(null)
+          setEditName('')
+          setEditDescription('')
+          setEditOptions([])
+          setEditOptionInput('')
+          setSuccess('Custom field updated successfully')
+          setTimeout(() => setSuccess(null), 3000)
+          setError(null)
+        },
+        onError: (err) => {
+          setError(extractApiError(err) ?? 'Failed to update field')
         },
       },
     )
@@ -656,7 +702,18 @@ function TaskBoardSettingsPage() {
               </div>
               {!showFieldForm && (
                 <button
-                  onClick={() => setShowFieldForm(true)}
+                  onClick={() => {
+                    setEditingField(null)
+                    setEditName('')
+                    setEditDescription('')
+                    setEditOptions([])
+                    setEditOptionInput('')
+                    setNewFieldName('')
+                    setNewFieldType('text')
+                    setNewFieldDescription('')
+                    setNewFieldOptions([])
+                    setShowFieldForm(true)
+                  }}
                   className="flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition-all hover:opacity-90"
                   style={{ background: C.accent, color: '#fff' }}
                   data-testid="add-custom-field-button"
@@ -722,6 +779,7 @@ function TaskBoardSettingsPage() {
                     }}
                     options={FIELD_TYPES.map(t => ({ value: t.value, label: t.label, icon: t.icon }))}
                     fullWidth
+                    disabled={!!editingField}
                     theme={{
                       text,
                       textMuted: textSec,
@@ -846,6 +904,137 @@ function TaskBoardSettingsPage() {
                   {fieldDefinitions.map((field) => {
                     const typeInfo = FIELD_TYPES.find((t) => t.value === field.field_type)
                     const TypeIcon = typeInfo?.icon
+                    const isEditing = editingField === field.id
+                    
+                    if (isEditing) {
+                      // Inline edit form
+                      return (
+                        <li key={field.id} className="p-4 rounded-lg space-y-3" style={{ background: '#FAFBFC', border: `2px solid ${C.accent}` }}>
+                          {/* Type badge - read only */}
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1"
+                              style={{ background: C.accent + '18', color: C.accent }}
+                            >
+                              {TypeIcon && <TypeIcon size={12} />}
+                              {typeInfo?.label ?? field.field_type}
+                            </span>
+                            <span className="text-xs" style={{ color: textDim, fontFamily: typography.fontFamily }}>
+                              (type cannot be changed)
+                            </span>
+                          </div>
+                          
+                          {/* Name */}
+                          <div>
+                            <label className="block text-xs font-medium mb-1" style={{ color: textSec, fontFamily: typography.fontFamily }}>
+                              Name
+                            </label>
+                            <input
+                              type="text"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              className="w-full rounded-md px-3 py-2 text-sm outline-none"
+                              style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, fontFamily: typography.fontFamily }}
+                            />
+                          </div>
+                          
+                          {/* Description */}
+                          <div>
+                            <label className="block text-xs font-medium mb-1" style={{ color: textSec, fontFamily: typography.fontFamily }}>
+                              Description <span style={{ color: textDim, fontWeight: 400 }}>(optional)</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={editDescription}
+                              onChange={(e) => setEditDescription(e.target.value)}
+                              className="w-full rounded-md px-3 py-2 text-sm outline-none"
+                              style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, fontFamily: typography.fontFamily }}
+                            />
+                          </div>
+                          
+                          {/* Options (if applicable) */}
+                          {TYPES_NEEDING_OPTIONS.includes(field.field_type as FieldType) && (
+                            <div>
+                              <label className="block text-xs font-medium mb-1" style={{ color: textSec, fontFamily: typography.fontFamily }}>
+                                Options
+                              </label>
+                              <div className="space-y-2">
+                                {editOptions.map((opt, idx) => (
+                                  <div key={idx} className="flex items-center gap-2">
+                                    <div className="flex-1 px-3 py-2 rounded-md text-sm" style={{ background: '#F9FAFB', border: `1px solid ${inputBdr}`, color: text }}>
+                                      {opt.label}
+                                    </div>
+                                    <button
+                                      onClick={() => setEditOptions(editOptions.filter((_, i) => i !== idx))}
+                                      className="p-1.5 rounded hover:bg-red-50 transition-colors"
+                                    >
+                                      <Trash2 size={12} style={{ color: '#EF4444' }} />
+                                    </button>
+                                  </div>
+                                ))}
+                                <div className="flex gap-2">
+                                  <input
+                                    type="text"
+                                    value={editOptionInput}
+                                    onChange={(e) => setEditOptionInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' && editOptionInput.trim()) {
+                                        e.preventDefault()
+                                        setEditOptions([...editOptions, { value: editOptionInput.trim(), label: editOptionInput.trim() }])
+                                        setEditOptionInput('')
+                                      }
+                                    }}
+                                    placeholder="Add option (press Enter)"
+                                    className="flex-1 rounded-md px-3 py-2 text-sm outline-none"
+                                    style={{ background: inputBg, border: `1px solid ${inputBdr}`, color: text, fontFamily: typography.fontFamily }}
+                                  />
+                                  <button
+                                    onClick={() => {
+                                      if (editOptionInput.trim()) {
+                                        setEditOptions([...editOptions, { value: editOptionInput.trim(), label: editOptionInput.trim() }])
+                                        setEditOptionInput('')
+                                      }
+                                    }}
+                                    disabled={!editOptionInput.trim()}
+                                    className="px-3 py-2 rounded-md text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                    style={{ background: C.accent, color: '#fff' }}
+                                  >
+                                    <Plus size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Actions */}
+                          <div className="flex gap-2 pt-1">
+                            <button
+                              onClick={() => handleUpdateField(field.id, editName, editDescription, editOptions)}
+                              disabled={updateField.isPending || !editName.trim()}
+                              className="rounded-md px-4 py-2 text-sm font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                              style={{ background: C.accent, color: '#fff' }}
+                            >
+                              {updateField.isPending ? 'Updating…' : 'Update'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditingField(null)
+                                setEditName('')
+                                setEditDescription('')
+                                setEditOptions([])
+                                setEditOptionInput('')
+                              }}
+                              className="rounded-md px-4 py-2 text-sm font-semibold transition-all hover:bg-gray-50"
+                              style={{ color: textSec, border: `1px solid ${border}` }}
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </li>
+                      )
+                    }
+                    
+                    // Normal display
                     return (
                       <li
                         key={field.id}
@@ -870,15 +1059,31 @@ function TaskBoardSettingsPage() {
                             </span>
                           )}
                         </div>
-                        <button
-                          onClick={() => handleDeleteField(field.id, field.name)}
-                          disabled={deleteField.isPending}
-                          className="p-1.5 rounded hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                          aria-label={`Delete ${field.name}`}
-                          data-testid={`delete-custom-field-${field.id}`}
-                        >
-                          <Trash2 size={13} style={{ color: '#EF4444' }} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => {
+                              setEditingField(field.id)
+                              setEditName(field.name)
+                              setEditDescription(field.description || '')
+                              setEditOptions(field.options || [])
+                              setEditOptionInput('')
+                            }}
+                            className="p-1.5 rounded hover:bg-blue-50 transition-colors opacity-0 group-hover:opacity-100"
+                            aria-label={`Edit ${field.name}`}
+                            data-testid={`edit-custom-field-${field.id}`}
+                          >
+                            <Pencil size={13} style={{ color: '#3B82F6' }} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteField(field.id, field.name)}
+                            disabled={deleteField.isPending}
+                            className="p-1.5 rounded hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                            aria-label={`Delete ${field.name}`}
+                            data-testid={`delete-custom-field-${field.id}`}
+                          >
+                            <Trash2 size={13} style={{ color: '#EF4444' }} />
+                          </button>
+                        </div>
                       </li>
                     )
                   })}
