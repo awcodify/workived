@@ -52,15 +52,23 @@ export const Route = createFileRoute('/_app')({
       } catch (err: any) {
         // Re-throw TanStack Router redirects (from the setup check above)
         if (isRedirect(err)) throw err
+        
         // If user has no org (403 from tenant middleware), send to setup-org
         // where they can accept invitations or create a workspace
-        if (isAxiosError(err) && err.response?.status === 403) {
+        if (err.response?.status === 403) {
           throw redirect({ to: '/setup-org' })
         }
+        
         // Network error or 5xx - backend is down
-        if (!err?.response || err?.response?.status >= 500) {
+        if (err.response?.status >= 500) {
           throw redirect({ to: '/service-unavailable' })
         }
+        
+        // For other errors (network failures, etc), also go to service-unavailable
+        if (!err.response) {
+          throw redirect({ to: '/service-unavailable' })
+        }
+        
         throw err
       }
     }

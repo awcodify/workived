@@ -62,8 +62,14 @@ function RegisterPage() {
     onSuccess: (data) => {
       setAuth(data)
       
+      // New users need to verify their email first
+      if (!data.user.is_verified) {
+        navigate({ to: '/verify-email-required' })
+        return
+      }
+      
+      // If already verified (shouldn't happen for new registrations, but handle it):
       // Redirect to invitation acceptance or setup-org
-      // Auth guard will handle verification check
       if (invite_token) {
         navigate({ to: '/invite', search: { token: invite_token } })
       } else {
@@ -309,12 +315,12 @@ function RegisterPage() {
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full" style={{ borderTop: `1px solid ${colors.ink200}` }}></div>
+                <div className="w-full" style={{ borderTop: `1px solid ${colors.ink150}` }}></div>
               </div>
               <div className="relative flex justify-center text-sm">
                 <span
                   className="px-3"
-                  style={{ background: colors.ink0, color: colors.ink400, fontSize: 13 }}
+                  style={{ background: colors.ink0, color: colors.ink500, fontSize: 13 }}
                 >
                   Or continue with
                 </span>

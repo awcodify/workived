@@ -21,14 +21,22 @@ func init() {
 }
 
 type mockOrgRepo struct {
-	member    *middleware.OrgMember
-	err       error
-	callCount atomic.Int32
+	member          *middleware.OrgMember
+	err             error
+	callCount       atomic.Int32
+	memberOrgID     uuid.UUID
+	memberOrgRole   string
+	memberOrgHasSub bool
+	memberOrgErr    error
 }
 
 func (m *mockOrgRepo) GetMember(_ context.Context, _, _ uuid.UUID) (*middleware.OrgMember, error) {
 	m.callCount.Add(1)
 	return m.member, m.err
+}
+
+func (m *mockOrgRepo) GetMemberOrgID(_ context.Context, _ uuid.UUID) (uuid.UUID, string, bool, error) {
+	return m.memberOrgID, m.memberOrgRole, m.memberOrgHasSub, m.memberOrgErr
 }
 
 func setupTenantCache(t *testing.T) *cache.Store {
@@ -174,20 +182,47 @@ func TestTenantWithCache_InactiveMemberRejected(t *testing.T) {
 	}
 }
 
-func TestTenantWithCache_NilOrgIDRejected(t *testing.T) {
+func TestTenantWithCache_NilOrgIDLookupsFromDB(t *testing.T) {
+	store := setupTenantCache(t)
+	userID := uuid.New()
+	orgID := uuid.New()
+
+	repo := &mockOrgRepo{
+		memberOrgID:   orgID,
+		memberOrgRole: "owner",
+		member: &middleware.OrgMember{
+			OrgID:    orgID,
+			UserID:   userID,
+			Role:     "owner",
+			IsActive: true,
+		},
+	}
+
+	// JWT has nil orgID, but middleware should look it up from database
+	router := newTenantRouter(repo, store, uuid.Nil, userID)
+	w := doRequest(router)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if repo.callCount.Load() != 1 {
+		t.Fatalf("expected 1 DB call to GetMember, got %d", repo.callCount.Load())
+	}
+}
+
+func TestTenantWithCache_NilOrgIDNoMembershipRejected(t *testing.T) {
 	store := setupTenantCache(t)
 	repo := &mockOrgRepo{
-		member: &middleware.OrgMember{IsActive: true},
+		memberOrgID:  uuid.Nil, // User has no org
+		memberOrgErr: nil,
+		member:       &middleware.OrgMember{IsActive: true},
 	}
 
 	router := newTenantRouter(repo, store, uuid.Nil, uuid.New())
 	w := doRequest(router)
 
 	if w.Code != http.StatusForbidden {
-		t.Fatalf("expected 403 for nil org, got %d", w.Code)
-	}
-	if repo.callCount.Load() != 0 {
-		t.Fatalf("expected no DB call for nil org, got %d", repo.callCount.Load())
+		t.Fatalf("expected 403 for user with no org, got %d", w.Code)
 	}
 }
 

@@ -27,6 +27,7 @@ type OrgMember struct {
 // OrgRepository is satisfied by the organisation repository.
 type OrgRepository interface {
 	GetMember(ctx context.Context, orgID, userID uuid.UUID) (*OrgMember, error)
+	GetMemberOrgID(ctx context.Context, userID uuid.UUID) (uuid.UUID, string, bool, error)
 }
 
 const (
@@ -51,9 +52,17 @@ func TenantWithCache(orgRepo OrgRepository, cacheStore *cache.Store) gin.Handler
 		userID := UserIDFromCtx(c)
 		orgID := OrgIDFromCtx(c)
 
+		// If JWT doesn't have an orgID (e.g., user just signed up, or old token after org creation),
+		// look it up from the database. This makes the system more resilient to JWT staleness.
 		if orgID == uuid.Nil {
-			c.AbortWithStatusJSON(http.StatusForbidden, apperr.Response(apperr.Forbidden()))
-			return
+			var err error
+			orgID, _, _, err = orgRepo.GetMemberOrgID(c.Request.Context(), userID)
+			if err != nil || orgID == uuid.Nil {
+				// User genuinely has no org membership
+				c.AbortWithStatusJSON(http.StatusForbidden, apperr.Response(apperr.Forbidden()))
+				return
+			}
+			// Found org in database - proceed with that orgID
 		}
 
 		var member *OrgMember

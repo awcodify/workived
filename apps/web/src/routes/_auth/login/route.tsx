@@ -43,7 +43,13 @@ function LoginPage() {
     onSuccess: (data) => {
       setAuth(data)
       
-      // Redirect - auth guard will handle verification check
+      // Check if user needs to verify email
+      if (!data.user.is_verified) {
+        navigate({ to: '/verify-email-required' })
+        return
+      }
+      
+      // Redirect to original destination or overview
       if (safeRedirect) {
         window.location.href = safeRedirect
       } else {
@@ -318,12 +324,12 @@ function LoginPage() {
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full" style={{ borderTop: `1px solid ${colors.ink200}` }}></div>
+                <div className="w-full" style={{ borderTop: `1px solid ${colors.ink150}` }}></div>
               </div>
               <div className="relative flex justify-center text-sm">
                 <span
                   className="px-3"
-                  style={{ background: colors.ink0, color: colors.ink400, fontSize: 13 }}
+                  style={{ background: colors.ink0, color: colors.ink500, fontSize: 13 }}
                 >
                   Or continue with
                 </span>

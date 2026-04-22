@@ -23,7 +23,8 @@ export const Route = createFileRoute('/')({
         if (isExisting) {
           throw redirect({ to: '/welcome-back' })
         }
-        throw redirect({ to: '/overview' })
+        // New users need to create their workspace first
+        throw redirect({ to: '/setup-org' })
       }
     }
 

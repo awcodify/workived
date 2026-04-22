@@ -126,11 +126,11 @@ function SetupOrgPage() {
         .then((r) => r.data.data)
     },
     onSuccess: (result) => {
-      // Store the new JWT (now contains org_id + owner role) before navigating.
-      // Without this, every tenant-guarded route returns 403.
+      // Store the new JWT (now contains org_id + owner role)
       if (currentUser) {
         setAccessToken({ access_token: result.access_token, user: currentUser })
       }
+      // Navigate to setup wizard
       navigate({ to: '/setup' })
     },
   })
