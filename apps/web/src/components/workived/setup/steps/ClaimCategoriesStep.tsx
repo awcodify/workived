@@ -5,6 +5,7 @@ import type {
   ClaimCategoryCustomization,
 } from '@/types/api'
 import { colors } from '@/design/tokens'
+import { formatMoney } from '@/lib/utils/money'
 
 interface ClaimCategoriesStepProps {
   templates: ClaimCategoryTemplate[]
@@ -54,14 +55,22 @@ export function ClaimCategoriesStep({
         [templateId]: { monthly_limit: limit },
       })
     }
-    setCustomizing(null)
   }
 
-  const formatCurrency = (amount: number, currency: string) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'decimal',
-      minimumFractionDigits: 0,
-    }).format(amount / 100) + ' ' + currency
+  // Helper functions to handle currency conversion
+  // IDR has no subunit (1 IDR = 1 smallest unit)
+  // AED, MYR, SGD have 100 subunits (1 AED = 100 fils)
+  const toDisplayValue = (amount: number, currency: string) => {
+    return currency === 'IDR' ? amount : amount / 100
+  }
+
+  const toStorageValue = (displayValue: number, currency: string) => {
+    return currency === 'IDR' ? Math.round(displayValue) : Math.round(displayValue * 100)
+  }
+
+  const getIncrementStep = (currency: string) => {
+    // Use larger increments for IDR since it doesn't have subunits
+    return currency === 'IDR' ? 100000 : 10
   }
 
   const handleSelectAll = () => {
@@ -168,7 +177,7 @@ export function ClaimCategoriesStep({
                       <div className="text-right">
                         <p className="text-sm font-semibold" style={{ color: colors.ink900 }}>
                           {(customLimit !== undefined ? customLimit : template.monthly_limit)
-                            ? formatCurrency(
+                            ? formatMoney(
                                 customLimit ?? template.monthly_limit!,
                                 template.currency_code!,
                               ) + (template.budget_period === 'yearly' ? '/year' : '/month')
@@ -216,14 +225,16 @@ export function ClaimCategoriesStep({
                 >
                   <div className="flex items-center justify-between">
                     <label className="text-sm font-semibold" style={{ color: colors.ink900 }}>
-                      Customize monthly limit ({template.currency_code})
+                      Customize {template.budget_period === 'yearly' ? 'yearly' : 'monthly'} limit ({template.currency_code})
                     </label>
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => {
-                          const currentValue = (customLimit ?? template.monthly_limit!) / 100
-                          const newValue = Math.max(0, currentValue - 10)
-                          handleCustomize(template.id, Math.round(newValue * 100))
+                          const currentStorageValue = customLimit ?? template.monthly_limit!
+                          const displayValue = toDisplayValue(currentStorageValue, template.currency_code!)
+                          const step = getIncrementStep(template.currency_code!)
+                          const newDisplayValue = Math.max(0, displayValue - step)
+                          handleCustomize(template.id, toStorageValue(newDisplayValue, template.currency_code!))
                         }}
                         className="flex h-8 w-8 items-center justify-center font-bold transition-opacity hover:opacity-70"
                         style={{
@@ -238,16 +249,16 @@ export function ClaimCategoriesStep({
                       <input
                         data-testid={`claim-category-limit-input-${template.id}`}
                         type="number"
-                        value={(customLimit ?? template.monthly_limit!) / 100}
+                        value={toDisplayValue(customLimit ?? template.monthly_limit!, template.currency_code!)}
                         onChange={(e) => {
-                          const value = parseFloat(e.target.value) || 0
-                          if (value >= 0) {
-                            handleCustomize(template.id, Math.round(value * 100))
+                          const displayValue = parseFloat(e.target.value) || 0
+                          if (displayValue >= 0) {
+                            handleCustomize(template.id, toStorageValue(displayValue, template.currency_code!))
                           }
                         }}
                         min={0}
-                        step="10"
-                        className="w-24 px-3 py-2 text-center text-base font-semibold"
+                        step={getIncrementStep(template.currency_code!)}
+                        className="w-32 px-3 py-2 text-center text-base font-semibold"
                         style={{
                           borderRadius: 8,
                           border: `2px solid ${colors.accent}`,
@@ -257,9 +268,11 @@ export function ClaimCategoriesStep({
                       />
                       <button
                         onClick={() => {
-                          const currentValue = (customLimit ?? template.monthly_limit!) / 100
-                          const newValue = currentValue + 10
-                          handleCustomize(template.id, Math.round(newValue * 100))
+                          const currentStorageValue = customLimit ?? template.monthly_limit!
+                          const displayValue = toDisplayValue(currentStorageValue, template.currency_code!)
+                          const step = getIncrementStep(template.currency_code!)
+                          const newDisplayValue = displayValue + step
+                          handleCustomize(template.id, toStorageValue(newDisplayValue, template.currency_code!))
                         }}
                         className="flex h-8 w-8 items-center justify-center font-bold transition-opacity hover:opacity-70"
                         style={{
@@ -290,12 +303,6 @@ export function ClaimCategoriesStep({
           )
         })}
       </div>
-
-      {!canProceed && (
-        <p className="mb-4 text-center text-sm font-medium" style={{ color: colors.err }}>
-          Please select at least one claim category
-        </p>
-      )}
 
       <div className="flex justify-between">
         <button
