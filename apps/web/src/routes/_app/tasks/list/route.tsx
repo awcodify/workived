@@ -580,6 +580,7 @@ function TasksListPage() {
             taskLists={taskLists}
             onTaskClick={(task) => navigate({ search: (prev) => ({ ...prev, task: task.code || task.id }), replace: false })}
             hideFilters={true}
+            externalVisibleFieldIds={visibleFieldIds}
             externalFilters={{
               search: searchQuery,
               task_list_id: taskListFilter.join(','),  // Convert array to comma-separated string
