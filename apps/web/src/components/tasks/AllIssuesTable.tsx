@@ -3,9 +3,9 @@
  * Shows all tasks including completed ones.
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { typography } from '@/design/tokens'
-import type { TaskWithDetails, Employee, FieldDefinition, TaskPriority } from '@/types/api'
+import type { TaskWithDetails, Employee, FieldDefinition, TaskPriority, TaskList } from '@/types/api'
 import { useAllTasks, useFieldDefinitions } from '@/lib/hooks/useTasks'
 import { DatePicker } from '@/components/ui'
 
@@ -13,7 +13,8 @@ import { DatePicker } from '@/components/ui'
 
 interface AllIssuesFilters {
   search: string
-  status: '' | 'pending' | 'completed'
+  task_list_id: string  // Filter by task list (status column)
+  status: '' | 'pending' | 'completed'  // Filter by completion state
   assignee_id: string
   priority: string
   completed_after: string
@@ -152,11 +153,16 @@ const DEFAULT_CUSTOM_COLUMNS = 2
 
 interface AllIssuesTableProps {
   employees: Employee[]
+  taskLists: TaskList[]  // For status filter dropdown
   onTaskClick: (task: TaskWithDetails) => void
+  hideFilters?: boolean // Hide filter bar (render it externally)
+  externalFilters?: Partial<AllIssuesFilters> // External filter values (when hideFilters=true)
+  externalVisibleFieldIds?: Set<string> | null // External column visibility state (when hideFilters=true)
 }
 
 const EMPTY_FILTERS: AllIssuesFilters = {
   search:          '',
+  task_list_id:    '',
   status:          '',
   assignee_id:     '',
   priority:        '',
@@ -165,14 +171,24 @@ const EMPTY_FILTERS: AllIssuesFilters = {
   cursor:          '',
 }
 
-export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) {
+export function AllIssuesTable({ employees, taskLists, onTaskClick, hideFilters = false, externalFilters, externalVisibleFieldIds }: AllIssuesTableProps) {
   const [filters, setFilters]           = useState<AllIssuesFilters>(EMPTY_FILTERS)
+  
+  // Use external filters when provided (for hideFilters mode)
+  const activeFilters = useMemo(() => {
+    if (hideFilters && externalFilters) {
+      return { ...EMPTY_FILTERS, ...externalFilters }
+    }
+    return filters
+  }, [hideFilters, externalFilters, filters])
   const [sortKey, setSortKey]           = useState<SortKey>('created_at')
   const [sortDir, setSortDir]           = useState<SortDir>('desc')
   const [cursorStack, setCursorStack]   = useState<string[]>([])
   const [showColumnPicker, setShowColumnPicker] = useState(false)
   // Set of field IDs to show — default: first 2 active fields
-  const [visibleFieldIds, setVisibleFieldIds] = useState<Set<string> | null>(null) // null = use default
+  // Use external state when provided (for hideFilters mode)
+  const [internalVisibleFieldIds, setInternalVisibleFieldIds] = useState<Set<string> | null>(null) // null = use default
+  const visibleFieldIds = hideFilters && externalVisibleFieldIds !== undefined ? externalVisibleFieldIds : internalVisibleFieldIds
 
   const { data: fieldDefs = [] } = useFieldDefinitions()
   const activeFields = fieldDefs.filter((fd) => fd.is_active)
@@ -184,7 +200,7 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
   }, [activeFields, visibleFieldIds])
 
   const toggleFieldColumn = (fdId: string) => {
-    setVisibleFieldIds((prev) => {
+    setInternalVisibleFieldIds((prev) => {
       const base = prev ?? new Set(activeFields.slice(0, DEFAULT_CUSTOM_COLUMNS).map((f) => f.id))
       const next = new Set(base)
       if (next.has(fdId)) next.delete(fdId)
@@ -193,14 +209,16 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
     })
   }
 
+  // Parse task_list_id and assignee_id filters - backend now supports comma-separated values
   const queryFilters = {
-    ...(filters.search          ? { search:           filters.search }          : {}),
-    ...(filters.status          ? { status:           filters.status as 'pending' | 'completed' } : {}),
-    ...(filters.assignee_id     ? { assignee_id:      filters.assignee_id }     : {}),
-    ...(filters.priority        ? { priority:         filters.priority as TaskPriority } : {}),
-    ...(filters.completed_after  ? { completed_after:  filters.completed_after }  : {}),
-    ...(filters.completed_before ? { completed_before: filters.completed_before } : {}),
-    ...(filters.cursor          ? { cursor:           filters.cursor }          : {}),
+    ...(activeFilters.search          ? { search:           activeFilters.search }          : {}),
+    ...(activeFilters.task_list_id    ? { task_list_id:     activeFilters.task_list_id }    : {}),
+    ...(activeFilters.status          ? { status:           activeFilters.status as 'pending' | 'completed' } : {}),
+    ...(activeFilters.assignee_id     ? { assignee_id:      activeFilters.assignee_id }     : {}),
+    ...(activeFilters.priority        ? { priority:         activeFilters.priority as TaskPriority } : {}),
+    ...(activeFilters.completed_after  ? { completed_after:  activeFilters.completed_after }  : {}),
+    ...(activeFilters.completed_before ? { completed_before: activeFilters.completed_before } : {}),
+    ...(activeFilters.cursor          ? { cursor:           activeFilters.cursor }          : {}),
   }
 
   const { data, isLoading } = useAllTasks(queryFilters)
@@ -261,25 +279,27 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
   return (
     <div className="flex flex-col gap-4 h-full">
       {/* ── Filter bar ─────────────────────────────────────── */}
-      <div className="flex items-center gap-2 flex-wrap">
-        {/* Search */}
-        <input
-          type="search"
-          value={filters.search}
-          onChange={(e) => setFilter('search', e.target.value)}
-          placeholder="Search tasks..."
-          style={{ ...inputStyle, minWidth: '200px', flex: '1' }}
-        />
+      {!hideFilters && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Search */}
+          <input
+            type="search"
+            value={filters.search}
+            onChange={(e) => setFilter('search', e.target.value)}
+            placeholder="Search tasks..."
+            style={{ ...inputStyle, minWidth: '200px', flex: '1' }}
+          />
 
         {/* Status */}
         <select
-          value={filters.status}
-          onChange={(e) => setFilter('status', e.target.value)}
+          value={filters.task_list_id}
+          onChange={(e) => setFilter('task_list_id', e.target.value)}
           style={inputStyle}
         >
           <option value="">All statuses</option>
-          <option value="pending">Pending</option>
-          <option value="completed">Completed</option>
+          {taskLists.map((list) => (
+            <option key={list.id} value={list.id}>{list.name}</option>
+          ))}
         </select>
 
         {/* Assignee */}
@@ -385,7 +405,7 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
                   )
                 })}
                 <button
-                  onClick={() => setVisibleFieldIds(null)}
+                  onClick={() => setInternalVisibleFieldIds(null)}
                   className="mt-2 w-full text-xs py-1 rounded-md transition-colors"
                   style={{ background: '#F1F5F9', color: '#64748B', fontFamily: typography.fontFamily }}
                 >
@@ -396,6 +416,7 @@ export function AllIssuesTable({ employees, onTaskClick }: AllIssuesTableProps) 
           </div>
         )}
       </div>
+      )}
 
       {/* ── Table ──────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto rounded-xl" style={{ background: 'rgba(255,255,255,0.6)', border: '1px solid rgba(0,0,0,0.08)' }}>

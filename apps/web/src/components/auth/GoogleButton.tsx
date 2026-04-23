@@ -23,20 +23,17 @@ export function GoogleButton({ onClick, disabled = false, text = 'Continue with 
       type="button"
       className="w-full flex items-center justify-center gap-3 h-12 rounded-xl transition-all disabled:opacity-50"
       style={{
-        borderColor: colors.ink200,
-        border: `1.5px solid ${colors.ink200}`,
-        background: colors.ink0,
+        border: 'none',
+        background: colors.ink50,
         cursor: disabled ? 'not-allowed' : 'pointer',
       }}
       onMouseEnter={(e) => {
         if (!disabled) {
-          e.currentTarget.style.background = colors.ink50
-          e.currentTarget.style.borderColor = colors.ink300
+          e.currentTarget.style.background = colors.ink100
         }
       }}
       onMouseLeave={(e) => {
-        e.currentTarget.style.background = colors.ink0
-        e.currentTarget.style.borderColor = colors.ink200
+        e.currentTarget.style.background = colors.ink50
       }}
     >
       <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">

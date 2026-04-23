@@ -160,11 +160,20 @@ func (r *Repository) UpdateTaskList(ctx context.Context, orgID, id uuid.UUID, re
 	}
 
 	var tl TaskList
-	query := fmt.Sprintf(`
-		UPDATE task_lists SET %s
+	// Build query using strings.Builder to avoid concatenation warnings
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("UPDATE task_lists SET ")
+	for i, update := range updates {
+		if i > 0 {
+			queryBuilder.WriteString(", ")
+		}
+		queryBuilder.WriteString(update)
+	}
+	queryBuilder.WriteString(`
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, name, position, is_final_state, is_active, created_at, updated_at
-	`, strings.Join(updates, ", "))
+	`)
+	query := queryBuilder.String()
 
 	err := r.db.QueryRow(ctx, query, args...).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
 	if err != nil {
@@ -284,7 +293,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 		JOIN task_lists tl ON t.task_list_id = tl.id
 		LEFT JOIN employees assignee ON t.assignee_id = assignee.id
 		WHERE t.organisation_id = $1
-		  AND ($2::uuid IS NULL OR t.task_list_id = $2::uuid)
+		  AND ($2::uuid[] IS NULL OR t.task_list_id = ANY($2::uuid[]))
 		  AND (
 			  -- Regular tasks: show to all org members (collaborative workspace)
 			  t.approval_type IS NULL
@@ -306,6 +315,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 			  OR t.completed_at > NOW() - ($8::int || ' days')::interval
 		  )
 		  AND ($6::timestamptz IS NULL OR t.created_at < $6::timestamptz)
+		  AND ($13::uuid[] IS NULL OR t.assignee_id = ANY($13::uuid[]))
 		  AND ($10::varchar IS NULL OR t.title ILIKE '%' || $10 || '%' OR t.code ILIKE '%' || $10 || '%')
 		  AND ($11::timestamptz IS NULL OR t.completed_at >= $11::timestamptz)
 		  AND ($12::timestamptz IS NULL OR t.completed_at <= $12::timestamptz)
@@ -319,18 +329,19 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 	}
 
 	rows, err := r.db.Query(ctx, query,
-		orgID,                         // $1
-		ptrToUUID(filters.TaskListID), // $2
-		ptrToUUID(filters.AssigneeID), // $3
-		filters.Priority,              // $4
-		filters.Status,                // $5
-		nilIfEmpty(cursor.Value),      // $6
-		limit+1,                       // $7
-		archiveDays,                   // $8
-		filters.ExcludeApprovalTasks,  // $9
-		filters.Search,                // $10 (*string, nil = no filter)
-		filters.CompletedAfter,        // $11 (*string, nil = no filter)
-		filters.CompletedBefore,       // $12 (*string, nil = no filter)
+		orgID,                             // $1
+		parseUUIDList(filters.TaskListID), // $2 - now accepts comma-separated UUIDs
+		ptrToUUID(filters.AssigneeID),     // $3 - kept for approval check (single value)
+		filters.Priority,                  // $4
+		filters.Status,                    // $5
+		nilIfEmpty(cursor.Value),          // $6
+		limit+1,                           // $7
+		archiveDays,                       // $8
+		filters.ExcludeApprovalTasks,      // $9
+		filters.Search,                    // $10 (*string, nil = no filter)
+		filters.CompletedAfter,            // $11 (*string, nil = no filter)
+		filters.CompletedBefore,           // $12 (*string, nil = no filter)
+		parseUUIDList(filters.AssigneeID), // $13 - multi-select assignee filter
 	)
 	if err != nil {
 		return nil, err
@@ -577,13 +588,22 @@ func (r *Repository) UpdateTask(ctx context.Context, orgID, id uuid.UUID, req Up
 	}
 
 	var t Task
-	query := fmt.Sprintf(`
-		UPDATE tasks SET %s
+	// Build query using strings.Builder to avoid concatenation warnings
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("UPDATE tasks SET ")
+	for i, update := range updates {
+		if i > 0 {
+			queryBuilder.WriteString(", ")
+		}
+		queryBuilder.WriteString(update)
+	}
+	queryBuilder.WriteString(`
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, task_list_id, code, title, description, assignee_id,
 		          created_by, priority, due_date, position, completed_at, approval_type, approval_id,
 		          parent_task_id, hierarchy_level, labels, created_at, updated_at
-	`, strings.Join(updates, ", "))
+	`)
+	query := queryBuilder.String()
 
 	err := r.db.QueryRow(ctx, query, args...).Scan(
 		&t.ID, &t.OrganisationID, &t.TaskListID, &t.Code, &t.Title, &t.Description, &t.AssigneeID,
@@ -879,6 +899,30 @@ func ptrToUUID(s *string) *uuid.UUID {
 	return &id
 }
 
+// parseUUIDList parses a comma-separated list of UUIDs and returns them as a slice.
+// Used for multi-select filters (e.g., task_list_id=uuid1,uuid2,uuid3)
+func parseUUIDList(s *string) []uuid.UUID {
+	if s == nil || *s == "" {
+		return nil
+	}
+	parts := strings.Split(*s, ",")
+	uuids := make([]uuid.UUID, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		id, err := uuid.Parse(part)
+		if err == nil {
+			uuids = append(uuids, id)
+		}
+	}
+	if len(uuids) == 0 {
+		return nil
+	}
+	return uuids
+}
+
 // ── Field Definitions ─────────────────────────────────────────────────────────
 
 // scanFieldDefinition scans a single row into a FieldDefinition, decoding JSONB columns.
@@ -1025,13 +1069,20 @@ func (r *Repository) UpdateFieldDefinition(ctx context.Context, orgID, id uuid.U
 		argIdx++
 	}
 
-	query := fmt.Sprintf(`
-		UPDATE task_field_definitions
-		SET %s
+	// Build query using strings.Builder to avoid concatenation warnings
+	var queryBuilder strings.Builder
+	queryBuilder.WriteString("UPDATE task_field_definitions SET ")
+	for i, clause := range setClauses {
+		if i > 0 {
+			queryBuilder.WriteString(", ")
+		}
+		queryBuilder.WriteString(clause)
+	}
+	queryBuilder.WriteString(`
 		WHERE organisation_id = $1 AND id = $2 AND is_active = TRUE
-		RETURNING `+fieldDefinitionColumns,
-		strings.Join(setClauses, ", "),
-	)
+		RETURNING `)
+	queryBuilder.WriteString(fieldDefinitionColumns)
+	query := queryBuilder.String()
 
 	row := r.db.QueryRow(ctx, query, args...)
 	fd, err := scanFieldDefinition(row)

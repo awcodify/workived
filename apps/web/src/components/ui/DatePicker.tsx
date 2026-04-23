@@ -7,6 +7,7 @@ interface DatePickerProps extends Omit<React.InputHTMLAttributes<HTMLInputElemen
   error?: boolean
   errorMessage?: string
   label?: string
+  labelStyle?: React.CSSProperties
   containerClassName?: string
   containerStyle?: React.CSSProperties
   'data-testid'?: string
@@ -62,6 +63,7 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     error,
     errorMessage,
     label,
+    labelStyle,
     id,
     className = '',
     containerClassName = '',
@@ -236,12 +238,12 @@ export const DatePicker = forwardRef<HTMLInputElement, DatePickerProps>(
     }, [viewYear, viewMonth, min, max])
 
     return (
-      <div className={containerClassName} ref={containerRef}>
+      <div className={containerClassName} ref={containerRef} style={containerStyle}>
         {label && (
           <label
             htmlFor={inputId}
-            className="block mb-2 text-sm font-semibold"
-            style={containerStyle}
+            className="block text-xs font-medium mb-1.5"
+            style={labelStyle || { color: '#94A3B8' }}
           >
             {label}
           </label>

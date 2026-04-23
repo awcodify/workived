@@ -1,7 +1,7 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import type { TaskWithDetails, Employee, FieldDefinition } from '@/types/api'
+import type { TaskWithDetails, Employee, FieldDefinition, TaskList } from '@/types/api'
 import { AllIssuesTable } from './AllIssuesTable'
 
 // ── Mocks ──────────────────────────────────────────────────────────────────────
@@ -48,6 +48,39 @@ const mockEmployee: Employee = {
   updated_at:      '2024-01-01T00:00:00Z',
 }
 
+const mockTaskLists: TaskList[] = [
+  {
+    id:              'list-1',
+    organisation_id: 'org-1',
+    name:            'To Do',
+    position:        1,
+    is_final_state:  false,
+    is_active:       true,
+    created_at:      '2024-01-01T00:00:00Z',
+    updated_at:      '2024-01-01T00:00:00Z',
+  },
+  {
+    id:              'list-2',
+    organisation_id: 'org-1',
+    name:            'In Progress',
+    position:        2,
+    is_final_state:  false,
+    is_active:       true,
+    created_at:      '2024-01-01T00:00:00Z',
+    updated_at:      '2024-01-01T00:00:00Z',
+  },
+  {
+    id:              'list-3',
+    organisation_id: 'org-1',
+    name:            'Done',
+    position:        3,
+    is_final_state:  true,
+    is_active:       true,
+    created_at:      '2024-01-01T00:00:00Z',
+    updated_at:      '2024-01-01T00:00:00Z',
+  },
+]
+
 function setupMocks(tasks: TaskWithDetails[] = [], fieldDefs: FieldDefinition[] = [], hasMore = false) {
   vi.mocked(useAllTasks).mockReturnValue({
     data: { tasks, meta: { has_more: hasMore, next_cursor: hasMore ? 'cursor-2' : undefined, limit: 50 } },
@@ -73,7 +106,7 @@ describe('AllIssuesTable', () => {
   })
 
   it('shows empty state when no tasks', () => {
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('No tasks found')).toBeInTheDocument()
   })
 
@@ -84,20 +117,20 @@ describe('AllIssuesTable', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
 
-    const { container } = render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    const { container } = render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(container.querySelector('.animate-spin')).toBeInTheDocument()
   })
 
   it('renders task rows', () => {
     setupMocks([makeTask(), makeTask({ id: 't-2', title: 'Add dark mode' })])
-    render(<AllIssuesTable employees={mockEmployee ? [mockEmployee] : []} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={mockEmployee ? [mockEmployee] : []} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('Fix login bug')).toBeInTheDocument()
     expect(screen.getByText('Add dark mode')).toBeInTheDocument()
   })
 
   it('renders table column headers', () => {
     setupMocks([makeTask()])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('Title')).toBeInTheDocument()
     expect(screen.getByText('List')).toBeInTheDocument()
     expect(screen.getByText('Assignee')).toBeInTheDocument()
@@ -109,39 +142,39 @@ describe('AllIssuesTable', () => {
   it('calls onTaskClick when row clicked', () => {
     const task = makeTask()
     setupMocks([task])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     fireEvent.click(screen.getByText('Fix login bug'))
     expect(onTaskClick).toHaveBeenCalledWith(task)
   })
 
   it('shows completed task with strikethrough indicator', () => {
     setupMocks([makeTask({ completed_at: '2026-04-10T00:00:00Z' } as Partial<TaskWithDetails>)])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     // The ✓ indicator is shown for completed tasks
     expect(screen.getByText('✓')).toBeInTheDocument()
   })
 
   it('shows priority badge', () => {
     setupMocks([makeTask({ priority: 'urgent' })])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('urgent')).toBeInTheDocument()
   })
 
   it('shows list name', () => {
     setupMocks([makeTask({ list_name: 'Done' })])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('Done')).toBeInTheDocument()
   })
 
   it('shows assignee name', () => {
     setupMocks([makeTask()])
-    render(<AllIssuesTable employees={[mockEmployee]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[mockEmployee]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getAllByText('Alice Smith').length).toBeGreaterThan(0)
   })
 
   it('shows dash for missing due date', () => {
     setupMocks([makeTask({ due_date: null })])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     // Multiple dashes expected (due, completed, etc.)
     expect(screen.getAllByText('—').length).toBeGreaterThan(0)
   })
@@ -153,7 +186,7 @@ describe('AllIssuesTable', () => {
       created_at: '2026-01-01T00:00:00Z', updated_at: '2026-01-01T00:00:00Z',
     }
     setupMocks([makeTask()], [fd])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('Deal Value')).toBeInTheDocument()
   })
 
@@ -167,7 +200,7 @@ describe('AllIssuesTable', () => {
       field_values: [{ field_id: 'fd-1', field_name: 'Points', field_type: 'number', value_number: 42 }],
     })
     setupMocks([task], [fd])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('42')).toBeInTheDocument()
   })
 
@@ -176,7 +209,7 @@ describe('AllIssuesTable', () => {
       makeTask({ id: 't-1', title: 'Zebra task' }),
       makeTask({ id: 't-2', title: 'Apple task' }),
     ])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     fireEvent.click(screen.getByText('Title'))
 
     await waitFor(() => {
@@ -193,7 +226,7 @@ describe('AllIssuesTable', () => {
 
   it('shows Clear filters button when search is active', async () => {
     setupMocks([makeTask()])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
 
     const searchInput = screen.getByPlaceholderText('Search tasks...')
     fireEvent.change(searchInput, { target: { value: 'bug' } })
@@ -205,7 +238,7 @@ describe('AllIssuesTable', () => {
 
   it('clears all filters when Clear filters clicked', async () => {
     setupMocks([makeTask()])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
 
     fireEvent.change(screen.getByPlaceholderText('Search tasks...'), { target: { value: 'bug' } })
     await waitFor(() => screen.getByText('Clear filters'))
@@ -218,20 +251,20 @@ describe('AllIssuesTable', () => {
 
   it('enables Next button when hasMore is true', () => {
     setupMocks([makeTask()], [], true)
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     const nextBtn = screen.getByText('Next →')
     expect(nextBtn).not.toBeDisabled()
   })
 
   it('disables Next button when no more pages', () => {
     setupMocks([makeTask()], [], false)
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('Next →')).toBeDisabled()
   })
 
   it('disables Prev button on first page', () => {
     setupMocks([makeTask()])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('← Prev')).toBeDisabled()
   })
 
@@ -246,7 +279,7 @@ describe('AllIssuesTable', () => {
       makeTask({ id: 't-2', title: 'Task B', field_values: [{ field_id: 'fd-sp', field_name: 'Story Points', field_type: 'number', value_number: 2 }] }),
     ]
     setupMocks(tasks, [fd])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
 
     fireEvent.click(screen.getByText('Story Points'))
     await waitFor(() => {
@@ -263,7 +296,7 @@ describe('AllIssuesTable', () => {
 
   it('shows task count', () => {
     setupMocks([makeTask(), makeTask({ id: 't-2', title: 'Task 2' })])
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     expect(screen.getByText('2 tasks on this page')).toBeInTheDocument()
   })
 
@@ -274,7 +307,7 @@ describe('AllIssuesTable', () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any)
 
-    render(<AllIssuesTable employees={[]} onTaskClick={onTaskClick} />)
+    render(<AllIssuesTable employees={[]} taskLists={mockTaskLists} onTaskClick={onTaskClick} />)
     fireEvent.change(screen.getByPlaceholderText('Search tasks...'), { target: { value: 'notfound' } })
 
     await waitFor(() => {

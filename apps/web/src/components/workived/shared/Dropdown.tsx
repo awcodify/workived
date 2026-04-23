@@ -26,13 +26,14 @@ export interface DropdownTheme {
 }
 
 interface DropdownProps {
-  value: string
-  onChange: (value: string) => void
+  value: string | string[]
+  onChange: (value: string | string[]) => void
   options: DropdownOption[]
   placeholder?: string
   label?: string
   disabled?: boolean
   fullWidth?: boolean
+  multiple?: boolean  // Enable multi-select mode
   className?: string
   style?: React.CSSProperties
   labelStyle?: React.CSSProperties
@@ -47,6 +48,7 @@ export function Dropdown({
   label,
   disabled = false,
   fullWidth = false,
+  multiple = false,
   className = '',
   style,
   labelStyle,
@@ -139,7 +141,9 @@ export function Dropdown({
     }
   }, [isOpen])
 
-  const selectedOption = options.find((opt) => opt.value === value)
+  const selectedValues = Array.isArray(value) ? value : [value]
+  const selectedOption = !multiple ? options.find((opt) => opt.value === value) : null
+  const selectedOptions = multiple ? options.filter((opt) => selectedValues.includes(opt.value)) : []
 
   // Filter options based on search term
   const filteredOptions = searchTerm
@@ -148,6 +152,25 @@ export function Dropdown({
         opt.description?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : options
+
+  // Handle selection in multi-select mode
+  const handleMultiSelect = (optionValue: string) => {
+    const newValues = selectedValues.includes(optionValue)
+      ? selectedValues.filter((v) => v !== optionValue)
+      : [...selectedValues, optionValue]
+    onChange(newValues)
+  }
+
+  // Display text for button
+  const displayText = multiple
+    ? selectedOptions.length === 0
+      ? placeholder
+      : selectedOptions.length === 1
+      ? selectedOptions[0]!.label
+      : `${selectedOptions.length} selected`
+    : selectedOption
+    ? selectedOption.label
+    : placeholder
 
   return (
     <div className={`relative ${fullWidth ? 'w-full' : ''} ${className}`} ref={dropdownRef}>
@@ -174,9 +197,9 @@ export function Dropdown({
           ...style, // Merge custom styles after defaults
         }}
       >
-        <span className={`flex items-center gap-2 ${!selectedOption ? 'text-opacity-50' : ''}`}>
-          {selectedOption?.icon && <selectedOption.icon size={14} style={{ color: selectedOption.iconColor || colors.accent }} />}
-          {selectedOption ? selectedOption.label : placeholder}
+        <span className={`flex items-center gap-2 ${(multiple ? selectedOptions.length === 0 : !selectedOption) ? 'text-opacity-50' : ''}`}>
+          {!multiple && selectedOption?.icon && <selectedOption.icon size={14} style={{ color: selectedOption.iconColor || colors.accent }} />}
+          {displayText}
         </span>
         <ChevronDown
           size={16}
@@ -229,19 +252,42 @@ export function Dropdown({
                 </div>
               )}
               {filteredOptions.map((option) => {
-              const isSelected = option.value === value
+              const isSelected = selectedValues.includes(option.value)
               return (
                 <button
                   key={option.value}
                   data-testid={`dropdown-option-${option.value}`}
                   onClick={() => {
-                    onChange(option.value)
-                    setIsOpen(false)
+                    if (multiple) {
+                      handleMultiSelect(option.value)
+                    } else {
+                      onChange(option.value)
+                      setIsOpen(false)
+                    }
                   }}
                   className="w-full px-4 py-2.5 text-left transition-colors flex items-start justify-between gap-3"
                   onMouseEnter={(e) => { e.currentTarget.style.background = t.hoverBg ?? 'rgba(0,0,0,0.05)' }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                 >
+                  {/* Checkbox for multi-select mode */}
+                  {multiple && (
+                    <div
+                      className="flex-shrink-0 mt-0.5"
+                      style={{
+                        width: '16px',
+                        height: '16px',
+                        border: `2px solid ${isSelected ? colors.accent : t.border}`,
+                        borderRadius: '3px',
+                        background: isSelected ? colors.accent : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {isSelected && <Check size={10} style={{ color: 'white' }} />}
+                    </div>
+                  )}
+                  
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-0.5">
                       {option.icon && <option.icon size={14} style={{ color: option.iconColor || colors.accent }} />}
@@ -263,7 +309,8 @@ export function Dropdown({
                       </p>
                     )}
                   </div>
-                  {isSelected && (
+                  {/* Check mark for single-select mode */}
+                  {!multiple && isSelected && (
                     <Check size={14} style={{ color: colors.accent }} className="flex-shrink-0 mt-0.5" />
                   )}
                 </button>

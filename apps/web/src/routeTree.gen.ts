@@ -51,6 +51,7 @@ import { Route as AppReportsPerformanceRouteImport } from './routes/_app/reports
 import { Route as AppReportsDashboardsRouteImport } from './routes/_app/reports/dashboards'
 import { Route as AppPeoplePerformanceRouteImport } from './routes/_app/people/performance'
 import { Route as AppTasksSettingsRouteRouteImport } from './routes/_app/tasks/settings/route'
+import { Route as AppTasksListRouteRouteImport } from './routes/_app/tasks/list/route'
 import { Route as AppSettingsMembersRouteRouteImport } from './routes/_app/settings/members/route'
 import { Route as AppSettingsCompanyRouteRouteImport } from './routes/_app/settings/company/route'
 import { Route as AppSettingsAuditLogsRouteRouteImport } from './routes/_app/settings/audit-logs/route'
@@ -270,6 +271,11 @@ const AppTasksSettingsRouteRoute = AppTasksSettingsRouteRouteImport.update({
   path: '/settings',
   getParentRoute: () => AppTasksRouteRoute,
 } as any)
+const AppTasksListRouteRoute = AppTasksListRouteRouteImport.update({
+  id: '/list',
+  path: '/list',
+  getParentRoute: () => AppTasksRouteRoute,
+} as any)
 const AppSettingsMembersRouteRoute = AppSettingsMembersRouteRouteImport.update({
   id: '/members',
   path: '/members',
@@ -346,6 +352,7 @@ export interface FileRoutesByFullPath {
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/tasks/list': typeof AppTasksListRouteRoute
   '/tasks/settings': typeof AppTasksSettingsRouteRoute
   '/people/performance': typeof AppPeoplePerformanceRoute
   '/reports/dashboards': typeof AppReportsDashboardsRoute
@@ -390,6 +397,7 @@ export interface FileRoutesByTo {
   '/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/settings/company': typeof AppSettingsCompanyRouteRoute
   '/settings/members': typeof AppSettingsMembersRouteRoute
+  '/tasks/list': typeof AppTasksListRouteRoute
   '/tasks/settings': typeof AppTasksSettingsRouteRoute
   '/people/performance': typeof AppPeoplePerformanceRoute
   '/reports/dashboards': typeof AppReportsDashboardsRoute
@@ -443,6 +451,7 @@ export interface FileRoutesById {
   '/_app/settings/audit-logs': typeof AppSettingsAuditLogsRouteRoute
   '/_app/settings/company': typeof AppSettingsCompanyRouteRoute
   '/_app/settings/members': typeof AppSettingsMembersRouteRoute
+  '/_app/tasks/list': typeof AppTasksListRouteRoute
   '/_app/tasks/settings': typeof AppTasksSettingsRouteRoute
   '/_app/people/performance': typeof AppPeoplePerformanceRoute
   '/_app/reports/dashboards': typeof AppReportsDashboardsRoute
@@ -495,6 +504,7 @@ export interface FileRouteTypes {
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
+    | '/tasks/list'
     | '/tasks/settings'
     | '/people/performance'
     | '/reports/dashboards'
@@ -539,6 +549,7 @@ export interface FileRouteTypes {
     | '/settings/audit-logs'
     | '/settings/company'
     | '/settings/members'
+    | '/tasks/list'
     | '/tasks/settings'
     | '/people/performance'
     | '/reports/dashboards'
@@ -591,6 +602,7 @@ export interface FileRouteTypes {
     | '/_app/settings/audit-logs'
     | '/_app/settings/company'
     | '/_app/settings/members'
+    | '/_app/tasks/list'
     | '/_app/tasks/settings'
     | '/_app/people/performance'
     | '/_app/reports/dashboards'
@@ -916,6 +928,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTasksSettingsRouteRouteImport
       parentRoute: typeof AppTasksRouteRoute
     }
+    '/_app/tasks/list': {
+      id: '/_app/tasks/list'
+      path: '/list'
+      fullPath: '/tasks/list'
+      preLoaderRoute: typeof AppTasksListRouteRouteImport
+      parentRoute: typeof AppTasksRouteRoute
+    }
     '/_app/settings/members': {
       id: '/_app/settings/members'
       path: '/members'
@@ -1061,11 +1080,13 @@ const AppSettingsRouteRouteWithChildren =
   AppSettingsRouteRoute._addFileChildren(AppSettingsRouteRouteChildren)
 
 interface AppTasksRouteRouteChildren {
+  AppTasksListRouteRoute: typeof AppTasksListRouteRoute
   AppTasksSettingsRouteRoute: typeof AppTasksSettingsRouteRoute
   AppTasksIndexRoute: typeof AppTasksIndexRoute
 }
 
 const AppTasksRouteRouteChildren: AppTasksRouteRouteChildren = {
+  AppTasksListRouteRoute: AppTasksListRouteRoute,
   AppTasksSettingsRouteRoute: AppTasksSettingsRouteRoute,
   AppTasksIndexRoute: AppTasksIndexRoute,
 }
