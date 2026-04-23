@@ -396,9 +396,16 @@ function RegisterPage() {
                     Full name
                   </label>
                   {form.formState.errors.full_name && (
-                    <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
-                      {form.formState.errors.full_name.message}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.err} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span style={{ fontSize: 12, color: colors.err, fontWeight: 500 }}>
+                        {form.formState.errors.full_name.message}
+                      </span>
+                    </div>
                   )}
                 </div>
 
@@ -442,9 +449,16 @@ function RegisterPage() {
                     Email{invitationData?.is_valid ? ' (from invitation)' : ''}
                   </label>
                   {form.formState.errors.email && (
-                    <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
-                      {form.formState.errors.email.message}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.err} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span style={{ fontSize: 12, color: colors.err, fontWeight: 500 }}>
+                        {form.formState.errors.email.message}
+                      </span>
+                    </div>
                   )}
                 </div>
 
@@ -487,9 +501,16 @@ function RegisterPage() {
                     Password
                   </label>
                   {form.formState.errors.password && (
-                    <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
-                      {form.formState.errors.password.message}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.err} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span style={{ fontSize: 12, color: colors.err, fontWeight: 500 }}>
+                        {form.formState.errors.password.message}
+                      </span>
+                    </div>
                   )}
                 </div>
 
@@ -532,9 +553,16 @@ function RegisterPage() {
                     Confirm password
                   </label>
                   {form.formState.errors.password_confirmation && (
-                    <p style={{ fontSize: 13, color: colors.err, marginTop: 6, fontWeight: 500 }}>
-                      {form.formState.errors.password_confirmation.message}
-                    </p>
+                    <div className="flex items-center gap-1.5 mt-2">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={colors.err} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                      <span style={{ fontSize: 12, color: colors.err, fontWeight: 500 }}>
+                        {form.formState.errors.password_confirmation.message}
+                      </span>
+                    </div>
                   )}
                 </div>
 
