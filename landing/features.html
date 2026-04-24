@@ -48,6 +48,8 @@
     .nav-links a.active{color:var(--accent);}
     .nav-cta{padding:10px 24px;border-radius:10px;background:var(--accent);color:#fff!important;font-weight:700;font-size:14px;transition:all 0.2s;border:none;}
     .nav-cta:hover{background:var(--accent-text);transform:translateY(-1px);box-shadow:0 4px 16px rgba(99,87,232,0.4);}
+    .nav-login{padding:10px 16px;font-size:14px;font-weight:600;color:var(--ink-500);text-decoration:none;transition:color 0.2s;}
+    .nav-login:hover{color:var(--ink-900);}
 
     /* ─── PAGE LAYOUT (sticky sidebar) ─── */
     .page-layout{display:grid;grid-template-columns:260px 1fr;align-items:start;padding-top:72px;}
@@ -231,7 +233,8 @@
           </div>
         </div>
       </div>
-      <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+      <a href="https://my.workived.com" class="nav-login">Log in</a>
+      <a href="https://my.workived.com/register" class="nav-cta">Get Started Free</a>
     </div>
     <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
       <span></span><span></span><span></span>
@@ -245,7 +248,8 @@
     <div class="mobile-section-label">Resources</div>
     <a href="articles" class="mobile-sub-link">Articles</a>
     <a href="about" class="mobile-sub-link">About</a>
-    <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+    <a href="https://my.workived.com" class="mobile-sub-link">Log in</a>
+    <a href="https://my.workived.com/register" class="nav-cta">Get Started Free</a>
   </div>
 
   <!-- ─── PAGE LAYOUT ─── -->
@@ -256,10 +260,10 @@
       <span class="sidebar-eyebrow">All Features</span>
       <nav class="sidebar-modlist">
         <a href="#overview"    class="mrow active" style="--mc:#6357E8"><span class="mrow-num">01</span><span class="mrow-name">Overview</span>    <span class="mrow-arrow">→</span></a>
-        <a href="#attendance"  class="mrow"        style="--mc:#8B5CF6"><span class="mrow-num">02</span><span class="mrow-name">Attendance</span>  <span class="mrow-arrow">→</span></a>
-        <a href="#leave"       class="mrow"        style="--mc:#818CF8"><span class="mrow-num">03</span><span class="mrow-name">Leave</span>       <span class="mrow-arrow">→</span></a>
-        <a href="#claims"      class="mrow"        style="--mc:#10B981"><span class="mrow-num">04</span><span class="mrow-name">Claims</span>      <span class="mrow-arrow">→</span></a>
-        <a href="#tasks"       class="mrow"        style="--mc:#6357E8"><span class="mrow-num">05</span><span class="mrow-name">Tasks</span>       <span class="mrow-arrow">→</span></a>
+        <a href="#tasks"       class="mrow"        style="--mc:#6357E8"><span class="mrow-num">02</span><span class="mrow-name">Tasks</span>       <span class="mrow-arrow">→</span></a>
+        <a href="#attendance"  class="mrow"        style="--mc:#8B5CF6"><span class="mrow-num">03</span><span class="mrow-name">Attendance</span>  <span class="mrow-arrow">→</span></a>
+        <a href="#leave"       class="mrow"        style="--mc:#818CF8"><span class="mrow-num">04</span><span class="mrow-name">Leave</span>       <span class="mrow-arrow">→</span></a>
+        <a href="#claims"      class="mrow"        style="--mc:#10B981"><span class="mrow-num">05</span><span class="mrow-name">Claims</span>      <span class="mrow-arrow">→</span></a>
         <a href="#calendar"    class="mrow"        style="--mc:#D97706"><span class="mrow-num">06</span><span class="mrow-name">Calendar</span>    <span class="mrow-arrow">→</span></a>
         <a href="#people"      class="mrow"        style="--mc:#EC4899"><span class="mrow-num">07</span><span class="mrow-name">People</span>      <span class="mrow-arrow">→</span></a>
         <a href="#performance" class="mrow"        style="--mc:#F59E0B"><span class="mrow-num">08</span><span class="mrow-name">Performance</span> <span class="mrow-arrow">→</span></a>
@@ -295,9 +299,35 @@
       </div>
     </section>
 
-    <!-- 02 ATTENDANCE -->
-    <section id="attendance" class="msec flip reveal">
+    <!-- 02 TASKS -->
+    <section id="tasks" class="msec flip reveal">
       <div class="msec-num" aria-hidden="true">02</div>
+      <div class="msec-inner">
+        <div class="msec-text">
+          <div class="msec-eyebrow"><span class="msec-edot" style="background:#6357E8;"></span>Tasks</div>
+          <h2 class="msec-title">Kanban boards<br>for your whole team</h2>
+          <p class="msec-desc">Assign tasks, set priorities, track progress. A drag-and-drop board that keeps everyone aligned.</p>
+          <div class="msec-chips">
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>See your team workload & availability</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Priority labels (Urgent, High, Medium)</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Assignees with due dates</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Auto-generated approval tasks</span>
+            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Custom fields to track anything</span>
+          </div>
+        </div>
+        <div class="msec-visual">
+          <div class="msec-glow" style="background:#6357E8;"></div>
+          <div class="msec-frame">
+            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/tasks</div></div>
+            <img src="../images/tasks.png" alt="Workived task boards" loading="lazy" width="960" height="600">
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 ATTENDANCE -->
+    <section id="attendance" class="msec reveal">
+      <div class="msec-num" aria-hidden="true">03</div>
       <div class="msec-inner">
         <div class="msec-text">
           <div class="msec-eyebrow"><span class="msec-edot" style="background:#8B5CF6;"></span>Attendance</div>
@@ -320,9 +350,9 @@
       </div>
     </section>
 
-    <!-- 03 LEAVE -->
-    <section id="leave" class="msec reveal">
-      <div class="msec-num" aria-hidden="true">03</div>
+    <!-- 04 LEAVE -->
+    <section id="leave" class="msec flip reveal">
+      <div class="msec-num" aria-hidden="true">04</div>
       <div class="msec-inner">
         <div class="msec-text">
           <div class="msec-eyebrow"><span class="msec-edot" style="background:#818CF8;"></span>Leave</div>
@@ -345,9 +375,9 @@
       </div>
     </section>
 
-    <!-- 04 CLAIMS -->
-    <section id="claims" class="msec flip reveal">
-      <div class="msec-num" aria-hidden="true">04</div>
+    <!-- 05 CLAIMS -->
+    <section id="claims" class="msec reveal">
+      <div class="msec-num" aria-hidden="true">05</div>
       <div class="msec-inner">
         <div class="msec-text">
           <div class="msec-eyebrow"><span class="msec-edot" style="background:#10B981;"></span>Claims</div>
@@ -365,32 +395,6 @@
           <div class="msec-frame">
             <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/claims</div></div>
             <img src="../images/claims.jpeg" alt="Workived expense claims" loading="lazy" width="960" height="600">
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- 05 TASKS -->
-    <section id="tasks" class="msec reveal">
-      <div class="msec-num" aria-hidden="true">05</div>
-      <div class="msec-inner">
-        <div class="msec-text">
-          <div class="msec-eyebrow"><span class="msec-edot" style="background:#6357E8;"></span>Tasks</div>
-          <h2 class="msec-title">Kanban boards<br>for your whole team</h2>
-          <p class="msec-desc">Assign tasks, set priorities, track progress. A drag-and-drop board that keeps everyone aligned.</p>
-          <div class="msec-chips">
-            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>To Do → In Progress → Done</span>
-            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Priority labels (Urgent, High, Medium)</span>
-            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Assignees with due dates</span>
-            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Auto-generated approval tasks</span>
-            <span class="chip"><span class="cdot" style="background:#6357E8;"></span>Custom fields to track anything</span>
-          </div>
-        </div>
-        <div class="msec-visual">
-          <div class="msec-glow" style="background:#6357E8;"></div>
-          <div class="msec-frame">
-            <div class="bbar"><div class="bdot"></div><div class="bdot"></div><div class="bdot"></div><div class="burl">app.workived.com/tasks</div></div>
-            <img src="../images/tasks.png" alt="Workived task boards" loading="lazy" width="960" height="600">
           </div>
         </div>
       </div>
@@ -514,8 +518,8 @@
     <div class="cta-content reveal">
       <h2>Ready to simplify<br><span class="g">your team ops?</span></h2>
       <p>Free for teams up to 15. No credit card, no trial period, no catch.</p>
-      <a href="mailto:my@workived.com" class="btn-primary">
-        Get Early Access
+      <a href="https://my.workived.com/register" class="btn-primary">
+        Get Started Free
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
       </a>
     </div>
@@ -536,6 +540,7 @@
         <a href="ai" class="footer-link">AI</a>
         <a href="articles" class="footer-link">Articles</a>
         <a href="mailto:my@workived.com" class="footer-link">my@workived.com</a>
+        <a href="https://my.workived.com" class="footer-link">Log in</a>
       </div>
     </div>
   </footer>

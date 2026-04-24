@@ -127,6 +127,12 @@
       box-shadow: 0 4px 20px rgba(99,87,232,0.3);
       transform: scale(1.03);
     }
+    .nav-login {
+      padding: 8px 16px; border-radius: 100px;
+      font-weight: 600; font-size: 13px; color: var(--ink-500);
+      text-decoration: none; transition: all 0.2s; white-space: nowrap;
+    }
+    .nav-login:hover { color: var(--ink-900); }
 
     /* ─── SCROLL PROGRESS (inside island) ─── */
     .scroll-progress {
@@ -859,7 +865,8 @@
         </div>
       </div>
       <div class="nav-right">
-        <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+        <a href="https://my.workived.com" class="nav-login">Log in</a>
+        <a href="https://my.workived.com/register" class="nav-cta">Get Started Free</a>
       </div>
       <button class="nav-hamburger" id="hamburger" aria-label="Toggle menu" aria-expanded="false">
         <span></span><span></span><span></span>
@@ -874,7 +881,8 @@
     <div class="mobile-section-label">Resources</div>
     <a href="articles" class="mobile-sub-link">Articles</a>
     <a href="about" class="mobile-sub-link">About</a>
-    <a href="mailto:my@workived.com" class="nav-cta">Get Early Access</a>
+    <a href="https://my.workived.com" class="mobile-sub-link">Log in</a>
+    <a href="https://my.workived.com/register" class="nav-cta">Get Started Free</a>
   </div>
 
   <!-- SCROLL PROGRESS BAR -->
@@ -890,8 +898,8 @@
           HR data and Task Management — one workspace.
         </p>
         <div class="hero-actions">
-          <a href="mailto:my@workived.com" class="btn-primary">
-            Get Early Access
+          <a href="https://my.workived.com/register" class="btn-primary">
+            Get Started Free
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
           </a>
           <a href="#tour" class="btn-ghost">
@@ -974,8 +982,26 @@
         </div>
       </a>
 
+      <!-- TASKS -->
+      <a href="features.html#tasks" class="tour-card tour-card--amber tour-card--half reveal reveal-d1" style="text-decoration:none;color:inherit;">
+        <div class="tour-card-brand">
+          <div class="tour-card-icon" style="background:rgba(245,158,11,0.15);">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div class="tour-card-name">workived <span>tasks</span></div>
+        </div>
+        <h3>Assign, track, and ship work — boards, lists, and custom fields</h3>
+        <p>Kanban boards, table views, priority badges, custom fields, and smart assignments.</p>
+        <div class="tour-card-collage">
+          <img src="../images/thumbnails/tasks-card.png" alt="Task board" loading="lazy"
+               style="width:55%; top:0; left:0; z-index:1; border-radius:12px;">
+          <img src="../images/thumbnails/tasks-team-availability.png" alt="Team availability" loading="lazy"
+               style="width:55%; top:0; right:0; z-index:2; border-radius:12px; box-shadow:-4px 0 20px rgba(0,0,0,0.08);">
+        </div>
+      </a>
+
       <!-- LEAVE -->
-      <a href="features.html#leave" class="tour-card tour-card--blue tour-card--half reveal reveal-d1" style="text-decoration:none;color:inherit;">
+      <a href="features.html#leave" class="tour-card tour-card--blue tour-card--half reveal" style="text-decoration:none;color:inherit;">
         <div class="tour-card-brand">
           <div class="tour-card-icon" style="background:rgba(129,140,248,0.15);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#818CF8" stroke-width="2" stroke-linecap="round"><path d="M17 17h5v-5"/><path d="M17 17c0-5-3-8-8-8s-8 3-8 8"/></svg>
@@ -995,7 +1021,7 @@
       </a>
 
       <!-- CLAIMS -->
-      <a href="features.html#claims" class="tour-card tour-card--green tour-card--half reveal" style="text-decoration:none;color:inherit;">
+      <a href="features.html#claims" class="tour-card tour-card--green tour-card--half reveal reveal-d1" style="text-decoration:none;color:inherit;">
         <div class="tour-card-brand">
           <div class="tour-card-icon" style="background:rgba(16,185,129,0.15);">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
@@ -1011,26 +1037,6 @@
                style="width:42%; bottom:16px; left:4%; z-index:2;">
           <img src="../images/thumbnails/pending-approvals.png" alt="Pending approvals" loading="lazy"
                style="width:38%; bottom:16px; right:4%; z-index:3;">
-        </div>
-      </a>
-
-      <!-- TASKS -->
-      <a href="features.html#tasks" class="tour-card tour-card--amber tour-card--half reveal reveal-d1" style="text-decoration:none;color:inherit;">
-        <div class="tour-card-brand">
-          <div class="tour-card-icon" style="background:rgba(245,158,11,0.15);">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" stroke-linecap="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          </div>
-          <div class="tour-card-name">workived <span>tasks</span></div>
-        </div>
-        <h3>Assign, track, and ship work — boards, lists, and custom fields</h3>
-        <p>Kanban boards, table views, priority badges, custom fields, and smart assignments.</p>
-        <div class="tour-card-collage">
-          <img src="../images/thumbnails/task-todo.png" alt="To do board" loading="lazy"
-               style="width:50%; top:0; left:0; z-index:1; border-radius:12px;">
-          <img src="../images/thumbnails/task-custom-fields.png" alt="Custom fields" loading="lazy"
-               style="width:48%; top:0; right:0; z-index:2; border-radius:12px;">
-          <img src="../images/thumbnails/task-list.png" alt="Task list" loading="lazy"
-               style="width:88%; bottom:0; left:50%; margin-left:-44%; z-index:3; border-radius:12px 12px 0 0;">
         </div>
       </a>
 
@@ -1182,8 +1188,8 @@
     <div class="cta-content reveal">
       <h2>Ready to simplify<br><span class="gradient">your team ops?</span></h2>
       <p>Free for teams up to 15. No credit card, no trial period, no catch.</p>
-      <a href="mailto:my@workived.com" class="btn-primary">
-        Get Early Access
+      <a href="https://my.workived.com/register" class="btn-primary">
+        Get Started Free
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 8h10M9 4l4 4-4 4"/></svg>
       </a>
     </div>
@@ -1209,6 +1215,7 @@
         <a href="ai" class="footer-link">AI</a>
         <a href="articles" class="footer-link">Articles</a>
         <a href="mailto:my@workived.com" class="footer-link">my@workived.com</a>
+        <a href="https://my.workived.com" class="footer-link">Log in</a>
       </div>
     </div>
   </footer>
