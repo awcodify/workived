@@ -16,6 +16,9 @@ vi.mock('@/lib/hooks/useAttendance', () => ({
   useTeamWeek: vi.fn(),
   useAllWeek: vi.fn(),
   useWorkSchedules: vi.fn(() => ({ data: [], isLoading: false })),
+  useCorrections: vi.fn(() => ({ data: [], isLoading: false })),
+  useApproveCorrection: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
+  useRejectCorrection: vi.fn(() => ({ mutate: vi.fn(), isPending: false })),
 }))
 
 vi.mock('@/lib/hooks/useAttendanceRole', () => ({
@@ -180,14 +183,20 @@ describe('AttendancePage', () => {
     expect(screen.getByTestId('attendance-filter-clocked-in-btn')).toBeInTheDocument()
   })
 
-  it('renders show all employees toggle for managers', () => {
-    render(<AttendancePage />)
-    expect(screen.getByTestId('attendance-show-all-btn')).toBeInTheDocument()
-  })
-
   it('shows empty state when no employees', () => {
     render(<AttendancePage />)
     expect(screen.getByTestId('attendance-empty')).toBeInTheDocument()
+  })
+
+  it('always shows Work Schedules section with Manage/Create button', () => {
+    render(<AttendancePage />)
+    expect(screen.getByTestId('attendance-schedules-manage-btn')).toBeInTheDocument()
+  })
+
+  it('shows empty-state message and Create button when no schedules', () => {
+    render(<AttendancePage />)
+    expect(screen.getByTestId('attendance-schedules-empty')).toBeInTheDocument()
+    expect(screen.getByTestId('attendance-schedules-manage-btn')).toHaveTextContent('Create')
   })
 
   it('shifts selected date back 7 days when clicking prev week', () => {

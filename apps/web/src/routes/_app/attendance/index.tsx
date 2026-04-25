@@ -664,24 +664,32 @@ function AttendancePage() {
         <div>
           <div className="sticky top-6 space-y-6">
             {/* Work Schedules */}
-            {workSchedules.length > 0 && (
-              <div
-                className="rounded-2xl p-4"
-                style={{ background: t.surface, border: `1px solid ${t.border}` }}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: t.textMuted }}>
-                    Work Schedules
-                  </h3>
-                  <button
-                    onClick={() => setSchedulesOpen(true)}
-                    data-testid="attendance-schedules-manage-btn"
-                    className="text-[10px] font-bold uppercase px-2 py-1 rounded-md hover:bg-black/5 transition-colors"
-                    style={{ color: colors.accent }}
-                  >
-                    Manage
-                  </button>
-                </div>
+            <div
+              className="rounded-2xl p-4"
+              style={{ background: t.surface, border: `1px solid ${t.border}` }}
+            >
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold uppercase tracking-wide" style={{ color: t.textMuted }}>
+                  Work Schedules
+                </h3>
+                <button
+                  onClick={() => setSchedulesOpen(true)}
+                  data-testid="attendance-schedules-manage-btn"
+                  className="text-[10px] font-bold uppercase px-2 py-1 rounded-md hover:bg-black/5 transition-colors"
+                  style={{ color: colors.accent }}
+                >
+                  {workSchedules.length === 0 ? 'Create' : 'Manage'}
+                </button>
+              </div>
+              {workSchedules.length === 0 ? (
+                <p
+                  className="text-xs"
+                  data-testid="attendance-schedules-empty"
+                  style={{ color: t.textMuted }}
+                >
+                  No schedules yet. Create one so employees can be assigned working hours.
+                </p>
+              ) : (
                 <div className="space-y-2">
                   {workSchedules.map((ws) => {
                     const dayNames = [...ws.work_days]
@@ -721,8 +729,8 @@ function AttendancePage() {
                     )
                   })}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
             {/* Corrections inline panel */}
             <CorrectionsPanel tz={tz} />

@@ -7,6 +7,7 @@ import { useCreateEmployee } from '@/lib/hooks/useEmployees'
 import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
 import { useDepartments } from '@/lib/hooks/useDepartments'
 import { useJobTitles } from '@/lib/hooks/useJobTitles'
+import { useWorkSchedules } from '@/lib/hooks/useAttendance'
 import { EmployeeDropdown } from '@/components/workived/shared/EmployeeDropdown'
 import { Dropdown } from '@/components/workived/shared/Dropdown'
 import { moduleBackgrounds, moduleThemes, colors } from '@/design/tokens'
@@ -36,6 +37,7 @@ const newSchema = z.object({
   employment_type: z.enum(['full_time', 'part_time', 'contract', 'intern']),
   gender: z.enum(['male', 'female']).optional().or(z.literal('')),
   start_date: z.string().min(1, 'Start date is required'),
+  work_schedule_id: z.string().min(1, 'Work schedule is required'),
   email_mode: z.enum(['member', 'new', 'skip']),
   selected_user_id: z.string().optional(),
   email: z.string().optional(),
@@ -78,9 +80,11 @@ function NewEmployeePage() {
   const { data: unlinkedMembers = [] } = useUnlinkedMembers()
   const { data: departments } = useDepartments()
   const { data: jobTitles } = useJobTitles()
+  const { data: workSchedules } = useWorkSchedules()
 
   const safeDepartments = departments ?? []
   const safeJobTitles = jobTitles ?? []
+  const safeWorkSchedules = workSchedules ?? []
 
   const [photoFile, setPhotoFile] = useState<File | null>(null)
 
@@ -96,6 +100,7 @@ function NewEmployeePage() {
       employment_type: 'full_time',
       gender: '',
       start_date: '',
+      work_schedule_id: '',
       email_mode: preselectedUserId ? 'member' : 'new',
       selected_user_id: preselectedUserId ?? '',
       email: '',
@@ -145,6 +150,7 @@ function NewEmployeePage() {
       employment_type: data.employment_type,
       gender: data.gender === 'male' || data.gender === 'female' ? data.gender : undefined,
       start_date: data.start_date,
+      work_schedule_id: data.work_schedule_id,
     }
 
     createMutation.mutate(payload, {
@@ -395,6 +401,68 @@ function NewEmployeePage() {
                 </select>
               </label>
             </div>
+
+            {/* Work Schedule - Required */}
+            <Controller
+              name="work_schedule_id"
+              control={form.control}
+              render={({ field }) => (
+                <div>
+                  <label className="block">
+                    <span className="text-sm font-medium mb-1.5 block" style={{ color: t.text }}>
+                      Work schedule <span style={{ color: colors.err }}>*</span>
+                    </span>
+                    {safeWorkSchedules.length === 0 ? (
+                      <div
+                        className="rounded-lg px-4 py-3 text-sm"
+                        data-testid="people-work-schedule-empty"
+                        style={{
+                          background: `${colors.warn}10`,
+                          border: `1px solid ${colors.warn}30`,
+                          color: t.text,
+                        }}
+                      >
+                        No work schedules found.{' '}
+                        <Link
+                          to="/attendance"
+                          className="font-medium underline"
+                          style={{ color: colors.accent }}
+                        >
+                          Create one in Attendance settings
+                        </Link>{' '}
+                        before adding employees.
+                      </div>
+                    ) : (
+                      <div data-testid="people-work-schedule-select">
+                        <Dropdown
+                          value={field.value || ''}
+                          onChange={field.onChange}
+                          options={[
+                            { value: '', label: '— Select work schedule —' },
+                            ...safeWorkSchedules.map((ws) => ({
+                              value: ws.id,
+                              label: ws.name,
+                            })),
+                          ]}
+                          placeholder="Select work schedule"
+                          fullWidth
+                          style={{
+                            background: t.input,
+                            border: `1px solid ${form.formState.errors.work_schedule_id ? colors.err : t.inputBorder}`,
+                            color: t.text,
+                          }}
+                        />
+                      </div>
+                    )}
+                    {form.formState.errors.work_schedule_id && (
+                      <p className="text-xs mt-1.5" style={{ color: colors.err }}>
+                        {form.formState.errors.work_schedule_id.message}
+                      </p>
+                    )}
+                  </label>
+                </div>
+              )}
+            />
 
             {/* Job title */}
             <Controller

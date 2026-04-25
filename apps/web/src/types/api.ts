@@ -207,6 +207,7 @@ export interface CreateEmployeeInput {
   employment_type: string
   start_date: string
   gender?: 'male' | 'female'
+  work_schedule_id?: string
 }
 
 export type UpdateEmployeeInput = Partial<CreateEmployeeInput> & {
