@@ -8,7 +8,6 @@ export default defineConfig({
     alias: [
       { find: '@/design', replacement: path.resolve(__dirname, '../../design') },
       { find: '@', replacement: path.resolve(__dirname, './src') },
-      { find: 'virtual:pwa-register/react', replacement: path.resolve(__dirname, './src/test/mocks/pwa-register.ts') },
     ],
   },
   test: {
