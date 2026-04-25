@@ -32,6 +32,7 @@ type RepositoryInterface interface {
 	DeactivateWorkSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) error
 	IsDefaultSchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (bool, error)
 	CountEmployeesBySchedule(ctx context.Context, orgID, scheduleID uuid.UUID) (int, error)
+	AssignScheduleToUnassignedEmployees(ctx context.Context, orgID, scheduleID uuid.UUID) (int64, error)
 	GetLocationCounts(ctx context.Context, orgID uuid.UUID, startDate, endDate string) (map[string]int, error)
 	// Corrections
 	CreateCorrection(ctx context.Context, orgID, employeeID uuid.UUID, date string, recordID *uuid.UUID, origIn, origOut, reqIn, reqOut *time.Time, reason string) (*Correction, error)
@@ -1061,12 +1062,29 @@ func (s *Service) ListWorkSchedules(ctx context.Context, orgID uuid.UUID) ([]Wor
 }
 
 // CreateWorkSchedule creates a new work schedule for the org.
+// After creation it auto-assigns the schedule to any employees whose
+// work_schedule_id is NULL (e.g. the owner who skipped setup).
 func (s *Service) CreateWorkSchedule(ctx context.Context, orgID uuid.UUID, req CreateWorkScheduleRequest) (*WorkScheduleListItem, error) {
 	ws, err := s.repo.CreateWorkSchedule(ctx, orgID, req)
 	if err != nil {
 		return nil, err
 	}
 	s.invalidateScheduleCache(ctx, orgID)
+
+	affected, err := s.repo.AssignScheduleToUnassignedEmployees(ctx, orgID, ws.ID)
+	if err != nil {
+		s.log.Warn().Err(err).
+			Str("org_id", orgID.String()).
+			Str("schedule_id", ws.ID.String()).
+			Msg("work_schedule.created: failed to back-fill unassigned employees")
+	} else if affected > 0 {
+		s.log.Info().
+			Str("org_id", orgID.String()).
+			Str("schedule_id", ws.ID.String()).
+			Int64("employees_assigned", affected).
+			Msg("work_schedule.created: back-filled unassigned employees")
+	}
+
 	s.log.Info().
 		Str("org_id", orgID.String()).
 		Str("schedule_id", ws.ID.String()).

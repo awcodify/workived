@@ -15,21 +15,22 @@ import (
 // ── Fakes ─────────────────────────────────────────────────────────────────────
 
 type fakeRepo struct {
-	getByEmpDateFn           func(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error)
-	createFn                 func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error)
-	updateClockOutFn         func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, isLeavingEarly, isOvertime bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error)
-	getScheduleForEmployeeFn func(ctx context.Context, orgID, empID uuid.UUID) (*attendance.WorkSchedule, error)
-	listByDateFn             func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error)
-	listByMonthFn            func(ctx context.Context, orgID uuid.UUID, year, month int) ([]attendance.Record, error)
-	listByEmpMonthFn         func(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error)
-	listByEmpsDateRangeFn    func(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) ([]attendance.Record, error)
-	getDefaultSchedFn        func(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error)
-	listHolidaysFn           func(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error)
-	listActiveEmpsFn         func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.ActiveEmployee, error)
-	getEmployeeNameFn        func(ctx context.Context, orgID, empID uuid.UUID) (string, error)
-	createWorkScheduleFn     func(ctx context.Context, orgID uuid.UUID, req attendance.CreateWorkScheduleRequest) (*attendance.WorkScheduleListItem, error)
-	isDefaultScheduleFn      func(ctx context.Context, orgID, scheduleID uuid.UUID) (bool, error)
-	deactivateWorkScheduleFn func(ctx context.Context, orgID, scheduleID uuid.UUID) error
+	getByEmpDateFn                       func(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error)
+	createFn                             func(ctx context.Context, orgID, empID uuid.UUID, date string, clockIn time.Time, isLate bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error)
+	updateClockOutFn                     func(ctx context.Context, orgID, empID uuid.UUID, date string, clockOut time.Time, isLeavingEarly, isOvertime bool, note *string, latitude, longitude *float64, photoURL *string) (*attendance.Record, error)
+	getScheduleForEmployeeFn             func(ctx context.Context, orgID, empID uuid.UUID) (*attendance.WorkSchedule, error)
+	listByDateFn                         func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.Record, error)
+	listByMonthFn                        func(ctx context.Context, orgID uuid.UUID, year, month int) ([]attendance.Record, error)
+	listByEmpMonthFn                     func(ctx context.Context, orgID, empID uuid.UUID, year, month int) ([]attendance.Record, error)
+	listByEmpsDateRangeFn                func(ctx context.Context, orgID uuid.UUID, employeeIDs []uuid.UUID, startDate, endDate string) ([]attendance.Record, error)
+	getDefaultSchedFn                    func(ctx context.Context, orgID uuid.UUID) (*attendance.WorkSchedule, error)
+	listHolidaysFn                       func(ctx context.Context, cc string, start, end string) ([]attendance.PublicHoliday, error)
+	listActiveEmpsFn                     func(ctx context.Context, orgID uuid.UUID, date string) ([]attendance.ActiveEmployee, error)
+	getEmployeeNameFn                    func(ctx context.Context, orgID, empID uuid.UUID) (string, error)
+	createWorkScheduleFn                 func(ctx context.Context, orgID uuid.UUID, req attendance.CreateWorkScheduleRequest) (*attendance.WorkScheduleListItem, error)
+	isDefaultScheduleFn                  func(ctx context.Context, orgID, scheduleID uuid.UUID) (bool, error)
+	deactivateWorkScheduleFn             func(ctx context.Context, orgID, scheduleID uuid.UUID) error
+	assignScheduleToUnassignedEmployeesFn func(ctx context.Context, orgID, scheduleID uuid.UUID) (int64, error)
 }
 
 func (f *fakeRepo) GetByEmployeeAndDate(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error) {
@@ -99,6 +100,12 @@ func (f *fakeRepo) IsDefaultSchedule(ctx context.Context, orgID, scheduleID uuid
 	return false, nil
 }
 func (f *fakeRepo) CountEmployeesBySchedule(_ context.Context, _, _ uuid.UUID) (int, error) {
+	return 0, nil
+}
+func (f *fakeRepo) AssignScheduleToUnassignedEmployees(ctx context.Context, orgID, scheduleID uuid.UUID) (int64, error) {
+	if f.assignScheduleToUnassignedEmployeesFn != nil {
+		return f.assignScheduleToUnassignedEmployeesFn(ctx, orgID, scheduleID)
+	}
 	return 0, nil
 }
 func (f *fakeRepo) GetLocationCounts(_ context.Context, _ uuid.UUID, _, _ string) (map[string]int, error) {
@@ -1463,7 +1470,6 @@ func TestService_CreateWorkSchedule(t *testing.T) {
 		listActiveEmpsFn:  func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) { return nil, nil },
 		getEmployeeNameFn: func(_ context.Context, _, _ uuid.UUID) (string, error) { return "", nil },
 	}
-	// Override CreateWorkSchedule on the fake
 	repo.createWorkScheduleFn = func(_ context.Context, _ uuid.UUID, req attendance.CreateWorkScheduleRequest) (*attendance.WorkScheduleListItem, error) {
 		return &attendance.WorkScheduleListItem{
 			ID: wsID, Name: req.Name, WorkDays: req.WorkDays, StartTime: req.StartTime, EndTime: req.EndTime,
@@ -1483,6 +1489,38 @@ func TestService_CreateWorkSchedule(t *testing.T) {
 	}
 	if ws.ID != wsID {
 		t.Errorf("id = %v, want %v", ws.ID, wsID)
+	}
+}
+
+func TestService_CreateWorkSchedule_BackFillsUnassignedEmployees(t *testing.T) {
+	orgID := uuid.New()
+	wsID := uuid.New()
+	var backFillCalledWith uuid.UUID
+
+	repo := &fakeRepo{
+		getDefaultSchedFn: func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) { return nil, nil },
+		listHolidaysFn:    func(_ context.Context, _ string, _, _ string) ([]attendance.PublicHoliday, error) { return nil, nil },
+		listActiveEmpsFn:  func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) { return nil, nil },
+		getEmployeeNameFn: func(_ context.Context, _, _ uuid.UUID) (string, error) { return "", nil },
+	}
+	repo.createWorkScheduleFn = func(_ context.Context, _ uuid.UUID, req attendance.CreateWorkScheduleRequest) (*attendance.WorkScheduleListItem, error) {
+		return &attendance.WorkScheduleListItem{ID: wsID, Name: req.Name}, nil
+	}
+	repo.assignScheduleToUnassignedEmployeesFn = func(_ context.Context, _ uuid.UUID, schedID uuid.UUID) (int64, error) {
+		backFillCalledWith = schedID
+		return 1, nil // one employee (the owner) was back-filled
+	}
+
+	svc := attendance.NewService(repo, &fakeOrgInfo{tz: "UTC", cc: "ID"}, &fakeEmployeeInfo{}, zerolog.Nop())
+
+	_, err := svc.CreateWorkSchedule(context.Background(), orgID, attendance.CreateWorkScheduleRequest{
+		Name: "Standard", WorkDays: []int{1, 2, 3, 4, 5}, StartTime: "09:00", EndTime: "17:00",
+	})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if backFillCalledWith != wsID {
+		t.Errorf("back-fill called with schedule %v, want %v", backFillCalledWith, wsID)
 	}
 }
 

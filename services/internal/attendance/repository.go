@@ -521,6 +521,22 @@ func (r *Repository) CountEmployeesBySchedule(ctx context.Context, orgID, schedu
 	return count, err
 }
 
+// AssignScheduleToUnassignedEmployees sets scheduleID on every employee in the org
+// whose work_schedule_id is currently NULL. Returns the number of rows updated.
+func (r *Repository) AssignScheduleToUnassignedEmployees(ctx context.Context, orgID, scheduleID uuid.UUID) (int64, error) {
+	tag, err := r.db.Exec(ctx, `
+		UPDATE employees
+		SET    work_schedule_id = $2, updated_at = NOW()
+		WHERE  organisation_id  = $1
+		  AND  work_schedule_id IS NULL
+		  AND  is_active        = TRUE
+	`, orgID, scheduleID)
+	if err != nil {
+		return 0, err
+	}
+	return tag.RowsAffected(), nil
+}
+
 // GetEmployeeName returns the full_name for an employee, scoped to org.
 func (r *Repository) GetEmployeeName(ctx context.Context, orgID, employeeID uuid.UUID) (string, error) {
 	var name string

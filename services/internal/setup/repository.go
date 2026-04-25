@@ -314,3 +314,16 @@ func (r *Repository) GetOrganisationCountryCode(ctx context.Context, orgID uuid.
 func (r *Repository) BeginTx(ctx context.Context) (pgx.Tx, error) {
 	return r.db.Begin(ctx)
 }
+
+// AssignScheduleToUnassignedEmployeesTx sets scheduleID on every employee in the org
+// whose work_schedule_id is NULL, within the provided transaction.
+func (r *Repository) AssignScheduleToUnassignedEmployeesTx(ctx context.Context, tx pgx.Tx, orgID, scheduleID uuid.UUID) error {
+	_, err := tx.Exec(ctx, `
+		UPDATE employees
+		SET    work_schedule_id = $2, updated_at = NOW()
+		WHERE  organisation_id  = $1
+		  AND  work_schedule_id IS NULL
+		  AND  is_active        = TRUE
+	`, orgID, scheduleID)
+	return err
+}

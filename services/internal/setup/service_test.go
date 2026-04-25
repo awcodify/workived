@@ -23,9 +23,10 @@ type MockRepository struct {
 	GetClaimCategoryTemplatesFunc       func(ctx context.Context, countryCode string) ([]ClaimCategoryTemplate, error)
 	MarkSetupCompleteFunc               func(ctx context.Context, tx pgx.Tx, orgID uuid.UUID) error
 	MarkSetupSkippedFunc                func(ctx context.Context, orgID uuid.UUID) error
-	CreateWorkScheduleFromTemplateFunc  func(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID) (uuid.UUID, error)
-	CreateCustomWorkScheduleFunc        func(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, input *CustomScheduleInput) (uuid.UUID, error)
-	CreateLeavePolicyFromTemplateFunc   func(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID, custom *LeavePolicyCustomization) (uuid.UUID, error)
+	CreateWorkScheduleFromTemplateFunc             func(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID) (uuid.UUID, error)
+	CreateCustomWorkScheduleFunc                   func(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, input *CustomScheduleInput) (uuid.UUID, error)
+	AssignScheduleToUnassignedEmployeesTxFunc      func(ctx context.Context, tx pgx.Tx, orgID, scheduleID uuid.UUID) error
+	CreateLeavePolicyFromTemplateFunc              func(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID, custom *LeavePolicyCustomization) (uuid.UUID, error)
 	CreateClaimCategoryFromTemplateFunc func(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID, custom *ClaimCategoryCustomization) (uuid.UUID, error)
 	CreateInvitationFunc                func(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, email, role string) (uuid.UUID, error)
 	BeginTxFunc                         func(ctx context.Context) (pgx.Tx, error)
@@ -92,6 +93,13 @@ func (m *MockRepository) CreateCustomWorkSchedule(ctx context.Context, tx pgx.Tx
 		return m.CreateCustomWorkScheduleFunc(ctx, tx, orgID, input)
 	}
 	return uuid.Nil, errors.New("not implemented")
+}
+
+func (m *MockRepository) AssignScheduleToUnassignedEmployeesTx(ctx context.Context, tx pgx.Tx, orgID, scheduleID uuid.UUID) error {
+	if m.AssignScheduleToUnassignedEmployeesTxFunc != nil {
+		return m.AssignScheduleToUnassignedEmployeesTxFunc(ctx, tx, orgID, scheduleID)
+	}
+	return nil // safe default: no-op
 }
 
 func (m *MockRepository) CreateLeavePolicyFromTemplate(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID, custom *LeavePolicyCustomization) (uuid.UUID, error) {

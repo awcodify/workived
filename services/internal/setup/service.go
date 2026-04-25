@@ -111,6 +111,15 @@ func (s *Service) CompleteSetup(ctx context.Context, orgID uuid.UUID, req *Compl
 	}
 	response.WorkScheduleID = workScheduleID
 
+	// Back-fill any employees (e.g. the org owner) who have no schedule yet.
+	if err := s.repo.AssignScheduleToUnassignedEmployeesTx(ctx, tx, orgID, workScheduleID); err != nil {
+		s.logger.Error().Err(err).
+			Str("org_id", orgID.String()).
+			Str("schedule_id", workScheduleID.String()).
+			Msg("failed to back-fill unassigned employees with new schedule")
+		return nil, apperr.Internal()
+	}
+
 	// 2. Create leave policies from templates
 	var leavePolicyIDs []uuid.UUID
 	for _, templateID := range req.LeavePolicies.TemplateIDs {

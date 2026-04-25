@@ -18,6 +18,7 @@ type RepositoryInterface interface {
 	MarkSetupSkipped(ctx context.Context, orgID uuid.UUID) error
 	CreateWorkScheduleFromTemplate(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID) (uuid.UUID, error)
 	CreateCustomWorkSchedule(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, input *CustomScheduleInput) (uuid.UUID, error)
+	AssignScheduleToUnassignedEmployeesTx(ctx context.Context, tx pgx.Tx, orgID, scheduleID uuid.UUID) error
 	CreateLeavePolicyFromTemplate(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID, custom *LeavePolicyCustomization) (uuid.UUID, error)
 	CreateClaimCategoryFromTemplate(ctx context.Context, tx pgx.Tx, orgID, templateID uuid.UUID, custom *ClaimCategoryCustomization) (uuid.UUID, error)
 	CreateInvitation(ctx context.Context, tx pgx.Tx, orgID uuid.UUID, email, role string) (uuid.UUID, error)
