@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { useTourStore } from '@/lib/stores/tour'
+import { useTaskTourStore } from '@/lib/stores/taskTour'
 import {
   SpotlightOverlay,
   SpotlightTooltip,
@@ -11,127 +11,78 @@ import {
 } from './TourEngine'
 import { trackTourEvent } from '@/lib/tours/instrumentation'
 
-// ── Overview tour step definitions ──────────────────────────────
+// ── Task board tour steps ────────────────────────────────────────
 
-export const TOUR_STEPS: TourStep[] = [
+export const TASK_TOUR_STEPS: TourStep[] = [
   {
-    id: 'welcome',
+    id: 'tasks-welcome',
     type: 'modal',
-    title: 'Welcome to Workived!',
-    description: "Let’s take a quick tour so you know where everything is.\nIt only takes a minute.",
-    icon: '👋',
+    title: 'Your Task Board',
+    description: "Here's a quick walkthrough of how the board works.\nTakes about 30 seconds.",
+    icon: '📋',
   },
   {
-    id: 'dock',
+    id: 'tasks-board',
     type: 'spotlight',
-    target: '[data-tour="dock"]',
-    title: 'Your Navigation Dock',
-    description: 'This is your main navigation. Switch between modules from here — each one has its own colour world.',
+    target: '[data-tour="tasks-board"]',
+    title: 'Board layout',
+    description: 'Cards flow left to right through workflow columns. Each column is a stage — backlog, in progress, review, done. Your team customises these.',
   },
   {
-    id: 'overview-dock',
+    id: 'tasks-first-column',
     type: 'spotlight',
-    target: '[data-tour="dock-overview"]',
-    title: 'Overview',
-    description: 'Your home base. See attendance, leave balance, claims budget, and team pulse at a glance.',
+    target: '[data-tour="tasks-first-column"]',
+    title: 'Columns & state changes',
+    description: 'The number above the column name is the live task count. Drag a card to the last column to auto-complete it — the board tracks that state change for you.',
   },
   {
-    id: 'attendance-dock',
+    id: 'tasks-add-btn',
     type: 'spotlight',
-    target: '[data-tour="dock-attendance"]',
-    title: 'Attendance',
-    description: 'Full attendance page with calendar view, weekly reports, and work schedule management.',
+    target: '[data-tour="tasks-add-btn"]',
+    title: 'Creating tasks',
+    description: "Click '+ Add' to create a task inline, or open the full editor for details like due date, priority, labels, and file attachments.",
   },
   {
-    id: 'tasks-dock',
+    id: 'tasks-filter-bar',
     type: 'spotlight',
-    target: '[data-tour="dock-tasks"]',
-    title: 'Tasks',
-    description: 'Kanban board for your team. Drag tasks between columns, set priorities, and track progress.',
+    target: '[data-tour="tasks-filter-bar"]',
+    title: 'Filters & search',
+    description: 'Filter by assignee, priority, or label. Search updates instantly across titles and descriptions. Use "All Tasks" for a sortable table view.',
   },
   {
-    id: 'leave-dock',
+    id: 'tasks-view-tabs',
     type: 'spotlight',
-    target: '[data-tour="dock-leave"]',
-    title: 'Leave',
-    description: 'Request time off, check your balance, and review approvals.',
+    target: '[data-tour="tasks-view-tabs"]',
+    title: 'Views & approvals',
+    description: "Switch between All, Tasks, and Approvals. Leave requests and expense claims from your team appear under Approvals — approve or reject without leaving this page.",
   },
   {
-    id: 'claims-dock',
+    id: 'tasks-workload',
     type: 'spotlight',
-    target: '[data-tour="dock-claims"]',
-    title: 'Claims',
-    description: 'Submit expenses with receipts and track reimbursement status.',
+    target: '[data-tour="tasks-workload"]',
+    title: 'Team workload',
+    description: 'These badges show who is available, busy, or on leave right now. Click any badge to see which team members are in that state before assigning work.',
   },
   {
-    id: 'calendar-dock',
-    type: 'spotlight',
-    target: '[data-tour="dock-calendar"]',
-    title: 'Calendar',
-    description: 'See leave, holidays, and team events all in one view.',
-  },
-  {
-    id: 'people-dock',
-    type: 'spotlight',
-    target: '[data-tour="dock-people"]',
-    title: 'People',
-    description: 'Your team directory with profiles, departments, and org chart.',
-  },
-  {
-    id: 'settings-dock',
-    type: 'spotlight',
-    target: '[data-tour="dock-settings"]',
-    title: 'Settings',
-    description: 'Company settings, team members, theme toggle, and your profile. You can also replay this tour from here.',
-  },
-  {
-    id: 'notification-bell',
-    type: 'spotlight',
-    target: '[data-tour="notification-bell"]',
-    title: 'Notifications',
-    description: 'Stay on top of things. Leave approvals, claim updates, and team activity show up here.',
-  },
-  {
-    id: 'attendance-card',
-    type: 'spotlight',
-    target: '[data-tour="attendance-card"]',
-    title: 'Quick Clock In',
-    description: 'Clock in and out right from the overview. Your work schedule and hours are tracked here.',
-  },
-  {
-    id: 'balances-column',
-    type: 'spotlight',
-    target: '[data-tour="balances-column"]',
-    title: 'Leave & Claims',
-    description: 'Your annual leave balance and expense budget at a glance. Pending approvals appear here too.',
-  },
-  {
-    id: 'team-pulse',
-    type: 'spotlight',
-    target: '[data-tour="team-pulse"]',
-    title: 'Team Pulse',
-    description: "See who’s in, who’s away, and who’s running late — all in real time.",
-  },
-  {
-    id: 'done',
+    id: 'tasks-done',
     type: 'modal',
-    title: "You’re all set!",
-    description: 'Start by clocking in for today.\nYou can replay this tour anytime from Settings.',
-    icon: '🎉',
+    title: "Board unlocked.",
+    description: "Drag cards to move them, click any card to open full details.\nYou can replay this tour anytime from Settings.",
+    icon: '🚀',
   },
 ]
 
-// ── TourOverlay ──────────────────────────────────────────────────
+// ── TaskTourOverlay ──────────────────────────────────────────────
 
-export function TourOverlay() {
-  const { isActive, currentStep, nextStep, prevStep, skipTour } = useTourStore()
+export function TaskTourOverlay() {
+  const { isActive, currentStep, nextStep, prevStep, skipTour } = useTaskTourStore()
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
   const overlayRef = useRef<HTMLDivElement>(null)
   const prevStepRef = useRef<number>(-1)
 
-  const step = TOUR_STEPS[currentStep]
-  const totalSteps = TOUR_STEPS.length
+  const step = TASK_TOUR_STEPS[currentStep]
+  const totalSteps = TASK_TOUR_STEPS.length
   const isFirstStep = currentStep === 0
   const isLastStep = currentStep === totalSteps - 1
 
@@ -140,7 +91,6 @@ export function TourOverlay() {
       setTargetRect(null)
       return
     }
-    // Scroll target into view before measuring (handles scroll containers)
     const el = document.querySelector(step.target)
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     const rect = getTargetRect(step.target)
@@ -173,10 +123,10 @@ export function TourOverlay() {
     prevStepRef.current = currentStep
 
     if (currentStep === 0) {
-      trackTourEvent('tour_started', { tour_id: 'overview', total_steps: totalSteps })
+      trackTourEvent('tour_started', { tour_id: 'tasks', total_steps: totalSteps })
     }
     trackTourEvent('step_viewed', {
-      tour_id: 'overview',
+      tour_id: 'tasks',
       step_index: currentStep,
       step_id: step?.id,
       total_steps: totalSteps,
@@ -188,7 +138,7 @@ export function TourOverlay() {
     if (!isActive) return
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        trackTourEvent('tour_skipped', { tour_id: 'overview', step_index: currentStep })
+        trackTourEvent('tour_skipped', { tour_id: 'tasks', step_index: currentStep })
         skipTour()
       } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
         nextStep(totalSteps)
@@ -206,13 +156,13 @@ export function TourOverlay() {
 
   const handleNext = () => {
     if (isLastStep) {
-      trackTourEvent('tour_completed', { tour_id: 'overview', total_steps: totalSteps })
+      trackTourEvent('tour_completed', { tour_id: 'tasks', total_steps: totalSteps })
     }
     nextStep(totalSteps)
   }
 
   const handleSkip = () => {
-    trackTourEvent('tour_skipped', { tour_id: 'overview', step_index: currentStep })
+    trackTourEvent('tour_skipped', { tour_id: 'tasks', step_index: currentStep })
     skipTour()
   }
 
@@ -228,9 +178,8 @@ export function TourOverlay() {
       }}
       aria-modal="true"
       role="dialog"
-      aria-label="Product tour"
+      aria-label="Task board tour"
     >
-      {/* Overlay background */}
       {isModal ? (
         <div
           style={{
@@ -246,7 +195,6 @@ export function TourOverlay() {
         <SpotlightOverlay rect={targetRect!} onClick={handleNext} />
       )}
 
-      {/* Content */}
       {isModal ? (
         <ModalCard
           step={step as ModalStep}

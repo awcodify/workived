@@ -5,6 +5,7 @@ import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles
 import { useAuthStore } from '@/lib/stores/auth'
 import { useThemeStore } from '@/lib/stores/theme'
 import { useTourStore } from '@/lib/stores/tour'
+import { useTaskTourStore } from '@/lib/stores/taskTour'
 import { useHasOrg } from '@/lib/hooks/useRole'
 import { useChangelogUnread } from '@/lib/hooks/useChangelog'
 import { useLeaveNotificationCount } from '@/lib/hooks/useLeave'
@@ -367,13 +368,24 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
               />
               <MenuItem
                 icon={HelpCircle}
-                label="Replay tour"
+                label="Replay overview tour"
                 testId="settings-menu-tour-link"
                 onClick={() => {
                   setIsOpen(false)
                   useTourStore.getState().resetTour()
                   navigate({ to: '/overview' })
                   setTimeout(() => useTourStore.getState().startTour(), 500)
+                }}
+              />
+              <MenuItem
+                icon={HelpCircle}
+                label="Replay task board tour"
+                testId="settings-menu-task-tour-link"
+                onClick={() => {
+                  setIsOpen(false)
+                  useTaskTourStore.getState().resetTour()
+                  navigate({ to: '/tasks' })
+                  setTimeout(() => useTaskTourStore.getState().startTour(), 1200)
                 }}
               />
             </div>

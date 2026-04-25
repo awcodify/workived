@@ -920,7 +920,7 @@ function TasksPage() {
               ]
 
               return (
-                <div className="flex items-center gap-2 mt-3">
+                <div data-tour="tasks-workload" className="flex items-center gap-2 mt-3">
                   <span
                     className="text-xs font-medium"
                     style={{
@@ -1089,7 +1089,8 @@ function TasksPage() {
       </div>
 
       {/* Jira-style Filter Bar */}
-      <div 
+      <div
+        data-tour="tasks-filter-bar"
         className="mb-6 -mx-6 px-6 md:-mx-11 md:px-11 py-4 md:sticky relative"
         style={{
           top: 0,
@@ -1119,7 +1120,7 @@ function TasksPage() {
         {/* Single unified filter row — slim top bar */}
         <div className="flex items-center gap-3 flex-wrap">
           {/* Board view tabs (All / Tasks / Approvals) */}
-          <div className="flex items-center gap-1.5 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.05)' }}>
+          <div data-tour="tasks-view-tabs" className="flex items-center gap-1.5 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.05)' }}>
             {([['all', 'All'], ['tasks', 'Tasks'], ['approvals', 'Approvals']] as const).map(([mode, label]) => (
               <button
                 key={mode}
@@ -1384,7 +1385,7 @@ function TasksPage() {
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="flex gap-0 pb-4 -mx-6 px-6 md:-mx-11 md:px-11 items-stretch" style={{ minHeight: '400px' }}>
+        <div data-tour="tasks-board" className="flex gap-0 pb-4 -mx-6 px-6 md:-mx-11 md:px-11 items-stretch" style={{ minHeight: '400px' }}>
           {/* Left: Board with all columns (expanded + collapsed) in workflow order */}
           <div className="flex gap-0 flex-1 overflow-x-auto items-stretch" style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}>
           {/* Render all columns in their natural workflow order */}
@@ -1437,6 +1438,7 @@ function TasksPage() {
                   id={`column-${col.id}`}
                   role="tabpanel"
                   aria-labelledby={`tab-${col.id}`}
+                  {...(idx === 0 ? { 'data-tour': 'tasks-first-column' } : {})}
                   className={typeof window !== 'undefined' && window.innerWidth < 640 && !isMobileActive ? 'hidden' : ''}
                   style={{
                     width: getColumnWidth(),
@@ -2441,6 +2443,7 @@ function StatusColumn({
           {/* Add Task Button in Header */}
           <div className="flex items-center gap-1">
             <button
+              data-tour="tasks-add-btn"
               onClick={() => onStartCreateModal(listId)}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:bg-black/10"
               style={{
