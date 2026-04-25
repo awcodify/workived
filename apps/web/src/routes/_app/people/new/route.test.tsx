@@ -22,7 +22,6 @@ vi.mock('@/lib/hooks/useInvitations')
 vi.mock('@/lib/hooks/useDepartments')
 vi.mock('@/lib/hooks/useJobTitles')
 vi.mock('@/lib/hooks/useAttendance')
-vi.mock('@/lib/hooks/usePWA', () => ({ usePWAInstall: () => ({ isInstallable: false }) }))
 vi.mock('@/lib/api/client', () => ({
   apiClient: { get: vi.fn(), post: vi.fn(), put: vi.fn(), delete: vi.fn() },
 }))

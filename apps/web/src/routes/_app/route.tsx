@@ -4,10 +4,6 @@ import { useAuthStore } from '@/lib/stores/auth'
 import { authApi } from '@/lib/api/auth'
 import { Dock } from '@/components/workived/dock/Dock'
 import { LoadingBar } from '@/components/workived/shared/LoadingBar'
-import { PWAInstallPrompt } from '@/components/workived/pwa/PWAInstallPrompt'
-import { IOSInstallBanner } from '@/components/workived/pwa/IOSInstallBanner'
-import { PWAUpdatePrompt } from '@/components/workived/pwa/PWAUpdatePrompt'
-import { usePWAInstall } from '@/lib/hooks/usePWA'
 import { UpgradeModal } from '@/components/workived/shared/UpgradeModal'
 import { TourOverlay } from '@/components/workived/tour/TourOverlay'
 import { useTourStore } from '@/lib/stores/tour'
@@ -83,9 +79,6 @@ function AppLayout() {
   )
   const pathname = matches[matches.length - 1]?.pathname ?? '/'
 
-  // Initialise PWA install prompt listeners
-  usePWAInstall()
-
   // Auto-trigger tour for first-time users on overview page
   const { hasCompleted, isActive, startTour } = useTourStore()
   useEffect(() => {
@@ -98,15 +91,12 @@ function AppLayout() {
   return (
     <div className="min-h-screen">
       <LoadingBar />
-      <PWAUpdatePrompt />
       <UpgradeModal />
       <Outlet />
       {!isSetupPage && (
         <>
           <Dock />
           <TourOverlay />
-          <PWAInstallPrompt />
-          <IOSInstallBanner />
         </>
       )}
     </div>
