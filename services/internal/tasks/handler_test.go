@@ -488,6 +488,72 @@ func TestListTasks_MemberSeesOnlyOwnApprovals(t *testing.T) {
 	}
 }
 
+func TestListTasks_SearchByCode(t *testing.T) {
+	var capturedFilters tasks.TaskFilters
+	testCode := "WOR-227"
+	svc := &fakeService{
+		listTasksFn: func(_ context.Context, _ uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error) {
+			capturedFilters = filters
+			return []tasks.TaskWithDetails{
+				{
+					Task: tasks.Task{
+						ID:    testTaskID,
+						Code:  &testCode,
+						Title: "Fix import leave policy bugs",
+					},
+					CreatorName: "John Doe",
+					ListName:    "To Do",
+				},
+			}, nil
+		},
+	}
+
+	r := newRouter(svc)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/tasks?search=WOR-227", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
+	if capturedFilters.Search == nil {
+		t.Error("expected search filter to be set")
+	} else if *capturedFilters.Search != "WOR-227" {
+		t.Errorf("search = %q, want %q", *capturedFilters.Search, "WOR-227")
+	}
+	assertHasDataKey(t, w)
+}
+
+func TestListTasks_SearchByTitle(t *testing.T) {
+	var capturedFilters tasks.TaskFilters
+	svc := &fakeService{
+		listTasksFn: func(_ context.Context, _ uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error) {
+			capturedFilters = filters
+			return []tasks.TaskWithDetails{
+				{
+					Task: tasks.Task{
+						ID:    testTaskID,
+						Title: "Fix import leave policy bugs",
+					},
+					CreatorName: "John Doe",
+					ListName:    "To Do",
+				},
+			}, nil
+		},
+	}
+
+	r := newRouter(svc)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/tasks?search=import", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
+	if capturedFilters.Search == nil {
+		t.Error("expected search filter to be set")
+	} else if *capturedFilters.Search != "import" {
+		t.Errorf("search = %q, want %q", *capturedFilters.Search, "import")
+	}
+	assertHasDataKey(t, w)
+}
+
 func TestCreateTask(t *testing.T) {
 	svc := &fakeService{}
 	r := newRouter(svc)

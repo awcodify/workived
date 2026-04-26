@@ -298,6 +298,10 @@ func (m *mockRepo) LinkExists(ctx context.Context, orgID, sourceTaskID, targetTa
 	return false, nil
 }
 
+func (m *mockRepo) GetUniqueLabels(ctx context.Context, orgID uuid.UUID) ([]string, error) {
+	return []string{}, nil
+}
+
 // Subtasks / Hierarchy (stub implementations)
 func (m *mockRepo) ListSubtasks(ctx context.Context, orgID, parentTaskID uuid.UUID) ([]tasks.TaskWithDetails, error) {
 	return []tasks.TaskWithDetails{}, nil

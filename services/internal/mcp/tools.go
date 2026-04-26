@@ -321,7 +321,7 @@ func GetAvailableTools() []Tool {
 					},
 					"search": map[string]interface{}{
 						"type":        "string",
-						"description": "Search in task titles (optional)",
+						"description": "Search in task titles and codes (optional)",
 					},
 					"include_completed": map[string]interface{}{
 						"type":        "boolean",

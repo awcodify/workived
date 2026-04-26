@@ -269,13 +269,14 @@ function TasksPage() {
       filtered = filtered.filter((task) => !!task.approval_type)
     }
 
-    // Search filter (title + description) - use localSearchQuery for instant filtering
+    // Search filter (title + description + code) - use localSearchQuery for instant filtering
     if (localSearchQuery.trim()) {
       const query = localSearchQuery.toLowerCase()
       filtered = filtered.filter((task) => {
         const matchTitle = task.title.toLowerCase().includes(query)
         const matchDesc = task.description?.toLowerCase().includes(query)
-        return matchTitle || matchDesc
+        const matchCode = task.code?.toLowerCase().includes(query)
+        return matchTitle || matchDesc || matchCode
       })
     }
     
