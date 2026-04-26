@@ -528,6 +528,10 @@ export interface PolicyTemplate {
   max_carry_over_days?: number
   is_accrued: boolean
   requires_approval: boolean
+  gender_eligibility: 'all' | 'male' | 'female'
+  is_unlimited: boolean
+  day_count_type: 'working_days' | 'calendar_days'
+  max_lifetime_uses?: number
   sort_order: number
   created_at: string
 }

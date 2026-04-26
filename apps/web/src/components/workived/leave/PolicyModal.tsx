@@ -6,19 +6,20 @@ import { createPolicySchema, type CreatePolicyFormData } from '@/lib/validations
 import { useCreatePolicy, useUpdatePolicy } from '@/lib/hooks/useLeave'
 import { useBodyScrollLock } from '@/lib/hooks/useBodyScrollLock'
 import { moduleThemes, typography } from '@/design/tokens'
-import type { LeavePolicy } from '@/types/api'
+import type { LeavePolicy, PolicyTemplate } from '@/types/api'
 
 const t = moduleThemes.leave
 
 type EmpType = 'full_time' | 'part_time' | 'contract' | 'intern'
 
 interface PolicyModalProps {
-  policy?: LeavePolicy  // If provided, edit mode; otherwise create mode
+  policy?: LeavePolicy  // If provided, edit mode
+  template?: PolicyTemplate  // If provided, create mode with template defaults
   onClose: () => void
   onSuccess: () => void
 }
 
-export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
+export function PolicyModal({ policy, template, onClose, onSuccess }: PolicyModalProps) {
   const createMutation = useCreatePolicy()
   const updateMutation = useUpdatePolicy(policy?.id ?? '')
 
@@ -47,6 +48,19 @@ export function PolicyModal({ policy, onClose, onSuccess }: PolicyModalProps) {
           gender_eligibility: policy.gender_eligibility ?? null,
           eligible_employment_types: (policy.eligible_employment_types ?? []) as EmpType[],
           max_lifetime_uses: policy.max_lifetime_uses ?? null,
+        }
+      : template
+      ? {
+          name: template.name,
+          description: template.description ?? null,
+          days_per_year: template.entitled_days_per_year,
+          carry_over_days: template.max_carry_over_days ?? 0,
+          min_tenure_days: 0,
+          requires_approval: template.requires_approval,
+          is_unlimited: template.is_unlimited,
+          gender_eligibility: template.gender_eligibility === 'all' ? null : template.gender_eligibility,
+          eligible_employment_types: ['full_time'],
+          max_lifetime_uses: template.max_lifetime_uses ?? null,
         }
       : {
           name: '',

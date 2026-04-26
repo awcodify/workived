@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 import { moduleBackgrounds, moduleThemes, typography } from '@/design/tokens'
 import { ImportTemplatesModal } from '@/components/workived/leave/ImportTemplatesModal'
 import { PolicyModal } from '@/components/workived/leave/PolicyModal'
-import type { LeavePolicy } from '@/types/api'
+import type { LeavePolicy, PolicyTemplate } from '@/types/api'
 
 const t = moduleThemes.leave
 
@@ -23,6 +23,7 @@ function PoliciesPage() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [showPolicyModal, setShowPolicyModal] = useState(false)
   const [editingPolicy, setEditingPolicy] = useState<LeavePolicy | undefined>()
+  const [templateToEdit, setTemplateToEdit] = useState<PolicyTemplate | undefined>()
 
   // Redirect if no permission
   useEffect(() => {
@@ -42,6 +43,13 @@ function PoliciesPage() {
     } else {
       setDeletingId(id)
     }
+  }
+
+  const handleImportToForm = (template: PolicyTemplate) => {
+    setTemplateToEdit(template)
+    setEditingPolicy(undefined)
+    setShowImportModal(false)
+    setShowPolicyModal(true)
   }
 
   const activePolicies = policies?.filter((p) => p.is_active) ?? []
@@ -88,6 +96,7 @@ function PoliciesPage() {
           <button
             onClick={() => {
               setEditingPolicy(undefined)
+              setTemplateToEdit(undefined)
               setShowPolicyModal(true)
             }}
             data-testid="leave-policies-add-btn"
@@ -112,6 +121,7 @@ function PoliciesPage() {
           onImport={() => setShowImportModal(true)}
           onCreateManually={() => {
             setEditingPolicy(undefined)
+            setTemplateToEdit(undefined)
             setShowPolicyModal(true)
           }}
         /></div>
@@ -168,6 +178,7 @@ function PoliciesPage() {
                 <button
                   onClick={() => {
                     setEditingPolicy(policy)
+                    setTemplateToEdit(undefined)
                     setShowPolicyModal(true)
                   }}
                   data-testid={`leave-policy-edit-btn-${policy.id}`}
@@ -205,14 +216,24 @@ function PoliciesPage() {
       {showPolicyModal && (
         <PolicyModal
           policy={editingPolicy}
-          onClose={() => setShowPolicyModal(false)}
-          onSuccess={() => setShowPolicyModal(false)}
+          template={templateToEdit}
+          onClose={() => {
+            setShowPolicyModal(false)
+            setTemplateToEdit(undefined)
+          }}
+          onSuccess={() => {
+            setShowPolicyModal(false)
+            setTemplateToEdit(undefined)
+          }}
         />
       )}
 
       {/* Import Modal */}
       {showImportModal && (
-        <ImportTemplatesModal onClose={() => setShowImportModal(false)} />
+        <ImportTemplatesModal 
+          onClose={() => setShowImportModal(false)}
+          onImportToForm={handleImportToForm}
+        />
       )}
     </div>
   )

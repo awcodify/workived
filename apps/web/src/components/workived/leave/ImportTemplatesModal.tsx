@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
-import { X, Download, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react'
-import { useTemplates, useImportPolicies, usePolicies } from '@/lib/hooks/useLeave'
+import { useState } from 'react'
+import { X, Download, CheckCircle2 } from 'lucide-react'
+import { useTemplates } from '@/lib/hooks/useLeave'
 import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import type { PolicyTemplate } from '@/types/api'
 import { moduleThemes, typography } from '@/design/tokens'
@@ -9,78 +9,27 @@ const t = moduleThemes.leave
 
 interface ImportTemplatesModalProps {
   onClose: () => void
+  onImportToForm?: (template: PolicyTemplate) => void
 }
 
-export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
+export function ImportTemplatesModal({ onClose, onImportToForm }: ImportTemplatesModalProps) {
   const { data: organisation } = useOrganisation()
   const { data: templates, isLoading } = useTemplates(organisation?.country_code)
-  const { data: existingPolicies } = usePolicies()
-  const importMutation = useImportPolicies()
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
-  const [showConflictWarning, setShowConflictWarning] = useState(false)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
-  // Check for conflicts between selected templates and existing policies
-  const conflicts = useMemo(() => {
-    if (!templates || !existingPolicies || selectedIds.size === 0) return []
-    
-    const selectedTemplates = templates.filter(t => selectedIds.has(t.id))
-    const existingNames = new Set(existingPolicies.map(p => p.name))
-    
-    return selectedTemplates.filter(tmpl => existingNames.has(tmpl.name))
-  }, [templates, existingPolicies, selectedIds])
-
-  // Close dialog on successful import
-  useEffect(() => {
-    if (importMutation.isSuccess) {
-      const timer = setTimeout(onClose, 1500)
-      return () => clearTimeout(timer)
-    }
-  }, [importMutation.isSuccess, onClose])
-
-  const handleToggle = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) {
-        next.delete(id)
-      } else {
-        next.add(id)
-      }
-      return next
-    })
+  const handleSelect = (id: string) => {
+    // Radio-style selection: toggle if clicking the same, otherwise select new one
+    setSelectedId(selectedId === id ? null : id)
   }
 
-  const handleSelectAll = () => {
-    if (!templates) return
-    if (selectedIds.size === templates.length) {
-      setSelectedIds(new Set())
-    } else {
-      setSelectedIds(new Set(templates.map((t) => t.id)))
-    }
-  }
-
-  const handleImport = async () => {
-    if (selectedIds.size === 0) return
+  const handleImport = () => {
+    if (!selectedId || !templates || !onImportToForm) return
     
-    // Check for conflicts - if any exist, show warning first
-    if (conflicts.length > 0 && !showConflictWarning) {
-      setShowConflictWarning(true)
-      return
-    }
-    
-    // Proceed with import
-    try {
-      await importMutation.mutateAsync(Array.from(selectedIds))
-      setShowConflictWarning(false)
-    } catch (error) {
-      // Error handled by mutation
+    const selectedTemplate = templates.find(t => t.id === selectedId)
+    if (selectedTemplate) {
+      onImportToForm(selectedTemplate)
     }
   }
-
-  const handleCancelConflict = () => {
-    setShowConflictWarning(false)
-  }
-
-  const allSelected = templates && templates.length > 0 && selectedIds.size === templates.length
 
   return (
     <>
@@ -118,7 +67,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
               Import Leave Policies
             </h2>
             <p className="text-sm mt-1" style={{ color: t.textMuted }}>
-              Select templates to import as leave policies for your organisation
+              Select a template to review and import as a leave policy
             </p>
           </div>
           <button
@@ -133,113 +82,6 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
 
         {/* Content */}
         <div className="p-6 max-h-[60vh] overflow-y-auto">
-          {/* Success State */}
-          {importMutation.isSuccess && importMutation.data?.data?.data && (
-            <div
-              className="flex items-center gap-3 p-4 mb-4"
-              style={{
-                background: '#F0FDF4',
-                borderRadius: 12,
-                border: '1px solid #86EFAC',
-              }}
-            >
-              <CheckCircle2 size={20} style={{ color: '#16A34A' }} />
-              <div>
-                <p className="font-semibold" style={{ color: '#16A34A' }}>
-                  Successfully imported {importMutation.data.data.data.created_count} polic
-                  {importMutation.data.data.data.created_count === 1 ? 'y' : 'ies'}
-                </p>
-                <p className="text-sm" style={{ color: '#16A34A', opacity: 0.8 }}>
-                  Balances have been created for all employees
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Error State */}
-          {importMutation.isError && (
-            <div
-              className="flex items-center gap-3 p-4 mb-4"
-              style={{
-                background: '#FEF2F2',
-                borderRadius: 12,
-                border: '1px solid #FCA5A5',
-              }}
-            >
-              <AlertCircle size={20} style={{ color: '#DC2626' }} />
-              <div>
-                <p className="font-semibold" style={{ color: '#DC2626' }}>
-                  Import failed
-                </p>
-                <p className="text-sm" style={{ color: '#DC2626', opacity: 0.8 }}>
-                  {importMutation.error instanceof Error
-                    ? importMutation.error.message
-                    : 'An error occurred while importing templates'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Conflict Warning */}
-          {showConflictWarning && conflicts.length > 0 && (
-            <div
-              className="p-4 mb-4"
-              style={{
-                background: '#FFFBEB',
-                borderRadius: 12,
-                border: '1px solid #FCD34D',
-              }}
-            >
-              <div className="flex items-start gap-3 mb-3">
-                <AlertTriangle size={20} style={{ color: '#F59E0B', flexShrink: 0, marginTop: 2 }} />
-                <div>
-                  <p className="font-semibold mb-1" style={{ color: '#92400E' }}>
-                    Duplicate policies detected
-                  </p>
-                  <p className="text-sm mb-2" style={{ color: '#92400E', opacity: 0.9 }}>
-                    The following templates have the same name as your existing policies:
-                  </p>
-                  <ul className="text-sm space-y-1 mb-3" style={{ color: '#92400E', opacity: 0.8 }}>
-                    {conflicts.map((conflict) => (
-                      <li key={conflict.id} className="ml-4">
-                        • {conflict.name}
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="text-sm" style={{ color: '#92400E', opacity: 0.9 }}>
-                    Importing will skip these templates. Do you want to continue?
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center justify-end gap-2">
-                <button
-                  data-testid="import-templates-conflict-cancel-btn"
-                  onClick={handleCancelConflict}
-                  className="px-3 py-1.5 text-sm font-semibold transition-opacity hover:opacity-70"
-                  style={{
-                    color: '#92400E',
-                    borderRadius: 8,
-                  }}
-                >
-                  Cancel
-                </button>
-                <button
-                  data-testid="import-templates-conflict-confirm-btn"
-                  onClick={handleImport}
-                  disabled={importMutation.isPending}
-                  className="px-3 py-1.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    background: '#F59E0B',
-                    color: '#FFFFFF',
-                    borderRadius: 8,
-                  }}
-                >
-                  {importMutation.isPending ? 'Importing...' : 'Import Anyway'}
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Loading State */}
           {isLoading && (
             <div data-testid="import-templates-skeleton" className="space-y-3">
@@ -259,28 +101,16 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
 
           {/* Templates List */}
           {!isLoading && templates && templates.length > 0 && (
-            <>
-              {/* Select All */}
-              <button
-                data-testid="import-templates-select-all-btn"
-                onClick={handleSelectAll}
-                className="flex items-center gap-2 mb-3 text-sm font-semibold transition-opacity hover:opacity-70"
-                style={{ color: t.accent }}
-              >
-                {allSelected ? 'Deselect All' : 'Select All'}
-              </button>
-
-              <div className="space-y-3">
-                {templates.map((template) => (
-                  <TemplateCard
-                    key={template.id}
-                    template={template}
-                    isSelected={selectedIds.has(template.id)}
-                    onToggle={() => handleToggle(template.id)}
-                  />
-                ))}
-              </div>
-            </>
+            <div className="space-y-3">
+              {templates.map((template) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  isSelected={selectedId === template.id}
+                  onToggle={() => handleSelect(template.id)}
+                />
+              ))}
+            </div>
           )}
 
           {/* Empty State */}
@@ -319,7 +149,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
             <button
               data-testid="import-templates-import-btn"
               onClick={handleImport}
-              disabled={selectedIds.size === 0 || importMutation.isPending}
+              disabled={!selectedId}
               className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 background: t.accent,
@@ -328,9 +158,7 @@ export function ImportTemplatesModal({ onClose }: ImportTemplatesModalProps) {
               }}
             >
               <Download size={16} />
-              {importMutation.isPending
-                ? 'Importing...'
-                : `Import ${selectedIds.size} ${selectedIds.size === 1 ? 'Policy' : 'Policies'}`}
+              Continue
             </button>
           </div>
         )}
