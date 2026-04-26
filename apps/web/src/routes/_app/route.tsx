@@ -6,7 +6,9 @@ import { Dock } from '@/components/workived/dock/Dock'
 import { LoadingBar } from '@/components/workived/shared/LoadingBar'
 import { UpgradeModal } from '@/components/workived/shared/UpgradeModal'
 import { TourOverlay } from '@/components/workived/tour/TourOverlay'
+import { TaskTourOverlay } from '@/components/workived/tour/TaskTourOverlay'
 import { useTourStore } from '@/lib/stores/tour'
+import { useTaskTourStore } from '@/lib/stores/taskTour'
 import { getSetupStatus } from '@/lib/api/setup'
 import { isAxiosError } from 'axios'
 
@@ -79,7 +81,7 @@ function AppLayout() {
   )
   const pathname = matches[matches.length - 1]?.pathname ?? '/'
 
-  // Auto-trigger tour for first-time users on overview page
+  // Auto-trigger overview tour for first-time users on overview page
   const { hasCompleted, isActive, startTour } = useTourStore()
   useEffect(() => {
     if (!hasCompleted && !isActive && pathname === '/overview' && !isSetupPage) {
@@ -87,6 +89,15 @@ function AppLayout() {
       return () => clearTimeout(timer)
     }
   }, [hasCompleted, isActive, pathname, isSetupPage, startTour])
+
+  // Auto-trigger task board tour for first-time visitors on tasks page
+  const { hasCompleted: taskTourCompleted, isActive: taskTourActive, startTour: startTaskTour } = useTaskTourStore()
+  useEffect(() => {
+    if (!taskTourCompleted && !taskTourActive && pathname.startsWith('/tasks') && !isSetupPage && !isActive) {
+      const timer = setTimeout(startTaskTour, 1200)
+      return () => clearTimeout(timer)
+    }
+  }, [taskTourCompleted, taskTourActive, pathname, isSetupPage, isActive, startTaskTour])
 
   return (
     <div className="min-h-screen">
@@ -97,6 +108,7 @@ function AppLayout() {
         <>
           <Dock />
           <TourOverlay />
+          <TaskTourOverlay />
         </>
       )}
     </div>

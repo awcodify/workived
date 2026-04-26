@@ -18,6 +18,20 @@ vi.mock('@/lib/hooks/useRole', () => ({
   useHasOrg: vi.fn(),
 }))
 
+// Mock TanStack Query hooks that need a QueryClient
+vi.mock('@/lib/hooks/useLeave', () => ({
+  useLeaveNotificationCount: () => ({ data: 0 }),
+}))
+vi.mock('@/lib/hooks/useClaims', () => ({
+  useClaimNotificationCount: () => ({ data: 0 }),
+}))
+vi.mock('@/lib/hooks/useAttendance', () => ({
+  useCorrectionNotificationCount: () => ({ data: 0 }),
+}))
+vi.mock('@/lib/hooks/useChangelog', () => ({
+  useChangelogUnread: () => ({ hasUnread: false }),
+}))
+
 describe('SettingsMenu', () => {
   const mockLogout = vi.fn()
   const mockNavigate = vi.fn()
@@ -48,14 +62,14 @@ describe('SettingsMenu', () => {
 
   it('renders settings button', () => {
     render(<SettingsMenu currentModule="overview" />)
-    
-    expect(screen.getByText('Settings')).toBeInTheDocument()
+
+    expect(screen.getByTestId('settings-menu-btn')).toBeInTheDocument()
   })
 
   it('opens dropdown when settings button is clicked', () => {
     render(<SettingsMenu currentModule="overview" />)
-    
-    const settingsButton = screen.getByText('Settings')
+
+    const settingsButton = screen.getByTestId('settings-menu-btn')
     fireEvent.click(settingsButton)
     
     expect(screen.getByText('Test User')).toBeInTheDocument()
@@ -68,21 +82,21 @@ describe('SettingsMenu', () => {
 
   it('navigates to profile when My profile is clicked', () => {
     render(<SettingsMenu currentModule="overview" />)
-    fireEvent.click(screen.getByText('Settings'))
+    fireEvent.click(screen.getByTestId('settings-menu-btn'))
     fireEvent.click(screen.getByText('My profile'))
     expect(mockNavigate).toHaveBeenCalledWith({ to: '/profile' })
   })
 
   it('navigates to company settings when Company settings is clicked', () => {
     render(<SettingsMenu currentModule="overview" />)
-    fireEvent.click(screen.getByText('Settings'))
+    fireEvent.click(screen.getByTestId('settings-menu-btn'))
     fireEvent.click(screen.getByText('Company settings'))
     expect(mockNavigate).toHaveBeenCalledWith({ to: '/settings/company' })
   })
 
   it('navigates to team members when Team members is clicked', () => {
     render(<SettingsMenu currentModule="overview" />)
-    fireEvent.click(screen.getByText('Settings'))
+    fireEvent.click(screen.getByTestId('settings-menu-btn'))
     fireEvent.click(screen.getByText('Team members'))
     expect(mockNavigate).toHaveBeenCalledWith({ to: '/settings/members' })
   })
@@ -93,7 +107,7 @@ describe('SettingsMenu', () => {
     render(<SettingsMenu currentModule="overview" />)
     
     // Open menu
-    const settingsButton = screen.getByText('Settings')
+    const settingsButton = screen.getByTestId('settings-menu-btn')
     fireEvent.click(settingsButton)
     
     // Click logout
@@ -110,7 +124,7 @@ describe('SettingsMenu', () => {
   it('displays user information correctly', () => {
     render(<SettingsMenu currentModule="people" />)
 
-    const settingsButton = screen.getByText('Settings')
+    const settingsButton = screen.getByTestId('settings-menu-btn')
     fireEvent.click(settingsButton)
 
     expect(screen.getByText('Test User')).toBeInTheDocument()
@@ -124,13 +138,13 @@ describe('SettingsMenu', () => {
 
     it('hides Team members menu item', () => {
       render(<SettingsMenu currentModule="overview" />)
-      fireEvent.click(screen.getByText('Settings'))
+      fireEvent.click(screen.getByTestId('settings-menu-btn'))
       expect(screen.queryByText('Team members')).toBeNull()
     })
 
     it('still navigates to /settings/company when Company settings is clicked', () => {
       render(<SettingsMenu currentModule="overview" />)
-      fireEvent.click(screen.getByText('Settings'))
+      fireEvent.click(screen.getByTestId('settings-menu-btn'))
       fireEvent.click(screen.getByText('Company settings'))
       expect(mockNavigate).toHaveBeenCalledWith({ to: '/settings/company' })
     })
@@ -139,15 +153,55 @@ describe('SettingsMenu', () => {
   describe('when user has an org', () => {
     it('shows Team members menu item', () => {
       render(<SettingsMenu currentModule="overview" />)
-      fireEvent.click(screen.getByText('Settings'))
+      fireEvent.click(screen.getByTestId('settings-menu-btn'))
       expect(screen.getByText('Team members')).toBeInTheDocument()
     })
 
     it('navigates to /settings/company when Company settings is clicked', () => {
       render(<SettingsMenu currentModule="overview" />)
-      fireEvent.click(screen.getByText('Settings'))
+      fireEvent.click(screen.getByTestId('settings-menu-btn'))
       fireEvent.click(screen.getByText('Company settings'))
       expect(mockNavigate).toHaveBeenCalledWith({ to: '/settings/company' })
+    })
+  })
+
+  describe('Replay tour submenu', () => {
+    it('shows Replay tour button', () => {
+      render(<SettingsMenu currentModule="overview" />)
+      fireEvent.click(screen.getByTestId('settings-menu-btn'))
+      expect(screen.getByTestId('settings-menu-replay-tour-btn')).toBeInTheDocument()
+      expect(screen.getByText('Replay tour')).toBeInTheDocument()
+    })
+
+    it('hides sub-options before clicking Replay tour', () => {
+      render(<SettingsMenu currentModule="overview" />)
+      fireEvent.click(screen.getByTestId('settings-menu-btn'))
+      expect(screen.queryByText('Overview tour')).not.toBeInTheDocument()
+      expect(screen.queryByText('Task board tour')).not.toBeInTheDocument()
+    })
+
+    it('reveals sub-options after clicking Replay tour', () => {
+      render(<SettingsMenu currentModule="overview" />)
+      fireEvent.click(screen.getByTestId('settings-menu-btn'))
+      fireEvent.click(screen.getByTestId('settings-menu-replay-tour-btn'))
+      expect(screen.getByText('Overview tour')).toBeInTheDocument()
+      expect(screen.getByText('Task board tour')).toBeInTheDocument()
+    })
+
+    it('navigates to /overview and starts tour when Overview tour clicked', () => {
+      render(<SettingsMenu currentModule="overview" />)
+      fireEvent.click(screen.getByTestId('settings-menu-btn'))
+      fireEvent.click(screen.getByTestId('settings-menu-replay-tour-btn'))
+      fireEvent.click(screen.getByTestId('settings-menu-overview-tour-btn'))
+      expect(mockNavigate).toHaveBeenCalledWith({ to: '/overview' })
+    })
+
+    it('navigates to /tasks and starts tour when Task board tour clicked', () => {
+      render(<SettingsMenu currentModule="overview" />)
+      fireEvent.click(screen.getByTestId('settings-menu-btn'))
+      fireEvent.click(screen.getByTestId('settings-menu-replay-tour-btn'))
+      fireEvent.click(screen.getByTestId('settings-menu-task-board-tour-btn'))
+      expect(mockNavigate).toHaveBeenCalledWith({ to: '/tasks' })
     })
   })
 })

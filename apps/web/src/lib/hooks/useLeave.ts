@@ -322,8 +322,9 @@ export function useImportPolicies() {
   return useMutation({
     mutationFn: (templateIds: string[]) => leaveApi.importPolicies(templateIds),
     onSuccess: () => {
-      // Invalidate policies list to refetch
-      queryClient.invalidateQueries({ queryKey: leaveKeys.policies() })
+      // Force refetch policies and balances immediately (ignore staleTime)
+      queryClient.refetchQueries({ queryKey: leaveKeys.policies() })
+      queryClient.refetchQueries({ queryKey: leaveKeys.balances() })
     },
   })
 }

@@ -15,11 +15,13 @@ import {
   pointerWithin,
   rectIntersection,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
+  type DragCancelEvent,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -32,6 +34,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { moduleBackgrounds, typography, colors } from '@/design/tokens'
 import { apiClient } from '@/lib/api/client'
 import { formatDateLocal } from '@/lib/utils/date'
+import { calcSameColumnPosition, calcCrossColumnPosition } from '@/lib/utils/taskBoard'
 import { 
   useTaskLists, 
   useTasks, 
@@ -150,6 +153,8 @@ function TasksPage() {
 
   const [activeTask, setActiveTask] = useState<TaskWithDetails | null>(null)
   const [activeTaskOriginalListId, setActiveTaskOriginalListId] = useState<string | null>(null)
+  const [isDraggingActive, setIsDraggingActive] = useState(false)
+  const [overColumnId, setOverColumnId] = useState<string | null>(null)
   const [optimisticTasks, setOptimisticTasks] = useState<TaskWithDetails[]>([])
   const [creatingInListId, setCreatingInListId] = useState<string | null>(null)
   const [newTaskTitle, setNewTaskTitle] = useState('')
@@ -185,12 +190,12 @@ function TasksPage() {
   const [maxExpandedColumns, setMaxExpandedColumns] = useState<number>(() => {
     if (typeof window === 'undefined') return 2
     const stored = localStorage.getItem('workived:maxExpandedColumns')
-    return stored ? parseInt(stored, 10) : 2
+    return stored ? Math.max(2, parseInt(stored, 10)) : 2
   })
   const [expandedColumnIds, setExpandedColumnIds] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set()
     const storedMax = typeof window !== 'undefined' ? localStorage.getItem('workived:maxExpandedColumns') : null
-    const MAX_EXPANDED_COLUMNS = storedMax ? parseInt(storedMax, 10) : 2
+    const MAX_EXPANDED_COLUMNS = storedMax ? Math.max(2, parseInt(storedMax, 10)) : 2
     const stored = localStorage.getItem('workived:expandedColumns')
     if (stored) {
       try { return new Set(JSON.parse(stored)) } catch { /* fall through */ }
@@ -360,36 +365,56 @@ function TasksPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showAssigneeOverflow])
   
-  // Persist expanded columns and max to localStorage
+  // Persist expanded columns — skip empty sets so first-load doesn't poison localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return
-    localStorage.setItem('workived:expandedColumns', JSON.stringify([...expandedColumnIds]))
+    if (expandedColumnIds.size > 0) {
+      localStorage.setItem('workived:expandedColumns', JSON.stringify([...expandedColumnIds]))
+    }
   }, [expandedColumnIds])
-  
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     localStorage.setItem('workived:maxExpandedColumns', maxExpandedColumns.toString())
   }, [maxExpandedColumns])
-  
-  // Adjust expanded columns when max changes
+
+  // Sync expanded columns with taskLists: strip stale IDs, trim or fill to maxExpandedColumns
   useEffect(() => {
-    if (expandedColumnIds.size > maxExpandedColumns) {
-      const allLists = (taskLists || []).filter(l => l.is_active).sort((a, b) => a.position - b.position)
-      const expandedInOrder = allLists.filter(l => expandedColumnIds.has(l.id))
-      const toKeep = new Set(expandedInOrder.slice(0, maxExpandedColumns).map(l => l.id))
-      setExpandedColumnIds(toKeep)
-    } else if (expandedColumnIds.size < maxExpandedColumns && taskLists.length > 0) {
-      const allLists = (taskLists || []).filter(l => l.is_active).sort((a, b) => a.position - b.position)
-      const collapsedLists = allLists.filter(l => !expandedColumnIds.has(l.id))
-      if (collapsedLists.length > 0) {
-        const newSet = new Set(expandedColumnIds)
-        const toAdd = collapsedLists.slice(0, maxExpandedColumns - expandedColumnIds.size)
-        toAdd.forEach(l => newSet.add(l.id))
-        setExpandedColumnIds(newSet)
+    if (taskLists.length === 0) return
+    const allLists = taskLists.filter(l => l.is_active).sort((a, b) => a.position - b.position)
+    const validIds = new Set(allLists.map(l => l.id))
+
+    // Remove IDs that no longer exist (stale from another session or org)
+    const validExpanded = new Set([...expandedColumnIds].filter(id => validIds.has(id)))
+
+    if (validExpanded.size > maxExpandedColumns) {
+      const trimmed = new Set(
+        allLists.filter(l => validExpanded.has(l.id)).slice(0, maxExpandedColumns).map(l => l.id)
+      )
+      setExpandedColumnIds(trimmed)
+      return
+    }
+
+    if (validExpanded.size < maxExpandedColumns) {
+      // Priority: active-work columns first, then backlog, then final-state
+      const priorityOrder = allLists.length <= maxExpandedColumns
+        ? allLists
+        : [
+            ...allLists.filter((l, idx) => !l.is_final_state && idx > 0),
+            ...allLists.filter((_, idx) => idx === 0),
+            ...allLists.filter(l => l.is_final_state),
+          ]
+      for (const list of priorityOrder) {
+        if (validExpanded.size >= maxExpandedColumns) break
+        validExpanded.add(list.id)
       }
     }
+
+    const changed = validExpanded.size !== expandedColumnIds.size ||
+      [...validExpanded].some(id => !expandedColumnIds.has(id))
+    if (changed) setExpandedColumnIds(validExpanded)
   }, [maxExpandedColumns, taskLists])
-  
+
   // Close modals with ESC key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -416,32 +441,6 @@ function TasksPage() {
     }
   }, [showAddColumnModal, showAddFieldModal, showAddLabelModal])
   
-  // Initialize expanded columns when taskLists load (if fewer than max or not yet set)
-  useEffect(() => {
-    if (taskLists.length > 0 && expandedColumnIds.size < maxExpandedColumns) {
-      const activeLists = taskLists.filter(l => l.is_active).sort((a, b) => a.position - b.position)
-      // Prioritize middle columns (active work) over first/last (backlog/done)
-      const priorityOrder = activeLists.length <= maxExpandedColumns 
-        ? activeLists
-        : [
-            // Show non-final, non-first columns first (active work)
-            ...activeLists.filter((l, idx) => !l.is_final_state && idx > 0),
-            // Then first column (backlog)
-            ...activeLists.filter((l, idx) => idx === 0),
-            // Then final columns (done)
-            ...activeLists.filter(l => l.is_final_state),
-          ]
-      
-      const newSet = new Set(expandedColumnIds)
-      for (const list of priorityOrder) {
-        if (newSet.size >= maxExpandedColumns) break
-        newSet.add(list.id)
-      }
-      if (newSet.size !== expandedColumnIds.size) {
-        setExpandedColumnIds(newSet)
-      }
-    }
-  }, [taskLists, expandedColumnIds.size])
   
   // Toggle column expanded/collapsed — clicking a collapsed column expands it
   const toggleColumnExpanded = useCallback((columnId: string) => {
@@ -608,10 +607,11 @@ function TasksPage() {
   }, [workloadData])
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { 
-      activationConstraint: { 
-        distance: 3,
-      } 
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 3 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 150, tolerance: 5 },
     }),
   )
 
@@ -643,21 +643,25 @@ function TasksPage() {
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     isDraggingRef.current = true
+    setIsDraggingActive(true)
     const tasks = optimisticTasks || []
     const task = tasks.find((t) => t.id === event.active.id)
     if (task) {
       setActiveTask(task)
-      setActiveTaskOriginalListId(task.task_list_id) // Store original list ID
+      setActiveTaskOriginalListId(task.task_list_id)
     }
   }, [optimisticTasks])
 
-  const handleDragOver = useCallback((_event: DragOverEvent) => {
-    // Don't update optimistic state here - let @dnd-kit handle visual feedback
-    // Optimistic update happens in handleDragEnd to avoid conflicts
-  }, [])
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { over } = event
+    const columnId = over ? findListId(over.id as string) ?? null : null
+    setOverColumnId(columnId)
+  }, [findListId])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     isDraggingRef.current = false
+    setIsDraggingActive(false)
+    setOverColumnId(null)
     const { active, over } = event
     const draggedTask = activeTask
     const originalListId = activeTaskOriginalListId
@@ -681,51 +685,19 @@ function TasksPage() {
       const listTasks = (optimisticTasks || [])
         .filter((t) => t.task_list_id === activeListId)
         .sort((a, b) => a.position - b.position)
-      
+
       const oldIdx = listTasks.findIndex((t) => t.id === activeId)
       if (oldIdx === -1) return
-      
-      // Check if overId is a task or the list itself
+
       const newIdx = listTasks.findIndex((t) => t.id === overId)
-      
-      let newPosition: number
-      let reordered: TaskWithDetails[]
-      
-      if (newIdx === -1) {
-        // Dropped on the list itself (empty space) - move to end
-        reordered = listTasks.filter((t) => t.id !== activeId)
-        reordered.push(draggedTask)
-        
-        const lastTask = reordered[reordered.length - 2] // Task before the moved one
-        newPosition = lastTask ? lastTask.position + 1000 : 1000
-      } else {
-        // Dropped on a specific task - reorder
-        reordered = arrayMove(listTasks, oldIdx, newIdx)
-        
-        // Get the tasks before and after the drop position
-        const taskBefore = newIdx > 0 ? reordered[newIdx - 1] : null
-        const taskAfter = newIdx < reordered.length - 1 ? reordered[newIdx + 1] : null
-        
-        // Calculate new position with proper gaps (min=1 validation on backend)
-        if (!taskBefore && taskAfter) {
-          // Dropping at the start - ensure position stays >= 1
-          const calculatedPos = taskAfter.position - 1000
-          newPosition = calculatedPos >= 1 ? calculatedPos : Math.max(1, Math.floor(taskAfter.position / 2))
-        } else if (taskBefore && !taskAfter) {
-          // Dropping at the end
-          newPosition = taskBefore.position + 1000
-        } else if (taskBefore && taskAfter) {
-          // Dropping between two tasks
-          const gap = taskAfter.position - taskBefore.position
-          newPosition = gap > 2 ? Math.floor((taskBefore.position + taskAfter.position) / 2) : taskBefore.position + 1
-        } else {
-          // Only task in list
-          newPosition = 1000
-        }
-      }
-      
+      const newPosition = calcSameColumnPosition(listTasks, activeId, overId)
+
+      const reordered: TaskWithDetails[] = newIdx === -1
+        ? [...listTasks.filter((t) => t.id !== activeId), draggedTask]
+        : arrayMove(listTasks, oldIdx, newIdx)
+
       // Update optimistic state with new position
-      const updatedReordered = reordered.map((t) => 
+      const updatedReordered = reordered.map((t) =>
         t.id === activeId ? { ...t, position: newPosition } : t
       )
       const otherTasks = (optimisticTasks || []).filter((t) => t.task_list_id !== activeListId)
@@ -748,16 +720,12 @@ function TasksPage() {
         }
       )
     } else {
-      // Different list: move to end of target list
+      // Different list: insert at hovered position, or append to bottom on empty space
       const listTasks = (optimisticTasks || [])
         .filter((t) => t.task_list_id === overListId && t.id !== activeId)
         .sort((a, b) => a.position - b.position)
-      
-      // Place moved task at the top of the target column
-      const minPosition = listTasks.length > 0 
-        ? Math.min(...listTasks.map((t) => t.position)) 
-        : 1000
-      const newPosition = Math.max(1, minPosition - 1000)
+
+      const newPosition = calcCrossColumnPosition(listTasks, overId)
 
       // Check if we're moving FROM a final state list to a non-final state list
       const sourceList = allActiveLists.find((l) => l.id === activeListId)
@@ -808,6 +776,14 @@ function TasksPage() {
       )
     }
   }, [activeTask, activeTaskOriginalListId, findListId, moveMutation, optimisticTasks, allActiveLists, approveLeaveRequest, approveClaimMutation])
+
+  const handleDragCancel = useCallback((_event: DragCancelEvent) => {
+    isDraggingRef.current = false
+    setIsDraggingActive(false)
+    setOverColumnId(null)
+    setActiveTask(null)
+    setActiveTaskOriginalListId(null)
+  }, [])
 
   const handleCreateTask = useCallback((listId: string) => {
     if (!newTaskTitle.trim()) return
@@ -938,7 +914,7 @@ function TasksPage() {
               ]
 
               return (
-                <div className="flex items-center gap-2 mt-3">
+                <div data-tour="tasks-workload" className="flex items-center gap-2 mt-3">
                   <span
                     className="text-xs font-medium"
                     style={{
@@ -1107,7 +1083,8 @@ function TasksPage() {
       </div>
 
       {/* Jira-style Filter Bar */}
-      <div 
+      <div
+        data-tour="tasks-filter-bar"
         className="mb-6 -mx-6 px-6 md:-mx-11 md:px-11 py-4 md:sticky relative"
         style={{
           top: 0,
@@ -1137,7 +1114,7 @@ function TasksPage() {
         {/* Single unified filter row — slim top bar */}
         <div className="flex items-center gap-3 flex-wrap">
           {/* Board view tabs (All / Tasks / Approvals) */}
-          <div className="flex items-center gap-1.5 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.05)' }}>
+          <div data-tour="tasks-view-tabs" className="flex items-center gap-1.5 rounded-lg p-1" style={{ background: 'rgba(0,0,0,0.05)' }}>
             {([['all', 'All'], ['tasks', 'Tasks'], ['approvals', 'Approvals']] as const).map(([mode, label]) => (
               <button
                 key={mode}
@@ -1212,7 +1189,7 @@ function TasksPage() {
           </div>
 
           {/* Assignee avatars */}
-          <div className="flex items-center gap-1 relative" ref={assigneeOverflowRef}>
+          <div data-tour="tasks-assignee-filter" className="flex items-center gap-1 relative" ref={assigneeOverflowRef}>
             {(() => {
               // Build visible list: first 5 employees, but swap in selected ones from overflow
               const first5 = employees.slice(0, 5)
@@ -1400,10 +1377,11 @@ function TasksPage() {
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
-        <div className="flex gap-0 pb-4 -mx-6 px-6 md:-mx-11 md:px-11" style={{ minHeight: '400px' }}>
+        <div data-tour="tasks-board" className="flex gap-0 pb-4 -mx-6 px-6 md:-mx-11 md:px-11 items-stretch" style={{ minHeight: '400px' }}>
           {/* Left: Board with all columns (expanded + collapsed) in workflow order */}
-          <div className="flex gap-0 flex-1 overflow-x-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}>
+          <div className="flex gap-0 flex-1 overflow-x-auto items-stretch" style={{ scrollbarWidth: 'thin', scrollbarColor: '#CBD5E1 transparent' }}>
           {/* Render all columns in their natural workflow order */}
           {allActiveLists.map((col, idx) => {
             const isExpanded = expandedColumnIds.has(col.id)
@@ -1425,6 +1403,7 @@ function TasksPage() {
 
             // Collapsed column - show as vertical strip
             if (!isExpanded) {
+              const isFirstCollapsed = !allActiveLists.slice(0, idx).some(c => !expandedColumnIds.has(c.id))
               return (
                 <CollapsedColumn
                   key={col.id}
@@ -1432,6 +1411,7 @@ function TasksPage() {
                   taskCount={taskCount}
                   idx={idx}
                   onExpand={() => toggleColumnExpanded(col.id)}
+                  dataTour={isFirstCollapsed ? 'tasks-collapsed-column' : undefined}
                 />
               )
             }
@@ -1450,17 +1430,20 @@ function TasksPage() {
             
             return (
               <React.Fragment key={col.id}>
-                <div 
+                <div
                   id={`column-${col.id}`}
                   role="tabpanel"
                   aria-labelledby={`tab-${col.id}`}
+                  {...(idx === 0 ? { 'data-tour': 'tasks-first-column' } : {})}
                   className={typeof window !== 'undefined' && window.innerWidth < 640 && !isMobileActive ? 'hidden' : ''}
-                  style={{ 
+                  style={{
                     width: getColumnWidth(),
                     flexShrink: 0,
                     marginLeft: idx > 0 ? '4px' : '0',
                     animation: autoExpandedColumns.has(col.id) ? 'columnFlash 0.6s ease-out' : 'none',
                     transition: 'all 0.3s ease-in-out',
+                    display: 'flex',
+                    flexDirection: 'column',
                   }}
                 >
                   <StatusColumn
@@ -1487,6 +1470,8 @@ function TasksPage() {
                     isFinalState={col.is_final_state}
                     onCollapse={() => toggleColumnExpanded(col.id)}
                     canCollapse={true}
+                    isOver={overColumnId === col.id}
+                    isDraggingActive={isDraggingActive}
                   />
                 </div>
                 
@@ -1569,9 +1554,9 @@ function TasksPage() {
           </div>
 
           {/* Right Sidebar: Collapsed columns + Filters */}
-          <div className="hidden sm:flex flex-col gap-4 flex-shrink-0 ml-4" style={{ width: '220px' }}>
+          <div data-tour="tasks-sidebar" className="hidden sm:flex flex-col gap-4 flex-shrink-0 ml-4" style={{ width: '220px' }}>
             {/* All columns - toggle expanded/collapsed */}
-            <div className="flex flex-col gap-1">
+            <div data-tour="tasks-column-selector" className="flex flex-col gap-1">
               <div className="flex items-center justify-between px-2 mb-2">
                 <div className="flex items-center gap-1.5">
                   <span
@@ -1669,7 +1654,7 @@ function TasksPage() {
               </div>
 
               {/* Priority filter */}
-              <div className="px-2">
+              <div data-tour="tasks-priority-filter" className="px-2">
                 <div
                   className="text-[11px] font-semibold mb-2"
                   style={{ color: '#64748B', fontFamily: typography.fontFamily }}
@@ -1721,7 +1706,7 @@ function TasksPage() {
               </div>
 
               {/* Labels filter */}
-                <div className="px-2">
+                <div data-tour="tasks-label-filter" className="px-2">
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className="text-[11px] font-semibold"
@@ -2371,6 +2356,8 @@ function StatusColumn({
   isFinalState,
   onCollapse,
   canCollapse,
+  isOver = false,
+  isDraggingActive = false,
 }: {
   listId: string
   label: string
@@ -2391,6 +2378,8 @@ function StatusColumn({
   isFinalState?: boolean
   onCollapse?: () => void
   canCollapse?: boolean
+  isOver?: boolean
+  isDraggingActive?: boolean
 }) {
   const { setNodeRef } = useDroppable({ id: listId })
   const isCreating = creatingInListId === listId
@@ -2410,13 +2399,13 @@ function StatusColumn({
   return (
     <div
       ref={setNodeRef}
-      className="flex flex-col min-h-[500px]"
+      data-testid={`tasks-column-${listId}`}
+      className="flex flex-col"
       style={{
-        background: 'transparent',
-        borderRadius: '0',
-        border: 'none',
+        flex: 1,
         minHeight: '600px',
-        transition: 'all 0.3s ease-in-out',
+        background: isOver ? 'rgba(99, 87, 232, 0.07)' : 'transparent',
+        transition: 'background 0.12s ease',
       }}
     >
       {/* Hand-drawn Column Header */}
@@ -2450,6 +2439,7 @@ function StatusColumn({
           {/* Add Task Button in Header */}
           <div className="flex items-center gap-1">
             <button
+              data-tour="tasks-add-btn"
               onClick={() => onStartCreateModal(listId)}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all hover:bg-black/10"
               style={{
@@ -2485,11 +2475,11 @@ function StatusColumn({
         items={tasks.map((t) => t.id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="flex flex-col gap-2 px-4 py-3 flex-1">
+        <div className="flex flex-col gap-2 px-4 py-3">
           {tasks.map((task) => (
-            <SortableTaskCard 
-              key={task.id} 
-              task={task} 
+            <SortableTaskCard
+              key={task.id}
+              task={task}
               onClick={() => onTaskClick(task)}
               employees={employees}
               getEmployeeWorkload={getEmployeeWorkload}
@@ -2605,6 +2595,12 @@ function StatusColumn({
           )}
         </div>
       </SortableContext>
+
+      {/* Sentinel: extends droppable hit area to full column height */}
+      <div
+        data-testid={`tasks-drop-sentinel-${listId}`}
+        style={{ flex: 1, minHeight: isDraggingActive ? 80 : 40 }}
+      />
     </div>
   )
 }
@@ -2616,16 +2612,19 @@ function CollapsedColumn({
   taskCount,
   idx,
   onExpand,
+  dataTour,
 }: {
   col: { id: string; name: string }
   taskCount: number
   idx: number
   onExpand: () => void
+  dataTour?: string
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id })
 
   return (
     <div
+      {...(dataTour ? { 'data-tour': dataTour } : {})}
       ref={setNodeRef}
       key={col.id}
       className="flex-shrink-0 hidden sm:flex flex-col items-center cursor-pointer hover:opacity-80 group"

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <style>
+      .pwa-bg { fill: #6357E8; }
+      .pwa-text { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 120px; font-weight: 800; fill: white; }
+    </style>
+  </defs>
+  <rect class="pwa-bg" width="192" height="192" rx="32" ry="32"/>
+  <text class="pwa-text" x="96" y="120" text-anchor="middle" dominant-baseline="middle">W</text>
+  <rect x="58" y="160" width="76" height="10" rx="5" fill="white" opacity="0.7"/>
+</svg>
