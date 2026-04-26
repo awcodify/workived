@@ -100,8 +100,24 @@ func (c *APIClient) Put(ctx context.Context, path string, body interface{}) ([]b
 }
 
 // Delete makes an authenticated DELETE request
-func (c *APIClient) Delete(ctx context.Context, path string) ([]byte, error) {
-	req, err := http.NewRequestWithContext(ctx, "DELETE", c.baseURL+path, nil)
+func (c *APIClient) Delete(ctx context.Context, path string, params ...map[string]string) ([]byte, error) {
+	reqURL := c.baseURL + path
+
+	// Add query parameters if provided
+	if len(params) > 0 && len(params[0]) > 0 {
+		u, err := url.Parse(reqURL)
+		if err != nil {
+			return nil, fmt.Errorf("invalid URL: %w", err)
+		}
+		q := u.Query()
+		for k, v := range params[0] {
+			q.Set(k, v)
+		}
+		u.RawQuery = q.Encode()
+		reqURL = u.String()
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "DELETE", reqURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}

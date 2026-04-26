@@ -293,6 +293,46 @@ func GetAvailableTools() []Tool {
 				"required": []string{"name"},
 			},
 		},
+		{
+			Name:        "workived_update_task_list",
+			Description: "Update an existing task list (column/status) - can change name and final state flag",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"task_list_id": map[string]interface{}{
+						"type":        "string",
+						"description": "Task list UUID",
+					},
+					"name": map[string]interface{}{
+						"type":        "string",
+						"description": "New name for the task list (optional)",
+					},
+					"is_final_state": map[string]interface{}{
+						"type":        "boolean",
+						"description": "Whether tasks moved to this list are automatically marked complete (optional)",
+					},
+				},
+				"required": []string{"task_list_id"},
+			},
+		},
+		{
+			Name:        "workived_delete_task_list",
+			Description: "Delete (deactivate) a task list - tasks in this list should be moved first",
+			InputSchema: map[string]interface{}{
+				"type": "object",
+				"properties": map[string]interface{}{
+					"task_list_id": map[string]interface{}{
+						"type":        "string",
+						"description": "Task list UUID to delete",
+					},
+					"move_tasks_to": map[string]interface{}{
+						"type":        "string",
+						"description": "Target task list UUID to move existing tasks to (optional)",
+					},
+				},
+				"required": []string{"task_list_id"},
+			},
+		},
 
 		// Task Management - Tasks
 		{

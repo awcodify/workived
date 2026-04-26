@@ -1,6 +1,6 @@
 import { createFileRoute, redirect, useNavigate, Link } from '@tanstack/react-router'
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { Flame, TrendingUp, Minus, TrendingDown, Search, Check, Zap, Plane, Menu, List, Star, X, MoreVertical, Filter, Download, Tag, ChevronLeft } from 'lucide-react'
+import { Flame, TrendingUp, Minus, TrendingDown, Search, Check, Zap, Plane, Menu, List, Star, X, MoreVertical, Filter, Download, Tag, ChevronLeft, Settings2, Pencil, Trash2 } from 'lucide-react'
 import { DateTime } from '@/components/workived/shared/DateTime'
 import { NotificationBell } from '@/components/workived/shared/NotificationBell'
 import { TaskDetailModal } from '@/components/TaskDetailModal'
@@ -41,6 +41,8 @@ import {
   useMoveTask, 
   useCreateTask,
   useCreateTaskList,
+  useUpdateTaskList,
+  useDeleteTaskList,
   useFieldDefinitions,
   useCreateFieldDefinition,
 } from '@/lib/hooks/useTasks'
@@ -145,6 +147,8 @@ function TasksPage() {
   const moveMutation = useMoveTask()
   const createMutation = useCreateTask()
   const createListMutation = useCreateTaskList()
+  const updateListMutation = useUpdateTaskList()
+  const deleteListMutation = useDeleteTaskList()
   const { data: fieldDefs = [] } = useFieldDefinitions()
   const approveLeaveRequest = useApproveRequest()
   const approveClaimMutation = useApproveClaim()
@@ -1139,10 +1143,10 @@ function TasksPage() {
           {/* All Tasks — link to table view */}
           <Link
             to="/tasks/list"
-            className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-3 py-2.5 rounded-lg text-xs font-bold transition-all hover:bg-black/5"
             style={{
-              background: '#2C3E50',
-              color: 'white',
+              background: 'rgba(0,0,0,0.03)',
+              color: '#64748B',
               fontFamily: typography.fontFamily,
               textDecoration: 'none',
             }}
@@ -1473,6 +1477,15 @@ function TasksPage() {
                     canCollapse={true}
                     isOver={overColumnId === col.id}
                     isDraggingActive={isDraggingActive}
+                    canEdit={canEditOrgSettings}
+                    onUpdateList={(name, isFinalState) => {
+                      updateListMutation.mutate({ id: col.id, data: { name, is_final_state: isFinalState } })
+                    }}
+                    onDeleteList={() => {
+                      if (confirm(`Delete "${col.name}" column? Tasks in this column will need to be moved first.`)) {
+                        deleteListMutation.mutate(col.id)
+                      }
+                    }}
                   />
                 </div>
                 
@@ -2359,6 +2372,9 @@ function StatusColumn({
   canCollapse,
   isOver = false,
   isDraggingActive = false,
+  canEdit = false,
+  onUpdateList,
+  onDeleteList,
 }: {
   listId: string
   label: string
@@ -2381,9 +2397,56 @@ function StatusColumn({
   canCollapse?: boolean
   isOver?: boolean
   isDraggingActive?: boolean
+  canEdit?: boolean
+  onUpdateList?: (name: string, isFinalState: boolean) => void
+  onDeleteList?: () => void
 }) {
   const { setNodeRef } = useDroppable({ id: listId })
   const isCreating = creatingInListId === listId
+  
+  // Inline editing state
+  const [isEditing, setIsEditing] = useState(false)
+  const [editedName, setEditedName] = useState(label)
+  const [showSettings, setShowSettings] = useState(false)
+  const settingsRef = useRef<HTMLDivElement>(null)
+  
+  // Close settings dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setShowSettings(false)
+      }
+    }
+    
+    if (showSettings) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showSettings])
+  
+  // Update editedName when label changes
+  useEffect(() => {
+    setEditedName(label)
+  }, [label])
+
+  const handleSaveName = () => {
+    if (editedName.trim() && editedName !== label && onUpdateList) {
+      onUpdateList(editedName.trim(), isFinalState || false)
+    }
+    setIsEditing(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditedName(label)
+    setIsEditing(false)
+  }
+
+  const handleToggleFinalState = () => {
+    if (onUpdateList) {
+      onUpdateList(label, !isFinalState)
+    }
+    setShowSettings(false)
+  }
 
   // Sort employees by workload: available first, on leave last
   const sortedEmployees = useMemo(() => {
@@ -2412,7 +2475,7 @@ function StatusColumn({
       {/* Hand-drawn Column Header */}
       <div className="px-2 py-4 mb-4">
         <div className="flex items-start justify-between gap-3">
-          <div className="inline-block">
+          <div className="inline-block flex-1">
             {/* Task count on the left */}
             <div className="flex items-baseline gap-2">
               <span
@@ -2424,20 +2487,42 @@ function StatusColumn({
               >
                 {count}
               </span>
-              <h3
-                className="text-xl font-bold"
-                style={{
-                  color: '#2C3E50',
-                  fontFamily: typography.fontFamily,
-                  letterSpacing: '0.5px',
-                  transform: `rotate(${isFinalState ? -1 : 0}deg)`,
-                }}
-              >
-                {label}
-              </h3>
+              {isEditing ? (
+                <input
+                  type="text"
+                  value={editedName}
+                  onChange={(e) => setEditedName(e.target.value)}
+                  onBlur={handleSaveName}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveName()
+                    if (e.key === 'Escape') handleCancelEdit()
+                  }}
+                  autoFocus
+                  className="text-xl font-bold outline-none bg-white rounded px-2 py-1"
+                  style={{
+                    color: '#2C3E50',
+                    fontFamily: typography.fontFamily,
+                    letterSpacing: '0.5px',
+                    border: '2px solid #6366F1',
+                    minWidth: '120px',
+                  }}
+                />
+              ) : (
+                <h3
+                  className="text-xl font-bold"
+                  style={{
+                    color: '#2C3E50',
+                    fontFamily: typography.fontFamily,
+                    letterSpacing: '0.5px',
+                    transform: `rotate(${isFinalState ? -1 : 0}deg)`,
+                  }}
+                >
+                  {label}
+                </h3>
+              )}
             </div>
           </div>
-          {/* Add Task Button in Header */}
+          {/* Add Task Button + Settings in Header */}
           <div className="flex items-center gap-1">
             <button
               data-tour="tasks-add-btn"
@@ -2453,6 +2538,76 @@ function StatusColumn({
             >
               + Add
             </button>
+            {/* Settings dropdown for editing column */}
+            {canEdit && onUpdateList && (
+              <div className="relative" ref={settingsRef}>
+                <button
+                  onClick={() => setShowSettings(!showSettings)}
+                  className="flex items-center justify-center w-7 h-7 rounded-lg transition-all hover:bg-black/10"
+                  style={{
+                    color: '#94A3B8',
+                    background: 'rgba(0,0,0,0.02)',
+                  }}
+                  title="Column settings"
+                >
+                  <Settings2 size={14} />
+                </button>
+                {showSettings && (
+                  <div
+                    className="absolute right-0 top-full mt-1 z-50 rounded-lg shadow-xl min-w-[180px]"
+                    style={{
+                      background: '#FFFFFF',
+                      border: '1px solid #E8ECF0',
+                    }}
+                  >
+                    <button
+                      onClick={() => {
+                        setIsEditing(true)
+                        setShowSettings(false)
+                      }}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50"
+                      style={{
+                        color: '#2C3E50',
+                        fontFamily: typography.fontFamily,
+                      }}
+                    >
+                      <Pencil size={14} />
+                      Rename
+                    </button>
+                    <button
+                      onClick={handleToggleFinalState}
+                      className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-gray-50"
+                      style={{
+                        color: '#2C3E50',
+                        fontFamily: typography.fontFamily,
+                      }}
+                    >
+                      <Check size={14} />
+                      {isFinalState ? 'Remove auto-complete' : 'Auto-complete tasks'}
+                    </button>
+                    {onDeleteList && (
+                      <>
+                        <div style={{ borderTop: '1px solid #E8ECF0', margin: '4px 0' }} />
+                        <button
+                          onClick={() => {
+                            setShowSettings(false)
+                            onDeleteList()
+                          }}
+                          className="w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors hover:bg-red-50"
+                          style={{
+                            color: '#EF4444',
+                            fontFamily: typography.fontFamily,
+                          }}
+                        >
+                          <Trash2 size={14} />
+                          Delete column
+                        </button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
             {/* Collapse column button */}
             {canCollapse && onCollapse && (
               <button

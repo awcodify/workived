@@ -900,6 +900,7 @@ export interface CreateTaskListInput {
 export interface UpdateTaskListInput {
   name?: string
   position?: number
+  is_final_state?: boolean
 }
 
 export interface CreateTaskInput {

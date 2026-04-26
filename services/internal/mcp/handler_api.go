@@ -108,6 +108,10 @@ func (h *APIToolHandler) ExecuteTool(ctx context.Context, toolName string, args 
 		return h.listTaskLists(ctx, args)
 	case "workived_create_task_list":
 		return h.createTaskList(ctx, args)
+	case "workived_update_task_list":
+		return h.updateTaskList(ctx, args)
+	case "workived_delete_task_list":
+		return h.deleteTaskList(ctx, args)
 	case "workived_list_task_comments":
 		return h.listTaskComments(ctx, args)
 	case "workived_create_task_comment":
@@ -544,6 +548,53 @@ func (h *APIToolHandler) createTaskList(ctx context.Context, args map[string]int
 	}
 
 	return apiSuccessResult("Task list created successfully", list), nil
+}
+
+func (h *APIToolHandler) updateTaskList(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+	taskListID, ok := args["task_list_id"].(string)
+	if !ok || taskListID == "" {
+		return apiErrorResult("task_list_id is required"), nil
+	}
+
+	// Remove task_list_id from args since it's in the URL
+	updateArgs := make(map[string]interface{})
+	for k, v := range args {
+		if k != "task_list_id" {
+			updateArgs[k] = v
+		}
+	}
+
+	data, err := h.client.Put(ctx, "/api/v1/tasks/lists/"+taskListID, updateArgs)
+	if err != nil {
+		return apiErrorResult(err.Error()), nil
+	}
+
+	var list interface{}
+	if err := parseAPIResponse(data, &list); err != nil {
+		return apiErrorResult(err.Error()), nil
+	}
+
+	return apiSuccessResult("Task list updated successfully", list), nil
+}
+
+func (h *APIToolHandler) deleteTaskList(ctx context.Context, args map[string]interface{}) (interface{}, error) {
+	taskListID, ok := args["task_list_id"].(string)
+	if !ok || taskListID == "" {
+		return apiErrorResult("task_list_id is required"), nil
+	}
+
+	// Build query params for move_tasks_to if provided
+	params := make(map[string]string)
+	if moveTasksTo, ok := args["move_tasks_to"].(string); ok && moveTasksTo != "" {
+		params["move_tasks_to"] = moveTasksTo
+	}
+
+	_, err := h.client.Delete(ctx, "/api/v1/tasks/lists/"+taskListID, params)
+	if err != nil {
+		return apiErrorResult(err.Error()), nil
+	}
+
+	return apiSuccessResult("Task list deleted successfully", map[string]interface{}{"task_list_id": taskListID}), nil
 }
 
 func (h *APIToolHandler) listTaskComments(ctx context.Context, args map[string]interface{}) (interface{}, error) {
