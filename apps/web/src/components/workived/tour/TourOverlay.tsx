@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTourStore } from '@/lib/stores/tour'
+import { OverviewWelcomeIcon, OverviewDoneIcon } from './TourIcons'
 import {
   SpotlightOverlay,
   SpotlightTooltip,
@@ -19,7 +20,7 @@ export const TOUR_STEPS: TourStep[] = [
     type: 'modal',
     title: 'Welcome to Workived!',
     description: "Let’s take a quick tour so you know where everything is.\nIt only takes a minute.",
-    icon: '👋',
+    icon: <OverviewWelcomeIcon />,
   },
   {
     id: 'dock',
@@ -71,6 +72,13 @@ export const TOUR_STEPS: TourStep[] = [
     description: 'See leave, holidays, and team events all in one view.',
   },
   {
+    id: 'dashboards-dock',
+    type: 'spotlight',
+    target: '[data-tour="dock-reports"]',
+    title: 'Dashboards',
+    description: 'Reports and analytics for your organisation — attendance trends, leave usage, headcount, and more.',
+  },
+  {
     id: 'people-dock',
     type: 'spotlight',
     target: '[data-tour="dock-people"]',
@@ -89,7 +97,7 @@ export const TOUR_STEPS: TourStep[] = [
     type: 'spotlight',
     target: '[data-tour="notification-bell"]',
     title: 'Notifications',
-    description: 'Stay on top of things. Leave approvals, claim updates, and team activity show up here.',
+    description: 'Company announcements and important updates land here. Tap the bell to see what needs your attention.',
   },
   {
     id: 'attendance-card',
@@ -110,14 +118,14 @@ export const TOUR_STEPS: TourStep[] = [
     type: 'spotlight',
     target: '[data-tour="team-pulse"]',
     title: 'Team Pulse',
-    description: "See who’s in, who’s away, and who’s running late — all in real time.",
+    description: "See who's in, who's away, and who's running late — all in real time.",
   },
   {
     id: 'done',
     type: 'modal',
     title: "You’re all set!",
     description: 'Start by clocking in for today.\nYou can replay this tour anytime from Settings.',
-    icon: '🎉',
+    icon: <OverviewDoneIcon />,
   },
 ]
 
@@ -140,9 +148,6 @@ export function TourOverlay() {
       setTargetRect(null)
       return
     }
-    // Scroll target into view before measuring (handles scroll containers)
-    const el = document.querySelector(step.target)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     const rect = getTargetRect(step.target)
     setTargetRect(rect)
   }, [step])

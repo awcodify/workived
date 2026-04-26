@@ -1,11 +1,16 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { TaskTourOverlay, TASK_TOUR_STEPS } from './TaskTourOverlay'
 import { useTaskTourStore } from '@/lib/stores/taskTour'
 
 describe('TaskTourOverlay', () => {
   beforeEach(() => {
+    vi.useFakeTimers()
     useTaskTourStore.setState({ hasCompleted: false, isActive: false, currentStep: 0 })
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('renders nothing when tour is inactive', () => {
@@ -13,18 +18,42 @@ describe('TaskTourOverlay', () => {
     expect(container.innerHTML).toBe('')
   })
 
-  it('renders welcome modal on step 0', () => {
+  it(‘renders welcome modal on step 0’, () => {
     useTaskTourStore.setState({ isActive: true, currentStep: 0 })
     render(<TaskTourOverlay />)
-    expect(screen.getByText('Your Task Board')).toBeInTheDocument()
-    expect(screen.getByText("Let’s go")).toBeInTheDocument()
-    expect(screen.getByText('Skip tour')).toBeInTheDocument()
+    expect(screen.getByText(‘Your Task Board’)).toBeInTheDocument()
+    // During countdown buttons are locked — next btn shows the number
+    expect(screen.getByTestId(‘tour-next-btn’)).toBeInTheDocument()
+    expect(screen.getByText(‘Skip tour’)).toBeInTheDocument()
   })
 
-  it('advances to next step on clicking Lets go', () => {
+  it(‘disables next and skip buttons for 5 seconds on first step’, () => {
     useTaskTourStore.setState({ isActive: true, currentStep: 0 })
     render(<TaskTourOverlay />)
-    fireEvent.click(screen.getByText("Let’s go"))
+    expect(screen.getByTestId(‘tour-next-btn’)).toBeDisabled()
+    expect(screen.getByTestId(‘tour-skip-btn’)).toBeDisabled()
+  })
+
+  it(‘shows countdown number on next button during lock’, () => {
+    useTaskTourStore.setState({ isActive: true, currentStep: 0 })
+    render(<TaskTourOverlay />)
+    expect(screen.getByTestId(‘tour-next-btn’)).toHaveTextContent(‘5’)
+  })
+
+  it(‘enables buttons and shows Lets go after 5 seconds’, () => {
+    useTaskTourStore.setState({ isActive: true, currentStep: 0 })
+    render(<TaskTourOverlay />)
+    act(() => { vi.advanceTimersByTime(5000) })
+    expect(screen.getByTestId(‘tour-next-btn’)).not.toBeDisabled()
+    expect(screen.getByTestId(‘tour-skip-btn’)).not.toBeDisabled()
+    expect(screen.getByText("Let’s go")).toBeInTheDocument()
+  })
+
+  it(‘advances to next step on clicking Lets go after countdown’, () => {
+    useTaskTourStore.setState({ isActive: true, currentStep: 0 })
+    render(<TaskTourOverlay />)
+    act(() => { vi.advanceTimersByTime(5000) })
+    fireEvent.click(screen.getByTestId(‘tour-next-btn’))
     expect(useTaskTourStore.getState().currentStep).toBe(1)
   })
 
@@ -51,10 +80,11 @@ describe('TaskTourOverlay', () => {
     expect(state.hasCompleted).toBe(true)
   })
 
-  it('skips tour on Skip tour click', () => {
+  it('skips tour on Skip tour click after countdown', () => {
     useTaskTourStore.setState({ isActive: true, currentStep: 0 })
     render(<TaskTourOverlay />)
-    fireEvent.click(screen.getByText('Skip tour'))
+    act(() => { vi.advanceTimersByTime(5000) })
+    fireEvent.click(screen.getByTestId('tour-skip-btn'))
     const state = useTaskTourStore.getState()
     expect(state.isActive).toBe(false)
     expect(state.hasCompleted).toBe(true)
@@ -126,7 +156,6 @@ describe('TaskTourOverlay', () => {
     useTaskTourStore.setState({ isActive: true, currentStep: 0 })
     render(<TaskTourOverlay />)
 
-    // Should have fired tour_started + step_viewed on mount
     expect(listener.mock.calls.some((c) => (c[0] as CustomEvent).detail.event === 'tour_started')).toBe(true)
     expect(listener.mock.calls.some((c) => (c[0] as CustomEvent).detail.tour_id === 'tasks')).toBe(true)
 
@@ -140,5 +169,53 @@ describe('TaskTourOverlay', () => {
     expect(allText).toContain('filter')
     expect(allText).toContain('approv')
     expect(allText).toContain('workload')
+    expect(allText).toContain('assignee')
+    expect(allText).toContain('priority')
+    expect(allText).toContain('label')
+    expect(allText).toContain('collapse')
+  })
+
+  it('includes steps for collapsed column, assignee, column selector, priority and label', () => {
+    const ids = TASK_TOUR_STEPS.map((s) => s.id)
+    expect(ids).toContain('tasks-collapsed-column')
+    expect(ids).toContain('tasks-assignee-filter')
+    expect(ids).toContain('tasks-column-selector')
+    expect(ids).toContain('tasks-priority-filter')
+    expect(ids).toContain('tasks-label-filter')
+  })
+
+  it('shows collapsed column step content when active', () => {
+    const idx = TASK_TOUR_STEPS.findIndex((s) => s.id === 'tasks-collapsed-column')
+    useTaskTourStore.setState({ isActive: true, currentStep: idx })
+    render(<TaskTourOverlay />)
+    expect(screen.getByText('Collapsed columns')).toBeInTheDocument()
+  })
+
+  it('shows column selector step content when active', () => {
+    const idx = TASK_TOUR_STEPS.findIndex((s) => s.id === 'tasks-column-selector')
+    useTaskTourStore.setState({ isActive: true, currentStep: idx })
+    render(<TaskTourOverlay />)
+    expect(screen.getByText('Column visibility')).toBeInTheDocument()
+  })
+
+  it('shows priority filter step content when active', () => {
+    const idx = TASK_TOUR_STEPS.findIndex((s) => s.id === 'tasks-priority-filter')
+    useTaskTourStore.setState({ isActive: true, currentStep: idx })
+    render(<TaskTourOverlay />)
+    expect(screen.getByText('Filter by priority')).toBeInTheDocument()
+  })
+
+  it('shows assignee filter step content when active', () => {
+    const idx = TASK_TOUR_STEPS.findIndex((s) => s.id === 'tasks-assignee-filter')
+    useTaskTourStore.setState({ isActive: true, currentStep: idx })
+    render(<TaskTourOverlay />)
+    expect(screen.getByText('Filter by assignee')).toBeInTheDocument()
+  })
+
+  it('shows label filter step content when active', () => {
+    const idx = TASK_TOUR_STEPS.findIndex((s) => s.id === 'tasks-label-filter')
+    useTaskTourStore.setState({ isActive: true, currentStep: idx })
+    render(<TaskTourOverlay />)
+    expect(screen.getByText('Filter by label')).toBeInTheDocument()
   })
 })

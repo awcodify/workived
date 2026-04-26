@@ -93,7 +93,7 @@ function AppLayout() {
   // Auto-trigger task board tour for first-time visitors on tasks page
   const { hasCompleted: taskTourCompleted, isActive: taskTourActive, startTour: startTaskTour } = useTaskTourStore()
   useEffect(() => {
-    if (!taskTourCompleted && !taskTourActive && pathname === '/tasks' && !isSetupPage && !isActive) {
+    if (!taskTourCompleted && !taskTourActive && pathname.startsWith('/tasks') && !isSetupPage && !isActive) {
       const timer = setTimeout(startTaskTour, 1200)
       return () => clearTimeout(timer)
     }

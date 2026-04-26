@@ -122,7 +122,7 @@ describe('TourOverlay', () => {
   })
 
   it('has correct number of tour steps', () => {
-    expect(TOUR_STEPS.length).toBe(15)
+    expect(TOUR_STEPS.length).toBe(16)
     expect(TOUR_STEPS[0].type).toBe('modal')
     expect(TOUR_STEPS[TOUR_STEPS.length - 1].type).toBe('modal')
   })

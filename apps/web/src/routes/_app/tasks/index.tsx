@@ -190,12 +190,12 @@ function TasksPage() {
   const [maxExpandedColumns, setMaxExpandedColumns] = useState<number>(() => {
     if (typeof window === 'undefined') return 2
     const stored = localStorage.getItem('workived:maxExpandedColumns')
-    return stored ? parseInt(stored, 10) : 2
+    return stored ? Math.max(2, parseInt(stored, 10)) : 2
   })
   const [expandedColumnIds, setExpandedColumnIds] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set()
     const storedMax = typeof window !== 'undefined' ? localStorage.getItem('workived:maxExpandedColumns') : null
-    const MAX_EXPANDED_COLUMNS = storedMax ? parseInt(storedMax, 10) : 2
+    const MAX_EXPANDED_COLUMNS = storedMax ? Math.max(2, parseInt(storedMax, 10)) : 2
     const stored = localStorage.getItem('workived:expandedColumns')
     if (stored) {
       try { return new Set(JSON.parse(stored)) } catch { /* fall through */ }
@@ -365,36 +365,56 @@ function TasksPage() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showAssigneeOverflow])
   
-  // Persist expanded columns and max to localStorage
+  // Persist expanded columns — skip empty sets so first-load doesn't poison localStorage
   useEffect(() => {
     if (typeof window === 'undefined') return
-    localStorage.setItem('workived:expandedColumns', JSON.stringify([...expandedColumnIds]))
+    if (expandedColumnIds.size > 0) {
+      localStorage.setItem('workived:expandedColumns', JSON.stringify([...expandedColumnIds]))
+    }
   }, [expandedColumnIds])
-  
+
   useEffect(() => {
     if (typeof window === 'undefined') return
     localStorage.setItem('workived:maxExpandedColumns', maxExpandedColumns.toString())
   }, [maxExpandedColumns])
-  
-  // Adjust expanded columns when max changes
+
+  // Sync expanded columns with taskLists: strip stale IDs, trim or fill to maxExpandedColumns
   useEffect(() => {
-    if (expandedColumnIds.size > maxExpandedColumns) {
-      const allLists = (taskLists || []).filter(l => l.is_active).sort((a, b) => a.position - b.position)
-      const expandedInOrder = allLists.filter(l => expandedColumnIds.has(l.id))
-      const toKeep = new Set(expandedInOrder.slice(0, maxExpandedColumns).map(l => l.id))
-      setExpandedColumnIds(toKeep)
-    } else if (expandedColumnIds.size < maxExpandedColumns && taskLists.length > 0) {
-      const allLists = (taskLists || []).filter(l => l.is_active).sort((a, b) => a.position - b.position)
-      const collapsedLists = allLists.filter(l => !expandedColumnIds.has(l.id))
-      if (collapsedLists.length > 0) {
-        const newSet = new Set(expandedColumnIds)
-        const toAdd = collapsedLists.slice(0, maxExpandedColumns - expandedColumnIds.size)
-        toAdd.forEach(l => newSet.add(l.id))
-        setExpandedColumnIds(newSet)
+    if (taskLists.length === 0) return
+    const allLists = taskLists.filter(l => l.is_active).sort((a, b) => a.position - b.position)
+    const validIds = new Set(allLists.map(l => l.id))
+
+    // Remove IDs that no longer exist (stale from another session or org)
+    const validExpanded = new Set([...expandedColumnIds].filter(id => validIds.has(id)))
+
+    if (validExpanded.size > maxExpandedColumns) {
+      const trimmed = new Set(
+        allLists.filter(l => validExpanded.has(l.id)).slice(0, maxExpandedColumns).map(l => l.id)
+      )
+      setExpandedColumnIds(trimmed)
+      return
+    }
+
+    if (validExpanded.size < maxExpandedColumns) {
+      // Priority: active-work columns first, then backlog, then final-state
+      const priorityOrder = allLists.length <= maxExpandedColumns
+        ? allLists
+        : [
+            ...allLists.filter((l, idx) => !l.is_final_state && idx > 0),
+            ...allLists.filter((_, idx) => idx === 0),
+            ...allLists.filter(l => l.is_final_state),
+          ]
+      for (const list of priorityOrder) {
+        if (validExpanded.size >= maxExpandedColumns) break
+        validExpanded.add(list.id)
       }
     }
+
+    const changed = validExpanded.size !== expandedColumnIds.size ||
+      [...validExpanded].some(id => !expandedColumnIds.has(id))
+    if (changed) setExpandedColumnIds(validExpanded)
   }, [maxExpandedColumns, taskLists])
-  
+
   // Close modals with ESC key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -421,32 +441,6 @@ function TasksPage() {
     }
   }, [showAddColumnModal, showAddFieldModal, showAddLabelModal])
   
-  // Initialize expanded columns when taskLists load (if fewer than max or not yet set)
-  useEffect(() => {
-    if (taskLists.length > 0 && expandedColumnIds.size < maxExpandedColumns) {
-      const activeLists = taskLists.filter(l => l.is_active).sort((a, b) => a.position - b.position)
-      // Prioritize middle columns (active work) over first/last (backlog/done)
-      const priorityOrder = activeLists.length <= maxExpandedColumns 
-        ? activeLists
-        : [
-            // Show non-final, non-first columns first (active work)
-            ...activeLists.filter((l, idx) => !l.is_final_state && idx > 0),
-            // Then first column (backlog)
-            ...activeLists.filter((l, idx) => idx === 0),
-            // Then final columns (done)
-            ...activeLists.filter(l => l.is_final_state),
-          ]
-      
-      const newSet = new Set(expandedColumnIds)
-      for (const list of priorityOrder) {
-        if (newSet.size >= maxExpandedColumns) break
-        newSet.add(list.id)
-      }
-      if (newSet.size !== expandedColumnIds.size) {
-        setExpandedColumnIds(newSet)
-      }
-    }
-  }, [taskLists, expandedColumnIds.size])
   
   // Toggle column expanded/collapsed — clicking a collapsed column expands it
   const toggleColumnExpanded = useCallback((columnId: string) => {
@@ -1195,7 +1189,7 @@ function TasksPage() {
           </div>
 
           {/* Assignee avatars */}
-          <div className="flex items-center gap-1 relative" ref={assigneeOverflowRef}>
+          <div data-tour="tasks-assignee-filter" className="flex items-center gap-1 relative" ref={assigneeOverflowRef}>
             {(() => {
               // Build visible list: first 5 employees, but swap in selected ones from overflow
               const first5 = employees.slice(0, 5)
@@ -1409,6 +1403,7 @@ function TasksPage() {
 
             // Collapsed column - show as vertical strip
             if (!isExpanded) {
+              const isFirstCollapsed = !allActiveLists.slice(0, idx).some(c => !expandedColumnIds.has(c.id))
               return (
                 <CollapsedColumn
                   key={col.id}
@@ -1416,6 +1411,7 @@ function TasksPage() {
                   taskCount={taskCount}
                   idx={idx}
                   onExpand={() => toggleColumnExpanded(col.id)}
+                  dataTour={isFirstCollapsed ? 'tasks-collapsed-column' : undefined}
                 />
               )
             }
@@ -1558,9 +1554,9 @@ function TasksPage() {
           </div>
 
           {/* Right Sidebar: Collapsed columns + Filters */}
-          <div className="hidden sm:flex flex-col gap-4 flex-shrink-0 ml-4" style={{ width: '220px' }}>
+          <div data-tour="tasks-sidebar" className="hidden sm:flex flex-col gap-4 flex-shrink-0 ml-4" style={{ width: '220px' }}>
             {/* All columns - toggle expanded/collapsed */}
-            <div className="flex flex-col gap-1">
+            <div data-tour="tasks-column-selector" className="flex flex-col gap-1">
               <div className="flex items-center justify-between px-2 mb-2">
                 <div className="flex items-center gap-1.5">
                   <span
@@ -1658,7 +1654,7 @@ function TasksPage() {
               </div>
 
               {/* Priority filter */}
-              <div className="px-2">
+              <div data-tour="tasks-priority-filter" className="px-2">
                 <div
                   className="text-[11px] font-semibold mb-2"
                   style={{ color: '#64748B', fontFamily: typography.fontFamily }}
@@ -1710,7 +1706,7 @@ function TasksPage() {
               </div>
 
               {/* Labels filter */}
-                <div className="px-2">
+                <div data-tour="tasks-label-filter" className="px-2">
                   <div className="flex items-center justify-between mb-2">
                     <span
                       className="text-[11px] font-semibold"
@@ -2616,16 +2612,19 @@ function CollapsedColumn({
   taskCount,
   idx,
   onExpand,
+  dataTour,
 }: {
   col: { id: string; name: string }
   taskCount: number
   idx: number
   onExpand: () => void
+  dataTour?: string
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: col.id })
 
   return (
     <div
+      {...(dataTour ? { 'data-tour': dataTour } : {})}
       ref={setNodeRef}
       key={col.id}
       className="flex-shrink-0 hidden sm:flex flex-col items-center cursor-pointer hover:opacity-80 group"

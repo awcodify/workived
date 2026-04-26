@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState, useRef } from 'react'
+import type { ReactNode } from 'react'
 import { colors, typography } from '@/design/tokens'
 import { ChevronLeft, ChevronRight, X, Sparkles } from 'lucide-react'
 
@@ -9,7 +10,7 @@ export interface ModalStep {
   type: 'modal'
   title: string
   description: string
-  icon: string
+  icon: ReactNode
 }
 
 export interface SpotlightStep {
@@ -277,6 +278,8 @@ export function ModalCard({
   onNext,
   onPrev,
   onSkip,
+  preview,
+  countdown,
 }: {
   step: ModalStep
   currentStep: number
@@ -286,6 +289,8 @@ export function ModalCard({
   onNext: () => void
   onPrev: () => void
   onSkip: () => void
+  preview?: ReactNode
+  countdown?: number
 }) {
   return (
     <div
@@ -304,7 +309,7 @@ export function ModalCard({
           background: '#FFFFFF',
           borderRadius: 20,
           padding: '40px 36px 32px',
-          maxWidth: 400,
+          maxWidth: preview ? 480 : 400,
           width: '100%',
           textAlign: 'center',
           pointerEvents: 'auto',
@@ -313,7 +318,7 @@ export function ModalCard({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ fontSize: 48, marginBottom: 16, lineHeight: 1 }}>{step.icon}</div>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>{step.icon}</div>
 
         <h2
           style={{
@@ -335,11 +340,27 @@ export function ModalCard({
             color: colors.ink500,
             lineHeight: 1.6,
             whiteSpace: 'pre-line',
-            marginBottom: 28,
+            marginBottom: preview ? 20 : 28,
           }}
         >
           {step.description}
         </p>
+
+        {preview && (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginBottom: 24,
+              borderRadius: 12,
+              overflow: 'hidden',
+              background: '#FDF4E3',
+              padding: 16,
+            }}
+          >
+            {preview}
+          </div>
+        )}
 
         <StepDots current={currentStep} total={totalSteps} />
 
@@ -381,33 +402,44 @@ export function ModalCard({
           <button
             data-testid="tour-next-btn"
             onClick={onNext}
+            disabled={!!countdown && countdown > 0}
             style={{
               display: 'flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: 6,
               padding: '10px 24px',
+              minWidth: 96,
               borderRadius: 12,
               border: 'none',
-              background: colors.accent,
-              color: '#FFFFFF',
-              fontSize: 14,
+              background: countdown && countdown > 0 ? colors.ink100 : colors.accent,
+              color: countdown && countdown > 0 ? colors.ink300 : '#FFFFFF',
+              fontSize: countdown && countdown > 0 ? 20 : 14,
               fontWeight: 700,
-              cursor: 'pointer',
+              cursor: countdown && countdown > 0 ? 'not-allowed' : 'pointer',
               transition: 'all 0.15s',
-              boxShadow: `0 4px 12px ${colors.accent}40`,
+              boxShadow: countdown && countdown > 0 ? 'none' : `0 4px 12px ${colors.accent}40`,
             }}
             onMouseEnter={(e) => {
+              if (countdown && countdown > 0) return
               e.currentTarget.style.transform = 'translateY(-1px)'
               e.currentTarget.style.boxShadow = `0 6px 16px ${colors.accent}60`
             }}
             onMouseLeave={(e) => {
+              if (countdown && countdown > 0) return
               e.currentTarget.style.transform = 'translateY(0)'
               e.currentTarget.style.boxShadow = `0 4px 12px ${colors.accent}40`
             }}
           >
-            {isFirstStep && <Sparkles size={16} />}
-            {isFirstStep ? "Let’s go" : isLastStep ? 'Start exploring' : 'Next'}
-            {!isFirstStep && !isLastStep && <ChevronRight size={16} />}
+            {countdown && countdown > 0 ? (
+              countdown
+            ) : (
+              <>
+                {isFirstStep && <Sparkles size={16} />}
+                {isFirstStep ? "Let’s go" : isLastStep ? 'Start exploring' : 'Next'}
+                {!isFirstStep && !isLastStep && <ChevronRight size={16} />}
+              </>
+            )}
           </button>
         </div>
 
@@ -415,19 +447,25 @@ export function ModalCard({
           <button
             data-testid="tour-skip-btn"
             onClick={onSkip}
+            disabled={!!countdown && countdown > 0}
             style={{
               marginTop: 16,
               padding: '4px 8px',
               background: 'transparent',
               border: 'none',
-              color: colors.ink300,
+              color: countdown && countdown > 0 ? colors.ink150 : colors.ink300,
               fontSize: 13,
               fontWeight: 500,
-              cursor: 'pointer',
+              cursor: countdown && countdown > 0 ? 'not-allowed' : 'pointer',
               transition: 'color 0.15s',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = colors.ink500 }}
-            onMouseLeave={(e) => { e.currentTarget.style.color = colors.ink300 }}
+            onMouseEnter={(e) => {
+              if (countdown && countdown > 0) return
+              e.currentTarget.style.color = colors.ink500
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = countdown && countdown > 0 ? colors.ink150 : colors.ink300
+            }}
           >
             Skip tour
           </button>

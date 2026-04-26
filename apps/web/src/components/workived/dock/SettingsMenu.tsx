@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
-import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, HelpCircle, MoreHorizontal, ClipboardCheck } from 'lucide-react'
+import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, HelpCircle, MoreHorizontal, ClipboardCheck, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
 import { useThemeStore } from '@/lib/stores/theme'
 import { useTourStore } from '@/lib/stores/tour'
@@ -22,8 +22,10 @@ interface SettingsMenuProps {
 
 export function SettingsMenu({ currentModule }: SettingsMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [showTourSubmenu, setShowTourSubmenu] = useState(false)
   const buttonRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const submenuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
   const { theme: currentTheme, toggleTheme } = useThemeStore()
@@ -76,9 +78,11 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
       const target = event.target as Node
       if (
         menuRef.current && !menuRef.current.contains(target) &&
+        submenuRef.current && !submenuRef.current.contains(target) &&
         buttonRef.current && !buttonRef.current.contains(target)
       ) {
         setIsOpen(false)
+        setShowTourSubmenu(false)
       }
     }
 
@@ -107,6 +111,14 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
     window.addEventListener('resize', onResize)
     return () => window.removeEventListener('resize', onResize)
   }, [isOpen, getPosition])
+
+  // Place submenu to the RIGHT of main dropdown when space allows, otherwise LEFT
+  // menuPos.right = gap between dropdown's right edge and viewport right edge
+  const SUBMENU_W = 180
+  const SUBMENU_GAP = 8
+  const submenuRight = menuPos.right >= SUBMENU_W + SUBMENU_GAP
+    ? menuPos.right - SUBMENU_GAP - SUBMENU_W  // right of main dropdown
+    : menuPos.right + 240 + SUBMENU_GAP        // left of main dropdown
 
   const handleLogout = async () => {
     await logout()
@@ -366,28 +378,35 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
                   ) : undefined
                 }
               />
-              <MenuItem
-                icon={HelpCircle}
-                label="Replay overview tour"
-                testId="settings-menu-tour-link"
-                onClick={() => {
-                  setIsOpen(false)
-                  useTourStore.getState().resetTour()
-                  navigate({ to: '/overview' })
-                  setTimeout(() => useTourStore.getState().startTour(), 500)
+              {/* Replay tour — opens side panel */}
+              <button
+                role="menuitem"
+                data-testid="settings-menu-replay-tour-btn"
+                className="w-full px-3 py-2.5 flex items-center gap-3 transition-all text-left group/item rounded-lg"
+                style={{
+                  color: menuStyle.text,
+                  background: showTourSubmenu ? menuStyle.hoverBg : 'transparent',
                 }}
-              />
-              <MenuItem
-                icon={HelpCircle}
-                label="Replay task board tour"
-                testId="settings-menu-task-tour-link"
-                onClick={() => {
-                  setIsOpen(false)
-                  useTaskTourStore.getState().resetTour()
-                  navigate({ to: '/tasks' })
-                  setTimeout(() => useTaskTourStore.getState().startTour(), 1200)
+                onClick={() => setShowTourSubmenu(v => !v)}
+                onMouseEnter={(e) => { e.currentTarget.style.background = menuStyle.hoverBg }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = showTourSubmenu ? menuStyle.hoverBg : 'transparent'
                 }}
-              />
+              >
+                <HelpCircle
+                  size={17}
+                  style={{ color: showTourSubmenu ? menuStyle.text : menuStyle.iconColor }}
+                  className="transition-transform group-hover/item:scale-110 flex-shrink-0"
+                />
+                <span className="text-[13px] font-medium flex-1">Replay tour</span>
+                <ChevronRight
+                  size={13}
+                  style={{
+                    color: showTourSubmenu ? menuStyle.text : menuStyle.textMuted,
+                    transition: 'color 0.15s',
+                  }}
+                />
+              </button>
             </div>
 
             {/* Divider */}
@@ -403,6 +422,69 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
                 destructive
               />
             </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Tour submenu — side panel to the left of the main dropdown */}
+      {isOpen && showTourSubmenu && createPortal(
+        <div
+          ref={submenuRef}
+          role="menu"
+          className="fixed z-[60] rounded-2xl border"
+          data-testid="settings-menu-tour-submenu"
+          style={{
+            bottom: menuPos.bottom,
+            right: submenuRight,
+            minWidth: 180,
+            borderColor: theme.border,
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
+            animation: 'settingsSlideUp 0.2s ease-out',
+          }}
+        >
+          <div className="absolute inset-0 rounded-2xl backdrop-blur-3xl" style={{ background: menuStyle.bg }} />
+          <div className="relative p-1.5">
+            <p
+              className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider"
+              style={{ color: menuStyle.textMuted }}
+            >
+              Replay tour
+            </p>
+            <button
+              role="menuitem"
+              data-testid="settings-menu-overview-tour-btn"
+              className="w-full px-3 py-2.5 flex items-center gap-2 transition-all text-left rounded-lg"
+              style={{ color: menuStyle.text }}
+              onClick={() => {
+                setIsOpen(false)
+                setShowTourSubmenu(false)
+                useTourStore.getState().resetTour()
+                navigate({ to: '/overview' })
+                setTimeout(() => useTourStore.getState().startTour(), 500)
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = menuStyle.hoverBg }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <span className="text-[13px] font-medium">Overview tour</span>
+            </button>
+            <button
+              role="menuitem"
+              data-testid="settings-menu-task-board-tour-btn"
+              className="w-full px-3 py-2.5 flex items-center gap-2 transition-all text-left rounded-lg"
+              style={{ color: menuStyle.text }}
+              onClick={() => {
+                setIsOpen(false)
+                setShowTourSubmenu(false)
+                useTaskTourStore.getState().resetTour()
+                navigate({ to: '/tasks' })
+                setTimeout(() => useTaskTourStore.getState().startTour(), 1200)
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = menuStyle.hoverBg }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+            >
+              <span className="text-[13px] font-medium">Task board tour</span>
+            </button>
           </div>
         </div>,
         document.body

@@ -10,6 +10,8 @@ import {
   type ModalStep,
 } from './TourEngine'
 import { trackTourEvent } from '@/lib/tours/instrumentation'
+import { TaskBoardDemo } from './TaskBoardDemo'
+import { TaskWelcomeIcon, TaskDoneIcon } from './TourIcons'
 
 // ── Task board tour steps ────────────────────────────────────────
 
@@ -19,7 +21,7 @@ export const TASK_TOUR_STEPS: TourStep[] = [
     type: 'modal',
     title: 'Your Task Board',
     description: "Here's a quick walkthrough of how the board works.\nTakes about 30 seconds.",
-    icon: '📋',
+    icon: <TaskWelcomeIcon />,
   },
   {
     id: 'tasks-board',
@@ -34,6 +36,13 @@ export const TASK_TOUR_STEPS: TourStep[] = [
     target: '[data-tour="tasks-first-column"]',
     title: 'Columns & state changes',
     description: 'The number above the column name is the live task count. Drag a card to the last column to auto-complete it — the board tracks that state change for you.',
+  },
+  {
+    id: 'tasks-collapsed-column',
+    type: 'spotlight',
+    target: '[data-tour="tasks-collapsed-column"]',
+    title: 'Collapsed columns',
+    description: 'Thin strips are collapsed columns. Click any strip to expand it — the board keeps your preferred number of open columns and collapses another one to make room.',
   },
   {
     id: 'tasks-add-btn',
@@ -64,11 +73,39 @@ export const TASK_TOUR_STEPS: TourStep[] = [
     description: 'These badges show who is available, busy, or on leave right now. Click any badge to see which team members are in that state before assigning work.',
   },
   {
+    id: 'tasks-assignee-filter',
+    type: 'spotlight',
+    target: '[data-tour="tasks-assignee-filter"]',
+    title: 'Filter by assignee',
+    description: "Click any avatar to filter the board to that person's tasks. The colored ring shows their current workload — green available, yellow busy, red overloaded. Click multiple avatars to combine.",
+  },
+  {
+    id: 'tasks-column-selector',
+    type: 'spotlight',
+    target: '[data-tour="tasks-column-selector"]',
+    title: 'Column visibility',
+    description: 'Click any column name to expand or collapse it. The board always keeps at least 2 columns open. Use the 2 / 3 / 4 buttons to set how many expanded columns show at once.',
+  },
+  {
+    id: 'tasks-priority-filter',
+    type: 'spotlight',
+    target: '[data-tour="tasks-priority-filter"]',
+    title: 'Filter by priority',
+    description: 'Narrow the board to Urgent, High, Medium, or Low tasks. Combine with assignee and label filters to find exactly what needs attention.',
+  },
+  {
+    id: 'tasks-label-filter',
+    type: 'spotlight',
+    target: '[data-tour="tasks-label-filter"]',
+    title: 'Filter by label',
+    description: 'Labels are freeform tags — bug, feature, design, etc. Click a label to show only matching cards. Create new labels with the + button.',
+  },
+  {
     id: 'tasks-done',
     type: 'modal',
     title: "Board unlocked.",
     description: "Drag cards to move them, click any card to open full details.\nYou can replay this tour anytime from Settings.",
-    icon: '🚀',
+    icon: <TaskDoneIcon />,
   },
 ]
 
@@ -78,6 +115,7 @@ export function TaskTourOverlay() {
   const { isActive, currentStep, nextStep, prevStep, skipTour } = useTaskTourStore()
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null)
   const [isAnimating, setIsAnimating] = useState(false)
+  const [countdown, setCountdown] = useState(0)
   const overlayRef = useRef<HTMLDivElement>(null)
   const prevStepRef = useRef<number>(-1)
 
@@ -91,8 +129,6 @@ export function TaskTourOverlay() {
       setTargetRect(null)
       return
     }
-    const el = document.querySelector(step.target)
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     const rect = getTargetRect(step.target)
     setTargetRect(rect)
   }, [step])
@@ -132,6 +168,22 @@ export function TaskTourOverlay() {
       total_steps: totalSteps,
     })
   }, [isActive, currentStep, step, totalSteps])
+
+  // 5-second countdown on welcome step — locks Skip and Let's go
+  useEffect(() => {
+    if (!isActive || currentStep !== 0) {
+      setCountdown(0)
+      return
+    }
+    setCountdown(5)
+    const id = setInterval(() => {
+      setCountdown(c => {
+        if (c <= 1) { clearInterval(id); return 0 }
+        return c - 1
+      })
+    }, 1000)
+    return () => clearInterval(id)
+  }, [isActive, currentStep])
 
   // Keyboard navigation
   useEffect(() => {
@@ -205,6 +257,8 @@ export function TaskTourOverlay() {
           onNext={handleNext}
           onPrev={prevStep}
           onSkip={handleSkip}
+          preview={isFirstStep ? <TaskBoardDemo /> : undefined}
+          countdown={isFirstStep ? countdown : undefined}
         />
       ) : (
         <SpotlightTooltip
