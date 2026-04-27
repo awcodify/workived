@@ -8,31 +8,43 @@
 package admin
 
 import (
+	"context"
+	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
+	"github.com/workived/services/pkg/notify"
 )
 
 type Handler struct {
 	svc           *Service
 	importHandler *ImportHandler
+	notifier      notify.Notifier
 	log           zerolog.Logger
 }
 
 func NewHandler(svc *Service, log zerolog.Logger) *Handler {
 	return &Handler{
-		svc: svc,
-		log: log,
+		svc:      svc,
+		notifier: &notify.NoOpNotifier{},
+		log:      log,
 	}
 }
 
-// WithImportHandler sets the import handler for staff import operations
+// WithImportHandler sets the import handler for staff import operations.
 func (h *Handler) WithImportHandler(importHandler *ImportHandler) *Handler {
 	h.importHandler = importHandler
+	return h
+}
+
+// WithNotifier sets the notifier used by the test-notification endpoint.
+func (h *Handler) WithNotifier(n notify.Notifier) *Handler {
+	h.notifier = n
 	return h
 }
 
@@ -80,6 +92,7 @@ func (h *Handler) RegisterStaffRoutes(r *gin.RouterGroup) {
 // RegisterPublicRoutes registers auth-only (non-admin) feature-check routes.
 func (h *Handler) RegisterPublicRoutes(r *gin.RouterGroup) {
 	r.GET("/features", h.GetEnabledFeatures)
+	r.POST("/notifications/test", h.SendTestNotification)
 }
 
 // ── System Stats ────────────────────────────────────────────────────────────
@@ -294,4 +307,48 @@ func (h *Handler) FetchLinearUsers(c *gin.Context) {
 		return
 	}
 	h.importHandler.FetchLinearUsers(c)
+}
+
+// SendTestNotification sends a rich test message via the configured notifier.
+// Owner-only: any authenticated org member with "owner" role can trigger this.
+func (h *Handler) SendTestNotification(c *gin.Context) {
+	role := middleware.RoleFromCtx(c)
+	if role != "owner" {
+		c.JSON(http.StatusForbidden, apperr.Response(apperr.New(apperr.CodeForbidden, "only org owners can send test notifications")))
+		return
+	}
+
+	orgID := middleware.OrgIDFromCtx(c)
+	userID := middleware.UserIDFromCtx(c)
+	requestID := middleware.RequestIDFromCtx(c)
+
+	msg := fmt.Sprintf(
+		"✅ Workived Test Notification\n\n"+
+			"This is a test message from your Workived instance.\n\n"+
+			"Details\n"+
+			"Org ID: %s\n"+
+			"Triggered by: %s\n"+
+			"Request ID: %s\n"+
+			"Time: %s\n\n"+
+			"Alert types active:\n"+
+			"- 500 errors: instant alert\n"+
+			"- New organisation registered: welcome alert\n\n"+
+			"If you see this, Telegram notifications are working.",
+		orgID,
+		userID,
+		requestID,
+		time.Now().UTC().Format(time.RFC3339),
+	)
+
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
+	defer cancel()
+
+	if err := h.notifier.Send(ctx, msg); err != nil {
+		h.log.Error().Err(err).Str("org_id", orgID.String()).Msg("test notification failed")
+		c.JSON(http.StatusInternalServerError, apperr.Response(fmt.Errorf("send notification: %w", err)))
+		return
+	}
+
+	h.log.Info().Str("org_id", orgID.String()).Str("user_id", userID.String()).Msg("test notification sent")
+	c.JSON(http.StatusOK, gin.H{"message": "test notification sent"})
 }

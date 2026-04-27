@@ -49,6 +49,10 @@ type Config struct {
 	GoogleClientID     string `mapstructure:"GOOGLE_CLIENT_ID"`
 	GoogleClientSecret string `mapstructure:"GOOGLE_CLIENT_SECRET"`
 	GoogleRedirectURL  string `mapstructure:"GOOGLE_REDIRECT_URL"` // e.g., http://localhost:8080/api/v1/auth/google/callback
+
+	// Telegram Notifications
+	TelegramBotToken string `mapstructure:"TELEGRAM_BOT_TOKEN"`
+	TelegramChatID   string `mapstructure:"TELEGRAM_CHAT_ID"`
 }
 
 func Load() (*Config, error) {

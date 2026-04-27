@@ -40,6 +40,7 @@ import (
 	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/email"
 	"github.com/workived/services/pkg/logger"
+	"github.com/workived/services/pkg/notify"
 )
 
 // userRepoAdapter adapts auth.Repository to organisation.UserRepository interface.
@@ -131,6 +132,16 @@ func main() {
 		log.Info().Msg("email notifications disabled (using NoOpSender)")
 	}
 
+	// Telegram notifier (NoOp if token not configured)
+	var telegramNotifier notify.Notifier
+	if cfg.TelegramBotToken != "" && cfg.TelegramChatID != "" {
+		telegramNotifier = notify.NewTelegramNotifier(cfg.TelegramBotToken, cfg.TelegramChatID, log)
+		log.Info().Str("chat_id", cfg.TelegramChatID).Msg("telegram notifications enabled")
+	} else {
+		telegramNotifier = &notify.NoOpNotifier{}
+		log.Info().Msg("telegram notifications disabled (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set)")
+	}
+
 	// ── Repositories ─────────────────────────────────────────────────────────
 	authRepo := auth.NewRepository(db)
 	orgRepo := organisation.NewRepository(db)
@@ -161,6 +172,7 @@ func main() {
 		auth.WithAppURL(cfg.AppURL),
 		auth.WithLogger(log),
 		auth.WithRedis(rdb),
+		auth.WithNotifier(telegramNotifier),
 		auth.WithOAuthConfig(auth.OAuthConfig{
 			GoogleClientID:     cfg.GoogleClientID,
 			GoogleClientSecret: cfg.GoogleClientSecret,
@@ -181,7 +193,7 @@ func main() {
 	// Org service created after leave and announcements — needs both callbacks for post-invite hooks
 	// Create a user repo adapter for org service
 	userRepoAdapter := &userRepoAdapter{authRepo: authRepo}
-	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, userRepoAdapter, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender), organisation.WithCache(cacheStore),
+	orgSvc := organisation.NewService(orgRepo, authRepo, authSvc, empRepo, userRepoAdapter, cfg.AppURL, organisation.WithAuditLog(auditRepo), organisation.WithLogger(log), organisation.WithEmailSender(emailSender), organisation.WithCache(cacheStore), organisation.WithNotifier(telegramNotifier),
 		organisation.WithOnEmployeeJoined(leaveSvc.InitBalancesForEmployee),
 		organisation.WithOnEmployeeJoined(func(ctx context.Context, orgID, employeeID uuid.UUID) {
 			emp, err := empRepo.GetByID(ctx, orgID, employeeID)
@@ -276,7 +288,7 @@ func main() {
 	mobileHandler := mobile.NewHandler(mobileSvc)
 
 	// Admin handler for feature flags
-	adminHandler := admin.NewHandler(adminSvc, log)
+	adminHandler := admin.NewHandler(adminSvc, log).WithNotifier(telegramNotifier)
 
 	// ── Router ────────────────────────────────────────────────────────────────
 	if cfg.Env == "production" {
@@ -287,6 +299,7 @@ func main() {
 	r.Use(gin.Recovery())
 	r.Use(middleware.RequestID())
 	r.Use(middleware.Logger(log))
+	r.Use(middleware.TelegramAlert(telegramNotifier))
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})

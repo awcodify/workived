@@ -16,6 +16,7 @@ import (
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/email"
+	"github.com/workived/services/pkg/notify"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -50,6 +51,7 @@ type Service struct {
 	accessTTL  time.Duration
 	refreshTTL time.Duration
 	email      email.Sender
+	notifier   notify.Notifier
 	appURL     string
 	log        zerolog.Logger
 	rdb        *redis.Client
@@ -76,6 +78,10 @@ func WithRedis(rdb *redis.Client) ServiceOption {
 
 func WithOAuthConfig(cfg OAuthConfig) ServiceOption {
 	return func(s *Service) { s.oauthCfg = cfg }
+}
+
+func WithNotifier(n notify.Notifier) ServiceOption {
+	return func(s *Service) { s.notifier = n }
 }
 
 func NewService(repo Repo, orgRepo OrgRepo, jwtSecret string, accessTTL, refreshTTL time.Duration, opts ...ServiceOption) *Service {
@@ -116,6 +122,20 @@ func (s *Service) Register(ctx context.Context, req RegisterRequest) (*User, err
 	// Send verification email asynchronously
 	if s.email != nil {
 		go s.sendVerificationEmail(context.Background(), user.FullName, user.Email, rawToken)
+	}
+
+	if s.notifier != nil {
+		msg := fmt.Sprintf(
+			"👤 New User Registered\nName: %s\nEmail: %s\nTime: %s",
+			user.FullName,
+			user.Email,
+			time.Now().UTC().Format(time.RFC3339),
+		)
+		go func() {
+			ctx2, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_ = s.notifier.Send(ctx2, msg)
+		}()
 	}
 
 	return user, nil

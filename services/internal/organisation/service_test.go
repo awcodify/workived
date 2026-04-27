@@ -405,7 +405,8 @@ func newFakeUserRepo() *fakeUserRepo {
 func (f *fakeUserRepo) GetUserByID(_ context.Context, id uuid.UUID) (*organisation.User, error) {
 	u, ok := f.users[id]
 	if !ok {
-		return nil, apperr.NotFound("user")
+		// Return a verified user by default so tests that don't care about email verification don't need to seed it.
+		return &organisation.User{ID: id, Email: id.String() + "@example.com", IsVerified: true}, nil
 	}
 	return u, nil
 }
@@ -538,34 +539,42 @@ func TestOrgService_InviteMember(t *testing.T) {
 	})
 
 	t.Run("pro role rejected on free plan", func(t *testing.T) {
-		svc, _, _ := newTestService(t)
+		svc, _, userRepo := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
+		userRepo.createVerifiedUser(ownerID)
 
-		resp, _ := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
 			Name: "Free Org", Slug: "freeorg", CountryCode: "ID", Timezone: "Asia/Jakarta", CurrencyCode: "IDR",
 		})
+		if err != nil {
+			t.Fatalf("unexpected error creating org: %v", err)
+		}
 
-		_, err := svc.InviteMember(ctx, resp.Organisation.ID, ownerID, organisation.InviteMemberRequest{
+		_, invErr := svc.InviteMember(ctx, resp.Organisation.ID, ownerID, organisation.InviteMemberRequest{
 			Email: "hr@example.com",
 			Role:  "hr_admin",
 		})
-		if err == nil {
+		if invErr == nil {
 			t.Fatal("expected error for pro role on free plan")
 		}
-		if !apperr.IsCode(err, apperr.CodeUpgradeRequired) {
-			t.Errorf("expected UPGRADE_REQUIRED, got %v", err)
+		if !apperr.IsCode(invErr, apperr.CodeUpgradeRequired) {
+			t.Errorf("expected UPGRADE_REQUIRED, got %v", invErr)
 		}
 	})
 
 	t.Run("pro role allowed on pro plan", func(t *testing.T) {
-		svc, repo, _ := newTestService(t)
+		svc, repo, userRepo := newTestService(t)
 		ctx := context.Background()
 		ownerID := uuid.New()
+		userRepo.createVerifiedUser(ownerID)
 
-		resp, _ := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
+		resp, err := svc.Create(ctx, ownerID, organisation.CreateOrgRequest{
 			Name: "Pro Org", Slug: "proorg", CountryCode: "AE", Timezone: "Asia/Dubai", CurrencyCode: "AED",
 		})
+		if err != nil {
+			t.Fatalf("unexpected error creating org: %v", err)
+		}
 		// Upgrade to pro
 		repo.orgs[resp.Organisation.ID].Plan = "pro"
 		repo.orgs[resp.Organisation.ID].PlanEmployeeLimit = nil

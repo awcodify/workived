@@ -16,6 +16,7 @@ import (
 	"github.com/workived/services/pkg/apperr"
 	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/email"
+	"github.com/workived/services/pkg/notify"
 )
 
 // ── Interfaces ───────────────────────────────────────────────────────────────
@@ -87,6 +88,7 @@ type Service struct {
 	auditLog         audit.Logger
 	log              zerolog.Logger
 	email            email.Sender
+	notifier         notify.Notifier
 	appURL           string // e.g. "https://app.workived.com" — for building invite URLs
 	onEmployeeJoined []OnEmployeeJoinedFunc
 }
@@ -135,6 +137,11 @@ func WithOnEmployeeJoined(fn OnEmployeeJoinedFunc) ServiceOption {
 	return func(s *Service) {
 		s.onEmployeeJoined = append(s.onEmployeeJoined, fn)
 	}
+}
+
+// WithNotifier sets the notifier for alerting on key org events.
+func WithNotifier(n notify.Notifier) ServiceOption {
+	return func(s *Service) { s.notifier = n }
 }
 
 // logAudit records an audit entry. If audit logging fails, it logs the error but does not
@@ -199,6 +206,21 @@ func (s *Service) Create(ctx context.Context, ownerID uuid.UUID, req CreateOrgRe
 			Msg("failed to issue access token after org creation")
 		return nil, fmt.Errorf("issue access token after org creation: %w", err)
 	}
+	if s.notifier != nil {
+		msg := fmt.Sprintf(
+			"🎉 New Organisation Registered\nName: %s\nSlug: %s\nOwner: %s\nTime: %s",
+			org.Name,
+			org.Slug,
+			user.Email,
+			time.Now().UTC().Format(time.RFC3339),
+		)
+		go func() {
+			ctx2, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			_ = s.notifier.Send(ctx2, msg)
+		}()
+	}
+
 	return &CreateOrgResponse{AccessToken: accessToken, Organisation: org}, nil
 }
 
