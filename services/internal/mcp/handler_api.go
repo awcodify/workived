@@ -469,8 +469,8 @@ func (h *APIToolHandler) moveTask(ctx context.Context, args map[string]interface
 	}
 
 	moveData := make(map[string]interface{})
-	if listID, ok := args["list_id"]; ok {
-		moveData["list_id"] = listID
+	if listID, ok := args["task_list_id"]; ok {
+		moveData["task_list_id"] = listID
 	}
 	if position, ok := args["position"]; ok {
 		moveData["position"] = position

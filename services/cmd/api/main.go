@@ -26,6 +26,7 @@ import (
 	"github.com/workived/services/internal/employmentchange"
 	"github.com/workived/services/internal/jobtitle"
 	"github.com/workived/services/internal/leave"
+	"github.com/workived/services/internal/mcp"
 	"github.com/workived/services/internal/mobile"
 	"github.com/workived/services/internal/organisation"
 	"github.com/workived/services/internal/platform/config"
@@ -357,13 +358,43 @@ func main() {
 	annHandler.RegisterRoutes(authed)
 	adminHandler.RegisterPublicRoutes(authed)
 
+	// ── MCP: OAuth 2.0 + HTTP/SSE transport ──────────────────────────────────
+	// mcpAPIURL = backend origin; used for OAuth metadata resource field and
+	// for tool-call self-loop. Must NOT be the frontend AppURL (port 3000).
+	mcpAPIURL := cfg.APIURL
+	if mcpAPIURL == "" {
+		mcpAPIURL = fmt.Sprintf("http://localhost:%d", cfg.Port)
+	}
+
+	// OAuth endpoints are public — no JWT middleware.
+	// Claude Code performs full OAuth discovery before connecting to /mcp/sse.
+	oauthHandler := mcp.NewOAuthHandler(mcpAPIURL, cfg.JWTSecret, log)
+	r.GET("/.well-known/oauth-protected-resource", oauthHandler.ProtectedResourceMetadata)
+	r.GET("/.well-known/oauth-protected-resource/*path", oauthHandler.ProtectedResourceMetadata)
+	r.GET("/.well-known/oauth-authorization-server", oauthHandler.AuthorizationServerMetadata)
+	r.GET("/.well-known/oauth-authorization-server/*path", oauthHandler.AuthorizationServerMetadata)
+	r.GET("/.well-known/openid-configuration", oauthHandler.AuthorizationServerMetadata)
+	r.GET("/.well-known/openid-configuration/*path", oauthHandler.AuthorizationServerMetadata)
+	r.POST("/oauth/register", oauthHandler.Register)
+	r.GET("/oauth/authorize", oauthHandler.Authorize)
+	r.POST("/oauth/authorize", oauthHandler.AuthorizeSubmit)
+	r.POST("/oauth/token", oauthHandler.Token)
+
+	mcpHandler := mcp.NewHTTPHandler(mcpAPIURL, log)
+	// /mcp/sse requires JWT — authenticates and creates the session.
+	// /mcp/message authenticates via sessionId (session already carries auth context);
+	// no JWT middleware here so Claude Code doesn't need to repeat Bearer on every POST.
+	r.GET("/mcp/sse", middleware.Auth(cfg.JWTSecret), mcpHandler.HandleSSE)
+	r.POST("/mcp/message", mcpHandler.HandleMessage)
+
 	// ── Server ────────────────────────────────────────────────────────────────
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      r,
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		Addr:        fmt.Sprintf(":%d", cfg.Port),
+		Handler:     r,
+		ReadTimeout: 15 * time.Second,
+		// WriteTimeout must be 0 for SSE connections (long-lived streaming).
+		WriteTimeout: 0,
+		IdleTimeout:  120 * time.Second,
 	}
 
 	go func() {
