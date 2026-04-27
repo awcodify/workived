@@ -451,7 +451,7 @@ func (s *spyEmailSender) sent() []email.Message {
 	return append([]email.Message(nil), s.messages...)
 }
 
-func TestAuthService_Register_SendsWelcomeEmail(t *testing.T) {
+func TestAuthService_Register_SendsVerificationEmail(t *testing.T) {
 	repo := newFakeAuthRepo()
 	spy := &spyEmailSender{}
 	svc := auth.NewService(repo, &fakeOrgRepo{}, "test-secret-32-bytes-long-enough!", 15*time.Minute, 720*time.Hour,
@@ -476,8 +476,8 @@ func TestAuthService_Register_SendsWelcomeEmail(t *testing.T) {
 	if msgs[0].To[0] != "welcome@example.com" {
 		t.Errorf("expected to=welcome@example.com, got %s", msgs[0].To[0])
 	}
-	if msgs[0].Subject != "Welcome to Workived" {
-		t.Errorf("expected welcome subject, got %q", msgs[0].Subject)
+	if msgs[0].Subject != "Verify your email to continue" {
+		t.Errorf("expected verification subject, got %q", msgs[0].Subject)
 	}
 	if !msgs[0].IsHTML {
 		t.Error("expected HTML email")
