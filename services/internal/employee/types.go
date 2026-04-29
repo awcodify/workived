@@ -83,14 +83,15 @@ type UpdateEmployeeRequest struct {
 	JobTitleID     *uuid.UUID `json:"job_title_id"     validate:"omitempty"`
 	JobTitle       *string    `json:"job_title"        validate:"omitempty,max=150"`
 	EmploymentType *string    `json:"employment_type"  validate:"omitempty,oneof=full_time part_time contract intern"`
-	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`
-	Gender         *string    `json:"gender"           validate:"omitempty,oneof=male female"`
-	Status         *string    `json:"status"           validate:"omitempty,oneof=active on_leave probation inactive"`
-	StartDate      *string    `json:"start_date"       validate:"omitempty"`
-	EndDate        *string    `json:"end_date"         validate:"omitempty"`
-	WorkScheduleID *uuid.UUID `json:"work_schedule_id" validate:"omitempty"`
-	BaseSalary     *int64     `json:"base_salary"      validate:"omitempty,gte=0"`
-	SalaryCurrency *string    `json:"salary_currency"  validate:"omitempty,oneof=IDR AED MYR SGD"`
+	ReportingTo      *uuid.UUID `json:"reporting_to"       validate:"omitempty"`
+	ClearReportingTo bool       `json:"clear_reporting_to"` // set true to remove manager assignment
+	Gender           *string    `json:"gender"             validate:"omitempty,oneof=male female"`
+	Status           *string    `json:"status"             validate:"omitempty,oneof=active on_leave probation inactive"`
+	StartDate        *string    `json:"start_date"         validate:"omitempty"`
+	EndDate          *string    `json:"end_date"           validate:"omitempty"`
+	WorkScheduleID   *uuid.UUID `json:"work_schedule_id"   validate:"omitempty"`
+	BaseSalary       *int64     `json:"base_salary"        validate:"omitempty,gte=0"`
+	SalaryCurrency   *string    `json:"salary_currency"    validate:"omitempty,oneof=IDR AED MYR SGD"`
 }
 
 type ListFilters struct {

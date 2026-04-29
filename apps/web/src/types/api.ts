@@ -214,6 +214,7 @@ export type UpdateEmployeeInput = Partial<CreateEmployeeInput> & {
   status?: string
   end_date?: string
   reporting_to?: string
+  clear_reporting_to?: boolean
   work_schedule_id?: string | null
 }
 

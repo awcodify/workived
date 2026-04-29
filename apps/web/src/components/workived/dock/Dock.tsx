@@ -26,6 +26,7 @@ const NAV_ITEMS = [
 function getCurrentModule(pathname: string): ModuleKey {
   if (pathname.startsWith('/profile')) return 'people'
   if (pathname.startsWith('/people')) return 'people'
+  if (pathname.startsWith('/org-chart')) return 'people'
   if (pathname.startsWith('/attendance')) return 'attendance'
   if (pathname.startsWith('/approvals')) return 'overview'
   if (pathname.startsWith('/leave')) return 'leave'
@@ -127,12 +128,14 @@ export function Dock() {
                   boxShadow: isActive ? '0 2px 8px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.1)' : 'none',
                 }}
                 onMouseEnter={(e) => {
+                  if (document.body.dataset.orgChartDragging) return
                   if (!isActive) {
                     e.currentTarget.style.background = theme.active.bg
                     e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15), 0 4px 16px rgba(0,0,0,0.1)'
                   }
                 }}
                 onMouseLeave={(e) => {
+                  if (document.body.dataset.orgChartDragging) return
                   if (!isActive) {
                     e.currentTarget.style.background = 'transparent'
                     e.currentTarget.style.boxShadow = 'none'
@@ -160,12 +163,14 @@ export function Dock() {
                         transition: 'all 0.2s ease',
                       }}
                       onMouseEnter={(e) => {
+                        if (document.body.dataset.orgChartDragging) return
                         if (!isActive) {
                           e.currentTarget.style.color = theme.active.icon
                           e.currentTarget.style.strokeWidth = '2.5'
                         }
                       }}
                       onMouseLeave={(e) => {
+                        if (document.body.dataset.orgChartDragging) return
                         if (!isActive) {
                           e.currentTarget.style.color = theme.icon
                           e.currentTarget.style.strokeWidth = '2'
@@ -202,11 +207,13 @@ export function Dock() {
                     transition: 'color 0.2s ease',
                   }}
                   onMouseEnter={(e) => {
+                    if (document.body.dataset.orgChartDragging) return
                     if (!isActive) {
                       e.currentTarget.style.color = theme.active.label
                     }
                   }}
                   onMouseLeave={(e) => {
+                    if (document.body.dataset.orgChartDragging) return
                     if (!isActive) {
                       e.currentTarget.style.color = theme.label
                     }

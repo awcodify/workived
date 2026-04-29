@@ -23,6 +23,7 @@ export const Route = createFileRoute('/_app/people/new')({
   component: NewEmployeePage,
   validateSearch: (search: Record<string, unknown>) => ({
     user_id: typeof search.user_id === 'string' ? search.user_id : undefined,
+    reporting_to: typeof search.reporting_to === 'string' ? search.reporting_to : undefined,
   }),
 })
 
@@ -74,7 +75,7 @@ function apiErrorMessage(err: Error | null): string {
 
 function NewEmployeePage() {
   const navigate = useNavigate()
-  const { user_id: preselectedUserId } = Route.useSearch()
+  const { user_id: preselectedUserId, reporting_to: preselectedReportingTo } = Route.useSearch()
   const createMutation = useCreateEmployee()
   const inviteMutation = useInviteMember()
   const { data: unlinkedMembers = [] } = useUnlinkedMembers()
@@ -96,7 +97,7 @@ function NewEmployeePage() {
       phone: '',
       job_title: '',
       department_id: '',
-      reporting_to: '',
+      reporting_to: preselectedReportingTo ?? '',
       employment_type: 'full_time',
       gender: '',
       start_date: '',

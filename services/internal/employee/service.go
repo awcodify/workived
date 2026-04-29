@@ -2,6 +2,7 @@ package employee
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -188,6 +189,10 @@ func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmp
 	}
 	oldEmp := &oldEmpWithMgr.Employee
 
+	if req.ReportingTo != nil && req.ClearReportingTo {
+		return nil, fmt.Errorf("cannot set and clear reporting_to simultaneously: %w", apperr.New(apperr.CodeValidation, "cannot set and clear reporting_to simultaneously"))
+	}
+
 	// Validate reporting_to if being updated
 	if req.ReportingTo != nil {
 		if err := s.validateReportingTo(ctx, orgID, id, *req.ReportingTo); err != nil {
@@ -203,14 +208,15 @@ func (s *Service) Update(ctx context.Context, orgID, id uuid.UUID, req UpdateEmp
 	// Update has_subordinate flags if reporting_to changed
 	if req.ReportingTo != nil {
 		newManagerID := *req.ReportingTo
-
-		// Update old manager (if exists and different from new)
 		if oldEmp.ReportingTo != nil && *oldEmp.ReportingTo != newManagerID {
 			_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, *oldEmp.ReportingTo)
 		}
-
-		// Update new manager
 		_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, newManagerID)
+	}
+
+	// Clear manager assignment: update old manager's flag
+	if req.ClearReportingTo && oldEmp.ReportingTo != nil {
+		_ = s.orgRepo.UpdateManagerSubordinateFlag(ctx, orgID, *oldEmp.ReportingTo)
 	}
 
 	// Log employment changes if repository is configured

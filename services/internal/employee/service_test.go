@@ -100,6 +100,11 @@ func (f *fakeEmpRepo) Update(_ context.Context, orgID, id uuid.UUID, req employe
 	if req.FullName != nil {
 		e.FullName = *req.FullName
 	}
+	if req.ClearReportingTo {
+		e.ReportingTo = nil
+	} else if req.ReportingTo != nil {
+		e.ReportingTo = req.ReportingTo
+	}
 	return e, nil
 }
 
@@ -385,6 +390,36 @@ func TestEmployeeService_Update(t *testing.T) {
 		var appErr *apperr.AppError
 		if !errors.As(err, &appErr) || appErr.Code != apperr.CodeNotFound {
 			t.Errorf("expected NOT_FOUND, got %v", err)
+		}
+	})
+
+	t.Run("clear_reporting_to removes manager", func(t *testing.T) {
+		mgr, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+			FullName: "Manager", Email: strPtr("mgr@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
+		})
+		sub, _ := svc.Create(context.Background(), orgID, employee.CreateEmployeeRequest{
+			FullName: "Subordinate", Email: strPtr("sub@example.com"), EmploymentType: "full_time", StartDate: "2026-01-01",
+			ReportingTo: &mgr.ID,
+		})
+		updated, err := svc.Update(context.Background(), orgID, sub.ID, employee.UpdateEmployeeRequest{
+			ClearReportingTo: true,
+		})
+		if err != nil {
+			t.Fatalf("clear reporting_to: %v", err)
+		}
+		if updated.ReportingTo != nil {
+			t.Errorf("expected reporting_to = nil after clear, got %v", updated.ReportingTo)
+		}
+	})
+
+	t.Run("setting and clearing reporting_to simultaneously returns error", func(t *testing.T) {
+		mgrID := uuid.New()
+		_, err := svc.Update(context.Background(), orgID, emp.ID, employee.UpdateEmployeeRequest{
+			ReportingTo:      &mgrID,
+			ClearReportingTo: true,
+		})
+		if err == nil {
+			t.Fatal("expected validation error, got nil")
 		}
 	})
 }
