@@ -54,6 +54,20 @@ export function useUpdateEmployee(id: string) {
   })
 }
 
+export function useReparentEmployee() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ id, reportingTo }: { id: string; reportingTo: string | null }) =>
+      employeesApi
+        .update(id, reportingTo ? { reporting_to: reportingTo } : { clear_reporting_to: true })
+        .then((r) => r.data.data),
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['employees', 'org-chart'] })
+      qc.invalidateQueries({ queryKey: employeeKeys.detail(id) })
+    },
+  })
+}
+
 export function useOrgChart() {
   return useQuery({
     queryKey: ['employees', 'org-chart'],
