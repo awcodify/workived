@@ -222,6 +222,7 @@ func (f *fakeOrgRepo) GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]in
 
 type fakeEmployeeRepo struct {
 	getEmployeeProfileFn        func(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	getOrgOwnerEmployeeFn       func(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error)
 	getEmployeeGenderFn         func(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error)
 	getEmployeeStartDateFn      func(ctx context.Context, orgID, employeeID uuid.UUID) (time.Time, error)
 	verifyManagerRelationshipFn func(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
@@ -233,6 +234,13 @@ func (f *fakeEmployeeRepo) GetEmployeeProfile(ctx context.Context, orgID, employ
 	}
 	name = "Test Employee"
 	return name, nil, nil, nil
+}
+
+func (f *fakeEmployeeRepo) GetOrgOwnerEmployee(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error) {
+	if f.getOrgOwnerEmployeeFn != nil {
+		return f.getOrgOwnerEmployeeFn(ctx, orgID)
+	}
+	return nil, nil
 }
 
 func (f *fakeEmployeeRepo) GetEmployeeGender(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error) {
@@ -2396,9 +2404,14 @@ func TestService_LogAudit_ErrorPath(t *testing.T) {
 
 // ── TestService_WithTasksService ──────────────────────────────────────────────
 
-type fakeLeaveTasksService struct{}
+type fakeLeaveTasksService struct {
+	createFn func(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, requesterID, assigneeID uuid.UUID, dueDate *string) error
+}
 
-func (f *fakeLeaveTasksService) CreateApprovalTask(_ context.Context, _ uuid.UUID, _ string, _ uuid.UUID, _, _ string, _, _ uuid.UUID, _ *string) error {
+func (f *fakeLeaveTasksService) CreateApprovalTask(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, requesterID, assigneeID uuid.UUID, dueDate *string) error {
+	if f.createFn != nil {
+		return f.createFn(ctx, orgID, approvalType, approvalID, title, description, requesterID, assigneeID, dueDate)
+	}
 	return nil
 }
 func (f *fakeLeaveTasksService) CompleteApprovalTask(_ context.Context, _ string, _ uuid.UUID) error {
@@ -2437,6 +2450,49 @@ func TestService_WithTasksService(t *testing.T) {
 	}
 	// Let goroutine finish
 	time.Sleep(10 * time.Millisecond)
+}
+
+func TestService_WithTasksService_FallbackToOrgOwner(t *testing.T) {
+	// Employee has no manager → approval task should be assigned to org owner
+	repo := defaultFakeRepo()
+	orgRepo := defaultFakeOrgRepo()
+	ownerID := uuid.New()
+	called := false
+	tasksService := &fakeLeaveTasksService{
+		createFn: func(_ context.Context, _ uuid.UUID, _ string, _ uuid.UUID, _, _ string, _, assignee uuid.UUID, _ *string) error {
+			called = true
+			if assignee != ownerID {
+				t.Errorf("expected assignee = ownerID %s, got %s", ownerID, assignee)
+			}
+			return nil
+		},
+	}
+	empRepo := &fakeEmployeeRepo{
+		getEmployeeProfileFn: func(_ context.Context, _, _ uuid.UUID) (string, *string, *uuid.UUID, error) {
+			return "Budi", nil, nil, nil // no manager
+		},
+		getOrgOwnerEmployeeFn: func(_ context.Context, _ uuid.UUID) (*uuid.UUID, error) {
+			return &ownerID, nil
+		},
+	}
+	svc := leave.NewService(repo, orgRepo, empRepo, "http://localhost:3000",
+		leave.WithLogger(zerolog.Nop()),
+		leave.WithTasksService(tasksService),
+	)
+
+	input := leave.SubmitRequestInput{
+		LeavePolicyID: testPolicyID,
+		StartDate:     "2026-04-01",
+		EndDate:       "2026-04-03",
+	}
+	_, err := svc.SubmitRequest(context.Background(), testOrgID, testEmpID, "member", input)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+	if !called {
+		t.Error("expected CreateApprovalTask to be called with org owner fallback")
+	}
 }
 
 

@@ -202,6 +202,28 @@ func (r *Repository) GetEmployeeProfile(ctx context.Context, orgID, employeeID u
 	return name, email, managerID, nil
 }
 
+// GetOrgOwnerEmployee returns the employee ID of the active org owner.
+// Returns nil (no error) when no owner employee record exists.
+func (r *Repository) GetOrgOwnerEmployee(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error) {
+	var employeeID uuid.UUID
+	err := r.db.QueryRow(ctx, `
+		SELECT e.id FROM employees e
+		JOIN organisation_members om ON om.user_id = e.user_id AND om.organisation_id = $1
+		WHERE e.organisation_id = $1
+		  AND e.is_active = true
+		  AND om.role = 'owner'
+		  AND om.is_active = true
+		LIMIT 1
+	`, orgID).Scan(&employeeID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &employeeID, nil
+}
+
 // GetEmployeeGender returns the gender of an employee (may be nil if not set).
 func (r *Repository) GetEmployeeGender(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error) {
 	var gender *string

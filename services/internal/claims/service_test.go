@@ -256,16 +256,24 @@ func (f *fakeOrgProvider) GetOrgPlanInfo(_ context.Context, _ uuid.UUID) (string
 }
 
 type fakeEmpProvider struct {
-	name      string
-	email     *string
-	managerID *uuid.UUID
-	empType   string
-	err       error
-	verifyErr error
+	name            string
+	email           *string
+	managerID       *uuid.UUID
+	empType         string
+	err             error
+	verifyErr       error
+	getOrgOwnerFn   func(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error)
 }
 
 func (f *fakeEmpProvider) GetEmployeeProfile(_ context.Context, _, _ uuid.UUID) (string, *string, *uuid.UUID, error) {
 	return f.name, f.email, f.managerID, f.err
+}
+
+func (f *fakeEmpProvider) GetOrgOwnerEmployee(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error) {
+	if f.getOrgOwnerFn != nil {
+		return f.getOrgOwnerFn(ctx, orgID)
+	}
+	return nil, nil
 }
 
 func (f *fakeEmpProvider) GetEmployeeType(_ context.Context, _, _ uuid.UUID) (string, error) {
@@ -1366,9 +1374,14 @@ func TestService_LogAudit_ErrorPath(t *testing.T) {
 
 // ── Tests: WithTasksService — covers formatMoney + createClaimApprovalTask ───
 
-type fakeClaimsTasksService struct{}
+type fakeClaimsTasksService struct {
+	createFn func(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, requesterID, assigneeID uuid.UUID, dueDate *string) error
+}
 
-func (f *fakeClaimsTasksService) CreateApprovalTask(_ context.Context, _ uuid.UUID, _ string, _ uuid.UUID, _, _ string, _, _ uuid.UUID, _ *string) error {
+func (f *fakeClaimsTasksService) CreateApprovalTask(ctx context.Context, orgID uuid.UUID, approvalType string, approvalID uuid.UUID, title, description string, requesterID, assigneeID uuid.UUID, dueDate *string) error {
+	if f.createFn != nil {
+		return f.createFn(ctx, orgID, approvalType, approvalID, title, description, requesterID, assigneeID, dueDate)
+	}
 	return nil
 }
 func (f *fakeClaimsTasksService) CompleteApprovalTask(_ context.Context, _ string, _ uuid.UUID) error {
@@ -1405,6 +1418,50 @@ func TestService_WithTasksService(t *testing.T) {
 	}
 	// Goroutine fires async — give it a moment
 	time.Sleep(10 * time.Millisecond)
+}
+
+func TestService_WithTasksService_FallbackToOrgOwner(t *testing.T) {
+	// Employee has no manager → approval task assigned to org owner
+	repo := &fakeClaimsRepo{}
+	orgProvider := &fakeOrgProvider{plan: "pro"}
+	ownerID := uuid.New()
+	called := false
+	tasksService := &fakeClaimsTasksService{
+		createFn: func(_ context.Context, _ uuid.UUID, _ string, _ uuid.UUID, _, _ string, _, assignee uuid.UUID, _ *string) error {
+			called = true
+			if assignee != ownerID {
+				t.Errorf("expected assignee = ownerID %s, got %s", ownerID, assignee)
+			}
+			return nil
+		},
+	}
+	empProvider := &fakeEmpProvider{
+		name:      "Budi",
+		managerID: nil, // no manager
+		getOrgOwnerFn: func(_ context.Context, _ uuid.UUID) (*uuid.UUID, error) {
+			return &ownerID, nil
+		},
+	}
+	svc := claims.NewService(repo, orgProvider, empProvider, "http://localhost:3000",
+		claims.WithLogger(zerolog.Nop()),
+		claims.WithTasksService(tasksService),
+	)
+
+	req := claims.SubmitClaimRequest{
+		CategoryID:   testCategoryID,
+		Amount:       10000,
+		CurrencyCode: "AED",
+		Description:  "Business travel",
+		ClaimDate:    time.Now().AddDate(0, 0, -1),
+	}
+	_, err := svc.SubmitClaim(context.Background(), testOrgID, testEmpID, req, nil, testActorUserID, "member")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	time.Sleep(20 * time.Millisecond)
+	if !called {
+		t.Error("expected CreateApprovalTask to be called with org owner fallback")
+	}
 }
 
 
