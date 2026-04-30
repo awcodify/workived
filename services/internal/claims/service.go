@@ -55,6 +55,7 @@ type OrgInfoProvider interface {
 // EmployeeInfoProvider provides employee profile data for email notifications.
 type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	GetOrgOwnerEmployee(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error)
 	GetEmployeeType(ctx context.Context, orgID, employeeID uuid.UUID) (string, error)
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
@@ -557,10 +558,18 @@ func (s *Service) createClaimApprovalTask(ctx context.Context, orgID, employeeID
 		return
 	}
 
-	// Manager is required to assign approval task
+	// If no direct manager, fall back to org owner
 	if managerID == nil {
-		s.log.Warn().Str("employee_id", employeeID.String()).Msg("employee has no manager, cannot create approval task")
-		return
+		ownerID, err := s.employeeRepo.GetOrgOwnerEmployee(ctx, orgID)
+		if err != nil {
+			s.log.Warn().Err(err).Str("org_id", orgID.String()).Msg("failed to find org owner for approval task fallback")
+			return
+		}
+		if ownerID == nil {
+			s.log.Warn().Str("employee_id", employeeID.String()).Msg("employee has no manager and org owner not found, skipping approval task")
+			return
+		}
+		managerID = ownerID
 	}
 
 	// Calculate due date (3 days from now)
