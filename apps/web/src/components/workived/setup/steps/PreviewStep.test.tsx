@@ -171,6 +171,76 @@ describe('PreviewStep', () => {
     expect(onConfirm).toHaveBeenCalledTimes(1)
   })
 
+  it('shows IDR claim limit formatted (no subunit division)', () => {
+    const state: WizardState = {
+      ...baseState(),
+      selectedClaimCategories: [
+        {
+          id: 'cc-1',
+          name: 'Medical',
+          description: '',
+          monthly_limit: 5200,
+          currency_code: 'IDR',
+          budget_period: 'monthly',
+          requires_receipt: false,
+          sort_order: 1,
+          country_code: 'ID',
+        },
+      ],
+      claimCategoryCustomizations: {
+        'cc-1': { monthly_limit: 5200 },
+      },
+    }
+
+    render(
+      <PreviewStep
+        wizardState={state}
+        templates={emptyTemplates}
+        onConfirm={vi.fn()}
+        onBack={vi.fn()}
+        isSubmitting={false}
+      />,
+    )
+
+    // formatMoney(5200, 'IDR') → "IDR 5,200" (IDR divisor = 1)
+    expect(screen.getByText(/IDR 5,200/)).toBeInTheDocument()
+  })
+
+  it('shows AED claim limit in main units (divides fils by 100)', () => {
+    const state: WizardState = {
+      ...baseState(),
+      selectedClaimCategories: [
+        {
+          id: 'cc-2',
+          name: 'Transport',
+          description: '',
+          monthly_limit: 50000,
+          currency_code: 'AED',
+          budget_period: 'monthly',
+          requires_receipt: false,
+          sort_order: 1,
+          country_code: 'AE',
+        },
+      ],
+      claimCategoryCustomizations: {
+        'cc-2': { monthly_limit: 50000 },
+      },
+    }
+
+    render(
+      <PreviewStep
+        wizardState={state}
+        templates={emptyTemplates}
+        onConfirm={vi.fn()}
+        onBack={vi.fn()}
+        isSubmitting={false}
+      />,
+    )
+
+    // formatMoney(50000, 'AED') → "AED 500.00" (50000 fils / 100 = AED 500)
+    expect(screen.getByText(/AED 500\.00/)).toBeInTheDocument()
+  })
+
   it('calls onBack when back button is clicked', () => {
     const onBack = vi.fn()
     render(

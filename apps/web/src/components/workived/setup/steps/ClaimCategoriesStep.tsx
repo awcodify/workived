@@ -57,21 +57,8 @@ export function ClaimCategoriesStep({
     }
   }
 
-  // Helper functions to handle currency conversion
-  // IDR has no subunit (1 IDR = 1 smallest unit)
-  // AED, MYR, SGD have 100 subunits (1 AED = 100 fils)
-  const toDisplayValue = (amount: number, currency: string) => {
-    return currency === 'IDR' ? amount : amount / 100
-  }
-
-  const toStorageValue = (displayValue: number, currency: string) => {
-    return currency === 'IDR' ? Math.round(displayValue) : Math.round(displayValue * 100)
-  }
-
-  const getIncrementStep = (currency: string) => {
-    // Use larger increments for IDR since it doesn't have subunits
-    return currency === 'IDR' ? 100000 : 10
-  }
+  const getDivisor = (currency: string) => (currency === 'IDR' ? 1 : 100)
+  const getIncrementStep = (currency: string) => (currency === 'IDR' ? 100000 : 10)
 
   const handleSelectAll = () => {
     if (selected.length === templates.length) {
@@ -230,11 +217,10 @@ export function ClaimCategoriesStep({
                     <div className="flex items-center gap-3">
                       <button
                         onClick={() => {
-                          const currentStorageValue = customLimit ?? template.monthly_limit!
-                          const displayValue = toDisplayValue(currentStorageValue, template.currency_code!)
+                          const divisor = getDivisor(template.currency_code!)
                           const step = getIncrementStep(template.currency_code!)
-                          const newDisplayValue = Math.max(0, displayValue - step)
-                          handleCustomize(template.id, toStorageValue(newDisplayValue, template.currency_code!))
+                          const currentDisplay = (customLimit ?? template.monthly_limit!) / divisor
+                          handleCustomize(template.id, Math.round(Math.max(0, currentDisplay - step) * divisor))
                         }}
                         className="flex h-8 w-8 items-center justify-center font-bold transition-opacity hover:opacity-70"
                         style={{
@@ -249,11 +235,12 @@ export function ClaimCategoriesStep({
                       <input
                         data-testid={`claim-category-limit-input-${template.id}`}
                         type="number"
-                        value={toDisplayValue(customLimit ?? template.monthly_limit!, template.currency_code!)}
+                        value={(customLimit ?? template.monthly_limit!) / getDivisor(template.currency_code!)}
                         onChange={(e) => {
-                          const displayValue = parseFloat(e.target.value) || 0
-                          if (displayValue >= 0) {
-                            handleCustomize(template.id, toStorageValue(displayValue, template.currency_code!))
+                          const divisor = getDivisor(template.currency_code!)
+                          const value = parseFloat(e.target.value) || 0
+                          if (value >= 0) {
+                            handleCustomize(template.id, Math.round(value * divisor))
                           }
                         }}
                         min={0}
@@ -268,11 +255,10 @@ export function ClaimCategoriesStep({
                       />
                       <button
                         onClick={() => {
-                          const currentStorageValue = customLimit ?? template.monthly_limit!
-                          const displayValue = toDisplayValue(currentStorageValue, template.currency_code!)
+                          const divisor = getDivisor(template.currency_code!)
                           const step = getIncrementStep(template.currency_code!)
-                          const newDisplayValue = displayValue + step
-                          handleCustomize(template.id, toStorageValue(newDisplayValue, template.currency_code!))
+                          const currentDisplay = (customLimit ?? template.monthly_limit!) / divisor
+                          handleCustomize(template.id, Math.round((currentDisplay + step) * divisor))
                         }}
                         className="flex h-8 w-8 items-center justify-center font-bold transition-opacity hover:opacity-70"
                         style={{
