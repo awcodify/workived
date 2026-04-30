@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Check, ArrowLeft, Send } from 'lucide-react'
 import { colors } from '@/design/tokens'
+import { formatMoney } from '@/lib/utils/money'
 import type { WizardState } from '../SetupWizard'
 import type { SetupTemplatesResponse } from '@/types/api'
 
@@ -186,8 +187,10 @@ export function PreviewStep({ wizardState, templates, onConfirm, onBack, isSubmi
                       </p>
                       <p className="text-sm" style={{ color: colors.ink500 }}>
                         {customization?.monthly_limit
-                          ? `${(customization.monthly_limit / 100).toLocaleString()} ${category.currency_code} / ${category.budget_period === 'yearly' ? 'year' : 'month'}`
-                          : 'No limit'}
+                          ? `${formatMoney(customization.monthly_limit, category.currency_code!)} / ${category.budget_period === 'yearly' ? 'year' : 'month'}`
+                          : category.monthly_limit
+                            ? `${formatMoney(category.monthly_limit, category.currency_code!)} / ${category.budget_period === 'yearly' ? 'year' : 'month'}`
+                            : 'No limit'}
                       </p>
                     </div>
                     <div
