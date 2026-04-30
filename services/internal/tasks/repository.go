@@ -315,7 +315,7 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 			  OR t.completed_at > NOW() - ($8::int || ' days')::interval
 		  )
 		  AND ($6::timestamptz IS NULL OR t.created_at < $6::timestamptz)
-		  AND ($13::uuid[] IS NULL OR t.assignee_id = ANY($13::uuid[]))
+		  AND (t.approval_type IS NOT NULL OR $13::uuid[] IS NULL OR t.assignee_id = ANY($13::uuid[]))
 		  AND ($10::varchar IS NULL OR t.title ILIKE '%' || $10 || '%' OR (t.code IS NOT NULL AND t.code ILIKE '%' || $10 || '%'))
 		  AND ($11::timestamptz IS NULL OR t.completed_at >= $11::timestamptz)
 		  AND ($12::timestamptz IS NULL OR t.completed_at <= $12::timestamptz)
