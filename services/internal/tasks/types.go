@@ -225,6 +225,7 @@ type TaskFilters struct {
 	CompletedAfter       *string `form:"completed_after"`   // ISO 8601 date
 	CompletedBefore      *string `form:"completed_before"`  // ISO 8601 date
 	ExcludeApprovalTasks *bool   `form:"-"`                 // Exclude tasks linked to approvals
+	ApprovalVisibilityID *string `form:"-"`                 // Security gate: non-nil restricts approval task visibility to assignee/creator
 	Cursor               string  `form:"cursor"`
 	Limit                int     `form:"limit"`
 	ArchiveDays          int     `form:"-"` // Days after completion before auto-archiving (default: 7, 0 = disabled)

@@ -234,11 +234,13 @@ func (h *Handler) ListTasks(c *gin.Context) {
 		filters.ArchiveDays = 0
 	}
 
-	// Role-based approval task visibility:
-	// - owner/admin: see ALL tasks including all approval tasks org-wide ($3 = NULL)
-	// - other roles: see only their own approval tasks ($3 = employee_id)
+	// Role-based approval task visibility (ApprovalVisibilityID = $3):
+	// - owner/admin/hr_admin: nil → see ALL approval tasks org-wide
+	// - manager/member/finance: set to employee_id → see only approval tasks they are assignee or creator of
+	// This is independent of AssigneeID ($13), which is only set by explicit user filter.
 	role := middleware.RoleFromCtx(c)
-	if filters.AssigneeID == nil && role != middleware.RoleOwner && role != middleware.RoleAdmin {
+	hasFullApprovalVisibility := role == middleware.RoleOwner || role == middleware.RoleAdmin || role == middleware.RoleHRAdmin
+	if filters.ApprovalVisibilityID == nil && !hasFullApprovalVisibility {
 		employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 		if err != nil {
 			h.logAndRespondError(c, err, "failed to lookup employee", map[string]string{
@@ -248,7 +250,7 @@ func (h *Handler) ListTasks(c *gin.Context) {
 			return
 		}
 		empIDStr := employeeID.String()
-		filters.AssigneeID = &empIDStr
+		filters.ApprovalVisibilityID = &empIDStr
 	}
 
 	tasks, err := h.service.ListTasks(c.Request.Context(), orgID, filters)

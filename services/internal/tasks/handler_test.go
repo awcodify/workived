@@ -434,15 +434,18 @@ func TestListTasks_OwnerSeesAllApprovals(t *testing.T) {
 		},
 	}
 
-	// Owner should NOT have AssigneeID set (sees all approval tasks)
+	// Owner should NOT have ApprovalVisibilityID set (sees all approval tasks)
 	r := newRouterWithRole(svc, defaultEmpLookup, middleware.RoleOwner)
 	w := httptest.NewRecorder()
 	req, _ := http.NewRequest(http.MethodGet, "/api/v1/tasks", nil)
 	r.ServeHTTP(w, req)
 
 	assertStatus(t, w, http.StatusOK)
+	if capturedFilters.ApprovalVisibilityID != nil {
+		t.Errorf("owner should have nil ApprovalVisibilityID for full visibility, got %q", *capturedFilters.ApprovalVisibilityID)
+	}
 	if capturedFilters.AssigneeID != nil {
-		t.Errorf("owner should have nil AssigneeID for full visibility, got %q", *capturedFilters.AssigneeID)
+		t.Errorf("owner should have nil AssigneeID (no explicit filter), got %q", *capturedFilters.AssigneeID)
 	}
 }
 
@@ -461,8 +464,28 @@ func TestListTasks_AdminSeesAllApprovals(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assertStatus(t, w, http.StatusOK)
-	if capturedFilters.AssigneeID != nil {
-		t.Errorf("admin should have nil AssigneeID for full visibility, got %q", *capturedFilters.AssigneeID)
+	if capturedFilters.ApprovalVisibilityID != nil {
+		t.Errorf("admin should have nil ApprovalVisibilityID for full visibility, got %q", *capturedFilters.ApprovalVisibilityID)
+	}
+}
+
+func TestListTasks_HRAdminSeesAllApprovals(t *testing.T) {
+	var capturedFilters tasks.TaskFilters
+	svc := &fakeService{
+		listTasksFn: func(_ context.Context, _ uuid.UUID, filters tasks.TaskFilters) ([]tasks.TaskWithDetails, error) {
+			capturedFilters = filters
+			return []tasks.TaskWithDetails{}, nil
+		},
+	}
+
+	r := newRouterWithRole(svc, defaultEmpLookup, middleware.RoleHRAdmin)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodGet, "/api/v1/tasks", nil)
+	r.ServeHTTP(w, req)
+
+	assertStatus(t, w, http.StatusOK)
+	if capturedFilters.ApprovalVisibilityID != nil {
+		t.Errorf("hr_admin should have nil ApprovalVisibilityID for full visibility, got %q", *capturedFilters.ApprovalVisibilityID)
 	}
 }
 
@@ -481,10 +504,15 @@ func TestListTasks_MemberSeesOnlyOwnApprovals(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	assertStatus(t, w, http.StatusOK)
-	if capturedFilters.AssigneeID == nil {
-		t.Error("member should have AssigneeID set to filter approval tasks")
-	} else if *capturedFilters.AssigneeID != testEmpID.String() {
-		t.Errorf("member AssigneeID = %q, want %q", *capturedFilters.AssigneeID, testEmpID.String())
+	// ApprovalVisibilityID restricts approval task visibility to own tasks
+	if capturedFilters.ApprovalVisibilityID == nil {
+		t.Error("member should have ApprovalVisibilityID set to restrict approval task visibility")
+	} else if *capturedFilters.ApprovalVisibilityID != testEmpID.String() {
+		t.Errorf("member ApprovalVisibilityID = %q, want %q", *capturedFilters.ApprovalVisibilityID, testEmpID.String())
+	}
+	// AssigneeID must remain nil — not set by the handler, only by explicit user filter
+	if capturedFilters.AssigneeID != nil {
+		t.Errorf("member AssigneeID should be nil (not implicitly set), got %q", *capturedFilters.AssigneeID)
 	}
 }
 
