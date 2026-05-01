@@ -283,6 +283,10 @@ func (f *fakeEmpProvider) GetEmployeeType(_ context.Context, _, _ uuid.UUID) (st
 	return "full_time", nil
 }
 
+func (f *fakeEmpProvider) GetEmployeeProbationEndDate(_ context.Context, _, _ uuid.UUID) (*time.Time, error) {
+	return nil, nil
+}
+
 func (f *fakeEmpProvider) VerifyManagerRelationship(_ context.Context, _, _, _ uuid.UUID) error {
 	return f.verifyErr
 }

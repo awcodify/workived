@@ -20,7 +20,6 @@ export const Route = createFileRoute('/_app/people/')({
 const STATUS_TABS = [
   { value: undefined, label: 'All' },
   { value: 'active', label: 'Active' },
-  { value: 'probation', label: 'Probation' },
   { value: 'inactive', label: 'Inactive' },
 ] as const
 
@@ -269,7 +268,15 @@ function PeoplePage() {
                   <span className="text-xs truncate block" style={{ color: t.textMuted }}>{emp.department_name ?? '—'}</span>
                 </div>
                 <div className="w-24 shrink-0">
-                  <StatusSquare status={emp.invitation_pending ? 'pending' : emp.status} />
+                  <StatusSquare
+                    status={
+                      emp.invitation_pending
+                        ? 'pending'
+                        : emp.probation_end_date && new Date(emp.probation_end_date) > new Date()
+                          ? 'probation'
+                          : emp.status
+                    }
+                  />
                 </div>
               </div>
             </div>

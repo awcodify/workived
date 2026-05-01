@@ -20,9 +20,10 @@ type Employee struct {
 	DepartmentID   *uuid.UUID      `json:"department_id,omitempty"`
 	JobTitle       *string         `json:"job_title,omitempty"`    // Legacy free-text field
 	JobTitleID     *uuid.UUID      `json:"job_title_id,omitempty"` // FK to job_titles table
-	EmploymentType string          `json:"employment_type"`
-	Status         string          `json:"status"`
-	ReportingTo    *uuid.UUID      `json:"reporting_to,omitempty"`     // Manager (self-ref FK)
+	EmploymentType   string          `json:"employment_type"`
+	Status           string          `json:"status"`
+	ProbationEndDate *time.Time      `json:"probation_end_date,omitempty"` // nil = not in probation
+	ReportingTo      *uuid.UUID      `json:"reporting_to,omitempty"`       // Manager (self-ref FK)
 	Gender         *string         `json:"gender,omitempty"`           // "male", "female", or nil
 	WorkScheduleID *uuid.UUID      `json:"work_schedule_id,omitempty"` // Per-employee schedule override
 	StartDate      time.Time       `json:"start_date"`
@@ -72,8 +73,9 @@ type CreateEmployeeRequest struct {
 	ReportingTo    *uuid.UUID `json:"reporting_to"     validate:"omitempty"`
 	Gender         *string    `json:"gender"           validate:"omitempty,oneof=male female"`
 	StartDate      string     `json:"start_date"       validate:"required"`
-	WorkScheduleID uuid.UUID  `json:"work_schedule_id" validate:"required"`
-	EmployeeCode   *string    `json:"employee_code"    validate:"omitempty,max=50"`
+	WorkScheduleID   uuid.UUID  `json:"work_schedule_id"   validate:"required"`
+	EmployeeCode     *string    `json:"employee_code"      validate:"omitempty,max=50"`
+	ProbationEndDate *string    `json:"probation_end_date" validate:"omitempty"` // YYYY-MM-DD; nil = no probation period
 }
 
 type UpdateEmployeeRequest struct {
@@ -86,7 +88,8 @@ type UpdateEmployeeRequest struct {
 	ReportingTo      *uuid.UUID `json:"reporting_to"       validate:"omitempty"`
 	ClearReportingTo bool       `json:"clear_reporting_to"` // set true to remove manager assignment
 	Gender           *string    `json:"gender"             validate:"omitempty,oneof=male female"`
-	Status           *string    `json:"status"             validate:"omitempty,oneof=active on_leave probation inactive"`
+	Status           *string    `json:"status"             validate:"omitempty,oneof=active on_leave inactive"`
+	ProbationEndDate *string    `json:"probation_end_date" validate:"omitempty"` // YYYY-MM-DD; nil = clear probation
 	StartDate        *string    `json:"start_date"         validate:"omitempty"`
 	EndDate          *string    `json:"end_date"           validate:"omitempty"`
 	WorkScheduleID   *uuid.UUID `json:"work_schedule_id"   validate:"omitempty"`

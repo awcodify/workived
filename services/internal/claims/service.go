@@ -57,6 +57,7 @@ type EmployeeInfoProvider interface {
 	GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
 	GetOrgOwnerEmployee(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error)
 	GetEmployeeType(ctx context.Context, orgID, employeeID uuid.UUID) (string, error)
+	GetEmployeeProbationEndDate(ctx context.Context, orgID, employeeID uuid.UUID) (*time.Time, error)
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
@@ -427,6 +428,18 @@ func (s *Service) SubmitClaim(ctx context.Context, orgID, employeeID uuid.UUID, 
 		if !isEmploymentTypeEligible(empType, category.EligibleEmploymentTypes) {
 			return nil, apperr.New(apperr.CodeValidation,
 				fmt.Sprintf("%s claims are not available for %s employees", category.Name, empType))
+		}
+	}
+
+	// 3c. Validate probation eligibility
+	if !category.ProbationEligible {
+		probationEnd, err := s.employeeRepo.GetEmployeeProbationEndDate(ctx, orgID, employeeID)
+		if err != nil {
+			return nil, fmt.Errorf("get employee probation end date: %w", err)
+		}
+		if probationEnd != nil && probationEnd.After(time.Now()) {
+			return nil, apperr.New(apperr.CodeValidation,
+				fmt.Sprintf("%s claims are not available during probation period", category.Name))
 		}
 	}
 

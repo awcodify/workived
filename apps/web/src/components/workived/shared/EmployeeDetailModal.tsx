@@ -53,6 +53,7 @@ interface FormData {
   work_schedule_id: string
   start_date: string
   end_date: string
+  probation_end_date: string
 }
 
 export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: EmployeeDetailModalProps) {
@@ -89,6 +90,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
     work_schedule_id: '',
     start_date: '',
     end_date: '',
+    probation_end_date: '',
   })
 
   // Initialize form data when employee loads
@@ -106,6 +108,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
         work_schedule_id: employee.work_schedule_id || '',
         start_date: employee.start_date || '',
         end_date: employee.end_date || '',
+        probation_end_date: employee.probation_end_date || '',
       })
     }
   }, [employee])
@@ -146,6 +149,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
         work_schedule_id: formData.work_schedule_id || undefined,
         start_date: formData.start_date || undefined,
         end_date: formData.end_date || undefined,
+        probation_end_date: formData.probation_end_date || undefined,
       })
       setIsEditMode(false)
       setShowConfirmation(false)
@@ -175,6 +179,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
         work_schedule_id: employee.work_schedule_id || '',
         start_date: employee.start_date || '',
         end_date: employee.end_date || '',
+        probation_end_date: employee.probation_end_date || '',
       })
     }
     setIsEditMode(false)
@@ -221,7 +226,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
 
   const statusOptions: DropdownOption[] = [
     { value: 'active', label: 'Active' },
-    { value: 'probation', label: 'Probation' },
+    { value: 'on_leave', label: 'On Leave' },
     { value: 'inactive', label: 'Inactive' },
   ]
 
@@ -629,6 +634,21 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                           containerStyle={{ color: t.textMuted }}
                         />
                       </div>
+                      <div>
+                        <DatePicker
+                          data-testid="employee-detail-probation-end-date-input"
+                          label="Probation End Date"
+                          value={formData.probation_end_date}
+                          onChange={(e) => updateFormData({ probation_end_date: e.target.value })}
+                          className="w-full px-3 py-2 text-sm rounded-lg focus:outline-none focus:ring-2"
+                          style={{
+                            background: t.input,
+                            border: `1px solid ${t.inputBorder}`,
+                            color: t.text,
+                          }}
+                          containerStyle={{ color: t.textMuted }}
+                        />
+                      </div>
                       {employee.base_salary && (
                         <InfoCard
                           icon={<DollarSign size={18} style={{ color: colors.accent }} />}
@@ -659,6 +679,13 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                         label="End Date"
                         value={formatDate(employee.end_date)}
                       />
+                      {employee.probation_end_date && (
+                        <InfoCard
+                          icon={<Clock size={18} style={{ color: colors.warnText }} />}
+                          label="Probation End Date"
+                          value={formatDate(employee.probation_end_date)}
+                        />
+                      )}
                       {employee.base_salary && (
                         <InfoCard
                           icon={<DollarSign size={18} style={{ color: colors.accent }} />}
@@ -722,7 +749,7 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
 function StatusBadge({ status }: { status: string }) {
   const style = {
     active: { bg: colors.okDim, color: colors.okText, label: 'Active' },
-    probation: { bg: colors.warnDim, color: colors.warnText, label: 'Probation' },
+    on_leave: { bg: colors.warnDim, color: colors.warnText, label: 'On Leave' },
     inactive: { bg: colors.errDim, color: colors.errText, label: 'Inactive' },
   }[status] || { bg: t.border, color: t.textMuted, label: status }
 

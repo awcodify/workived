@@ -28,7 +28,7 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 	rows, err := r.db.Query(ctx, `
 		SELECT e.id, e.organisation_id, e.user_id, e.employee_code,
 		       e.full_name, e.email, e.phone, e.department_id, e.job_title, e.job_title_id,
-		       e.employment_type, e.status, e.reporting_to, e.gender, e.work_schedule_id, e.start_date, e.end_date,
+		       e.employment_type, e.status, e.reporting_to, e.gender, e.work_schedule_id, e.start_date, e.end_date, e.probation_end_date,
 		       e.base_salary, e.salary_currency, e.custom_fields,
 		       e.is_active, e.created_at, e.updated_at,
 		       m.full_name AS manager_name,
@@ -61,7 +61,7 @@ func (r *Repository) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (
 		if err := rows.Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
-			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
+			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate, &e.ProbationEndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 			&e.ManagerName, &e.DepartmentName, &e.WorkScheduleName, &e.InvitationPending,
@@ -87,7 +87,7 @@ func (r *Repository) ListAllActive(ctx context.Context, orgID uuid.UUID) ([]Empl
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, user_id, employee_code,
 		       full_name, email, phone, department_id, job_title, job_title_id,
-		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
+		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date, probation_end_date,
 		       base_salary, salary_currency, custom_fields,
 		       is_active, created_at, updated_at
 		FROM employees
@@ -105,7 +105,7 @@ func (r *Repository) ListAllActive(ctx context.Context, orgID uuid.UUID) ([]Empl
 		if err := rows.Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
-			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
+			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate, &e.ProbationEndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
@@ -122,20 +122,20 @@ func (r *Repository) Create(ctx context.Context, orgID uuid.UUID, req CreateEmpl
 		INSERT INTO employees (
 			organisation_id, user_id, employee_code, full_name, email, phone,
 			department_id, job_title, job_title_id, employment_type, reporting_to, gender, 
-			start_date, work_schedule_id
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::date, $14)
+			start_date, work_schedule_id, probation_end_date
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::date, $14, $15::date)
 		RETURNING id, organisation_id, user_id, employee_code,
 		          full_name, email, phone, department_id, job_title, job_title_id,
-		          employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
+		          employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date, probation_end_date,
 		          base_salary, salary_currency, custom_fields,
 		          is_active, created_at, updated_at
 	`, orgID, req.UserID, req.EmployeeCode, req.FullName, req.Email, req.Phone,
 		req.DepartmentID, req.JobTitle, req.JobTitleID, req.EmploymentType, req.ReportingTo, req.Gender,
-		req.StartDate, req.WorkScheduleID).
+		req.StartDate, req.WorkScheduleID, req.ProbationEndDate).
 		Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
-			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
+			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate, &e.ProbationEndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 		)
@@ -154,7 +154,7 @@ func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employe
 	err := r.db.QueryRow(ctx, `
 		SELECT e.id, e.organisation_id, e.user_id, e.employee_code,
 		       e.full_name, e.email, e.phone, e.department_id, e.job_title, e.job_title_id,
-		       e.employment_type, e.status, e.reporting_to, e.gender, e.work_schedule_id, e.start_date, e.end_date,
+		       e.employment_type, e.status, e.reporting_to, e.gender, e.work_schedule_id, e.start_date, e.end_date, e.probation_end_date,
 		       e.base_salary, e.salary_currency, e.custom_fields,
 		       e.is_active, e.created_at, e.updated_at,
 		       m.full_name AS manager_name,
@@ -171,7 +171,7 @@ func (r *Repository) GetByID(ctx context.Context, orgID, id uuid.UUID) (*Employe
 	`, orgID, id).Scan(
 		&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
-		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
+		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate, &e.ProbationEndDate,
 		&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 		&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 		&e.ManagerName, &e.DepartmentName, &e.WorkScheduleName, &e.InvitationPending,
@@ -272,6 +272,38 @@ func (r *Repository) GetEmployeeType(ctx context.Context, orgID, employeeID uuid
 	return empType, nil
 }
 
+// GetEmployeeProbationEndDate returns the probation_end_date for an employee (nil = not in probation).
+func (r *Repository) GetEmployeeProbationEndDate(ctx context.Context, orgID, employeeID uuid.UUID) (*time.Time, error) {
+	var probationEnd *time.Time
+	err := r.db.QueryRow(ctx, `
+		SELECT probation_end_date FROM employees
+		WHERE organisation_id = $1 AND id = $2 AND is_active = true
+	`, orgID, employeeID).Scan(&probationEnd)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, apperr.NotFound("employee")
+		}
+		return nil, err
+	}
+	return probationEnd, nil
+}
+
+// GetEmployeeStatus returns the status of an employee (e.g. "active", "on_leave", "inactive").
+func (r *Repository) GetEmployeeStatus(ctx context.Context, orgID, employeeID uuid.UUID) (string, error) {
+	var status string
+	err := r.db.QueryRow(ctx, `
+		SELECT status FROM employees
+		WHERE organisation_id = $1 AND id = $2 AND is_active = true
+	`, orgID, employeeID).Scan(&status)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", apperr.NotFound("employee")
+		}
+		return "", err
+	}
+	return status, nil
+}
+
 func (r *Repository) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {
 	// Walk the full ancestor chain (not just direct manager) so that
 	// grandparent/higher-level managers can also approve subordinate requests.
@@ -316,21 +348,22 @@ func (r *Repository) Update(ctx context.Context, orgID, id uuid.UUID, req Update
 			end_date         = COALESCE($13::date, end_date),
 			work_schedule_id = $14,
 			base_salary      = COALESCE($15, base_salary),
-			salary_currency  = COALESCE($16, salary_currency)
+			salary_currency  = COALESCE($16, salary_currency),
+			probation_end_date = $18::date
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, user_id, employee_code,
 		          full_name, email, phone, department_id, job_title, job_title_id,
-		          employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
+		          employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date, probation_end_date,
 		          base_salary, salary_currency, custom_fields,
 		          is_active, created_at, updated_at
 	`, orgID, id,
 		req.FullName, req.Phone, req.DepartmentID, req.JobTitle, req.JobTitleID,
 		req.EmploymentType, req.Status, req.ReportingTo, req.Gender, req.StartDate, req.EndDate,
-		req.WorkScheduleID, req.BaseSalary, req.SalaryCurrency, req.ClearReportingTo).
+		req.WorkScheduleID, req.BaseSalary, req.SalaryCurrency, req.ClearReportingTo, req.ProbationEndDate).
 		Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
-			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
+			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate, &e.ProbationEndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 		)
@@ -353,7 +386,7 @@ func (r *Repository) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, user_id, employee_code,
 		       full_name, email, phone, department_id, job_title, job_title_id,
-		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
+		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date, probation_end_date,
 		       base_salary, salary_currency, custom_fields,
 		       is_active, created_at, updated_at
 		FROM employees
@@ -361,7 +394,7 @@ func (r *Repository) GetByUserID(ctx context.Context, orgID, userID uuid.UUID) (
 	`, orgID, userID).Scan(
 		&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 		&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
-		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
+		&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate, &e.ProbationEndDate,
 		&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 		&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 	)
@@ -394,7 +427,7 @@ func (r *Repository) GetDirectReports(ctx context.Context, orgID, managerID uuid
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, user_id, employee_code,
 		       full_name, email, phone, department_id, job_title, job_title_id,
-		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date,
+		       employment_type, status, reporting_to, gender, work_schedule_id, start_date, end_date, probation_end_date,
 		       base_salary, salary_currency, custom_fields,
 		       is_active, created_at, updated_at
 		FROM employees
@@ -414,7 +447,7 @@ func (r *Repository) GetDirectReports(ctx context.Context, orgID, managerID uuid
 		if err := rows.Scan(
 			&e.ID, &e.OrganisationID, &e.UserID, &e.EmployeeCode,
 			&e.FullName, &e.Email, &e.Phone, &e.DepartmentID, &e.JobTitle, &e.JobTitleID,
-			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate,
+			&e.EmploymentType, &e.Status, &e.ReportingTo, &e.Gender, &e.WorkScheduleID, &e.StartDate, &e.EndDate, &e.ProbationEndDate,
 			&e.BaseSalary, &e.SalaryCurrency, &e.CustomFields,
 			&e.IsActive, &e.CreatedAt, &e.UpdatedAt,
 		); err != nil {
@@ -519,7 +552,7 @@ func (r *Repository) GetWithManagerName(ctx context.Context, orgID, id uuid.UUID
 		SELECT
 			e.id, e.organisation_id, e.user_id, e.employee_code,
 			e.full_name, e.email, e.phone, e.department_id, e.job_title,
-			e.employment_type, e.status, e.reporting_to, e.gender, e.start_date, e.end_date,
+			e.employment_type, e.status, e.reporting_to, e.gender, e.start_date, e.end_date, e.probation_end_date,
 			e.base_salary, e.salary_currency, e.custom_fields,
 			e.is_active, e.created_at, e.updated_at,
 			m.full_name AS manager_name
@@ -529,7 +562,7 @@ func (r *Repository) GetWithManagerName(ctx context.Context, orgID, id uuid.UUID
 	`, orgID, id).Scan(
 		&result.ID, &result.OrganisationID, &result.UserID, &result.EmployeeCode,
 		&result.FullName, &result.Email, &result.Phone, &result.DepartmentID, &result.JobTitle,
-		&result.EmploymentType, &result.Status, &result.ReportingTo, &result.Gender, &result.WorkScheduleID, &result.StartDate, &result.EndDate,
+		&result.EmploymentType, &result.Status, &result.ReportingTo, &result.Gender, &result.StartDate, &result.EndDate, &result.ProbationEndDate,
 		&result.BaseSalary, &result.SalaryCurrency, &result.CustomFields,
 		&result.IsActive, &result.CreatedAt, &result.UpdatedAt,
 		&result.ManagerName,

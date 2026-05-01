@@ -29,6 +29,7 @@ export const createPolicySchema = z.object({
   is_unlimited: z.boolean().optional(),
   gender_eligibility: z.enum(['male', 'female']).nullable().optional(),
   eligible_employment_types: z.array(z.enum(['full_time', 'part_time', 'contract', 'intern'])).optional(),
+  probation_eligible: z.boolean().optional(),
   max_lifetime_uses: z
     .number()
     .int('Must be a whole number')

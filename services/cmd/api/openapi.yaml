@@ -489,7 +489,7 @@ paths:
           description: Filter by employment status
           schema:
             type: string
-            enum: [active, on_leave, probation, inactive]
+            enum: [active, on_leave, inactive]
         - name: department_id
           in: query
           description: Filter by department UUID
@@ -3912,6 +3912,12 @@ components:
         logo_url:
           type: string
           nullable: true
+        allow_web_clock_in:
+          type: boolean
+        default_probation_days:
+          type: integer
+          description: "Default probation period in days (0 = no probation tracking)"
+          default: 90
         is_active:
           type: boolean
         created_at:
@@ -4276,7 +4282,7 @@ components:
           enum: [full_time, part_time, contract, intern]
         status:
           type: string
-          enum: [active, on_leave, probation, inactive]
+          enum: [active, on_leave, inactive]
         start_date:
           type: string
           format: date-time
@@ -4284,6 +4290,11 @@ components:
           type: string
           format: date-time
           nullable: true
+        probation_end_date:
+          type: string
+          format: date
+          nullable: true
+          description: "Date when probation period ends. Derived is_probation = probation_end_date > today"
         base_salary:
           type: integer
           format: int64
@@ -4338,6 +4349,10 @@ components:
           type: string
           format: date
           description: "YYYY-MM-DD"
+        probation_end_date:
+          type: string
+          format: date
+          description: "Probation end date YYYY-MM-DD. Auto-populated from org.default_probation_days if not set."
         employee_code:
           type: string
           maxLength: 50
@@ -4367,10 +4382,15 @@ components:
           enum: [full_time, part_time, contract, intern]
         status:
           type: string
-          enum: [active, on_leave, probation, inactive]
+          enum: [active, on_leave, inactive]
         end_date:
           type: string
           format: date
+        probation_end_date:
+          type: string
+          format: date
+          nullable: true
+          description: "Set to null to clear probation period"
 
     OrgChartNode:
       type: object
@@ -4396,7 +4416,7 @@ components:
           enum: [full_time, part_time, contract, intern]
         status:
           type: string
-          enum: [active, on_leave, probation, inactive]
+          enum: [active, on_leave, inactive]
         reporting_to:
           type: string
           format: uuid
@@ -4616,6 +4636,10 @@ components:
             enum: [full_time, part_time, contract, intern]
           description: Employment types eligible for this policy (null means all types)
           nullable: true
+        probation_eligible:
+          type: boolean
+          default: true
+          description: Whether employees on probation can use this leave type
         created_at:
           type: string
           format: date-time
@@ -4659,6 +4683,9 @@ components:
             type: string
             enum: [full_time, part_time, contract, intern]
           description: Employment types eligible for this policy (omit or null for all types)
+        probation_eligible:
+          type: boolean
+          description: Whether employees on probation can use this leave type (default true)
 
     UpdateLeavePolicyRequest:
       type: object
@@ -4692,6 +4719,9 @@ components:
             type: string
             enum: [full_time, part_time, contract, intern]
           description: Employment types eligible for this policy (omit or null for all types)
+        probation_eligible:
+          type: boolean
+          description: Whether employees on probation can use this leave type
 
     ImportPoliciesRequest:
       type: object
@@ -4887,6 +4917,10 @@ components:
             enum: [full_time, part_time, contract, intern]
           description: Employment types eligible for this category (null means all types)
           nullable: true
+        probation_eligible:
+          type: boolean
+          default: true
+          description: Whether employees on probation can submit this claim type
         is_active:
           type: boolean
         created_at:
@@ -4923,6 +4957,9 @@ components:
             type: string
             enum: [full_time, part_time, contract, intern]
           description: Employment types eligible for this category (omit or null for all types)
+        probation_eligible:
+          type: boolean
+          description: Whether employees on probation can submit this claim type (default true)
 
     UpdateClaimCategoryRequest:
       type: object
@@ -4948,6 +4985,9 @@ components:
             type: string
             enum: [full_time, part_time, contract, intern]
           description: Employment types eligible for this category (omit or null for all types)
+        probation_eligible:
+          type: boolean
+          description: Whether employees on probation can submit this claim type
 
     ClaimBalanceWithCategory:
       type: object

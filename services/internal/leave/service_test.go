@@ -221,11 +221,12 @@ func (f *fakeOrgRepo) GetOrgWorkDays(ctx context.Context, orgID uuid.UUID) ([]in
 // ── fakeEmployeeRepo ────────────────────────────────────────────────────────
 
 type fakeEmployeeRepo struct {
-	getEmployeeProfileFn        func(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
-	getOrgOwnerEmployeeFn       func(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error)
-	getEmployeeGenderFn         func(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error)
-	getEmployeeStartDateFn      func(ctx context.Context, orgID, employeeID uuid.UUID) (time.Time, error)
-	verifyManagerRelationshipFn func(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
+	getEmployeeProfileFn           func(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error)
+	getOrgOwnerEmployeeFn          func(ctx context.Context, orgID uuid.UUID) (*uuid.UUID, error)
+	getEmployeeGenderFn            func(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error)
+	getEmployeeStartDateFn         func(ctx context.Context, orgID, employeeID uuid.UUID) (time.Time, error)
+	getEmployeeProbationEndDateFn  func(ctx context.Context, orgID, employeeID uuid.UUID) (*time.Time, error)
+	verifyManagerRelationshipFn    func(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
 func (f *fakeEmployeeRepo) GetEmployeeProfile(ctx context.Context, orgID, employeeID uuid.UUID) (name string, email *string, managerID *uuid.UUID, err error) {
@@ -260,6 +261,13 @@ func (f *fakeEmployeeRepo) GetEmployeeStartDate(ctx context.Context, orgID, empl
 
 func (f *fakeEmployeeRepo) GetEmployeeType(_ context.Context, _, _ uuid.UUID) (string, error) {
 	return "full_time", nil
+}
+
+func (f *fakeEmployeeRepo) GetEmployeeProbationEndDate(ctx context.Context, orgID, employeeID uuid.UUID) (*time.Time, error) {
+	if f.getEmployeeProbationEndDateFn != nil {
+		return f.getEmployeeProbationEndDateFn(ctx, orgID, employeeID)
+	}
+	return nil, nil
 }
 
 func (f *fakeEmployeeRepo) VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error {

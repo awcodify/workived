@@ -28,7 +28,7 @@ func NewRepository(db *pgxpool.Pool, log zerolog.Logger) *Repository {
 func (r *Repository) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Category, error) {
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, name, description, monthly_limit, currency_code,
-		       requires_receipt, is_unlimited, budget_period, eligible_employment_types,
+		       requires_receipt, is_unlimited, budget_period, eligible_employment_types, probation_eligible,
 		       is_active, created_at, updated_at
 		FROM claim_categories
 		WHERE organisation_id = $1 AND is_active = TRUE
@@ -58,13 +58,13 @@ func (r *Repository) GetCategory(ctx context.Context, orgID, id uuid.UUID) (*Cat
 	var c Category
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, name, description, monthly_limit, currency_code,
-		       requires_receipt, is_unlimited, budget_period, eligible_employment_types,
+		       requires_receipt, is_unlimited, budget_period, eligible_employment_types, probation_eligible,
 		       is_active, created_at, updated_at
 		FROM claim_categories
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, id).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.Description, &c.MonthlyLimit, &c.CurrencyCode,
-		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
+		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes, &c.ProbationEligible,
 		&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
@@ -102,20 +102,24 @@ func (r *Repository) CreateCategory(ctx context.Context, orgID uuid.UUID, req Cr
 	if len(req.EligibleEmploymentTypes) > 0 {
 		eligibleTypes = req.EligibleEmploymentTypes
 	}
+	probationEligible := true
+	if req.ProbationEligible != nil {
+		probationEligible = *req.ProbationEligible
+	}
 
 	var c Category
 
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO claim_categories (
 			organisation_id, name, description, monthly_limit, currency_code, requires_receipt, is_unlimited,
-			budget_period, eligible_employment_types
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			budget_period, eligible_employment_types, probation_eligible
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		RETURNING id, organisation_id, name, description, monthly_limit, currency_code,
-		          requires_receipt, is_unlimited, budget_period, eligible_employment_types,
+		          requires_receipt, is_unlimited, budget_period, eligible_employment_types, probation_eligible,
 		          is_active, created_at, updated_at
-	`, orgID, req.Name, req.Description, req.MonthlyLimit, *currencyCode, req.RequiresReceipt, isUnlimited, budgetPeriod, eligibleTypes).Scan(
+	`, orgID, req.Name, req.Description, req.MonthlyLimit, *currencyCode, req.RequiresReceipt, isUnlimited, budgetPeriod, eligibleTypes, probationEligible).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.Description, &c.MonthlyLimit, &c.CurrencyCode,
-		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
+		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes, &c.ProbationEligible,
 		&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
@@ -129,6 +133,10 @@ func (r *Repository) UpdateCategory(ctx context.Context, orgID, id uuid.UUID, re
 	if req.EligibleEmploymentTypes != nil {
 		eligibleTypes = req.EligibleEmploymentTypes
 	}
+	var probationEligible *bool
+	if req.ProbationEligible != nil {
+		probationEligible = req.ProbationEligible
+	}
 
 	var c Category
 	err := r.db.QueryRow(ctx, `
@@ -140,14 +148,15 @@ func (r *Repository) UpdateCategory(ctx context.Context, orgID, id uuid.UUID, re
 			requires_receipt           = COALESCE($7, requires_receipt),
 			is_unlimited               = COALESCE($8, is_unlimited),
 			budget_period              = COALESCE($9, budget_period),
-			eligible_employment_types  = COALESCE($10, eligible_employment_types)
+			eligible_employment_types  = COALESCE($10, eligible_employment_types),
+			probation_eligible         = COALESCE($11, probation_eligible)
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, name, description, monthly_limit, currency_code,
-		          requires_receipt, is_unlimited, budget_period, eligible_employment_types,
+		          requires_receipt, is_unlimited, budget_period, eligible_employment_types, probation_eligible,
 		          is_active, created_at, updated_at
-	`, orgID, id, req.Name, req.Description, req.MonthlyLimit, req.CurrencyCode, req.RequiresReceipt, req.IsUnlimited, req.BudgetPeriod, eligibleTypes).Scan(
+	`, orgID, id, req.Name, req.Description, req.MonthlyLimit, req.CurrencyCode, req.RequiresReceipt, req.IsUnlimited, req.BudgetPeriod, eligibleTypes, probationEligible).Scan(
 		&c.ID, &c.OrganisationID, &c.Name, &c.Description, &c.MonthlyLimit, &c.CurrencyCode,
-		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
+		&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes, &c.ProbationEligible,
 		&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 	)
 	if err != nil {
@@ -597,6 +606,8 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 			  AND (c.eligible_employment_types IS NULL
 			       OR cardinality(c.eligible_employment_types) = 0
 			       OR (SELECT employment_type FROM emp_type) = ANY(c.eligible_employment_types))
+			  AND (c.probation_eligible = TRUE OR ((SELECT probation_end_date FROM employees WHERE id = $2 AND organisation_id = $1) IS NULL
+			       OR (SELECT probation_end_date FROM employees WHERE id = $2 AND organisation_id = $1) <= CURRENT_DATE))
 		),
 		yearly AS (
 			-- Yearly categories: aggregate all months in the year, use current month's row as base
@@ -618,6 +629,8 @@ func (r *Repository) ListBalancesByEmployee(ctx context.Context, orgID, employee
 			  AND (c.eligible_employment_types IS NULL
 			       OR cardinality(c.eligible_employment_types) = 0
 			       OR (SELECT employment_type FROM emp_type) = ANY(c.eligible_employment_types))
+			  AND (c.probation_eligible = TRUE OR ((SELECT probation_end_date FROM employees WHERE id = $2 AND organisation_id = $1) IS NULL
+			       OR (SELECT probation_end_date FROM employees WHERE id = $2 AND organisation_id = $1) <= CURRENT_DATE))
 		)
 		SELECT * FROM monthly
 		UNION ALL
