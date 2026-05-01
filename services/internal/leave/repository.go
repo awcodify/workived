@@ -28,7 +28,7 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 	rows, err := r.db.Query(ctx, `
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
 		       min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
-		       prorate_first_year, day_count_type, eligible_employment_types,
+		       prorate_first_year, day_count_type, eligible_employment_types, probation_eligible,
 		       max_lifetime_uses, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1
@@ -46,7 +46,7 @@ func (r *Repository) ListPolicies(ctx context.Context, orgID uuid.UUID) ([]Polic
 		if err := rows.Scan(
 			&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 			&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
-			&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
+			&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes, &p.ProbationEligible,
 			&p.MaxLifetimeUses, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("scan leave policy: %w", err)
@@ -62,14 +62,14 @@ func (r *Repository) GetPolicy(ctx context.Context, orgID, policyID uuid.UUID) (
 	err := r.db.QueryRow(ctx, `
 		SELECT id, organisation_id, name, description, days_per_year, carry_over_days,
 		       min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
-		       prorate_first_year, day_count_type, eligible_employment_types,
+		       prorate_first_year, day_count_type, eligible_employment_types, probation_eligible,
 		       max_lifetime_uses, is_active, created_at, updated_at
 		FROM leave_policies
 		WHERE organisation_id = $1 AND id = $2
 	`, orgID, policyID).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
-		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
+		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes, &p.ProbationEligible,
 		&p.MaxLifetimeUses, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
@@ -113,23 +113,27 @@ func (r *Repository) CreatePolicy(ctx context.Context, orgID uuid.UUID, req Crea
 	if len(req.EligibleEmploymentTypes) > 0 {
 		eligibleTypes = req.EligibleEmploymentTypes
 	}
+	probationEligible := true
+	if req.ProbationEligible != nil {
+		probationEligible = *req.ProbationEligible
+	}
 
 	var p Policy
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO leave_policies (organisation_id, name, description, days_per_year, carry_over_days,
 		    min_tenure_days, requires_approval, gender_eligibility, is_unlimited, prorate_first_year,
-		    day_count_type, eligible_employment_types, max_lifetime_uses)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+		    day_count_type, eligible_employment_types, probation_eligible, max_lifetime_uses)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 		          min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
-		          prorate_first_year, day_count_type, eligible_employment_types,
+		          prorate_first_year, day_count_type, eligible_employment_types, probation_eligible,
 		          max_lifetime_uses, is_active, created_at, updated_at
 	`, orgID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays, req.MinTenureDays,
-		reqApproval, genderEligibility, isUnlimited, prorateFirstYear, dayCountType, eligibleTypes,
+		reqApproval, genderEligibility, isUnlimited, prorateFirstYear, dayCountType, eligibleTypes, probationEligible,
 		req.MaxLifetimeUses).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
-		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
+		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes, &p.ProbationEligible,
 		&p.MaxLifetimeUses, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
@@ -144,6 +148,10 @@ func (r *Repository) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID
 	var eligibleTypes []string
 	if req.EligibleEmploymentTypes != nil {
 		eligibleTypes = req.EligibleEmploymentTypes
+	}
+	var probationEligible *bool
+	if req.ProbationEligible != nil {
+		probationEligible = req.ProbationEligible
 	}
 
 	var p Policy
@@ -160,18 +168,19 @@ func (r *Repository) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID
 			prorate_first_year         = COALESCE($11, prorate_first_year),
 			day_count_type             = COALESCE($12, day_count_type),
 			eligible_employment_types  = COALESCE($13, eligible_employment_types),
-			max_lifetime_uses          = $14
+			probation_eligible         = COALESCE($14, probation_eligible),
+			max_lifetime_uses          = $15
 		WHERE organisation_id = $1 AND id = $2
 		RETURNING id, organisation_id, name, description, days_per_year, carry_over_days,
 		          min_tenure_days, requires_approval, gender_eligibility, is_unlimited,
-		          prorate_first_year, day_count_type, eligible_employment_types,
+		          prorate_first_year, day_count_type, eligible_employment_types, probation_eligible,
 		          max_lifetime_uses, is_active, created_at, updated_at
 	`, orgID, policyID, req.Name, req.Description, req.DaysPerYear, req.CarryOverDays,
 		req.MinTenureDays, req.RequiresApproval, req.GenderEligibility, req.IsUnlimited,
-		req.ProrateFirstYear, req.DayCountType, eligibleTypes, req.MaxLifetimeUses).Scan(
+		req.ProrateFirstYear, req.DayCountType, eligibleTypes, probationEligible, req.MaxLifetimeUses).Scan(
 		&p.ID, &p.OrganisationID, &p.Name, &p.Description, &p.DaysPerYear, &p.CarryOverDays,
 		&p.MinTenureDays, &p.RequiresApproval, &p.GenderEligibility, &p.IsUnlimited,
-		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes,
+		&p.ProrateFirstYear, &p.DayCountType, &p.EligibleEmploymentTypes, &p.ProbationEligible,
 		&p.MaxLifetimeUses, &p.IsActive, &p.CreatedAt, &p.UpdatedAt,
 	)
 	if err != nil {
@@ -321,6 +330,7 @@ func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int
 		  AND lp.is_active = TRUE
 		  AND (lp.eligible_employment_types IS NULL
 		       OR e.employment_type = ANY(lp.eligible_employment_types))
+		  AND (lp.probation_eligible = TRUE OR (e.probation_end_date IS NULL OR e.probation_end_date <= CURRENT_DATE))
 		ORDER BY b.employee_id, lp.name
 	`, orgID, year)
 	if err != nil {
@@ -358,6 +368,8 @@ func (r *Repository) ListEmployeeBalances(ctx context.Context, orgID, employeeID
 		  AND lp.is_active = TRUE
 		  AND (lp.eligible_employment_types IS NULL
 		       OR (SELECT employment_type FROM employees WHERE id = $2 AND organisation_id = $1) = ANY(lp.eligible_employment_types))
+		  AND (lp.probation_eligible = TRUE OR ((SELECT probation_end_date FROM employees WHERE id = $2 AND organisation_id = $1) IS NULL
+		       OR (SELECT probation_end_date FROM employees WHERE id = $2 AND organisation_id = $1) <= CURRENT_DATE))
 		ORDER BY lp.name
 	`, orgID, employeeID, year)
 	if err != nil {

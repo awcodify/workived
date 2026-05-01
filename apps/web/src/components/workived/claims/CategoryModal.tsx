@@ -23,6 +23,7 @@ interface CategoryFormData {
   monthly_limit: string
   currency_code: string
   requires_receipt: boolean
+  probation_eligible: boolean
   budget_period: 'monthly' | 'yearly'
   eligible_employment_types: EmpType[]
 }
@@ -56,6 +57,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
           monthly_limit: category.monthly_limit ? category.monthly_limit.toString() : '',
           currency_code: category.currency_code || org?.currency_code || 'IDR',
           requires_receipt: category.requires_receipt,
+          probation_eligible: category.probation_eligible ?? true,
           budget_period: category.budget_period || 'monthly',
           eligible_employment_types: (category.eligible_employment_types ?? []) as EmpType[],
         }
@@ -65,6 +67,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
           monthly_limit: '',
           currency_code: org?.currency_code || 'IDR',
           requires_receipt: false,
+          probation_eligible: true,
           budget_period: 'monthly',
           eligible_employment_types: ['full_time'],
         },
@@ -72,6 +75,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
 
   const hasMonthlyLimit = watch('monthly_limit') !== ''
   const budgetPeriod = watch('budget_period')
+  const probationEligible = watch('probation_eligible')
   const eligibleTypes = watch('eligible_employment_types') ?? (isEditMode ? [] : ['full_time'])
 
   // Close on Escape key
@@ -119,6 +123,7 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
       monthly_limit: hasMonthlyLimit ? Math.round(parseFloat(data.monthly_limit)) : undefined,
       currency_code: hasMonthlyLimit ? data.currency_code : undefined,
       requires_receipt: data.requires_receipt,
+      probation_eligible: data.probation_eligible,
       budget_period: data.budget_period,
       eligible_employment_types: data.eligible_employment_types.length > 0 ? data.eligible_employment_types : undefined,
     }
@@ -451,6 +456,39 @@ export function CategoryModal({ category, onClose, onSuccess }: CategoryModalPro
                 </div>
               </div>
             </label>
+          </div>
+
+          {/* Probation Eligibility */}
+          <div className="flex items-start gap-3 pt-2">
+            <input
+              id="probation-eligible"
+              type="checkbox"
+              {...register('probation_eligible')}
+              data-testid="category-probation-eligible-checkbox"
+              className="w-5 h-5 rounded transition-colors cursor-pointer mt-0.5"
+              style={{ accentColor: t.accent }}
+            />
+            <div>
+              <label
+                htmlFor="probation-eligible"
+                className="cursor-pointer select-none"
+                style={{
+                  fontSize: typography.body.size,
+                  fontWeight: 600,
+                  color: t.text,
+                }}
+              >
+                Available during probation
+              </label>
+              <p
+                className="mt-0.5"
+                style={{ fontSize: '12px', color: t.textMuted }}
+              >
+                {probationEligible
+                  ? 'Employees on probation can submit this claim type'
+                  : 'Blocked for employees on probation'}
+              </p>
+            </div>
           </div>
 
           {/* Eligible Employment Types */}

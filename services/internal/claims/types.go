@@ -19,6 +19,7 @@ type Category struct {
 	IsUnlimited             bool      `json:"is_unlimited"`              // When true, monthly_limit is ignored
 	BudgetPeriod            string    `json:"budget_period"`             // "monthly" or "yearly"
 	EligibleEmploymentTypes []string  `json:"eligible_employment_types"` // nil = all types eligible
+	ProbationEligible       bool      `json:"probation_eligible"`        // false = block employees currently in probation
 	IsActive                bool      `json:"is_active"`
 	CreatedAt               time.Time `json:"created_at"`
 	UpdatedAt               time.Time `json:"updated_at"`
@@ -99,6 +100,7 @@ type CreateCategoryRequest struct {
 	IsUnlimited             *bool    `json:"is_unlimited,omitempty"`
 	BudgetPeriod            *string  `json:"budget_period,omitempty"` // "monthly" (default) or "yearly"
 	EligibleEmploymentTypes []string `json:"eligible_employment_types,omitempty"`
+	ProbationEligible       *bool    `json:"probation_eligible,omitempty"`
 }
 
 type UpdateCategoryRequest struct {
@@ -110,6 +112,7 @@ type UpdateCategoryRequest struct {
 	IsUnlimited             *bool    `json:"is_unlimited,omitempty"`
 	BudgetPeriod            *string  `json:"budget_period,omitempty"` // "monthly" or "yearly"
 	EligibleEmploymentTypes []string `json:"eligible_employment_types,omitempty"`
+	ProbationEligible       *bool    `json:"probation_eligible,omitempty"`
 }
 
 type SubmitClaimRequest struct {

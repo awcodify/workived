@@ -47,6 +47,7 @@ export function PolicyModal({ policy, template, onClose, onSuccess }: PolicyModa
           is_unlimited: policy.is_unlimited,
           gender_eligibility: policy.gender_eligibility ?? null,
           eligible_employment_types: (policy.eligible_employment_types ?? []) as EmpType[],
+          probation_eligible: policy.probation_eligible ?? true,
           max_lifetime_uses: policy.max_lifetime_uses ?? null,
         }
       : template
@@ -60,6 +61,7 @@ export function PolicyModal({ policy, template, onClose, onSuccess }: PolicyModa
           is_unlimited: template.is_unlimited,
           gender_eligibility: template.gender_eligibility === 'all' ? null : template.gender_eligibility,
           eligible_employment_types: ['full_time'],
+          probation_eligible: true,
           max_lifetime_uses: template.max_lifetime_uses ?? null,
         }
       : {
@@ -72,6 +74,7 @@ export function PolicyModal({ policy, template, onClose, onSuccess }: PolicyModa
           is_unlimited: false,
           gender_eligibility: null,
           eligible_employment_types: ['full_time'],
+          probation_eligible: true,
           max_lifetime_uses: null,
         },
   })
@@ -646,6 +649,30 @@ export function PolicyModal({ policy, template, onClose, onSuccess }: PolicyModa
                 )
               })}
             </div>
+          </div>
+
+          {/* Probation Eligibility */}
+          <div className="pt-2">
+            <div className="flex items-center gap-3">
+              <input
+                id="probation-eligible"
+                type="checkbox"
+                {...register('probation_eligible')}
+                data-testid="policy-probation-eligible-checkbox"
+                className="w-5 h-5 rounded transition-colors cursor-pointer"
+                style={{ accentColor: t.accent }}
+              />
+              <label
+                htmlFor="probation-eligible"
+                className="cursor-pointer select-none"
+                style={{ fontSize: typography.body.size, color: t.text, fontWeight: 500 }}
+              >
+                Available during probation
+              </label>
+            </div>
+            <p className="mt-1 ml-8" style={{ fontSize: '12px', color: t.textMuted }}>
+              Uncheck to block employees currently on probation from requesting this leave
+            </p>
           </div>
 
           {/* Lifetime Limit */}

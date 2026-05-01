@@ -5,6 +5,7 @@ import { z } from 'zod/v4'
 import { useState, useEffect } from 'react'
 import { useCreateEmployee } from '@/lib/hooks/useEmployees'
 import { useUnlinkedMembers, useInviteMember } from '@/lib/hooks/useInvitations'
+import { useOrganisation } from '@/lib/hooks/useOrganisation'
 import { useDepartments } from '@/lib/hooks/useDepartments'
 import { useJobTitles } from '@/lib/hooks/useJobTitles'
 import { useWorkSchedules } from '@/lib/hooks/useAttendance'
@@ -38,6 +39,7 @@ const newSchema = z.object({
   employment_type: z.enum(['full_time', 'part_time', 'contract', 'intern']),
   gender: z.enum(['male', 'female']).optional().or(z.literal('')),
   start_date: z.string().min(1, 'Start date is required'),
+  probation_end_date: z.string().optional().or(z.literal('')),
   work_schedule_id: z.string().min(1, 'Work schedule is required'),
   email_mode: z.enum(['member', 'new', 'skip']),
   selected_user_id: z.string().optional(),
@@ -78,6 +80,7 @@ function NewEmployeePage() {
   const { user_id: preselectedUserId, reporting_to: preselectedReportingTo } = Route.useSearch()
   const createMutation = useCreateEmployee()
   const inviteMutation = useInviteMember()
+  const { data: org } = useOrganisation()
   const { data: unlinkedMembers = [] } = useUnlinkedMembers()
   const { data: departments } = useDepartments()
   const { data: jobTitles } = useJobTitles()
@@ -101,6 +104,7 @@ function NewEmployeePage() {
       employment_type: 'full_time',
       gender: '',
       start_date: '',
+      probation_end_date: '',
       work_schedule_id: '',
       email_mode: preselectedUserId ? 'member' : 'new',
       selected_user_id: preselectedUserId ?? '',
@@ -111,6 +115,16 @@ function NewEmployeePage() {
 
   const emailMode = form.watch('email_mode')
   const selectedUserId = form.watch('selected_user_id')
+  const startDate = form.watch('start_date')
+
+  // Auto-fill probation_end_date when start_date changes and org has default_probation_days
+  useEffect(() => {
+    if (!startDate || !org?.default_probation_days) return
+    const start = new Date(startDate)
+    if (isNaN(start.getTime())) return
+    start.setDate(start.getDate() + org.default_probation_days)
+    form.setValue('probation_end_date', start.toISOString().split('T')[0])
+  }, [startDate, org?.default_probation_days, form])
 
   // Auto-fill name when member is selected
   useEffect(() => {
@@ -151,6 +165,7 @@ function NewEmployeePage() {
       employment_type: data.employment_type,
       gender: data.gender === 'male' || data.gender === 'female' ? data.gender : undefined,
       start_date: data.start_date,
+      probation_end_date: data.probation_end_date || undefined,
       work_schedule_id: data.work_schedule_id,
     }
 
@@ -375,6 +390,28 @@ function NewEmployeePage() {
                   {...form.register('start_date')}
                   error={!!form.formState.errors.start_date}
                   errorMessage={form.formState.errors.start_date?.message as string}
+                />
+              </label>
+            </div>
+
+            {/* Probation end date */}
+            <div>
+              <label className="block">
+                <span className="text-sm font-medium mb-1.5 block" style={{ color: t.text }}>
+                  Probation end date{' '}
+                  <span className="text-xs font-normal" style={{ color: t.textMuted }}>
+                    (optional, auto-filled from start date)
+                  </span>
+                </span>
+                <DatePicker
+                  data-testid="people-probation-end-date-input"
+                  className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                  style={{
+                    background: t.input,
+                    border: `1px solid ${t.inputBorder}`,
+                    color: t.text,
+                  }}
+                  {...form.register('probation_end_date')}
                 />
               </label>
             </div>

@@ -19,9 +19,10 @@ type Organisation struct {
 	Plan              string    `json:"plan"`
 	PlanEmployeeLimit *int      `json:"plan_employee_limit,omitempty"`
 	LogoURL           *string   `json:"logo_url,omitempty"`
-	AllowWebClockIn   bool      `json:"allow_web_clock_in"`
-	TaskSequence      int       `json:"task_sequence"` // Counter for generating task codes
-	IsActive          bool      `json:"is_active"`
+	AllowWebClockIn      bool      `json:"allow_web_clock_in"`
+	TaskSequence         int       `json:"task_sequence"`          // Counter for generating task codes
+	DefaultProbationDays int       `json:"default_probation_days"` // Days new employees are on probation (0 = disabled)
+	IsActive             bool      `json:"is_active"`
 	CreatedAt         time.Time `json:"created_at"`
 }
 
@@ -115,7 +116,8 @@ type UpdateOrgRequest struct {
 	CountryCode     *string `json:"country_code"       validate:"omitempty,len=2"`
 	Timezone        *string `json:"timezone"           validate:"omitempty,max=50"`
 	CurrencyCode    *string `json:"currency_code"      validate:"omitempty,len=3"`
-	AllowWebClockIn *bool   `json:"allow_web_clock_in" validate:"omitempty"`
+	AllowWebClockIn      *bool `json:"allow_web_clock_in"      validate:"omitempty"`
+	DefaultProbationDays *int  `json:"default_probation_days"  validate:"omitempty,gte=0,lte=365"`
 }
 
 type TransferOwnershipRequest struct {

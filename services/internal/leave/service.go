@@ -79,6 +79,7 @@ type EmployeeInfoProvider interface {
 	GetEmployeeGender(ctx context.Context, orgID, employeeID uuid.UUID) (*string, error)
 	GetEmployeeStartDate(ctx context.Context, orgID, employeeID uuid.UUID) (time.Time, error)
 	GetEmployeeType(ctx context.Context, orgID, employeeID uuid.UUID) (string, error)
+	GetEmployeeProbationEndDate(ctx context.Context, orgID, employeeID uuid.UUID) (*time.Time, error)
 	VerifyManagerRelationship(ctx context.Context, orgID, employeeID, managerEmployeeID uuid.UUID) error
 }
 
@@ -296,6 +297,8 @@ func (s *Service) ensureEmployeeBalances(ctx context.Context, orgID, employeeID 
 	// Fetch employee info once for eligibility checks.
 	var empType string
 	var empTypeFetched bool
+	var probationEnd *time.Time
+	var probationFetched bool
 	var startDate time.Time
 	var startDateFetched bool
 
@@ -310,6 +313,20 @@ func (s *Service) ensureEmployeeBalances(ctx context.Context, orgID, employeeID 
 				empTypeFetched = true
 			}
 			if !isEmploymentTypeEligible(empType, p.EligibleEmploymentTypes) {
+				continue
+			}
+		}
+
+		// Check probation eligibility.
+		if !p.ProbationEligible {
+			if !probationFetched {
+				probationEnd, err = s.employeeRepo.GetEmployeeProbationEndDate(ctx, orgID, employeeID)
+				if err != nil {
+					return fmt.Errorf("get employee probation end date: %w", err)
+				}
+				probationFetched = true
+			}
+			if probationEnd != nil && probationEnd.After(time.Now()) {
 				continue
 			}
 		}
@@ -394,6 +411,18 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 		if !isEmploymentTypeEligible(empType, policy.EligibleEmploymentTypes) {
 			return nil, apperr.New(apperr.CodeValidation,
 				fmt.Sprintf("%s leave is not available for %s employees", policy.Name, empType))
+		}
+	}
+
+	// 4c. Validate probation eligibility.
+	if !policy.ProbationEligible {
+		probationEnd, err := s.employeeRepo.GetEmployeeProbationEndDate(ctx, orgID, employeeID)
+		if err != nil {
+			return nil, fmt.Errorf("get employee probation end date: %w", err)
+		}
+		if probationEnd != nil && probationEnd.After(time.Now()) {
+			return nil, apperr.New(apperr.CodeValidation,
+				fmt.Sprintf("%s leave is not available during probation period", policy.Name))
 		}
 	}
 

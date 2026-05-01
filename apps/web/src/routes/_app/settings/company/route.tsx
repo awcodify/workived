@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod/v4'
@@ -418,6 +418,13 @@ function AttendanceSection() {
   const { data: org } = useOrgDetail()
   const updateOrg = useUpdateOrg()
   const [saved, setSaved] = useState(false)
+  const [probationDays, setProbationDays] = useState<string>('')
+
+  useEffect(() => {
+    if (org?.default_probation_days !== undefined) {
+      setProbationDays(org.default_probation_days.toString())
+    }
+  }, [org?.default_probation_days])
 
   if (!org) return null
 
@@ -433,9 +440,23 @@ function AttendanceSection() {
     )
   }
 
+  const handleProbationSave = () => {
+    const days = parseInt(probationDays, 10)
+    if (isNaN(days) || days < 0 || days > 365) return
+    updateOrg.mutate(
+      { default_probation_days: days },
+      {
+        onSuccess: () => {
+          setSaved(true)
+          setTimeout(() => setSaved(false), 2000)
+        },
+      }
+    )
+  }
+
   return (
     <div>
-      {saved && <Banner variant="success" message="Attendance settings saved." />}
+      {saved && <Banner variant="success" message="Settings saved." />}
 
       <div className="flex items-center justify-between gap-4 py-5" style={{ borderBottom: `1px solid ${border}` }}>
         <div>
@@ -457,6 +478,44 @@ function AttendanceSection() {
           <span className="inline-block rounded-full bg-white transition-transform"
             style={{ width: 18, height: 18, transform: org.allow_web_clock_in ? 'translateX(22px)' : 'translateX(3px)' }} />
         </button>
+      </div>
+
+      <div className="flex items-center justify-between gap-4 py-5">
+        <div>
+          <p style={{ color: text, fontSize: typography.body.size, fontWeight: typography.label.weight }}>Default probation period</p>
+          <p className="mt-1" style={{ color: textDim, fontSize: typography.label.size }}>
+            Auto-fills probation end date when adding a new employee. Set to 0 to disable probation tracking.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <input
+            type="number"
+            min={0}
+            max={365}
+            value={probationDays}
+            onChange={(e) => setProbationDays(e.target.value)}
+            data-testid="company-settings-probation-days-input"
+            className="px-3 py-1.5 text-sm text-right focus:outline-none focus:ring-1"
+            style={{
+              width: 72,
+              background: inputBg,
+              border: `1px solid ${inputBdr}`,
+              borderRadius: 8,
+              color: text,
+            }}
+          />
+          <span style={{ color: textDim, fontSize: typography.label.size }}>days</span>
+          <button
+            type="button"
+            onClick={handleProbationSave}
+            disabled={updateOrg.isPending}
+            data-testid="company-settings-probation-days-save-btn"
+            className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-opacity hover:opacity-80 disabled:opacity-40"
+            style={{ background: C.accent, color: C.accentText }}
+          >
+            Save
+          </button>
+        </div>
       </div>
     </div>
   )

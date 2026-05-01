@@ -23,6 +23,7 @@ type Policy struct {
 	ProrateFirstYear  bool      `json:"prorate_first_year"`
 	DayCountType             string   `json:"day_count_type"`             // "working_days", "calendar_days"
 	EligibleEmploymentTypes  []string `json:"eligible_employment_types"`  // nil = all types eligible
+	ProbationEligible        bool     `json:"probation_eligible"`         // false = block employees currently in probation
 	MaxLifetimeUses          *int     `json:"max_lifetime_uses"`          // nil = unlimited/annual, e.g. 1 for Hajj
 	IsActive                 bool     `json:"is_active"`
 	CreatedAt        time.Time `json:"created_at"`
@@ -138,6 +139,7 @@ type CreatePolicyRequest struct {
 	ProrateFirstYear        *bool    `json:"prorate_first_year"`
 	DayCountType            *string  `json:"day_count_type" validate:"omitempty,oneof=working_days calendar_days"`
 	EligibleEmploymentTypes []string `json:"eligible_employment_types" validate:"omitempty,dive,oneof=full_time part_time contract intern"`
+	ProbationEligible       *bool    `json:"probation_eligible"`
 	MaxLifetimeUses         *int     `json:"max_lifetime_uses" validate:"omitempty,gte=1"`
 }
 
@@ -153,6 +155,7 @@ type UpdatePolicyRequest struct {
 	ProrateFirstYear        *bool    `json:"prorate_first_year"`
 	DayCountType            *string  `json:"day_count_type" validate:"omitempty,oneof=working_days calendar_days"`
 	EligibleEmploymentTypes []string `json:"eligible_employment_types" validate:"omitempty,dive,oneof=full_time part_time contract intern"`
+	ProbationEligible       *bool    `json:"probation_eligible"`
 	MaxLifetimeUses         *int     `json:"max_lifetime_uses" validate:"omitempty,gte=1"`
 }
 

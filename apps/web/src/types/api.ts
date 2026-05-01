@@ -48,6 +48,7 @@ export interface Organisation {
   plan: 'free' | 'pro' | 'enterprise'
   plan_employee_limit?: number
   allow_web_clock_in: boolean
+  default_probation_days: number
   is_active: boolean
   created_at: string
 }
@@ -72,6 +73,7 @@ export interface UpdateOrgRequest {
   timezone?: string
   currency_code?: string
   allow_web_clock_in?: boolean
+  default_probation_days?: number
 }
 
 export interface TransferOwnershipRequest {
@@ -186,7 +188,8 @@ export interface Employee {
   gender?: 'male' | 'female' | null
   work_schedule_id?: string | null
   employment_type: 'full_time' | 'part_time' | 'contract' | 'intern'
-  status: 'active' | 'probation' | 'inactive'
+  status: 'active' | 'on_leave' | 'inactive'
+  probation_end_date?: string | null
   start_date: string
   end_date?: string
   base_salary?: number
@@ -208,11 +211,13 @@ export interface CreateEmployeeInput {
   start_date: string
   gender?: 'male' | 'female'
   work_schedule_id?: string
+  probation_end_date?: string // YYYY-MM-DD; null = no probation
 }
 
 export type UpdateEmployeeInput = Partial<CreateEmployeeInput> & {
   status?: string
   end_date?: string
+  probation_end_date?: string | null
   reporting_to?: string
   clear_reporting_to?: boolean
   work_schedule_id?: string | null
@@ -470,6 +475,7 @@ export interface LeavePolicy {
   is_unlimited: boolean
   gender_eligibility?: 'male' | 'female' | null
   eligible_employment_types?: EmploymentType[] | null
+  probation_eligible: boolean
   max_lifetime_uses?: number | null
   is_active: boolean
   created_at: string
@@ -607,6 +613,7 @@ export interface ClaimCategory {
   requires_receipt: boolean
   budget_period: 'monthly' | 'yearly'
   eligible_employment_types?: EmploymentType[] | null
+  probation_eligible: boolean
   is_active: boolean
   created_at: string
   updated_at: string
