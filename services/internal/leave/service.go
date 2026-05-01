@@ -522,16 +522,22 @@ func (s *Service) SubmitRequest(ctx context.Context, orgID, employeeID uuid.UUID
 
 // createLeaveApprovalTask creates an approval task for the leave request
 func (s *Service) createLeaveApprovalTask(ctx context.Context, orgID, employeeID uuid.UUID, req *Request, policyName string) {
+	lgr := s.log.With().
+		Str("org_id", orgID.String()).
+		Str("employee_id", employeeID.String()).
+		Str("request_id", req.ID.String()).
+		Logger()
+
 	// Skip if tasks service not wired up
 	if s.tasksService == nil {
-		s.log.Debug().Msg("tasks service not configured, skipping approval task creation")
+		lgr.Warn().Msg("leave_approval_task: tasks service not configured")
 		return
 	}
 
 	// Get employee name and manager ID for task title and assignment
 	employeeName, _, managerID, err := s.employeeRepo.GetEmployeeProfile(ctx, orgID, employeeID)
 	if err != nil {
-		s.log.Warn().Err(err).Str("org_id", orgID.String()).Msg("failed to get employee profile for approval task")
+		lgr.Warn().Err(err).Msg("leave_approval_task: failed to get employee profile")
 		return
 	}
 
@@ -539,11 +545,11 @@ func (s *Service) createLeaveApprovalTask(ctx context.Context, orgID, employeeID
 	if managerID == nil {
 		ownerID, err := s.employeeRepo.GetOrgOwnerEmployee(ctx, orgID)
 		if err != nil {
-			s.log.Warn().Err(err).Str("org_id", orgID.String()).Msg("failed to find org owner for approval task fallback")
+			lgr.Warn().Err(err).Msg("leave_approval_task: failed to find org owner fallback")
 			return
 		}
 		if ownerID == nil {
-			s.log.Warn().Str("employee_id", employeeID.String()).Msg("employee has no manager and org owner not found, skipping approval task")
+			lgr.Warn().Msg("leave_approval_task: no manager and no org owner found, skipping")
 			return
 		}
 		managerID = ownerID
@@ -565,10 +571,7 @@ func (s *Service) createLeaveApprovalTask(ctx context.Context, orgID, employeeID
 
 	err = s.tasksService.CreateApprovalTask(ctx, orgID, "leave", req.ID, title, description, employeeID, *managerID, &dueDate)
 	if err != nil {
-		s.log.Warn().Err(err).
-			Str("org_id", orgID.String()).
-			Str("request_id", req.ID.String()).
-			Msg("failed to create leave approval task")
+		lgr.Warn().Err(err).Msg("leave_approval_task: CreateApprovalTask failed")
 	}
 }
 

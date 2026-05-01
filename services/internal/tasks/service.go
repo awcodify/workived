@@ -746,11 +746,19 @@ func (s *Service) CreateApprovalTask(
 	assigneeID uuid.UUID, // Manager/approver
 	dueDate *string, // YYYY-MM-DD format, optional
 ) error {
-	// Get "Approvals" list (or first available list as fallback)
-	lists, err := s.repo.ListTaskLists(ctx, orgID)
+	log := s.log.With().
+		Str("org_id", orgID.String()).
+		Str("approval_type", approvalType).
+		Str("approval_id", approvalID.String()).
+		Logger()
+
+	// Get "Approvals" list (or first available list as fallback).
+	// Use service method (not repo) so lazy default-list creation runs if org has none.
+	lists, err := s.ListTaskLists(ctx, orgID)
 	if err != nil {
 		return fmt.Errorf("list task lists: %w", err)
 	}
+	log.Debug().Int("list_count", len(lists)).Msg("CreateApprovalTask: got task lists")
 	if len(lists) == 0 {
 		return fmt.Errorf("no task lists available")
 	}
@@ -767,6 +775,7 @@ func (s *Service) CreateApprovalTask(
 		// Fallback to first list if "Approvals" doesn't exist
 		targetList = lists[0].ID
 	}
+	log.Debug().Str("task_list_id", targetList.String()).Msg("CreateApprovalTask: selected task list")
 
 	// Validate approval type
 	if approvalType != "leave" && approvalType != "claim" {
@@ -786,6 +795,7 @@ func (s *Service) CreateApprovalTask(
 
 	task, err := s.repo.CreateTask(ctx, orgID, requesterEmployeeID, req)
 	if err != nil {
+		log.Warn().Err(err).Msg("CreateApprovalTask: CreateTask failed")
 		return fmt.Errorf("create approval task: %w", err)
 	}
 

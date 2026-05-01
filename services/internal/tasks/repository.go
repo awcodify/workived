@@ -329,19 +329,19 @@ func (r *Repository) ListTasks(ctx context.Context, orgID uuid.UUID, filters Tas
 	}
 
 	rows, err := r.db.Query(ctx, query,
-		orgID,                             // $1
-		parseUUIDList(filters.TaskListID), // $2 - now accepts comma-separated UUIDs
-		ptrToUUID(filters.AssigneeID),     // $3 - kept for approval check (single value)
-		filters.Priority,                  // $4
-		filters.Status,                    // $5
-		nilIfEmpty(cursor.Value),          // $6
-		limit+1,                           // $7
-		archiveDays,                       // $8
-		filters.ExcludeApprovalTasks,      // $9
-		filters.Search,                    // $10 (*string, nil = no filter)
-		filters.CompletedAfter,            // $11 (*string, nil = no filter)
-		filters.CompletedBefore,           // $12 (*string, nil = no filter)
-		parseUUIDList(filters.AssigneeID), // $13 - multi-select assignee filter
+		orgID,                                    // $1
+		parseUUIDList(filters.TaskListID),        // $2 - now accepts comma-separated UUIDs
+		ptrToUUID(filters.ApprovalVisibilityID),  // $3 - approval security gate (nil = see all)
+		filters.Priority,                         // $4
+		filters.Status,                           // $5
+		nilIfEmpty(cursor.Value),                 // $6
+		limit+1,                                  // $7
+		archiveDays,                              // $8
+		filters.ExcludeApprovalTasks,             // $9
+		filters.Search,                           // $10 (*string, nil = no filter)
+		filters.CompletedAfter,                   // $11 (*string, nil = no filter)
+		filters.CompletedBefore,                  // $12 (*string, nil = no filter)
+		parseUUIDList(filters.AssigneeID),        // $13 - user-facing assignee filter
 	)
 	if err != nil {
 		return nil, err
