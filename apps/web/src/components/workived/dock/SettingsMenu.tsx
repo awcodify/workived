@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { useNavigate } from '@tanstack/react-router'
 import { Settings, LogOut, User, Building2, Users, FileText, Moon, Sun, Sparkles, HelpCircle, MoreHorizontal, ClipboardCheck, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/auth'
+import { useMyEmployee } from '@/lib/hooks/useEmployees'
 import { useThemeStore } from '@/lib/stores/theme'
 import { useTourStore } from '@/lib/stores/tour'
 import { useTaskTourStore } from '@/lib/stores/taskTour'
@@ -28,6 +29,8 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
   const submenuRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const { user, logout } = useAuthStore()
+  const { data: myEmployee } = useMyEmployee()
+  const isOnProbation = !!myEmployee?.probation_end_date && new Date(myEmployee.probation_end_date) > new Date()
   const { theme: currentTheme, toggleTheme } = useThemeStore()
   const hasOrg = useHasOrg()
   const { hasUnread } = useChangelogUnread()
@@ -255,7 +258,7 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
           {/* Content layer — sits above the blur */}
           <div className="relative">
             {/* User Info Header */}
-            {user && (
+            {(user || myEmployee) && (
               <div
                 className="px-4 py-3.5 border-b"
                 data-testid="settings-menu-user-info"
@@ -273,14 +276,23 @@ export function SettingsMenu({ currentModule }: SettingsMenuProps) {
                       className="text-sm font-bold leading-tight truncate"
                       style={{ color: menuStyle.text }}
                     >
-                      {user.full_name}
+                      {myEmployee?.full_name || user?.full_name}
                     </p>
                     <p
                       className="text-[11px] leading-tight mt-0.5 truncate"
                       style={{ color: menuStyle.textMuted }}
                     >
-                      {user.email}
+                      {myEmployee?.email || user?.email}
                     </p>
+                    {isOnProbation && (
+                      <p
+                        data-testid="settings-menu-probation-badge"
+                        className="text-[11px] mt-0.5"
+                        style={{ color: '#6357E8' }}
+                      >
+                        Probation · ends {new Date(myEmployee!.probation_end_date!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

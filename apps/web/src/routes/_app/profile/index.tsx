@@ -339,7 +339,17 @@ function MyProfilePage() {
                 </p>
               )}
               <div className="flex items-center gap-3 mt-2.5 flex-wrap">
-                <StatusSquare status={employee.status} />
+                {employee.probation_end_date && new Date(employee.probation_end_date) > new Date() ? (
+                  <span
+                    data-testid="profile-probation-badge"
+                    className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
+                    style={{ background: colors.accentDim, color: colors.accentText }}
+                  >
+                    Probation · ends {new Date(employee.probation_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                  </span>
+                ) : (
+                  <StatusSquare status={employee.status} />
+                )}
                 {employee.employment_type && (
                   <span
                     className="text-xs font-semibold px-2.5 py-0.5 rounded-full"
@@ -439,6 +449,17 @@ function MyProfilePage() {
                   icon={Calendar}
                   label="End Date"
                   value={new Date(employee.end_date).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                />
+              )}
+              {employee.probation_end_date && (
+                <InfoRow
+                  icon={Calendar}
+                  label="Probation ends"
+                  value={new Date(employee.probation_end_date).toLocaleDateString('en-GB', {
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric',

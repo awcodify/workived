@@ -117,14 +117,32 @@ function NewEmployeePage() {
   const selectedUserId = form.watch('selected_user_id')
   const startDate = form.watch('start_date')
 
-  // Auto-fill probation_end_date when start_date changes and org has default_probation_days
+  type ProbationMode = null | '3m' | '6m' | 'custom'
+  const [probationMode, setProbationMode] = useState<ProbationMode>(null)
+
+  function addDays(dateStr: string, days: number): string {
+    const d = new Date(dateStr)
+    d.setDate(d.getDate() + days)
+    return d.toISOString().split('T')[0]
+  }
+
+  function selectProbationMode(mode: '3m' | '6m' | 'custom') {
+    if (probationMode === mode) {
+      setProbationMode(null)
+      form.setValue('probation_end_date', '')
+      return
+    }
+    setProbationMode(mode)
+    if (mode === '3m' && startDate) form.setValue('probation_end_date', addDays(startDate, 90))
+    else if (mode === '6m' && startDate) form.setValue('probation_end_date', addDays(startDate, 180))
+  }
+
+  // Recalculate when start_date changes for fixed modes
   useEffect(() => {
-    if (!startDate || !org?.default_probation_days) return
-    const start = new Date(startDate)
-    if (isNaN(start.getTime())) return
-    start.setDate(start.getDate() + org.default_probation_days)
-    form.setValue('probation_end_date', start.toISOString().split('T')[0])
-  }, [startDate, org?.default_probation_days, form])
+    if (!startDate || isNaN(new Date(startDate).getTime())) return
+    if (probationMode === '3m') form.setValue('probation_end_date', addDays(startDate, 90))
+    else if (probationMode === '6m') form.setValue('probation_end_date', addDays(startDate, 180))
+  }, [startDate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-fill name when member is selected
   useEffect(() => {
@@ -394,26 +412,51 @@ function NewEmployeePage() {
               </label>
             </div>
 
-            {/* Probation end date */}
+            {/* Probation */}
             <div>
-              <label className="block">
-                <span className="text-sm font-medium mb-1.5 block" style={{ color: t.text }}>
-                  Probation end date{' '}
-                  <span className="text-xs font-normal" style={{ color: t.textMuted }}>
-                    (optional, auto-filled from start date)
-                  </span>
+              <span className="text-sm font-medium mb-1.5 block" style={{ color: t.text }}>
+                Probation period{' '}
+                <span className="text-xs font-normal" style={{ color: t.textMuted }}>
+                  (optional)
                 </span>
-                <DatePicker
-                  data-testid="people-probation-end-date-input"
-                  className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
-                  style={{
-                    background: t.input,
-                    border: `1px solid ${t.inputBorder}`,
-                    color: t.text,
-                  }}
-                  {...form.register('probation_end_date')}
-                />
-              </label>
+              </span>
+              <div className="flex gap-2 flex-wrap" data-testid="people-probation-options">
+                {(['3m', '6m', 'custom'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    data-testid={`people-probation-${mode}-btn`}
+                    onClick={() => selectProbationMode(mode)}
+                    className="px-3 py-2 text-sm rounded-lg font-medium transition-colors"
+                    style={{
+                      background: probationMode === mode ? t.accent : t.input,
+                      color: probationMode === mode ? t.accentText : t.text,
+                      border: `1px solid ${probationMode === mode ? t.accent : t.inputBorder}`,
+                    }}
+                  >
+                    {mode === '3m' ? '3 months' : mode === '6m' ? '6 months' : 'Other'}
+                  </button>
+                ))}
+              </div>
+              {probationMode === 'custom' && (
+                <div className="mt-2">
+                  <DatePicker
+                    data-testid="people-probation-end-date-input"
+                    className="w-full px-3 py-2.5 text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-accent cursor-pointer"
+                    style={{
+                      background: t.input,
+                      border: `1px solid ${t.inputBorder}`,
+                      color: t.text,
+                    }}
+                    {...form.register('probation_end_date')}
+                  />
+                </div>
+              )}
+              {probationMode && form.watch('probation_end_date') && probationMode !== 'custom' && (
+                <p className="text-xs mt-1.5" style={{ color: t.textMuted }}>
+                  Ends {new Date(form.watch('probation_end_date')!).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </p>
+              )}
             </div>
 
             {/* Employment type - Required but has default */}

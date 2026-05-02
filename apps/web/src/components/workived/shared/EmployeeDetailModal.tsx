@@ -465,7 +465,17 @@ export function EmployeeDetailModal({ employeeId, onClose, canEdit = false }: Em
                   <div className="flex items-center gap-2 flex-wrap mt-2">
                     {!isEditMode && (
                       <>
-                        <StatusBadge status={employee.status} />
+                        {employee.probation_end_date && new Date(employee.probation_end_date) > new Date() ? (
+                          <span
+                            data-testid="employee-detail-probation-badge"
+                            className="text-xs font-bold uppercase px-2 py-1 rounded-full"
+                            style={{ background: colors.accentDim, color: colors.accentText }}
+                          >
+                            Probation · ends {new Date(employee.probation_end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        ) : (
+                          <StatusBadge status={employee.status} />
+                        )}
                         <TypeBadge type={employee.employment_type} />
                         {employee.invitation_pending && (
                           <span

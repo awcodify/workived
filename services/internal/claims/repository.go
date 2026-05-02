@@ -44,7 +44,7 @@ func (r *Repository) ListCategories(ctx context.Context, orgID uuid.UUID) ([]Cat
 		var c Category
 		if err := rows.Scan(
 			&c.ID, &c.OrganisationID, &c.Name, &c.Description, &c.MonthlyLimit, &c.CurrencyCode,
-			&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes,
+			&c.RequiresReceipt, &c.IsUnlimited, &c.BudgetPeriod, &c.EligibleEmploymentTypes, &c.ProbationEligible,
 			&c.IsActive, &c.CreatedAt, &c.UpdatedAt,
 		); err != nil {
 			return nil, err
