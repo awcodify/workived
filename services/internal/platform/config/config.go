@@ -41,6 +41,7 @@ type Config struct {
 
 	AppURL string `mapstructure:"APP_URL"`
 	APIURL string `mapstructure:"API_URL"`
+	MCPURL string `mapstructure:"MCP_URL"` // Optional: MCP server base URL (defaults to API_URL)
 
 	DocsUsername string `mapstructure:"DOCS_USERNAME"`
 	DocsPassword string `mapstructure:"DOCS_PASSWORD"`
@@ -102,6 +103,7 @@ func Load() (*Config, error) {
 	_ = v.BindEnv("RESEND_API_KEY")
 	_ = v.BindEnv("APP_URL")
 	_ = v.BindEnv("API_URL")
+	_ = v.BindEnv("MCP_URL")
 	_ = v.BindEnv("DOCS_USERNAME")
 	_ = v.BindEnv("DOCS_PASSWORD")
 	_ = v.BindEnv("GOOGLE_CLIENT_ID")

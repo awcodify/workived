@@ -372,7 +372,11 @@ func main() {
 	// ── MCP: OAuth 2.0 + HTTP/SSE transport ──────────────────────────────────
 	// mcpAPIURL = backend origin; used for OAuth metadata resource field and
 	// for tool-call self-loop. Must NOT be the frontend AppURL (port 3000).
-	mcpAPIURL := cfg.APIURL
+	// Use MCP_URL if set, otherwise fall back to API_URL.
+	mcpAPIURL := cfg.MCPURL
+	if mcpAPIURL == "" {
+		mcpAPIURL = cfg.APIURL
+	}
 	if mcpAPIURL == "" {
 		mcpAPIURL = fmt.Sprintf("http://localhost:%d", cfg.Port)
 	}
