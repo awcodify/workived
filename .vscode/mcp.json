@@ -9,11 +9,8 @@
 			]
 		},
 		"workived-dev": {
-			"command": "/Users/danuwicaksono/Documents/Work/workived/bin/mcp",
-			"env": {
-				"WORKIVED_APP_URL": "http://localhost:8080",
-				"LOG_LEVEL": "info"
-			}
+			"type": "sse",
+			"url": "https://ai.workived.com/mcp/sse"
 		}
 	},
 	"inputs": []
