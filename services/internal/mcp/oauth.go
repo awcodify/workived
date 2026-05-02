@@ -2,8 +2,10 @@ package mcp
 
 import (
 	"crypto/sha256"
+	_ "embed"
 	"encoding/base64"
 	"fmt"
+	"html"
 	"net/http"
 	"strings"
 	"sync"
@@ -14,6 +16,9 @@ import (
 	"github.com/rs/zerolog"
 )
 
+//go:embed templates/oauth_login.html
+var oauthLoginHTML string
+
 const mcpTokenTTL = 30 * 24 * time.Hour // 30-day MCP session token
 
 // OAuthHandler implements minimal OAuth 2.0 + PKCE for MCP Authorization spec.
@@ -21,6 +26,7 @@ const mcpTokenTTL = 30 * 24 * time.Hour // 30-day MCP session token
 // and receive a Workived JWT as the MCP access token.
 type OAuthHandler struct {
 	appURL    string
+	apiURL    string // API server URL for login endpoint
 	jwtSecret string
 	log       zerolog.Logger
 	clients   sync.Map // clientID → registered
@@ -34,8 +40,11 @@ type oauthCode struct {
 	expiresAt     time.Time
 }
 
-func NewOAuthHandler(appURL string, jwtSecret string, log zerolog.Logger) *OAuthHandler {
-	h := &OAuthHandler{appURL: appURL, jwtSecret: jwtSecret, log: log}
+func NewOAuthHandler(appURL string, apiURL string, jwtSecret string, log zerolog.Logger) *OAuthHandler {
+	if apiURL == "" {
+		apiURL = appURL // fallback: same origin
+	}
+	h := &OAuthHandler{appURL: appURL, apiURL: apiURL, jwtSecret: jwtSecret, log: log}
 	go h.sweepCodes()
 	return h
 }
@@ -84,10 +93,19 @@ func (h *OAuthHandler) issueMCPToken(accessToken string) (string, error) {
 
 // ProtectedResourceMetadata handles GET /.well-known/oauth-protected-resource
 // and GET /.well-known/oauth-protected-resource/* (path suffix ignored).
+// Per RFC 9728, the 'resource' field must match the actual resource URL.
 func (h *OAuthHandler) ProtectedResourceMetadata(c *gin.Context) {
+	// Extract the resource path from the URL (e.g., "/mcp/sse" from "/.well-known/oauth-protected-resource/mcp/sse")
+	resourcePath := strings.TrimPrefix(c.Request.URL.Path, "/.well-known/oauth-protected-resource")
+	if resourcePath == "" {
+		resourcePath = "/mcp/sse" // Default to MCP SSE endpoint
+	}
+
+	resourceURL := h.appURL + resourcePath
+
 	c.JSON(http.StatusOK, gin.H{
-		"resource":                 h.appURL,
-		"authorization_servers":   []string{h.appURL},
+		"resource":                 resourceURL,
+		"authorization_servers":    []string{h.appURL},
 		"bearer_methods_supported": []string{"header"},
 	})
 }
@@ -102,8 +120,8 @@ func (h *OAuthHandler) AuthorizationServerMetadata(c *gin.Context) {
 		"registration_endpoint":                 h.appURL + "/oauth/register",
 		"response_types_supported":              []string{"code"},
 		"grant_types_supported":                 []string{"authorization_code"},
-		"code_challenge_methods_supported":       []string{"S256"},
-		"token_endpoint_auth_methods_supported":  []string{"none"},
+		"code_challenge_methods_supported":      []string{"S256"},
+		"token_endpoint_auth_methods_supported": []string{"none"},
 	})
 }
 
@@ -141,19 +159,18 @@ func (h *OAuthHandler) Register(c *gin.Context) {
 // Shows a login form. On success, redirects to redirect_uri with an auth code.
 func (h *OAuthHandler) Authorize(c *gin.Context) {
 	redirectURI := c.Query("redirect_uri")
-	state := c.Query("state")
-	codeChallenge := c.Query("code_challenge")
-
 	if redirectURI == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "missing redirect_uri"})
 		return
 	}
 
+	// Inject server-side config into HTML via placeholder replacement.
+	// Cannot use query params because modifying c.Request.URL doesn't change the browser URL.
+	page := strings.ReplaceAll(oauthLoginHTML, "__MCP_URL__", html.EscapeString(h.appURL))
+	page = strings.ReplaceAll(page, "__API_URL__", html.EscapeString(h.apiURL))
+
 	c.Header("Content-Type", "text/html")
-	c.String(http.StatusOK, oauthLoginHTML,
-		redirectURI, state, codeChallenge,
-		h.appURL, redirectURI, state, codeChallenge,
-	)
+	c.String(http.StatusOK, page)
 }
 
 // AuthorizeSubmit handles POST /oauth/authorize.
@@ -244,94 +261,3 @@ func (h *OAuthHandler) Token(c *gin.Context) {
 		"expires_in":   int(mcpTokenTTL.Seconds()), // 2592000
 	})
 }
-
-// ── Login HTML ────────────────────────────────────────────────────────────────
-
-// oauthLoginHTML renders a login form that calls /api/v1/auth/login,
-// stores the access token, then submits to /oauth/authorize (POST).
-// Template args: redirectURI, state, codeChallenge, appURL, redirectURI, state, codeChallenge.
-const oauthLoginHTML = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Workived — Sign in to MCP</title>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-      background:linear-gradient(135deg,#667eea,#764ba2);
-      min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
-    .card{background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.3);
-      max-width:420px;width:100%%;padding:3rem}
-    h1{font-size:24px;color:#1f2937;margin-bottom:.5rem;text-align:center}
-    p{color:#6b7280;font-size:14px;text-align:center;margin-bottom:2rem}
-    .field{margin-bottom:1.25rem}
-    label{display:block;color:#374151;font-weight:500;margin-bottom:.4rem;font-size:14px}
-    input[type=email],input[type=password]{width:100%%;padding:.75rem 1rem;
-      border:2px solid #e5e7eb;border-radius:8px;font-size:15px;
-      transition:border-color .2s}
-    input:focus{outline:none;border-color:#667eea}
-    button{width:100%%;padding:.875rem;
-      background:linear-gradient(135deg,#667eea,#764ba2);
-      color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;
-      cursor:pointer;transition:transform .15s,box-shadow .15s}
-    button:hover{transform:translateY(-2px);box-shadow:0 10px 20px rgba(102,126,234,.3)}
-    button:disabled{opacity:.6;cursor:not-allowed;transform:none}
-    .error{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;
-      padding:.75rem;border-radius:8px;margin-bottom:1rem;font-size:14px;display:none}
-    .info{background:#f0f9ff;border:1px solid #bae6fd;color:#0369a1;
-      padding:.75rem;border-radius:8px;margin-bottom:1.5rem;font-size:13px;text-align:center}
-  </style>
-</head>
-<body>
-<div class="card">
-  <h1>🔐 Workived MCP</h1>
-  <p>Sign in to connect Claude Code to Workived</p>
-  <div class="info">This authorises Claude Code to access your Workived data.</div>
-  <div class="error" id="err"></div>
-  <form id="loginForm">
-    <div class="field">
-      <label>Email</label>
-      <input type="email" id="email" required placeholder="you@company.com" autocomplete="email">
-    </div>
-    <div class="field">
-      <label>Password</label>
-      <input type="password" id="password" required placeholder="••••••••" autocomplete="current-password">
-    </div>
-    <button type="submit" id="btn">Sign In</button>
-  </form>
-  <form id="oauthForm" action="/oauth/authorize" method="POST" style="display:none">
-    <input type="hidden" name="redirect_uri" value="%s">
-    <input type="hidden" name="state" value="%s">
-    <input type="hidden" name="code_challenge" value="%s">
-    <input type="hidden" name="access_token" id="accessToken">
-  </form>
-</div>
-<script>
-  const APP_URL = '%s';
-  document.getElementById('loginForm').addEventListener('submit', async e => {
-    e.preventDefault();
-    const btn = document.getElementById('btn');
-    const errDiv = document.getElementById('err');
-    btn.disabled = true; btn.textContent = 'Signing in…'; errDiv.style.display = 'none';
-    try {
-      const resp = await fetch(APP_URL + '/api/v1/auth/login', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          email: document.getElementById('email').value,
-          password: document.getElementById('password').value,
-        }),
-      });
-      const data = await resp.json();
-      if (!resp.ok) throw new Error(data?.error?.message || 'Login failed');
-      document.getElementById('accessToken').value = data.data.access_token;
-      document.getElementById('oauthForm').submit();
-    } catch(err) {
-      errDiv.textContent = err.message; errDiv.style.display = 'block';
-      btn.disabled = false; btn.textContent = 'Sign In';
-    }
-  });
-</script>
-</body>
-</html>`

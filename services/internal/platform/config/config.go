@@ -54,6 +54,9 @@ type Config struct {
 	// Telegram Notifications
 	TelegramBotToken string `mapstructure:"TELEGRAM_BOT_TOKEN"`
 	TelegramChatID   string `mapstructure:"TELEGRAM_CHAT_ID"`
+
+	// CORS
+	CORSOrigins string `mapstructure:"CORS_ORIGINS"` // Comma-separated allowed origins, or "*"
 }
 
 func Load() (*Config, error) {
