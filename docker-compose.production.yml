@@ -82,6 +82,38 @@ services:
         max-size: "10m"
         max-file: "3"
 
+  mcp:
+    build:
+      context: ./services
+      dockerfile: Dockerfile.mcp
+      args:
+        - VERSION=${VERSION:-dev}
+    image: workived/mcp:${VERSION:-latest}
+    restart: always
+    env_file:
+      - .env.production
+    environment:
+      - PORT=8082
+      - MCP_URL=${MCP_URL:-https://ai.workived.com}
+      - API_URL=http://api:8080
+    expose:
+      - "8082"
+    networks:
+      - workived
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
   web:
     build:
       context: .
@@ -117,6 +149,7 @@ services:
     depends_on:
       - api
       - web
+      - mcp
     networks:
       - workived
     logging:

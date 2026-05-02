@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Connect to Workived · MCP Authorization</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      background:linear-gradient(145deg,#E8E5FD 0%,#D5D1F7 50%,#E0DDFB 100%);
+      min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px;position:relative;overflow:hidden}
+    body::before{content:'';position:absolute;top:-10rem;right:-10rem;width:31.25rem;height:31.25rem;
+      border-radius:50%;border:2px solid rgba(99,87,232,0.1);pointer-events:none}
+    body::after{content:'';position:absolute;bottom:-6rem;left:-6rem;width:22.5rem;height:22.5rem;
+      border-radius:50%;border:2px solid rgba(99,87,232,0.12);pointer-events:none}
+    .card{background:#fff;border-radius:20px;box-shadow:0 24px 80px rgba(99,87,232,0.15),0 0 0 1px rgba(255,255,255,0.5);
+      max-width:460px;width:100%;padding:3rem 2.5rem;position:relative;z-index:10}
+    .logo{display:flex;align-items:center;justify-content:center;gap:0.625rem;margin-bottom:2.5rem}
+    .logo svg{width:36px;height:36px}
+    .logo-text{font-size:26px;font-weight:800;letter-spacing:-0.03em;background:linear-gradient(135deg,#6357E8,#8F86F0);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .header{text-center;margin-bottom:2rem}
+    h1{font-size:24px;font-weight:800;letter-spacing:-0.03em;color:#111827;margin-bottom:0.5rem}
+    .subtitle{color:#6b7280;font-size:14px;line-height:1.5}
+    .scope-section{background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;padding:1.25rem;margin-bottom:1.75rem}
+    .scope-title{font-size:13px;font-weight:600;color:#374151;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.5rem}
+    .scope-title svg{width:16px;height:16px;color:#6357E8}
+    .scope-item{display:flex;align-items:start;gap:0.625rem;margin-bottom:0.5rem;font-size:13px;color:#6b7280;line-height:1.5}
+    .scope-item:last-child{margin-bottom:0}
+    .scope-item svg{flex-shrink:0;margin-top:2px;width:16px;height:16px;color:#10b981}
+    .field{margin-bottom:1.25rem;position:relative}
+    label{display:block;color:#374151;font-weight:600;margin-bottom:0.5rem;font-size:14px}
+    .input-wrapper{position:relative}
+    .input-icon{position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:#9ca3af;pointer-events:none}
+    .input-icon svg{width:18px;height:18px}
+    input{width:100%;padding:0.875rem 1rem 0.875rem 3rem;border:1.5px solid #e5e7eb;border-radius:10px;
+      font-size:15px;color:#111827;transition:all 0.2s;background:#fff}
+    input:focus{outline:none;border-color:#6357E8;box-shadow:0 0 0 3px rgba(99,87,232,0.08)}
+    input::placeholder{color:#9ca3af}
+    button{width:100%;padding:1rem;background:linear-gradient(135deg,#6357E8,#8F86F0);
+      color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:600;
+      cursor:pointer;transition:all 0.2s;box-shadow:0 4px 12px rgba(99,87,232,0.25)}
+    button:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(99,87,232,0.3)}
+    button:active{transform:translateY(0)}
+    button:disabled{opacity:0.6;cursor:not-allowed;transform:none}
+    .error{background:#fef2f2;border:1px solid #fecaca;color:#dc2626;
+      padding:0.875rem;border-radius:10px;margin-bottom:1.25rem;font-size:14px;display:none;line-height:1.5}
+    .footer{text-align:center;margin-top:2rem;font-size:12px;color:#9ca3af}
+    .footer a{color:#6357E8;text-decoration:none;font-weight:500}
+    .footer a:hover{text-decoration:underline}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">
+    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect width="40" height="40" rx="8" fill="url(#gradient)"/>
+      <path d="M12 14h16M12 20h16M12 26h10" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+      <defs>
+        <linearGradient id="gradient" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#6357E8"/>
+          <stop offset="1" stop-color="#8F86F0"/>
+        </linearGradient>
+      </defs>
+    </svg>
+    <div class="logo-text">Workived MCP</div>
+  </div>
+
+  <div class="header">
+    <h1>Connect to Workived</h1>
+    <p class="subtitle">An MCP client is requesting access to your Workived workspace</p>
+  </div>
+
+  <div class="scope-section">
+    <div class="scope-title">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+      </svg>
+      This application will be able to:
+    </div>
+    <div class="scope-item">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+      </svg>
+      Read employee data and attendance records
+    </div>
+    <div class="scope-item">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+      </svg>
+      View and manage leave requests
+    </div>
+    <div class="scope-item">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+      </svg>
+      Access tasks and project management
+    </div>
+    <div class="scope-item">
+      <svg viewBox="0 0 16 16" fill="currentColor">
+        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+      </svg>
+      Create and update employee records
+    </div>
+  </div>
+
+  <div class="error" id="err"></div>
+  
+  <form id="loginForm">
+    <div class="field">
+      <label for="email">Email</label>
+      <div class="input-wrapper">
+        <div class="input-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="2"/>
+            <path d="M22 4L12 13L2 4"/>
+          </svg>
+        </div>
+        <input type="email" id="email" required placeholder="you@company.com" autocomplete="email">
+      </div>
+    </div>
+    <div class="field">
+      <label for="password">Password</label>
+      <div class="input-wrapper">
+        <div class="input-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <input type="password" id="password" required placeholder="Enter your password" autocomplete="current-password">
+      </div>
+    </div>
+    <button type="submit" id="btn">Authorize Access</button>
+  </form>
+
+  <form id="oauthForm" action="/oauth/authorize" method="POST" style="display:none">
+    <input type="hidden" name="redirect_uri" id="redirectUri">
+    <input type="hidden" name="state" id="state">
+    <input type="hidden" name="code_challenge" id="codeChallenge">
+    <input type="hidden" name="access_token" id="accessToken">
+  </form>
+
+  <div class="footer">
+    Powered by <a href="https://workived.com" target="_blank">Workived</a> · Your data stays secure
+  </div>
+</div>
+<script>
+  // Read query parameters from browser URL
+  const params = new URLSearchParams(window.location.search);
+  document.getElementById('redirectUri').value = params.get('redirect_uri') || '';
+  document.getElementById('state').value = params.get('state') || '';
+  document.getElementById('codeChallenge').value = params.get('code_challenge') || '';
+  
+  // Server-injected URLs (replaced at render time)
+  const APP_URL = '__MCP_URL__' !== '__' + 'MCP_URL__' ? '__MCP_URL__' : window.location.origin;
+  const API_URL = '__API_URL__' !== '__' + 'API_URL__' ? '__API_URL__' : APP_URL;
+  
+  document.getElementById('loginForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const btn = document.getElementById('btn');
+    const errDiv = document.getElementById('err');
+    btn.disabled = true;
+    btn.textContent = 'Authorizing…';
+    errDiv.style.display = 'none';
+    try {
+      const resp = await fetch(API_URL + '/api/v1/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          email: document.getElementById('email').value,
+          password: document.getElementById('password').value,
+        }),
+      });
+      const data = await resp.json();
+      if (!resp.ok) throw new Error(data?.error?.message || 'Login failed');
+      document.getElementById('accessToken').value = data.data.access_token;
+      document.getElementById('oauthForm').submit();
+    } catch(err) {
+      errDiv.textContent = err.message;
+      errDiv.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Authorize Access';
+    }
+  });
+</script>
+</body>
+</html>

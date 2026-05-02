@@ -69,12 +69,25 @@ reset-db: ## Reset database (WARNING: destroys all data and volumes)
 run: ## Run the API server (infra must already be up)
 	cd $(SERVICES_DIR) && go run ./cmd/api
 
-dev: infra-up ## Start infra, run migrations, then start the API server
+dev: infra-up ## Start infra, run migrations, then start the API server (WITH_MCP=1 to include MCP)
 	@echo "Waiting for postgres to be ready..."
 	@sleep 3
 	@$(MAKE) setup-storage
 	@$(MAKE) migrate-up
+ifdef WITH_MCP
+	@echo "Starting MCP server in background (port 8082)..."
+	@cd $(SERVICES_DIR) && MCP_URL=http://localhost:8082 API_URL=http://localhost:8080 PORT=8082 go run ./cmd/mcp-server & MCP_PID=$$!; \
+		trap "kill $$MCP_PID 2>/dev/null" EXIT; \
+		cd $(SERVICES_DIR) && CORS_ORIGINS="http://localhost:8082" go run ./cmd/api
+else
 	@$(MAKE) run
+endif
+
+dev-mcp: ## Start dev with MCP server
+	@$(MAKE) dev WITH_MCP=1
+
+run-mcp: ## Run MCP server standalone (port 8082, API at localhost:8080)
+	cd $(SERVICES_DIR) && MCP_URL=http://localhost:8082 API_URL=http://localhost:8080 PORT=8082 go run ./cmd/mcp-server
 
 build: ## Build the API binary to bin/api
 	@mkdir -p bin
@@ -148,11 +161,17 @@ prod-migrate: ## Run database migrations on production
 
 # ── MCP Server ────────────────────────────────────────────────────────────────
 
-mcp-build: ## Build MCP server (stdio mode, 100% API-based)
-	@echo "Building MCP server..."
+mcp-build: ## Build MCP stdio binary (for local CLI use)
+	@echo "Building MCP stdio binary..."
 	@mkdir -p bin
 	cd $(SERVICES_DIR) && go build -o ../bin/mcp ./cmd/mcp
-	@echo "✅ MCP server built successfully"
+	@echo "✅ MCP stdio binary built successfully"
+
+mcp-server-build: ## Build MCP HTTP/SSE server (standalone deployment)
+	@echo "Building MCP HTTP server..."
+	@mkdir -p bin
+	cd $(SERVICES_DIR) && go build -o ../bin/mcp-server ./cmd/mcp-server
+	@echo "✅ MCP HTTP server built successfully"
 
 mcp-test: mcp-build ## Test MCP server with sample requests
 	@echo "Testing MCP server..."
