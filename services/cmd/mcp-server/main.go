@@ -19,7 +19,7 @@ import (
 )
 
 func main() {
-	cfg, err := config.Load()
+	cfg, err := config.LoadMCP()
 	if err != nil {
 		log := zerolog.New(os.Stderr).With().Timestamp().Logger()
 		log.Fatal().Err(err).Msg("load config")

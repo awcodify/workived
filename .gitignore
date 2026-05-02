@@ -4,6 +4,7 @@
 # Build artifacts
 bin/
 services/api
+services/mcp-server
 
 # Go
 services/coverage.out

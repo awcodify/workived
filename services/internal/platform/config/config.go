@@ -60,6 +60,22 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
+	cfg, err := loadBase()
+	if err != nil {
+		return nil, err
+	}
+
+	if cfg.JWTSecret == "" {
+		return nil, fmt.Errorf("JWT_SECRET is required")
+	}
+	if cfg.DatabaseURL == "" {
+		return nil, fmt.Errorf("DATABASE_URL is required")
+	}
+
+	return cfg, nil
+}
+
+func loadBase() (*Config, error) {
 	v := viper.New()
 
 	v.SetDefault("ENV", "development")
@@ -134,12 +150,17 @@ func Load() (*Config, error) {
 			Msg("config debug: JWT_SECRET loading")
 	}
 
+	return &cfg, nil
+}
+
+// LoadMCP loads config for the MCP server (no database/redis required).
+func LoadMCP() (*Config, error) {
+	cfg, err := loadBase()
+	if err != nil {
+		return nil, err
+	}
 	if cfg.JWTSecret == "" {
 		return nil, fmt.Errorf("JWT_SECRET is required")
 	}
-	if cfg.DatabaseURL == "" {
-		return nil, fmt.Errorf("DATABASE_URL is required")
-	}
-
-	return &cfg, nil
+	return cfg, nil
 }
