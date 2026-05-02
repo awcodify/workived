@@ -291,9 +291,7 @@ func main() {
 	adminHandler := admin.NewHandler(adminSvc, log).WithNotifier(telegramNotifier)
 
 	// ── Router ────────────────────────────────────────────────────────────────
-	if cfg.Env == "production" {
-		gin.SetMode(gin.ReleaseMode)
-	}
+	gin.SetMode(gin.ReleaseMode)
 
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -421,6 +419,10 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Info().Msg("shutting down server")
+
+	// Cancel all active MCP SSE sessions so their handlers return immediately,
+	// allowing srv.Shutdown to complete without waiting for the full timeout.
+	mcpHandler.Shutdown()
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

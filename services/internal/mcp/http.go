@@ -20,11 +20,13 @@ import (
 // Client connects via GET /mcp/sse, receives an endpoint URL, then POSTs
 // JSON-RPC messages to that URL. Responses flow back over the SSE stream.
 type HTTPHandler struct {
-	appURL   string
-	log      zerolog.Logger
-	tools    []Tool
-	mu       sync.Mutex
-	sessions map[string]*httpSession
+	appURL     string
+	log        zerolog.Logger
+	tools      []Tool
+	mu         sync.Mutex
+	sessions   map[string]*httpSession
+	ctx        context.Context
+	shutdownFn context.CancelFunc
 }
 
 type httpSession struct {
@@ -37,30 +39,43 @@ type httpSession struct {
 }
 
 func NewHTTPHandler(appURL string, log zerolog.Logger) *HTTPHandler {
+	ctx, cancel := context.WithCancel(context.Background())
 	h := &HTTPHandler{
-		appURL:   appURL,
-		log:      log,
-		tools:    GetAvailableTools(),
-		sessions: make(map[string]*httpSession),
+		appURL:     appURL,
+		log:        log,
+		tools:      GetAvailableTools(),
+		sessions:   make(map[string]*httpSession),
+		ctx:        ctx,
+		shutdownFn: cancel,
 	}
 	go h.sweepSessions()
 	return h
 }
 
-// sweepSessions removes stale sessions every 5 minutes.
+// Shutdown cancels all active SSE sessions so srv.Shutdown completes promptly.
+func (h *HTTPHandler) Shutdown() {
+	h.shutdownFn()
+}
+
+// sweepSessions removes stale sessions every 5 minutes and exits when the handler is shut down.
 func (h *HTTPHandler) sweepSessions() {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
-	for range ticker.C {
-		cutoff := time.Now().Add(-24 * time.Hour)
-		h.mu.Lock()
-		for id, s := range h.sessions {
-			if s.createdAt.Before(cutoff) {
-				close(s.done)
-				delete(h.sessions, id)
+	for {
+		select {
+		case <-ticker.C:
+			cutoff := time.Now().Add(-24 * time.Hour)
+			h.mu.Lock()
+			for id, s := range h.sessions {
+				if s.createdAt.Before(cutoff) {
+					close(s.done)
+					delete(h.sessions, id)
+				}
 			}
+			h.mu.Unlock()
+		case <-h.ctx.Done():
+			return
 		}
-		h.mu.Unlock()
 	}
 }
 
@@ -111,7 +126,7 @@ func (h *HTTPHandler) HandleSSE(c *gin.Context) {
 		Str("email", authCtx.Email).
 		Msg("mcp: SSE session started")
 
-	ctx := c.Request.Context()
+	reqCtx := c.Request.Context()
 	defer func() {
 		h.mu.Lock()
 		delete(h.sessions, sessionID)
@@ -125,7 +140,9 @@ func (h *HTTPHandler) HandleSSE(c *gin.Context) {
 		case event := <-session.events:
 			fmt.Fprintf(c.Writer, "event: message\ndata: %s\n\n", event)
 			c.Writer.Flush()
-		case <-ctx.Done():
+		case <-reqCtx.Done():
+			return
+		case <-h.ctx.Done():
 			return
 		}
 	}
