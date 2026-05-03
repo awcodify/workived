@@ -72,7 +72,7 @@ func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fiel
 		event = event.Str(k, v)
 	}
 	event.Msg(msg)
-	c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+	apperr.Respond(c, err)
 }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
@@ -121,7 +121,7 @@ func (h *Handler) ListCategories(c *gin.Context) {
 	if role == middleware.RoleOwner || role == middleware.RoleAdmin {
 		categories, err := h.service.ListCategories(c.Request.Context(), orgID)
 		if err != nil {
-			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			apperr.Respond(c, err)
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{"data": categories})
@@ -140,7 +140,7 @@ func (h *Handler) ListCategories(c *gin.Context) {
 
 	categories, err := h.service.ListCategories(c.Request.Context(), orgID, employeeID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -163,7 +163,7 @@ func (h *Handler) CreateCategory(c *gin.Context) {
 
 	cat, err := h.service.CreateCategory(c.Request.Context(), orgID, req, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -191,7 +191,7 @@ func (h *Handler) UpdateCategory(c *gin.Context) {
 
 	cat, err := h.service.UpdateCategory(c.Request.Context(), orgID, id, req, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -208,7 +208,7 @@ func (h *Handler) DeactivateCategory(c *gin.Context) {
 	}
 
 	if err := h.service.DeactivateCategory(c.Request.Context(), orgID, id, userID); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -227,7 +227,7 @@ func (h *Handler) ListCategoryTemplates(c *gin.Context) {
 
 	templates, err := h.service.ListTemplates(c.Request.Context(), orgID, cc)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -246,7 +246,7 @@ func (h *Handler) ImportCategories(c *gin.Context) {
 
 	categories, count, err := h.service.ImportCategories(c.Request.Context(), orgID, req, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -267,7 +267,7 @@ func (h *Handler) ListMyBalances(c *gin.Context) {
 	// Resolve user → employee
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -284,7 +284,7 @@ func (h *Handler) ListMyBalances(c *gin.Context) {
 
 	balances, err := h.service.ListBalances(c.Request.Context(), orgID, employeeID, year, month)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -301,7 +301,7 @@ func (h *Handler) SubmitClaim(c *gin.Context) {
 	// Resolve user → employee
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -446,7 +446,7 @@ func (h *Handler) ListClaims(c *gin.Context) {
 
 	result, err := h.service.ListClaims(c.Request.Context(), orgID, f, role, managerEmployeeID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -472,7 +472,7 @@ func (h *Handler) ListMyClaims(c *gin.Context) {
 
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -489,7 +489,7 @@ func (h *Handler) ListMyClaims(c *gin.Context) {
 
 	result, err := h.service.ListClaims(c.Request.Context(), orgID, f, "", nil)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -519,7 +519,7 @@ func (h *Handler) GetClaim(c *gin.Context) {
 
 	claim, err := h.service.GetClaim(c.Request.Context(), orgID, id)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -667,13 +667,13 @@ func (h *Handler) CancelClaim(c *gin.Context) {
 
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
 	claim, err := h.service.CancelClaim(c.Request.Context(), orgID, employeeID, claimID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -737,7 +737,7 @@ func (h *Handler) GetMonthlySummary(c *gin.Context) {
 
 	summaries, err := h.service.GetMonthlySummary(c.Request.Context(), orgID, year, month)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

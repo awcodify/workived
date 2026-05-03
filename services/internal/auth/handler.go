@@ -82,7 +82,7 @@ func (h *Handler) Register(c *gin.Context) {
 
 	user, err := h.service.Register(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -102,7 +102,7 @@ func (h *Handler) Login(c *gin.Context) {
 
 	resp, refreshToken, err := h.service.Login(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *Handler) Refresh(c *gin.Context) {
 
 	resp, newRefresh, err := h.service.Refresh(c.Request.Context(), rawToken)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -158,7 +158,7 @@ func (h *Handler) VerifyEmail(c *gin.Context) {
 	}
 
 	if err := h.service.VerifyEmail(c.Request.Context(), req); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -169,7 +169,7 @@ func (h *Handler) ResendVerificationEmail(c *gin.Context) {
 	userID := middleware.UserIDFromCtx(c)
 
 	if err := h.service.ResendVerificationEmail(c.Request.Context(), userID); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -181,7 +181,7 @@ func (h *Handler) CheckVerificationStatus(c *gin.Context) {
 
 	user, err := h.service.GetUserByID(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -200,7 +200,7 @@ func (h *Handler) ForgotPassword(c *gin.Context) {
 	}
 
 	if err := h.service.ForgotPassword(c.Request.Context(), req); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -220,7 +220,7 @@ func (h *Handler) ResetPassword(c *gin.Context) {
 	}
 
 	if err := h.service.ResetPassword(c.Request.Context(), req); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

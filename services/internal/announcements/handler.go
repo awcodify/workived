@@ -44,7 +44,7 @@ func (h *Handler) logErr(c *gin.Context, err error, msg string, fields map[strin
 		ev = ev.Str(k, v)
 	}
 	ev.Msg(msg)
-	c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+	apperr.Respond(c, err)
 }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {

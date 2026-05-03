@@ -49,7 +49,7 @@ func (h *Handler) GetSetupStatus(c *gin.Context) {
 
 	status, err := h.service.GetSetupStatus(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *Handler) GetTemplates(c *gin.Context) {
 
 	templates, err := h.service.GetTemplates(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -113,7 +113,7 @@ func (h *Handler) CompleteSetup(c *gin.Context) {
 
 	result, err := h.service.CompleteSetup(c.Request.Context(), orgID, &req)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *Handler) SkipSetup(c *gin.Context) {
 	orgID := middleware.OrgIDFromCtx(c)
 
 	if err := h.service.SkipSetup(c.Request.Context(), orgID); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

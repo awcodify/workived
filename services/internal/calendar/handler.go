@@ -54,7 +54,7 @@ func (h *Handler) ListHolidays(c *gin.Context) {
 	holidays, err := h.service.ListHolidays(c.Request.Context(), orgID, startDate, endDate)
 	if err != nil {
 		h.log.Error().Err(err).Str("org_id", orgID.String()).Msg("failed to list holidays")
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -67,7 +67,7 @@ func (h *Handler) ListCustomHolidays(c *gin.Context) {
 	holidays, err := h.service.ListCustomHolidays(c.Request.Context(), orgID)
 	if err != nil {
 		h.log.Error().Err(err).Str("org_id", orgID.String()).Msg("failed to list custom holidays")
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (h *Handler) CreateCustomHoliday(c *gin.Context) {
 	holiday, err := h.service.CreateCustomHoliday(c.Request.Context(), orgID, req)
 	if err != nil {
 		h.log.Error().Err(err).Str("org_id", orgID.String()).Str("date", req.Date).Str("name", req.Name).Msg("failed to create custom holiday")
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -104,7 +104,7 @@ func (h *Handler) DeleteCustomHoliday(c *gin.Context) {
 
 	if err := h.service.DeleteCustomHoliday(c.Request.Context(), orgID, holidayID); err != nil {
 		h.log.Error().Err(err).Str("org_id", orgID.String()).Str("holiday_id", holidayID.String()).Msg("failed to delete custom holiday")
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

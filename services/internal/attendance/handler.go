@@ -64,7 +64,7 @@ func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fiel
 		event = event.Str(k, v)
 	}
 	event.Msg(msg)
-	c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+	apperr.Respond(c, err)
 }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {
@@ -181,7 +181,7 @@ func (h *Handler) GetToday(c *gin.Context) {
 
 	rec, err := h.service.GetToday(c.Request.Context(), orgID, employeeID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -202,7 +202,7 @@ func (h *Handler) DailyReport(c *gin.Context) {
 
 	entries, err := h.service.DailyReport(c.Request.Context(), orgID, filters)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -255,7 +255,7 @@ func (h *Handler) MonthlySummaryReport(c *gin.Context) {
 
 	summaries, err := h.service.MonthlySummaryReport(c.Request.Context(), orgID, MonthlyReportFilters{Year: year, Month: month})
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -283,7 +283,7 @@ func (h *Handler) EmployeeMonthlySummary(c *gin.Context) {
 
 	summary, err := h.service.EmployeeMonthlySummary(c.Request.Context(), orgID, employeeID, MonthlyReportFilters{Year: year, Month: month})
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -313,7 +313,7 @@ func (h *Handler) GetMyWeek(c *gin.Context) {
 
 	week, err := h.service.GetEmployeeWeek(c.Request.Context(), orgID, employeeID, startDate)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -343,7 +343,7 @@ func (h *Handler) GetTeamWeek(c *gin.Context) {
 
 	teamWeek, err := h.service.GetTeamWeek(c.Request.Context(), orgID, managerEmployeeID, startDate)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -363,7 +363,7 @@ func (h *Handler) GetAllWeek(c *gin.Context) {
 
 	allWeek, err := h.service.GetAllWeek(c.Request.Context(), orgID, startDate)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -397,7 +397,7 @@ func (h *Handler) GetMySummary(c *gin.Context) {
 
 	summary, err := h.service.EmployeeMonthlySummary(c.Request.Context(), orgID, employeeID, MonthlyReportFilters{Year: year, Month: month})
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -434,7 +434,7 @@ func (h *Handler) GetTeamSummary(c *gin.Context) {
 	// This could be optimized later with a dedicated service method
 	teamWeek, err := h.service.GetTeamWeek(c.Request.Context(), orgID, managerEmployeeID, "2024-01-01") // Dummy date just to get team
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

@@ -27,7 +27,7 @@ func (h *Handler) logAndRespondError(c *gin.Context, err error, msg string, fiel
 		event = event.Str(k, v)
 	}
 	event.Msg(msg)
-	c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+	apperr.Respond(c, err)
 }
 
 func (h *Handler) RegisterRoutes(rg *gin.RouterGroup) {

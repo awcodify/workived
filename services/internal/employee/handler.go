@@ -62,7 +62,7 @@ func (h *Handler) GetMe(c *gin.Context) {
 
 	emp, err := h.service.GetByUserID(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -95,7 +95,7 @@ func (h *Handler) List(c *gin.Context) {
 
 	result, err := h.service.List(c.Request.Context(), orgID, f)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -118,7 +118,7 @@ func (h *Handler) Create(c *gin.Context) {
 	userID := middleware.UserIDFromCtx(c)
 	emp, err := h.service.Create(c.Request.Context(), orgID, req, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -135,7 +135,7 @@ func (h *Handler) Get(c *gin.Context) {
 
 	emp, err := h.service.Get(c.Request.Context(), orgID, id)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -163,7 +163,7 @@ func (h *Handler) Update(c *gin.Context) {
 	userID := middleware.UserIDFromCtx(c)
 	emp, err := h.service.Update(c.Request.Context(), orgID, id, req, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -180,7 +180,7 @@ func (h *Handler) Deactivate(c *gin.Context) {
 
 	userID := middleware.UserIDFromCtx(c)
 	if err := h.service.Deactivate(c.Request.Context(), orgID, id, userID); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -198,7 +198,7 @@ func (h *Handler) GetDirectReports(c *gin.Context) {
 
 	employees, err := h.service.GetDirectReports(c.Request.Context(), orgID, managerID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -211,7 +211,7 @@ func (h *Handler) GetOrgChart(c *gin.Context) {
 
 	tree, err := h.service.GetOrgChart(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -225,7 +225,7 @@ func (h *Handler) GetWorkload(c *gin.Context) {
 
 	workloads, err := h.service.GetWorkload(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

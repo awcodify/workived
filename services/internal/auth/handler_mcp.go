@@ -46,7 +46,7 @@ func (h *Handler) HandleMCPAuth(c *gin.Context) {
 
 	resp, refreshToken, err := h.service.Login(c.Request.Context(), req)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

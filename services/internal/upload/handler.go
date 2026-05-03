@@ -79,7 +79,7 @@ func (h *Handler) Presign(c *gin.Context) {
 				Str("org_id", orgID.String()).
 				Str("user_id", userID.String()).
 				Msg("failed to lookup employee for presign")
-			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			apperr.Respond(c, err)
 			return
 		}
 		employeeID = empID

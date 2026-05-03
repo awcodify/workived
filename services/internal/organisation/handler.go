@@ -64,7 +64,7 @@ func (h *Handler) Create(c *gin.Context) {
 
 	resp, err := h.service.Create(c.Request.Context(), ownerID, req)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -76,7 +76,7 @@ func (h *Handler) GetMine(c *gin.Context) {
 
 	detail, err := h.service.GetDetail(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -99,13 +99,13 @@ func (h *Handler) Update(c *gin.Context) {
 	// Get current employee count to enforce country lock.
 	detail, err := h.service.GetDetail(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
 	org, err := h.service.Update(c.Request.Context(), orgID, req, detail.EmployeeCount)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (h *Handler) TransferOwnership(c *gin.Context) {
 	}
 
 	if err := h.service.TransferOwnership(c.Request.Context(), orgID, userID, req); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -150,7 +150,7 @@ func (h *Handler) InviteMember(c *gin.Context) {
 
 	resp, err := h.service.InviteMember(c.Request.Context(), orgID, inviterID, req)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -166,7 +166,7 @@ func (h *Handler) VerifyInvitation(c *gin.Context) {
 
 	resp, err := h.service.VerifyInvitation(c.Request.Context(), token)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -188,7 +188,7 @@ func (h *Handler) AcceptInvitation(c *gin.Context) {
 
 	resp, err := h.service.AcceptInvitation(c.Request.Context(), userID, req)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -200,7 +200,7 @@ func (h *Handler) ListPendingInvitations(c *gin.Context) {
 
 	invitations, err := h.service.ListPendingInvitations(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -217,7 +217,7 @@ func (h *Handler) RevokeInvitation(c *gin.Context) {
 
 	userID := middleware.UserIDFromCtx(c)
 	if err := h.service.RevokeInvitation(c.Request.Context(), orgID, invID, userID); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -229,7 +229,7 @@ func (h *Handler) GetMyInvitations(c *gin.Context) {
 
 	invitations, err := h.service.GetMyInvitations(c.Request.Context(), userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -241,7 +241,7 @@ func (h *Handler) ListMembers(c *gin.Context) {
 
 	members, err := h.service.ListMembers(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -269,7 +269,7 @@ func (h *Handler) UpdateMemberRole(c *gin.Context) {
 	}
 
 	if err := h.service.UpdateMemberRole(c.Request.Context(), orgID, userID, memberID, req); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -281,7 +281,7 @@ func (h *Handler) ListUnlinkedMembers(c *gin.Context) {
 
 	members, err := h.service.ListUnlinkedMembers(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

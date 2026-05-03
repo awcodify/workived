@@ -103,7 +103,7 @@ func (h *Handler) ListPolicies(c *gin.Context) {
 
 	policies, err := h.service.ListPolicies(c.Request.Context(), orgID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -125,7 +125,7 @@ func (h *Handler) CreatePolicy(c *gin.Context) {
 
 	policy, err := h.service.CreatePolicy(c.Request.Context(), orgID, req)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -152,7 +152,7 @@ func (h *Handler) UpdatePolicy(c *gin.Context) {
 
 	policy, err := h.service.UpdatePolicy(c.Request.Context(), orgID, policyID, req)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -168,7 +168,7 @@ func (h *Handler) DeactivatePolicy(c *gin.Context) {
 	}
 
 	if err := h.service.DeactivatePolicy(c.Request.Context(), orgID, policyID); err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -189,7 +189,7 @@ func (h *Handler) ListBalances(c *gin.Context) {
 
 	balances, err := h.service.ListBalances(c.Request.Context(), orgID, year)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -202,7 +202,7 @@ func (h *Handler) ListMyBalances(c *gin.Context) {
 
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -215,7 +215,7 @@ func (h *Handler) ListMyBalances(c *gin.Context) {
 
 	balances, err := h.service.ListMyBalances(c.Request.Context(), orgID, employeeID, year)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -231,7 +231,7 @@ func (h *Handler) SubmitRequest(c *gin.Context) {
 
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -247,7 +247,7 @@ func (h *Handler) SubmitRequest(c *gin.Context) {
 
 	req, err := h.service.SubmitRequest(c.Request.Context(), orgID, employeeID, role, input)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -265,7 +265,7 @@ func (h *Handler) GetRequest(c *gin.Context) {
 
 	req, err := h.service.GetRequest(c.Request.Context(), orgID, id)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -310,7 +310,7 @@ func (h *Handler) ListRequests(c *gin.Context) {
 		// Lookup current user's employee_id to filter by their direct reports
 		empID, err := h.empLookup(c.Request.Context(), orgID, userID)
 		if err != nil {
-			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			apperr.Respond(c, err)
 			return
 		}
 		managerEmployeeID = &empID
@@ -318,7 +318,7 @@ func (h *Handler) ListRequests(c *gin.Context) {
 
 	requests, err := h.service.ListRequests(c.Request.Context(), orgID, filter, role, managerEmployeeID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -331,13 +331,13 @@ func (h *Handler) ListMyRequests(c *gin.Context) {
 
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
 	requests, err := h.service.ListMyRequests(c.Request.Context(), orgID, employeeID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -357,7 +357,7 @@ func (h *Handler) ApproveRequest(c *gin.Context) {
 
 	reviewerEmployeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -367,7 +367,7 @@ func (h *Handler) ApproveRequest(c *gin.Context) {
 		// Get the request to check the reporting relationship
 		request, err := h.service.GetRequest(c.Request.Context(), orgID, requestID)
 		if err != nil {
-			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			apperr.Respond(c, err)
 			return
 		}
 
@@ -380,7 +380,7 @@ func (h *Handler) ApproveRequest(c *gin.Context) {
 
 	req, err := h.service.ApproveRequest(c.Request.Context(), orgID, reviewerEmployeeID, requestID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -400,7 +400,7 @@ func (h *Handler) RejectRequest(c *gin.Context) {
 
 	reviewerEmployeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -410,7 +410,7 @@ func (h *Handler) RejectRequest(c *gin.Context) {
 		// Get the request to check the reporting relationship
 		request, err := h.service.GetRequest(c.Request.Context(), orgID, requestID)
 		if err != nil {
-			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			apperr.Respond(c, err)
 			return
 		}
 
@@ -426,7 +426,7 @@ func (h *Handler) RejectRequest(c *gin.Context) {
 
 	req, err := h.service.RejectRequest(c.Request.Context(), orgID, reviewerEmployeeID, requestID, input.Note)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -445,13 +445,13 @@ func (h *Handler) CancelRequest(c *gin.Context) {
 
 	employeeID, err := h.empLookup(c.Request.Context(), orgID, userID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
 	req, err := h.service.CancelRequest(c.Request.Context(), orgID, employeeID, requestID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -478,7 +478,7 @@ func (h *Handler) GetCalendar(c *gin.Context) {
 
 	entries, err := h.service.GetCalendar(c.Request.Context(), orgID, year, month)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -500,7 +500,7 @@ func (h *Handler) ListHolidays(c *gin.Context) {
 
 	holidays, err := h.service.ListHolidays(c.Request.Context(), orgID, startDate, endDate)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -521,7 +521,7 @@ func (h *Handler) GetNotificationCount(c *gin.Context) {
 	if !hasFullApprovalRights {
 		empID, err := h.empLookup(c.Request.Context(), orgID, userID)
 		if err != nil {
-			c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+			apperr.Respond(c, err)
 			return
 		}
 		managerEmployeeID = &empID
@@ -529,7 +529,7 @@ func (h *Handler) GetNotificationCount(c *gin.Context) {
 
 	count, err := h.service.GetNotificationCount(c.Request.Context(), orgID, role, managerEmployeeID)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -550,7 +550,7 @@ func (h *Handler) ListTemplates(c *gin.Context) {
 
 	templates, err := h.service.ListTemplates(c.Request.Context(), orgID, cc)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 
@@ -573,7 +573,7 @@ func (h *Handler) ImportPolicies(c *gin.Context) {
 
 	policies, err := h.service.ImportPolicies(c.Request.Context(), orgID, input)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

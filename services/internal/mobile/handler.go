@@ -51,7 +51,7 @@ func (h *Handler) GetHome(c *gin.Context) {
 
 	data, err := h.service.GetHomeDataForUser(c.Request.Context(), orgID, userID, weekOffset)
 	if err != nil {
-		c.JSON(apperr.HTTPStatus(err), apperr.Response(err))
+		apperr.Respond(c, err)
 		return
 	}
 

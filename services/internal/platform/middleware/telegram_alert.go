@@ -38,7 +38,15 @@ func TelegramAlert(n notify.Notifier) gin.HandlerFunc {
 		}
 
 		requestID := RequestIDFromCtx(c)
-		errSummary := extractErrorSummary(cap.buf.Bytes())
+
+		// Prefer the raw Go error stored by apperr.Respond (has full detail).
+		// Fall back to parsing the JSON response body (sanitized client message).
+		var errSummary string
+		if errs := c.Errors.ByType(gin.ErrorTypeAny); len(errs) > 0 {
+			errSummary = errs.Last().Error()
+		} else {
+			errSummary = extractErrorSummary(cap.buf.Bytes())
+		}
 
 		// Include org/user context when available
 		var contextLines []string
