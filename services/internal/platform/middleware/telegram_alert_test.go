@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -103,6 +104,98 @@ func TestTelegramAlert_503_Notifies(t *testing.T) {
 	defer n.mu.Unlock()
 	if len(n.messages) != 1 {
 		t.Errorf("expected 1 message for 503, got %d", len(n.messages))
+	}
+}
+
+func TestTelegramAlert_ErrorDetailFromJSONBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	n := &captureNotifier{}
+	r := gin.New()
+	r.Use(TelegramAlert(n))
+	r.GET("/boom", func(c *gin.Context) {
+		c.JSON(http.StatusInternalServerError, map[string]any{
+			"error": map[string]any{
+				"code":    "internal",
+				"message": "database connection failed",
+			},
+		})
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/boom", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	n.wait(t, 1)
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	msg := n.messages[0]
+	if !strings.Contains(msg, "database connection failed") {
+		t.Errorf("expected error message in notification, got: %s", msg)
+	}
+	if !strings.Contains(msg, "internal") {
+		t.Errorf("expected error code in notification, got: %s", msg)
+	}
+	if strings.Contains(msg, "no error detail") {
+		t.Errorf("should not contain fallback text, got: %s", msg)
+	}
+}
+
+func TestTelegramAlert_EmptyBody(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	n := &captureNotifier{}
+	r := gin.New()
+	r.Use(TelegramAlert(n))
+	r.GET("/boom", func(c *gin.Context) {
+		c.Status(http.StatusInternalServerError)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/boom", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	n.wait(t, 1)
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	msg := n.messages[0]
+	if !strings.Contains(msg, "empty response body") {
+		t.Errorf("expected empty body fallback, got: %s", msg)
+	}
+}
+
+func TestExtractErrorSummary(t *testing.T) {
+	cases := []struct {
+		name     string
+		body     string
+		contains string
+	}{
+		{
+			name:     "apperr JSON",
+			body:     `{"error":{"code":"not_found","message":"employee not found"}}`,
+			contains: "[not_found] employee not found",
+		},
+		{
+			name:     "no code",
+			body:     `{"error":{"message":"something broke"}}`,
+			contains: "something broke",
+		},
+		{
+			name:     "empty body",
+			body:     "",
+			contains: "empty response body",
+		},
+		{
+			name:     "non-JSON body",
+			body:     "internal server error",
+			contains: "internal server error",
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := extractErrorSummary([]byte(tc.body))
+			if !strings.Contains(got, tc.contains) {
+				t.Errorf("extractErrorSummary(%q) = %q, want containing %q", tc.body, got, tc.contains)
+			}
+		})
 	}
 }
 
