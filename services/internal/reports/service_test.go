@@ -325,25 +325,29 @@ func TestGetTeamScorecard(t *testing.T) {
 	}
 }
 
-func TestGetTeamScorecard_InsufficientDaysExcluded(t *testing.T) {
+func TestGetTeamScorecard_InsufficientDaysStillVisible(t *testing.T) {
 	repo := newFakeRepo()
 	repo.employees = []reports.EmployeeBasic{
 		{ID: empAlice, Name: "Alice", Department: "Engineering"},
 	}
-	// Only 2 working days — below default min of 5
+	// Only 2 working days — below default min of 5, but employee still appears in team view
 	repo.attendance[empAlice] = &reports.AttendanceStats{DaysPresent: 2, WorkingDays: 2}
 	repo.punctuality[empAlice] = &reports.PunctualityStats{OnTimeCount: 2, TotalPresent: 2}
 	repo.leave[empAlice] = &reports.LeaveStats{DaysEntitled: 12}
 	repo.tasks[empAlice] = &reports.TaskStats{}
-
 
 	svc := newTestService(repo)
 	team, err := svc.GetTeamScorecard(context.Background(), testOrgID, "this_month")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if len(team.Employees) != 0 {
-		t.Errorf("expected 0 sufficient employees, got %d", len(team.Employees))
+	// Team view shows all active employees regardless of Sufficient threshold
+	if len(team.Employees) != 1 {
+		t.Errorf("expected 1 employee in team view, got %d", len(team.Employees))
+	}
+	// TeamAverage excludes insufficient employees (0 counted → 0 average)
+	if team.TeamAverage != 0 {
+		t.Errorf("team_average = %d, want 0 (no sufficient employees)", team.TeamAverage)
 	}
 }
 

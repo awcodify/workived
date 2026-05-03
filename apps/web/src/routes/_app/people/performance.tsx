@@ -117,13 +117,13 @@ function PerformancePage() {
   }
 
   const departments = useMemo(() => {
-    if (!team?.employees) return []
+    if (!team?.employees?.length) return []
     const depts = new Set(team.employees.map((e) => e.department).filter(Boolean))
     return Array.from(depts).sort()
   }, [team])
 
   const sortedEmployees = useMemo(() => {
-    if (!team?.employees) return []
+    if (!team?.employees?.length) return []
     let filtered = team.employees
     if (deptFilter) {
       filtered = filtered.filter((e) => e.department === deptFilter)
@@ -237,7 +237,7 @@ function PerformancePage() {
           {/* Grade Distribution + Highlights + Department */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
             {/* Grade Distribution */}
-            {team && team.employees.length > 0 && (
+            {team && team.employees?.length > 0 && (
               <GradeDistributionChart employees={team.employees} />
             )}
 

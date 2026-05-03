@@ -139,7 +139,7 @@ func (s *Service) GetTeamScorecard(ctx context.Context, orgID uuid.UUID, periodK
 
 	prevPeriod, _ := PreviousPeriod(periodKey, tz)
 
-	var scores []EmployeeScore
+	scores := make([]EmployeeScore, 0)
 	var totalScore int
 	var counted int
 
@@ -147,9 +147,6 @@ func (s *Service) GetTeamScorecard(ctx context.Context, orgID uuid.UUID, periodK
 		sc, scErr := s.computeScorecard(ctx, orgID, emp, *cfg, *period)
 		if scErr != nil {
 			s.log.Warn().Err(scErr).Str("employee_id", emp.ID.String()).Msg("reports.team.skip_employee")
-			continue
-		}
-		if !sc.Sufficient {
 			continue
 		}
 
@@ -173,8 +170,11 @@ func (s *Service) GetTeamScorecard(ctx context.Context, orgID uuid.UUID, periodK
 			LeaveScore:       sc.Breakdown["leave"].Score,
 			TasksScore:       sc.Breakdown["tasks"].Score,
 		})
-		totalScore += sc.OverallScore
-		counted++
+		// Only include in team average when employee has enough data to be meaningful
+		if sc.Sufficient {
+			totalScore += sc.OverallScore
+			counted++
+		}
 	}
 
 	avg := 0
@@ -236,9 +236,6 @@ func (s *Service) GetCompanySummary(ctx context.Context, orgID uuid.UUID, period
 		if scErr != nil {
 			continue
 		}
-		if !sc.Sufficient {
-			continue
-		}
 
 		// Accumulate rates from breakdown details
 		attStats, _ := s.repo.GetAttendanceStats(ctx, orgID, emp.ID, period.StartDate, period.EndDate)
@@ -260,31 +257,31 @@ func (s *Service) GetCompanySummary(ctx context.Context, orgID uuid.UUID, period
 			totalLeaveUtil += leaveStats.DaysTaken / leaveStats.DaysEntitled
 		}
 
-		totalScore += sc.OverallScore
-		counted++
+		// Average score, top/improved/attention only count for employees with sufficient data
+		if sc.Sufficient {
+			totalScore += sc.OverallScore
+			counted++
 
-		// Track top performer
-		if topPerformer == nil || sc.OverallScore > topPerformer.Score {
-			topPerformer = &PerformerHighlight{EmployeeID: emp.ID, Name: emp.Name, Score: sc.OverallScore}
-		}
+			if topPerformer == nil || sc.OverallScore > topPerformer.Score {
+				topPerformer = &PerformerHighlight{EmployeeID: emp.ID, Name: emp.Name, Score: sc.OverallScore}
+			}
 
-		// Track trend for most improved
-		if prevPeriod != nil {
-			prevSc, prevErr := s.computeScorecard(ctx, orgID, emp, *cfg, *prevPeriod)
-			if prevErr == nil && prevSc.Sufficient {
-				trend := sc.OverallScore - prevSc.OverallScore
-				if mostImproved == nil || trend > mostImproved.Trend {
-					mostImproved = &PerformerHighlight{EmployeeID: emp.ID, Name: emp.Name, Score: sc.OverallScore, Trend: trend}
+			if prevPeriod != nil {
+				prevSc, prevErr := s.computeScorecard(ctx, orgID, emp, *cfg, *prevPeriod)
+				if prevErr == nil && prevSc.Sufficient {
+					trend := sc.OverallScore - prevSc.OverallScore
+					if mostImproved == nil || trend > mostImproved.Trend {
+						mostImproved = &PerformerHighlight{EmployeeID: emp.ID, Name: emp.Name, Score: sc.OverallScore, Trend: trend}
+					}
 				}
+			}
+
+			if sc.Grade == "D" {
+				needsAttention++
 			}
 		}
 
-		// Needs attention = grade D
-		if sc.Grade == "D" {
-			needsAttention++
-		}
-
-		// Department breakdown
+		// Department breakdown always includes all active employees
 		dept := emp.Department
 		if dept == "" {
 			dept = "Unassigned"
@@ -292,7 +289,7 @@ func (s *Service) GetCompanySummary(ctx context.Context, orgID uuid.UUID, period
 		deptScores[dept] = append(deptScores[dept], sc.OverallScore)
 	}
 
-	var deptBreakdown []DepartmentBreakdown
+	deptBreakdown := make([]DepartmentBreakdown, 0)
 	for dept, scores := range deptScores {
 		sum := 0
 		for _, s := range scores {
