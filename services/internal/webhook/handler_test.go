@@ -76,7 +76,7 @@ func samplePayload(eventType, severity string) RailwayPayload {
 
 // ── tests ─────────────────────────────────────────────────────────────────────
 
-func TestRailwayWebhook_NoToken_Accepts(t *testing.T) {
+func TestRailwayWebhook_NoToken_Rejects(t *testing.T) {
 	n := &fakeNotifier{}
 	r := newRouter(n, "")
 
@@ -86,12 +86,12 @@ func TestRailwayWebhook_NoToken_Accepts(t *testing.T) {
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
-	if w.Code != http.StatusNoContent {
-		t.Fatalf("expected 204, got %d", w.Code)
+	if w.Code != http.StatusInternalServerError {
+		t.Fatalf("expected 500, got %d", w.Code)
 	}
-	n.wait(t, 1)
-	if len(n.msgs) != 1 {
-		t.Fatalf("expected 1 notification, got %d", len(n.msgs))
+	time.Sleep(50 * time.Millisecond)
+	if len(n.msgs) != 0 {
+		t.Error("no notification should be sent when token not configured")
 	}
 }
 
@@ -149,9 +149,9 @@ func TestRailwayWebhook_MissingToken_Rejects(t *testing.T) {
 
 func TestRailwayWebhook_InvalidJSON_Returns400(t *testing.T) {
 	n := &fakeNotifier{}
-	r := newRouter(n, "")
+	r := newRouter(n, "test-token")
 
-	req := httptest.NewRequest(http.MethodPost, "/webhooks/railway", strings.NewReader("not-json"))
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/railway?token=test-token", strings.NewReader("not-json"))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)

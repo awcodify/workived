@@ -30,9 +30,15 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 
 // Railway receives Railway platform events and forwards a summary to Telegram.
 // Authentication via query parameter token (?token=xxx).
-// Set RAILWAY_WEBHOOK_TOKEN and include it in the webhook URL configured in Railway.
+// RAILWAY_WEBHOOK_TOKEN must be set and included in the webhook URL configured in Railway.
 func (h *Handler) Railway(c *gin.Context) {
-	if h.token != "" && c.Query("token") != h.token {
+	if h.token == "" {
+		h.log.Error().Msg("railway webhook: RAILWAY_WEBHOOK_TOKEN not configured")
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	if c.Query("token") != h.token {
 		h.log.Warn().Msg("railway webhook: invalid or missing token")
 		c.Status(http.StatusUnauthorized)
 		return

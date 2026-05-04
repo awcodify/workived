@@ -133,7 +133,7 @@ func loadBase() (*Config, error) {
 	_ = v.BindEnv("GOOGLE_REDIRECT_URL")
 	_ = v.BindEnv("TELEGRAM_BOT_TOKEN")
 	_ = v.BindEnv("TELEGRAM_CHAT_ID")
-	_ = v.BindEnv("RAILWAY_WEBHOOK_SECRET")
+	_ = v.BindEnv("RAILWAY_WEBHOOK_TOKEN")
 
 	// best-effort read of .env file; env vars take precedence
 	_ = v.ReadInConfig()
