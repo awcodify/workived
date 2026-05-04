@@ -36,6 +36,7 @@ import (
 	"github.com/workived/services/internal/setup"
 	"github.com/workived/services/internal/tasks"
 	"github.com/workived/services/internal/upload"
+	"github.com/workived/services/internal/webhook"
 	"github.com/workived/services/pkg/cache"
 	"github.com/workived/services/pkg/email"
 	"github.com/workived/services/pkg/logger"
@@ -329,6 +330,9 @@ func main() {
 	r.GET("/api/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
+
+	// Railway platform webhook — no auth, validated by HMAC signature
+	webhook.NewHandler(telegramNotifier, cfg.RailwayWebhookSecret, log).RegisterRoutes(r)
 
 	v1 := r.Group("/api/v1")
 

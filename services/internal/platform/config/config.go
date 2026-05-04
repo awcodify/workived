@@ -55,6 +55,9 @@ type Config struct {
 	TelegramBotToken string `mapstructure:"TELEGRAM_BOT_TOKEN"`
 	TelegramChatID   string `mapstructure:"TELEGRAM_CHAT_ID"`
 
+	// Railway webhook secret for HMAC-SHA256 signature verification (optional)
+	RailwayWebhookSecret string `mapstructure:"RAILWAY_WEBHOOK_SECRET"`
+
 	// CORS
 	CORSOrigins string `mapstructure:"CORS_ORIGINS"` // Comma-separated allowed origins, or "*"
 }
@@ -130,6 +133,7 @@ func loadBase() (*Config, error) {
 	_ = v.BindEnv("GOOGLE_REDIRECT_URL")
 	_ = v.BindEnv("TELEGRAM_BOT_TOKEN")
 	_ = v.BindEnv("TELEGRAM_CHAT_ID")
+	_ = v.BindEnv("RAILWAY_WEBHOOK_SECRET")
 
 	// best-effort read of .env file; env vars take precedence
 	_ = v.ReadInConfig()
