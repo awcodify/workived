@@ -2,9 +2,6 @@ package webhook
 
 import (
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -19,12 +16,12 @@ import (
 
 type Handler struct {
 	notifier notify.Notifier
-	secret   string
+	token    string
 	log      zerolog.Logger
 }
 
-func NewHandler(notifier notify.Notifier, secret string, log zerolog.Logger) *Handler {
-	return &Handler{notifier: notifier, secret: secret, log: log}
+func NewHandler(notifier notify.Notifier, token string, log zerolog.Logger) *Handler {
+	return &Handler{notifier: notifier, token: token, log: log}
 }
 
 func (h *Handler) RegisterRoutes(r *gin.Engine) {
@@ -32,18 +29,18 @@ func (h *Handler) RegisterRoutes(r *gin.Engine) {
 }
 
 // Railway receives Railway platform events and forwards a summary to Telegram.
-// Railway signs the body with HMAC-SHA256; the signature is in X-Railway-Signature
-// as "sha256=<hex>". Set RAILWAY_WEBHOOK_SECRET to enable verification.
+// Authentication via query parameter token (?token=xxx).
+// Set RAILWAY_WEBHOOK_TOKEN and include it in the webhook URL configured in Railway.
 func (h *Handler) Railway(c *gin.Context) {
-	body, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.Status(http.StatusBadRequest)
+	if h.token != "" && c.Query("token") != h.token {
+		h.log.Warn().Msg("railway webhook: invalid or missing token")
+		c.Status(http.StatusUnauthorized)
 		return
 	}
 
-	if h.secret != "" && !h.validSignature(body, c.GetHeader("X-Railway-Signature")) {
-		h.log.Warn().Msg("railway webhook: invalid signature")
-		c.Status(http.StatusUnauthorized)
+	body, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.Status(http.StatusBadRequest)
 		return
 	}
 
@@ -65,20 +62,6 @@ func (h *Handler) Railway(c *gin.Context) {
 	}()
 
 	c.Status(http.StatusNoContent)
-}
-
-func (h *Handler) validSignature(body []byte, header string) bool {
-	const prefix = "sha256="
-	if !strings.HasPrefix(header, prefix) {
-		return false
-	}
-	expected, err := hex.DecodeString(strings.TrimPrefix(header, prefix))
-	if err != nil {
-		return false
-	}
-	mac := hmac.New(sha256.New, []byte(h.secret))
-	mac.Write(body)
-	return hmac.Equal(mac.Sum(nil), expected)
 }
 
 func formatMessage(p RailwayPayload) string {

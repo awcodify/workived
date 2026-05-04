@@ -55,8 +55,8 @@ type Config struct {
 	TelegramBotToken string `mapstructure:"TELEGRAM_BOT_TOKEN"`
 	TelegramChatID   string `mapstructure:"TELEGRAM_CHAT_ID"`
 
-	// Railway webhook secret for HMAC-SHA256 signature verification (optional)
-	RailwayWebhookSecret string `mapstructure:"RAILWAY_WEBHOOK_SECRET"`
+	// Railway webhook auth token (include in webhook URL as ?token=xxx)
+	RailwayWebhookToken string `mapstructure:"RAILWAY_WEBHOOK_TOKEN"`
 
 	// CORS
 	CORSOrigins string `mapstructure:"CORS_ORIGINS"` // Comma-separated allowed origins, or "*"

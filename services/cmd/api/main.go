@@ -331,8 +331,8 @@ func main() {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
-	// Railway platform webhook — no auth, validated by HMAC signature
-	webhook.NewHandler(telegramNotifier, cfg.RailwayWebhookSecret, log).RegisterRoutes(r)
+	// Railway platform webhook — authenticated via query parameter token
+	webhook.NewHandler(telegramNotifier, cfg.RailwayWebhookToken, log).RegisterRoutes(r)
 
 	v1 := r.Group("/api/v1")
 

@@ -3,11 +3,7 @@ package webhook
 import (
 	"bytes"
 	"context"
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -52,22 +48,16 @@ func (f *fakeNotifier) wait(t *testing.T, n int) {
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-func newRouter(notifier *fakeNotifier, secret string) *gin.Engine {
+func newRouter(notifier *fakeNotifier, token string) *gin.Engine {
 	r := gin.New()
-	NewHandler(notifier, secret, zerolog.Nop()).RegisterRoutes(r)
+	NewHandler(notifier, token, zerolog.Nop()).RegisterRoutes(r)
 	return r
-}
-
-func sign(body []byte, secret string) string {
-	mac := hmac.New(sha256.New, []byte(secret))
-	mac.Write(body)
-	return "sha256=" + hex.EncodeToString(mac.Sum(nil))
 }
 
 func samplePayload(eventType, severity string) RailwayPayload {
 	return RailwayPayload{
-		Type:     eventType,
-		Severity: severity,
+		Type:      eventType,
+		Severity:  severity,
 		Timestamp: "2025-11-21T23:48:42.311Z",
 		Details: RailwayDetails{
 			Status:        "FAILED",
@@ -86,7 +76,7 @@ func samplePayload(eventType, severity string) RailwayPayload {
 
 // ── tests ─────────────────────────────────────────────────────────────────────
 
-func TestRailwayWebhook_NoSecret_Accepts(t *testing.T) {
+func TestRailwayWebhook_NoToken_Accepts(t *testing.T) {
 	n := &fakeNotifier{}
 	r := newRouter(n, "")
 
@@ -105,15 +95,14 @@ func TestRailwayWebhook_NoSecret_Accepts(t *testing.T) {
 	}
 }
 
-func TestRailwayWebhook_ValidSignature_Accepts(t *testing.T) {
-	secret := "super-secret"
+func TestRailwayWebhook_ValidToken_Accepts(t *testing.T) {
+	token := "super-secret-token"
 	n := &fakeNotifier{}
-	r := newRouter(n, secret)
+	r := newRouter(n, token)
 
 	body, _ := json.Marshal(samplePayload("Deployment.success", "INFO"))
-	req := httptest.NewRequest(http.MethodPost, "/webhooks/railway", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/railway?token="+token, bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Railway-Signature", sign(body, secret))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -123,14 +112,13 @@ func TestRailwayWebhook_ValidSignature_Accepts(t *testing.T) {
 	n.wait(t, 1)
 }
 
-func TestRailwayWebhook_InvalidSignature_Rejects(t *testing.T) {
+func TestRailwayWebhook_InvalidToken_Rejects(t *testing.T) {
 	n := &fakeNotifier{}
-	r := newRouter(n, "correct-secret")
+	r := newRouter(n, "correct-token")
 
 	body, _ := json.Marshal(samplePayload("Deployment.failed", "ERROR"))
-	req := httptest.NewRequest(http.MethodPost, "/webhooks/railway", bytes.NewReader(body))
+	req := httptest.NewRequest(http.MethodPost, "/webhooks/railway?token=wrong-token", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Railway-Signature", sign(body, "wrong-secret"))
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -139,18 +127,18 @@ func TestRailwayWebhook_InvalidSignature_Rejects(t *testing.T) {
 	}
 	time.Sleep(50 * time.Millisecond)
 	if len(n.msgs) != 0 {
-		t.Error("no notification should be sent for invalid signature")
+		t.Error("no notification should be sent for invalid token")
 	}
 }
 
-func TestRailwayWebhook_MissingSignatureHeader_Rejects(t *testing.T) {
+func TestRailwayWebhook_MissingToken_Rejects(t *testing.T) {
 	n := &fakeNotifier{}
-	r := newRouter(n, "my-secret")
+	r := newRouter(n, "my-secret-token")
 
 	body, _ := json.Marshal(samplePayload("Deployment.failed", "ERROR"))
 	req := httptest.NewRequest(http.MethodPost, "/webhooks/railway", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
-	// No X-Railway-Signature header
+	// No token query parameter
 	w := httptest.NewRecorder()
 	r.ServeHTTP(w, req)
 
@@ -253,24 +241,5 @@ func TestFormatMessage_NoCommit_Omits(t *testing.T) {
 	msg := formatMessage(p)
 	if strings.Contains(msg, "Commit:") {
 		t.Error("should not include Commit line when hash is empty")
-	}
-}
-
-func TestValidSignature(t *testing.T) {
-	h := &Handler{secret: "test-secret"}
-	body := []byte(`{"type":"Deployment.failed"}`)
-	sig := sign(body, "test-secret")
-
-	if !h.validSignature(body, sig) {
-		t.Error("expected valid signature to pass")
-	}
-	if h.validSignature(body, "sha256=badhex!") {
-		t.Error("bad hex should fail")
-	}
-	if h.validSignature(body, "noshaprefix") {
-		t.Error("missing prefix should fail")
-	}
-	if h.validSignature(body, fmt.Sprintf("sha256=%s", hex.EncodeToString(make([]byte, 32)))) {
-		t.Error("wrong signature should fail")
 	}
 }
