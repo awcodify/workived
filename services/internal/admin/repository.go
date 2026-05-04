@@ -287,6 +287,27 @@ func (r *Repository) UpdateProLicense(ctx context.Context, licenseID uuid.UUID, 
 	return &l, nil
 }
 
+// UpdateOrgPlan sets plan and plan_employee_limit on the organisations table.
+// Pass nil for employeeLimit to remove the cap (Pro). Pass a value to restore the cap (Free).
+func (r *Repository) UpdateOrgPlan(ctx context.Context, orgID uuid.UUID, plan string, employeeLimit *int) error {
+	_, err := r.db.Exec(ctx, `
+		UPDATE organisations
+		SET plan = $2, plan_employee_limit = $3, updated_at = NOW()
+		WHERE id = $1
+	`, orgID, plan, employeeLimit)
+	return err
+}
+
+// CountActiveProLicenses returns how many active licenses exist for the org.
+func (r *Repository) CountActiveProLicenses(ctx context.Context, orgID uuid.UUID) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `
+		SELECT COUNT(*) FROM pro_licenses
+		WHERE organisation_id = $1 AND status = 'active' AND expires_at > NOW()
+	`, orgID).Scan(&count)
+	return count, err
+}
+
 // ── Admin Config ────────────────────────────────────────────────────────────
 
 func (r *Repository) ListAdminConfigs(ctx context.Context) ([]AdminConfig, error) {

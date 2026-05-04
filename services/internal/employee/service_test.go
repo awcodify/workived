@@ -231,6 +231,14 @@ func TestEmployeeService_Create_PlanLimit(t *testing.T) {
 			activeCount: 100,
 		},
 		{
+			// Reproduces WOR-257: trigger set plan='pro' but left limit=25 in DB.
+			// Service must ignore limit when plan is pro.
+			name:        "pro plan with stale limit — still no limit enforced",
+			plan:        "pro",
+			limit:       intPtr(25),
+			activeCount: 100,
+		},
+		{
 			name:        "free plan — one below limit",
 			plan:        "free",
 			limit:       intPtr(25),

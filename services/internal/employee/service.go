@@ -119,12 +119,12 @@ func (s *Service) List(ctx context.Context, orgID uuid.UUID, f ListFilters) (*Li
 }
 
 func (s *Service) Create(ctx context.Context, orgID uuid.UUID, req CreateEmployeeRequest, actorUserID ...uuid.UUID) (*Employee, error) {
-	_, limit, err := s.orgRepo.GetOrgPlanInfo(ctx, orgID)
+	plan, limit, err := s.orgRepo.GetOrgPlanInfo(ctx, orgID)
 	if err != nil {
 		return nil, err
 	}
 
-	if limit != nil {
+	if plan != "pro" && limit != nil {
 		count, err := s.countActiveCached(ctx, orgID)
 		if err != nil {
 			return nil, err

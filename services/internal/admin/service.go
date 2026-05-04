@@ -12,11 +12,21 @@ import (
 	"github.com/workived/services/pkg/cache"
 )
 
+// licenseRepo is the subset of Repository methods used by license sync logic.
+// Extracted as an interface so service tests can stub it without a real DB.
+type licenseRepo interface {
+	CreateProLicense(ctx context.Context, req CreateProLicenseRequest, createdBy, staffAdminID uuid.UUID) (*ProLicense, error)
+	UpdateProLicense(ctx context.Context, licenseID uuid.UUID, req UpdateProLicenseRequest) (*ProLicense, error)
+	UpdateOrgPlan(ctx context.Context, orgID uuid.UUID, plan string, employeeLimit *int) error
+	CountActiveProLicenses(ctx context.Context, orgID uuid.UUID) (int, error)
+}
+
 type Service struct {
-	repo   *Repository
-	cache  *cache.Store
-	config *config.Config
-	log    zerolog.Logger
+	repo    *Repository
+	licRepo licenseRepo
+	cache   *cache.Store
+	config  *config.Config
+	log     zerolog.Logger
 }
 
 type ServiceOption func(*Service)
@@ -42,7 +52,7 @@ func WithConfig(cfg *config.Config) ServiceOption {
 }
 
 func NewService(repo *Repository, opts ...ServiceOption) *Service {
-	s := &Service{repo: repo}
+	s := &Service{repo: repo, licRepo: repo}
 	for _, opt := range opts {
 		opt(s)
 	}
@@ -247,9 +257,13 @@ func (s *Service) HasActiveProLicense(ctx context.Context, orgID uuid.UUID) (boo
 }
 
 func (s *Service) CreateProLicense(ctx context.Context, req CreateProLicenseRequest, createdBy uuid.UUID) (*ProLicense, error) {
-	license, err := s.repo.CreateProLicense(ctx, req, createdBy, uuid.Nil)
+	license, err := s.licRepo.CreateProLicense(ctx, req, createdBy, uuid.Nil)
 	if err != nil {
 		return nil, fmt.Errorf("create pro license: %w", err)
+	}
+
+	if err := s.licRepo.UpdateOrgPlan(ctx, license.OrganisationID, "pro", nil); err != nil {
+		return nil, fmt.Errorf("set org plan to pro: %w", err)
 	}
 
 	s.log.Info().
@@ -264,9 +278,13 @@ func (s *Service) CreateProLicense(ctx context.Context, req CreateProLicenseRequ
 
 // CreateProLicenseByStaffAdmin creates a license with staff admin attribution.
 func (s *Service) CreateProLicenseByStaffAdmin(ctx context.Context, req CreateProLicenseRequest, staffAdminID uuid.UUID) (*ProLicense, error) {
-	license, err := s.repo.CreateProLicense(ctx, req, uuid.Nil, staffAdminID)
+	license, err := s.licRepo.CreateProLicense(ctx, req, uuid.Nil, staffAdminID)
 	if err != nil {
 		return nil, fmt.Errorf("create pro license: %w", err)
+	}
+
+	if err := s.licRepo.UpdateOrgPlan(ctx, license.OrganisationID, "pro", nil); err != nil {
+		return nil, fmt.Errorf("set org plan to pro: %w", err)
 	}
 
 	s.log.Info().
@@ -280,9 +298,30 @@ func (s *Service) CreateProLicenseByStaffAdmin(ctx context.Context, req CreatePr
 }
 
 func (s *Service) UpdateProLicense(ctx context.Context, licenseID uuid.UUID, req UpdateProLicenseRequest) (*ProLicense, error) {
-	license, err := s.repo.UpdateProLicense(ctx, licenseID, req)
+	license, err := s.licRepo.UpdateProLicense(ctx, licenseID, req)
 	if err != nil {
 		return nil, fmt.Errorf("update pro license: %w", err)
+	}
+
+	// Sync org plan based on license status change.
+	if req.Status != nil {
+		if *req.Status == "active" {
+			if err := s.licRepo.UpdateOrgPlan(ctx, license.OrganisationID, "pro", nil); err != nil {
+				return nil, fmt.Errorf("set org plan to pro: %w", err)
+			}
+		} else {
+			// License deactivated — revert to free only if no other active licenses remain.
+			remaining, err := s.licRepo.CountActiveProLicenses(ctx, license.OrganisationID)
+			if err != nil {
+				return nil, fmt.Errorf("count active licenses: %w", err)
+			}
+			if remaining == 0 {
+				freeLimit := 15
+				if err := s.licRepo.UpdateOrgPlan(ctx, license.OrganisationID, "free", &freeLimit); err != nil {
+					return nil, fmt.Errorf("revert org plan to free: %w", err)
+				}
+			}
+		}
 	}
 
 	s.log.Info().

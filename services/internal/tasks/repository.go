@@ -106,28 +106,49 @@ func (r *Repository) GetFinalStateList(ctx context.Context, orgID uuid.UUID) (*T
 }
 
 func (r *Repository) CreateTaskList(ctx context.Context, orgID uuid.UUID, req CreateListRequest) (*TaskList, error) {
-	// Get next position
 	var maxPosition int
 	err := r.db.QueryRow(ctx, `
-		SELECT COALESCE(MAX(position), -1000) FROM task_lists WHERE organisation_id = $1
+		SELECT COALESCE(MAX(position), -1000) FROM task_lists WHERE organisation_id = $1 AND is_active = TRUE
 	`, orgID).Scan(&maxPosition)
 	if err != nil {
 		return nil, err
 	}
+	newPosition := maxPosition + 1000
 
-	// Default is_final_state to false if not provided
 	isFinalState := false
 	if req.IsFinalState != nil {
 		isFinalState = *req.IsFinalState
 	}
 
+	// Reactivate a previously deleted list with the same name instead of creating a duplicate.
 	var tl TaskList
+	err = r.db.QueryRow(ctx, `
+		UPDATE task_lists
+		SET is_active = TRUE, position = $3, is_final_state = $4, updated_at = NOW()
+		WHERE organisation_id = $1 AND name = $2 AND is_active = FALSE
+		RETURNING id, organisation_id, name, position, is_final_state, is_active, created_at, updated_at
+	`, orgID, req.Name, newPosition, isFinalState).Scan(
+		&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt,
+	)
+	if err == nil {
+		return &tl, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, err
+	}
+
+	// No inactive match — insert fresh. Unique violation here means an active column has that name.
 	err = r.db.QueryRow(ctx, `
 		INSERT INTO task_lists (organisation_id, name, position, is_final_state)
 		VALUES ($1, $2, $3, $4)
 		RETURNING id, organisation_id, name, position, is_final_state, is_active, created_at, updated_at
-	`, orgID, req.Name, maxPosition+1000, isFinalState).Scan(&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt)
+	`, orgID, req.Name, newPosition, isFinalState).Scan(
+		&tl.ID, &tl.OrganisationID, &tl.Name, &tl.Position, &tl.IsFinalState, &tl.IsActive, &tl.CreatedAt, &tl.UpdatedAt,
+	)
 	if err != nil {
+		if isUniqueViolation(err) {
+			return nil, apperr.New(apperr.CodeConflict, "a column with this name already exists")
+		}
 		return nil, err
 	}
 	return &tl, nil

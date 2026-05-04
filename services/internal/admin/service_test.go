@@ -2,7 +2,9 @@ package admin
 
 import (
 	"context"
+	"errors"
 	"testing"
+	"time"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
@@ -10,6 +12,140 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/workived/services/pkg/cache"
 )
+
+// ── fakeLicenseRepo ──────────────────────────────────────────────────────────
+
+type fakeLicenseRepo struct {
+	license              *ProLicense
+	createErr            error
+	updateErr            error
+	updateOrgPlanCalls   []orgPlanCall
+	updateOrgPlanErr     error
+	activeCount          int
+	activeCountErr       error
+}
+
+type orgPlanCall struct {
+	orgID         uuid.UUID
+	plan          string
+	employeeLimit *int
+}
+
+func (f *fakeLicenseRepo) CreateProLicense(_ context.Context, _ CreateProLicenseRequest, _, _ uuid.UUID) (*ProLicense, error) {
+	return f.license, f.createErr
+}
+
+func (f *fakeLicenseRepo) UpdateProLicense(_ context.Context, _ uuid.UUID, _ UpdateProLicenseRequest) (*ProLicense, error) {
+	return f.license, f.updateErr
+}
+
+func (f *fakeLicenseRepo) UpdateOrgPlan(_ context.Context, orgID uuid.UUID, plan string, limit *int) error {
+	f.updateOrgPlanCalls = append(f.updateOrgPlanCalls, orgPlanCall{orgID, plan, limit})
+	return f.updateOrgPlanErr
+}
+
+func (f *fakeLicenseRepo) CountActiveProLicenses(_ context.Context, _ uuid.UUID) (int, error) {
+	return f.activeCount, f.activeCountErr
+}
+
+func newSvcWithFakeLicRepo(fake *fakeLicenseRepo) *Service {
+	return &Service{licRepo: fake, log: zerolog.Nop()}
+}
+
+// ── Tests ────────────────────────────────────────────────────────────────────
+
+func TestCreateProLicense_SetsOrgPlanToPro(t *testing.T) {
+	orgID := uuid.New()
+	fake := &fakeLicenseRepo{
+		license: &ProLicense{ID: uuid.New(), OrganisationID: orgID, Status: "active", StartsAt: time.Now(), ExpiresAt: time.Now().Add(30 * 24 * time.Hour)},
+	}
+	svc := newSvcWithFakeLicRepo(fake)
+
+	_, err := svc.CreateProLicense(context.Background(), CreateProLicenseRequest{OrganisationID: orgID}, uuid.New())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fake.updateOrgPlanCalls) != 1 {
+		t.Fatalf("expected 1 UpdateOrgPlan call, got %d", len(fake.updateOrgPlanCalls))
+	}
+	call := fake.updateOrgPlanCalls[0]
+	if call.plan != "pro" {
+		t.Errorf("expected plan=pro, got %q", call.plan)
+	}
+	if call.employeeLimit != nil {
+		t.Errorf("expected nil limit for pro, got %v", *call.employeeLimit)
+	}
+}
+
+func TestUpdateProLicense_CancelledNoRemaining_RevertsToFree(t *testing.T) {
+	orgID := uuid.New()
+	fake := &fakeLicenseRepo{
+		license:     &ProLicense{ID: uuid.New(), OrganisationID: orgID, Status: "cancelled", StartsAt: time.Now(), ExpiresAt: time.Now().Add(30 * 24 * time.Hour)},
+		activeCount: 0,
+	}
+	svc := newSvcWithFakeLicRepo(fake)
+	status := "cancelled"
+
+	_, err := svc.UpdateProLicense(context.Background(), uuid.New(), UpdateProLicenseRequest{Status: &status})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fake.updateOrgPlanCalls) != 1 {
+		t.Fatalf("expected 1 UpdateOrgPlan call, got %d", len(fake.updateOrgPlanCalls))
+	}
+	call := fake.updateOrgPlanCalls[0]
+	if call.plan != "free" {
+		t.Errorf("expected plan=free, got %q", call.plan)
+	}
+	if call.employeeLimit == nil || *call.employeeLimit != 15 {
+		t.Errorf("expected limit=15, got %v", call.employeeLimit)
+	}
+}
+
+func TestUpdateProLicense_CancelledOtherActive_KeepsPro(t *testing.T) {
+	orgID := uuid.New()
+	fake := &fakeLicenseRepo{
+		license:     &ProLicense{ID: uuid.New(), OrganisationID: orgID, Status: "cancelled", StartsAt: time.Now(), ExpiresAt: time.Now().Add(30 * 24 * time.Hour)},
+		activeCount: 1, // another active license exists
+	}
+	svc := newSvcWithFakeLicRepo(fake)
+	status := "cancelled"
+
+	_, err := svc.UpdateProLicense(context.Background(), uuid.New(), UpdateProLicenseRequest{Status: &status})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fake.updateOrgPlanCalls) != 0 {
+		t.Errorf("expected no UpdateOrgPlan call when another active license exists, got %d", len(fake.updateOrgPlanCalls))
+	}
+}
+
+func TestUpdateProLicense_StatusNotChanged_NoOrgPlanUpdate(t *testing.T) {
+	orgID := uuid.New()
+	expiresAt := time.Now().Add(60 * 24 * time.Hour)
+	fake := &fakeLicenseRepo{
+		license: &ProLicense{ID: uuid.New(), OrganisationID: orgID, Status: "active", StartsAt: time.Now(), ExpiresAt: time.Now().Add(30 * 24 * time.Hour)},
+	}
+	svc := newSvcWithFakeLicRepo(fake)
+
+	_, err := svc.UpdateProLicense(context.Background(), uuid.New(), UpdateProLicenseRequest{ExpiresAt: &expiresAt})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(fake.updateOrgPlanCalls) != 0 {
+		t.Errorf("expected no UpdateOrgPlan call when status not changed, got %d", len(fake.updateOrgPlanCalls))
+	}
+}
+
+func TestCreateProLicense_RepoError_Propagates(t *testing.T) {
+	fake := &fakeLicenseRepo{createErr: errors.New("db down")}
+	svc := newSvcWithFakeLicRepo(fake)
+
+	_, err := svc.CreateProLicense(context.Background(), CreateProLicenseRequest{}, uuid.New())
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+}
 
 func testCacheStore(t *testing.T) *cache.Store {
 	t.Helper()

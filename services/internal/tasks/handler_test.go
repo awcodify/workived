@@ -14,6 +14,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/workived/services/internal/platform/middleware"
 	"github.com/workived/services/internal/tasks"
+	"github.com/workived/services/pkg/apperr"
 )
 
 func init() {
@@ -378,6 +379,39 @@ func TestCreateTaskList(t *testing.T) {
 	r.ServeHTTP(w, req)
 	assertStatus(t, w, http.StatusCreated)
 	assertHasDataKey(t, w)
+}
+
+func TestCreateTaskList_ActiveDuplicateName_Returns409(t *testing.T) {
+	svc := &fakeService{
+		createTaskListFn: func(_ context.Context, _ uuid.UUID, _ tasks.CreateListRequest, _ ...uuid.UUID) (*tasks.TaskList, error) {
+			return nil, apperr.New(apperr.CodeConflict, "a column with this name already exists")
+		},
+	}
+	r := newRouter(svc)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/tasks/lists", jsonBody(t, map[string]string{
+		"name": "Duplicate",
+	}))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	assertStatus(t, w, http.StatusConflict)
+}
+
+func TestCreateTaskList_DeletedName_Reactivates(t *testing.T) {
+	reactivated := &tasks.TaskList{ID: testListID, Name: "Old Column", IsActive: true}
+	svc := &fakeService{
+		createTaskListFn: func(_ context.Context, _ uuid.UUID, _ tasks.CreateListRequest, _ ...uuid.UUID) (*tasks.TaskList, error) {
+			return reactivated, nil
+		},
+	}
+	r := newRouter(svc)
+	w := httptest.NewRecorder()
+	req, _ := http.NewRequest(http.MethodPost, "/api/v1/tasks/lists", jsonBody(t, map[string]string{
+		"name": "Old Column",
+	}))
+	req.Header.Set("Content-Type", "application/json")
+	r.ServeHTTP(w, req)
+	assertStatus(t, w, http.StatusCreated)
 }
 
 func TestUpdateTaskList(t *testing.T) {
