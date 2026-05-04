@@ -154,20 +154,21 @@ function RegisterPage() {
     },
     onSuccess: (data) => {
       setAuth(data)
-      
-      // New users need to verify their email first
+
+      // Invited users skip the email verification gate — the invitation was sent to
+      // their email (proving ownership) and AcceptInvitation marks them as verified.
+      if (invite_token) {
+        navigate({ to: '/invite', search: { token: invite_token } })
+        return
+      }
+
+      // Normal registration: require email verification before org setup.
       if (!data.user.is_verified) {
         navigate({ to: '/verify-email-required' })
         return
       }
-      
-      // If already verified (shouldn't happen for new registrations, but handle it):
-      // Redirect to invitation acceptance or setup-org
-      if (invite_token) {
-        navigate({ to: '/invite', search: { token: invite_token } })
-      } else {
-        navigate({ to: '/setup-org' })
-      }
+
+      navigate({ to: '/setup-org' })
     },
   })
 
