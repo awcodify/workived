@@ -70,7 +70,7 @@ describe('RegisterPage', () => {
 
     expect(screen.getByText('Create your account')).toBeInTheDocument()
     expect(screen.getByLabelText('Full name')).toBeInTheDocument()
-    expect(screen.getByLabelText('Work email')).toBeInTheDocument()
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
     expect(screen.getByLabelText('Password')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /create account/i })).toBeInTheDocument()
   })
@@ -102,7 +102,7 @@ describe('RegisterPage', () => {
     renderPage()
 
     fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Ahmad' } })
-    fireEvent.change(screen.getByLabelText('Work email'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.com' } })
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'short' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
@@ -127,27 +127,30 @@ describe('RegisterPage', () => {
     expect(result).toEqual({ invite_token: undefined })
   })
 
-  it('navigates to /setup-org after registration without invite token', async () => {
+  it('navigates to /verify-email-required after registration without invite token when not verified', async () => {
     vi.spyOn(Route, 'useSearch').mockReturnValue({ invite_token: undefined })
     renderPage()
 
     fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Ahmad' } })
-    fireEvent.change(screen.getByLabelText('Work email'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.com' } })
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/confirm/i), { target: { value: 'password123' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith({ to: '/setup-org' })
+      expect(mockNavigate).toHaveBeenCalledWith({ to: '/verify-email-required' })
     })
   })
 
-  it('navigates to /invite with token after registration with invite token', async () => {
+  it('navigates to /invite skipping email verification when invite_token present', async () => {
+    // Invited users bypass email verification — AcceptInvitation marks them verified.
     vi.spyOn(Route, 'useSearch').mockReturnValue({ invite_token: 'tok-abc-123' })
     renderPage()
 
     fireEvent.change(screen.getByLabelText('Full name'), { target: { value: 'Ahmad' } })
-    fireEvent.change(screen.getByLabelText('Work email'), { target: { value: 'a@b.com' } })
+    fireEvent.change(screen.getByLabelText(/email/i), { target: { value: 'a@b.com' } })
     fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'password123' } })
+    fireEvent.change(screen.getByLabelText(/confirm/i), { target: { value: 'password123' } })
     fireEvent.click(screen.getByRole('button', { name: /create account/i }))
 
     await waitFor(() => {
@@ -155,6 +158,8 @@ describe('RegisterPage', () => {
         to: '/invite',
         search: { token: 'tok-abc-123' },
       })
+      // Must NOT navigate to verify-email-required
+      expect(mockNavigate).not.toHaveBeenCalledWith({ to: '/verify-email-required' })
     })
   })
 })
