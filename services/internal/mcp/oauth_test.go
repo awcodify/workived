@@ -21,7 +21,7 @@ import (
 const testJWTSecret = "test-secret-for-oauth-tests"
 
 func newTestOAuthHandler() *OAuthHandler {
-	return NewOAuthHandler("http://localhost:8080", testJWTSecret, zerolog.Nop())
+	return NewOAuthHandler("http://localhost:8080", "http://localhost:8080", testJWTSecret, zerolog.Nop())
 }
 
 func makeTestJWT(secret string, ttl time.Duration) string {
@@ -66,7 +66,7 @@ func TestProtectedResourceMetadata(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatal(err)
 	}
-	if body["resource"] != "http://localhost:8080" {
+	if body["resource"] != "http://localhost:8080/mcp/sse" {
 		t.Errorf("unexpected resource: %v", body["resource"])
 	}
 	servers, ok := body["authorization_servers"].([]interface{})
