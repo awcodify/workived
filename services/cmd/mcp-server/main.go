@@ -69,7 +69,7 @@ func main() {
 	r.POST("/oauth/token", oauthHandler.Token)
 
 	// ── MCP SSE transport ────────────────────────────────────────────────────
-	mcpHandler := mcp.NewHTTPHandler(apiURL, log)
+	mcpHandler := mcp.NewHTTPHandler(mcpURL, apiURL, log)
 	r.GET("/mcp/sse", middleware.Auth(cfg.JWTSecret), mcpHandler.HandleSSE)
 	r.POST("/mcp/message", mcpHandler.HandleMessage)
 

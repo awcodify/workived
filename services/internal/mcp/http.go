@@ -20,7 +20,8 @@ import (
 // Client connects via GET /mcp/sse, receives an endpoint URL, then POSTs
 // JSON-RPC messages to that URL. Responses flow back over the SSE stream.
 type HTTPHandler struct {
-	appURL     string
+	mcpURL     string // public MCP server origin (used in endpoint events sent to clients)
+	apiURL     string // internal API server origin (used for employee context calls)
 	log        zerolog.Logger
 	tools      []Tool
 	mu         sync.Mutex
@@ -38,10 +39,11 @@ type httpSession struct {
 	createdAt time.Time
 }
 
-func NewHTTPHandler(appURL string, log zerolog.Logger) *HTTPHandler {
+func NewHTTPHandler(mcpURL, apiURL string, log zerolog.Logger) *HTTPHandler {
 	ctx, cancel := context.WithCancel(context.Background())
 	h := &HTTPHandler{
-		appURL:     appURL,
+		mcpURL:     mcpURL,
+		apiURL:     apiURL,
 		log:        log,
 		tools:      GetAvailableTools(),
 		sessions:   make(map[string]*httpSession),
@@ -88,7 +90,7 @@ func (h *HTTPHandler) HandleSSE(c *gin.Context) {
 		return
 	}
 
-	apiClient := NewAPIClient(h.appURL, accessToken, "", h.log)
+	apiClient := NewAPIClient(h.apiURL, accessToken, "", h.log)
 
 	authCtx, err := fetchEmployeeContext(c.Request.Context(), apiClient)
 	if err != nil {
@@ -118,7 +120,7 @@ func (h *HTTPHandler) HandleSSE(c *gin.Context) {
 	c.Writer.WriteHeader(http.StatusOK)
 
 	// Tell the client where to POST messages — must be a full URL.
-	fmt.Fprintf(c.Writer, "event: endpoint\ndata: %s/mcp/message?sessionId=%s\n\n", h.appURL, sessionID)
+	fmt.Fprintf(c.Writer, "event: endpoint\ndata: %s/mcp/message?sessionId=%s\n\n", h.mcpURL, sessionID)
 	c.Writer.Flush()
 
 	h.log.Info().

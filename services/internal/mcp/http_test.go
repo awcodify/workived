@@ -21,7 +21,8 @@ func init() {
 
 func newTestHandler() *HTTPHandler {
 	return &HTTPHandler{
-		appURL:   "http://localhost:8080",
+		mcpURL:   "http://localhost:8080",
+		apiURL:   "http://localhost:8080",
 		log:      zerolog.Nop(),
 		tools:    GetAvailableTools(),
 		sessions: make(map[string]*httpSession),
