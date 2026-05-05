@@ -369,15 +369,26 @@ func (h *APIToolHandler) createDepartment(ctx context.Context, args map[string]i
 
 // Task tools
 func (h *APIToolHandler) listTasks(ctx context.Context, args map[string]interface{}) (interface{}, error) {
-	params := make(map[string]string)
-	if listID, ok := args["list_id"].(string); ok {
-		params["list_id"] = listID
+	params := map[string]string{
+		"limit": "200", // default high limit so MCP callers get complete results
+	}
+	if listID, ok := args["task_list_id"].(string); ok {
+		params["task_list_id"] = listID
 	}
 	if status, ok := args["status"].(string); ok {
 		params["status"] = status
 	}
 	if assigneeID, ok := args["assignee_id"].(string); ok {
 		params["assignee_id"] = assigneeID
+	}
+	if priority, ok := args["priority"].(string); ok {
+		params["priority"] = priority
+	}
+	if search, ok := args["search"].(string); ok {
+		params["search"] = search
+	}
+	if inc, ok := args["include_completed"].(bool); ok && inc {
+		params["include_completed"] = "true"
 	}
 
 	data, err := h.client.Get(ctx, "/api/v1/tasks", params)
