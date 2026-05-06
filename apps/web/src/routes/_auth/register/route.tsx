@@ -613,7 +613,7 @@ function RegisterPage() {
                 Already have an account?{' '}
                 <Link
                   to="/login"
-                  search={{ redirect: undefined }}
+                  search={{ redirect: invite_token ? `/invite?token=${invite_token}` : undefined }}
                   style={{ color: colors.accent, fontWeight: 600 }}
                 >
                   Sign in

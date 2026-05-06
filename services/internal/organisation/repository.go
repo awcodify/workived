@@ -177,13 +177,13 @@ func (r *Repository) GetInvitationByToken(ctx context.Context, tokenHash string)
 func (r *Repository) GetActiveMember(ctx context.Context, orgID, userID uuid.UUID) (*Member, error) {
 	m := &Member{}
 	err := r.db.QueryRow(ctx, `
-		SELECT id, user_id, organisation_id, employee_id, role, is_active, joined_at
+		SELECT id, user_id, organisation_id, employee_id, role, has_subordinate, is_active, joined_at
 		FROM organisation_members
 		WHERE organisation_id = $1
 		  AND user_id = $2
 		  AND is_active = TRUE
 	`, orgID, userID).Scan(
-		&m.ID, &m.UserID, &m.OrgID, &m.EmployeeID, &m.Role, &m.IsActive, &m.JoinedAt,
+		&m.ID, &m.UserID, &m.OrgID, &m.EmployeeID, &m.Role, &m.HasSubordinate, &m.IsActive, &m.JoinedAt,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

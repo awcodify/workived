@@ -718,7 +718,7 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 		}
 	})
 
-	t.Run("already a member rejected", func(t *testing.T) {
+	t.Run("already a member returns success idempotently", func(t *testing.T) {
 		svc, repo, userRepo := newTestService(t)
 		orgID, _, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
 
@@ -726,19 +726,23 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 
 		// Add the invitee as an existing member
 		existingUserID := uuid.New()
+		userRepo.createVerifiedUser(existingUserID)
 		repo.members[memberKey(orgID, existingUserID)] = &organisation.Member{
 			ID: uuid.New(), UserID: existingUserID, OrgID: orgID,
 			Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
 		}
 
-		_, err := svc.AcceptInvitation(context.Background(), existingUserID, organisation.AcceptInvitationRequest{
+		resp, err := svc.AcceptInvitation(context.Background(), existingUserID, organisation.AcceptInvitationRequest{
 			Token: rawToken,
 		})
-		if err == nil {
-			t.Fatal("expected error for existing member")
+		if err != nil {
+			t.Fatalf("expected idempotent success for existing member, got error: %v", err)
 		}
-		if !apperr.IsCode(err, apperr.CodeConflict) {
-			t.Errorf("expected CONFLICT, got %v", err)
+		if resp.AccessToken == "" {
+			t.Error("access token should not be empty")
+		}
+		if resp.Organisation.ID != orgID {
+			t.Errorf("org ID = %s, want %s", resp.Organisation.ID, orgID)
 		}
 	})
 

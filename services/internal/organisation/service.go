@@ -404,20 +404,20 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 	if err != nil {
 		return nil, fmt.Errorf("get invitation by token: %w", err)
 	}
-	if inv.AcceptedAt != nil {
-		return nil, apperr.Conflict("invitation already accepted")
-	}
-	if time.Now().UTC().After(inv.ExpiresAt) {
-		return nil, apperr.New(apperr.CodeValidation, "invitation has expired — ask the admin for a new one")
-	}
-
-	// 2. Check if already an active member.
+	// 2. Check if already an active member — idempotent: return fresh token if so.
 	existing, err := s.repo.GetActiveMember(ctx, inv.OrgID, userID)
 	if err != nil {
 		return nil, fmt.Errorf("check existing membership: %w", err)
 	}
 	if existing != nil {
-		return nil, apperr.Conflict("already a member of this organisation")
+		return s.issueMemberResponse(ctx, userID, inv.OrgID, existing)
+	}
+
+	if inv.AcceptedAt != nil {
+		return nil, apperr.Conflict("invitation already accepted")
+	}
+	if time.Now().UTC().After(inv.ExpiresAt) {
+		return nil, apperr.New(apperr.CodeValidation, "invitation has expired — ask the admin for a new one")
 	}
 
 	// 3. Verify pro roles on pro orgs.
@@ -488,6 +488,29 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 		User:         user,
 		Organisation: org,
 		Member:       member,
+	}, nil
+}
+
+// issueMemberResponse issues a fresh JWT and builds an AcceptInvitationResponse for
+// an already-accepted invitation or an existing active member (idempotent acceptance).
+func (s *Service) issueMemberResponse(ctx context.Context, userID, orgID uuid.UUID, m *Member) (*AcceptInvitationResponse, error) {
+	accessToken, err := s.tokenIssuer.IssueAccessToken(userID, orgID, m.Role, m.HasSubordinate)
+	if err != nil {
+		return nil, fmt.Errorf("issue access token: %w", err)
+	}
+	user, err := s.userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("get user: %w", err)
+	}
+	org, err := s.repo.GetByID(ctx, orgID)
+	if err != nil {
+		return nil, fmt.Errorf("get org: %w", err)
+	}
+	return &AcceptInvitationResponse{
+		AccessToken:  accessToken,
+		User:         user,
+		Organisation: org,
+		Member:       m,
 	}, nil
 }
 

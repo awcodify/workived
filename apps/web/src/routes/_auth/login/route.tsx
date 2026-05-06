@@ -167,8 +167,10 @@ function LoginPage() {
     onSuccess: (data) => {
       setAuth(data)
 
-      // Check if user needs to verify email
-      if (!data.user.is_verified) {
+      // Invite acceptance marks the user as verified — skip the gate and let AcceptInvitation do it.
+      const redirectingToInvite = safeRedirect?.startsWith('/invite')
+
+      if (!data.user.is_verified && !redirectingToInvite) {
         navigate({ to: '/verify-email-required' })
         return
       }
