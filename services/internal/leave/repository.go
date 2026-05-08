@@ -144,9 +144,10 @@ func (r *Repository) CreatePolicy(ctx context.Context, orgID uuid.UUID, req Crea
 
 // UpdatePolicy applies a partial update to a leave policy.
 func (r *Repository) UpdatePolicy(ctx context.Context, orgID, policyID uuid.UUID, req UpdatePolicyRequest) (*Policy, error) {
-	// For eligible_employment_types: nil slice means "don't change", non-nil means "set to this value"
+	// For eligible_employment_types: nil or empty means "don't change"; non-empty restricts to those types.
+	// Empty array from the form = "all types eligible" — keep NULL in DB via COALESCE.
 	var eligibleTypes []string
-	if req.EligibleEmploymentTypes != nil {
+	if len(req.EligibleEmploymentTypes) > 0 {
 		eligibleTypes = req.EligibleEmploymentTypes
 	}
 	var probationEligible *bool
@@ -329,6 +330,7 @@ func (r *Repository) ListBalances(ctx context.Context, orgID uuid.UUID, year int
 		WHERE b.organisation_id = $1 AND b.year = $2
 		  AND lp.is_active = TRUE
 		  AND (lp.eligible_employment_types IS NULL
+		       OR array_length(lp.eligible_employment_types, 1) IS NULL
 		       OR e.employment_type = ANY(lp.eligible_employment_types))
 		  AND (lp.probation_eligible = TRUE OR (e.probation_end_date IS NULL OR e.probation_end_date <= CURRENT_DATE))
 		ORDER BY b.employee_id, lp.name
@@ -367,6 +369,7 @@ func (r *Repository) ListEmployeeBalances(ctx context.Context, orgID, employeeID
 		WHERE b.organisation_id = $1 AND b.employee_id = $2 AND b.year = $3
 		  AND lp.is_active = TRUE
 		  AND (lp.eligible_employment_types IS NULL
+		       OR array_length(lp.eligible_employment_types, 1) IS NULL
 		       OR (SELECT employment_type FROM employees WHERE id = $2 AND organisation_id = $1) = ANY(lp.eligible_employment_types))
 		  AND (lp.probation_eligible = TRUE OR ((SELECT probation_end_date FROM employees WHERE id = $2 AND organisation_id = $1) IS NULL
 		       OR (SELECT probation_end_date FROM employees WHERE id = $2 AND organisation_id = $1) <= CURRENT_DATE))

@@ -779,6 +779,89 @@ func TestService_ListMyBalances(t *testing.T) {
 	}
 }
 
+// ── TestService_ListMyBalances_ProbationEligible ────────────────────────────
+// WOR-236: full-time probation employee must see leaves when probation_eligible=true.
+// Root cause: UpdatePolicy stored empty eligible_employment_types as '{}' instead of NULL,
+// causing the IS NULL SQL filter to hide the balance even though the service created it.
+
+func TestService_ListMyBalances_ProbationEligible(t *testing.T) {
+	futureDate := time.Now().Add(30 * 24 * time.Hour)
+
+	tests := []struct {
+		name                    string
+		probationEligible       bool
+		eligibleEmploymentTypes []string
+		probationEndDate        *time.Time
+		wantBalanceCreated      bool
+	}{
+		{
+			name:               "probation_eligible=true, no type restriction — probation employee gets balance",
+			probationEligible:  true,
+			probationEndDate:   &futureDate,
+			wantBalanceCreated: true,
+		},
+		{
+			name:                    "probation_eligible=true, empty type slice (WOR-236 regression) — still gets balance",
+			probationEligible:       true,
+			eligibleEmploymentTypes: []string{},
+			probationEndDate:        &futureDate,
+			wantBalanceCreated:      true,
+		},
+		{
+			name:                    "probation_eligible=true, matching type — gets balance",
+			probationEligible:       true,
+			eligibleEmploymentTypes: []string{"full_time"},
+			probationEndDate:        &futureDate,
+			wantBalanceCreated:      true,
+		},
+		{
+			name:             "probation_eligible=false — probation employee is skipped",
+			probationEligible: false,
+			probationEndDate:  &futureDate,
+			wantBalanceCreated: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			repo := defaultFakeRepo()
+			orgRepo := defaultFakeOrgRepo()
+
+			repo.listPoliciesFn = func(_ context.Context, _ uuid.UUID) ([]leave.Policy, error) {
+				return []leave.Policy{{
+					ID:                      testPolicyID,
+					Name:                    "Annual Leave",
+					DaysPerYear:             12,
+					GenderEligibility:       "all",
+					IsActive:                true,
+					ProbationEligible:       tt.probationEligible,
+					EligibleEmploymentTypes: tt.eligibleEmploymentTypes,
+				}}, nil
+			}
+
+			var balanceEnsured bool
+			repo.ensureBalanceFn = func(_ context.Context, _, _, _ uuid.UUID, _ int, _ float64) error {
+				balanceEnsured = true
+				return nil
+			}
+
+			empRepo := &fakeEmployeeRepo{}
+			empRepo.getEmployeeProbationEndDateFn = func(_ context.Context, _, _ uuid.UUID) (*time.Time, error) {
+				return tt.probationEndDate, nil
+			}
+
+			svc := newTestServiceWithEmpRepo(repo, orgRepo, empRepo)
+			_, err := svc.ListMyBalances(context.Background(), testOrgID, testEmpID, 2026)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if balanceEnsured != tt.wantBalanceCreated {
+				t.Errorf("balanceEnsured = %v, want %v", balanceEnsured, tt.wantBalanceCreated)
+			}
+		})
+	}
+}
+
 // ── TestService_InitBalancesForEmployee ─────────────────────────────────────
 
 func TestService_InitBalancesForEmployee(t *testing.T) {
