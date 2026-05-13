@@ -152,10 +152,10 @@
   document.getElementById('state').value = params.get('state') || '';
   document.getElementById('codeChallenge').value = params.get('code_challenge') || '';
   
-  // Server-injected URLs (replaced at render time)
+  // Server-injected MCP server origin (replaced at render time).
+  // Login calls /oauth/login on this server — never exposes the internal API URL to the browser.
   const APP_URL = '__MCP_URL__' !== '__' + 'MCP_URL__' ? '__MCP_URL__' : window.location.origin;
-  const API_URL = '__API_URL__' !== '__' + 'API_URL__' ? '__API_URL__' : APP_URL;
-  
+
   document.getElementById('loginForm').addEventListener('submit', async e => {
     e.preventDefault();
     const btn = document.getElementById('btn');
@@ -164,7 +164,7 @@
     btn.textContent = 'Authorizing…';
     errDiv.style.display = 'none';
     try {
-      const resp = await fetch(API_URL + '/api/v1/auth/login', {
+      const resp = await fetch(APP_URL + '/oauth/login', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({

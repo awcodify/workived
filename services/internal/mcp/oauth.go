@@ -1,11 +1,14 @@
 package mcp
 
 import (
+	"bytes"
 	"crypto/sha256"
 	_ "embed"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
@@ -164,13 +167,43 @@ func (h *OAuthHandler) Authorize(c *gin.Context) {
 		return
 	}
 
-	// Inject server-side config into HTML via placeholder replacement.
-	// Cannot use query params because modifying c.Request.URL doesn't change the browser URL.
+	// Inject MCP server origin so the login form POSTs to /oauth/login (same-origin HTTPS proxy).
+	// Never expose apiURL (internal Railway HTTP) to the browser.
 	page := strings.ReplaceAll(oauthLoginHTML, "__MCP_URL__", html.EscapeString(h.appURL))
-	page = strings.ReplaceAll(page, "__API_URL__", html.EscapeString(h.apiURL))
 
 	c.Header("Content-Type", "text/html")
 	c.String(http.StatusOK, page)
+}
+
+// LoginProxy handles POST /oauth/login.
+// Proxies email/password to the internal API so the browser only contacts
+// the MCP server (HTTPS, same origin). Never exposes the internal apiURL.
+func (h *OAuthHandler) LoginProxy(c *gin.Context) {
+	var creds struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	if err := c.ShouldBindJSON(&creds); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+
+	b, err := json.Marshal(creds)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal error"})
+		return
+	}
+
+	resp, err := http.Post(h.apiURL+"/api/v1/auth/login", "application/json", bytes.NewReader(b)) //nolint:gosec
+	if err != nil {
+		h.log.Error().Err(err).Msg("oauth: login proxy upstream error")
+		c.JSON(http.StatusBadGateway, gin.H{"error": "upstream unavailable"})
+		return
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	c.Data(resp.StatusCode, "application/json", body)
 }
 
 // AuthorizeSubmit handles POST /oauth/authorize.

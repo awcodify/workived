@@ -66,6 +66,7 @@ func main() {
 	r.POST("/oauth/register", oauthHandler.Register)
 	r.GET("/oauth/authorize", oauthHandler.Authorize)
 	r.POST("/oauth/authorize", oauthHandler.AuthorizeSubmit)
+	r.POST("/oauth/login", oauthHandler.LoginProxy)
 	r.POST("/oauth/token", oauthHandler.Token)
 
 	// ── MCP SSE transport ────────────────────────────────────────────────────
