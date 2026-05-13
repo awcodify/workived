@@ -31,6 +31,11 @@ type fakeRepo struct {
 	isDefaultScheduleFn                  func(ctx context.Context, orgID, scheduleID uuid.UUID) (bool, error)
 	deactivateWorkScheduleFn             func(ctx context.Context, orgID, scheduleID uuid.UUID) error
 	assignScheduleToUnassignedEmployeesFn func(ctx context.Context, orgID, scheduleID uuid.UUID) (int64, error)
+	// Correction override — set to inject specific correction data for tests
+	getCorrectionFn func(ctx context.Context, orgID, correctionID uuid.UUID) (*attendance.Correction, error)
+	// Captures from last ApproveCorrectionTx call — for WOR-168 flag recomputation tests
+	lastApproveTxIsLeavingEarly bool
+	lastApproveTxIsOvertime     bool
 }
 
 func (f *fakeRepo) GetByEmployeeAndDate(ctx context.Context, orgID, empID uuid.UUID, date string) (*attendance.Record, error) {
@@ -115,7 +120,10 @@ func (f *fakeRepo) GetLocationCounts(_ context.Context, _ uuid.UUID, _, _ string
 func (f *fakeRepo) CreateCorrection(_ context.Context, orgID, empID uuid.UUID, date string, recordID *uuid.UUID, origIn, origOut, reqIn, reqOut *time.Time, reason string) (*attendance.Correction, error) {
 	return &attendance.Correction{ID: uuid.New(), OrganisationID: orgID, EmployeeID: empID, Date: date, Reason: reason, Status: "pending"}, nil
 }
-func (f *fakeRepo) GetCorrection(_ context.Context, orgID, correctionID uuid.UUID) (*attendance.Correction, error) {
+func (f *fakeRepo) GetCorrection(ctx context.Context, orgID, correctionID uuid.UUID) (*attendance.Correction, error) {
+	if f.getCorrectionFn != nil {
+		return f.getCorrectionFn(ctx, orgID, correctionID)
+	}
 	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "pending"}, nil
 }
 func (f *fakeRepo) GetPendingCorrectionByDate(_ context.Context, _, _ uuid.UUID, _ string) (*attendance.Correction, error) {
@@ -127,14 +135,16 @@ func (f *fakeRepo) ListCorrections(_ context.Context, _ uuid.UUID, _ attendance.
 func (f *fakeRepo) ApproveCorrection(_ context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*attendance.Correction, error) {
 	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "approved", ReviewedBy: &reviewerID}, nil
 }
-func (f *fakeRepo) ApproveCorrectionTx(_ context.Context, orgID, correctionID, reviewerID uuid.UUID, _ time.Time) (*attendance.Correction, error) {
+func (f *fakeRepo) ApproveCorrectionTx(_ context.Context, orgID, correctionID, reviewerID uuid.UUID, _ time.Time, isLeavingEarly, isOvertime bool) (*attendance.Correction, error) {
+	f.lastApproveTxIsLeavingEarly = isLeavingEarly
+	f.lastApproveTxIsOvertime = isOvertime
 	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "approved", ReviewedBy: &reviewerID}, nil
 }
 func (f *fakeRepo) RejectCorrection(_ context.Context, orgID, correctionID, reviewerID uuid.UUID, reason *string, now time.Time) (*attendance.Correction, error) {
 	return &attendance.Correction{ID: correctionID, OrganisationID: orgID, Status: "rejected", ReviewedBy: &reviewerID, RejectionReason: reason}, nil
 }
 func (f *fakeRepo) CancelCorrection(_ context.Context, _, _, _ uuid.UUID) error { return nil }
-func (f *fakeRepo) ApplyCorrection(_ context.Context, _ uuid.UUID, _ uuid.UUID, _, _ *time.Time) error {
+func (f *fakeRepo) ApplyCorrection(_ context.Context, _ uuid.UUID, _ uuid.UUID, _, _ *time.Time, _, _ bool) error {
 	return nil
 }
 
@@ -1640,6 +1650,91 @@ func TestService_ApproveCorrection(t *testing.T) {
 	}
 	if c.Status != "approved" {
 		t.Errorf("expected status=approved, got %s", c.Status)
+	}
+}
+
+// TestService_ApproveCorrection_RecomputesFlags verifies WOR-168: when a clock-out
+// correction is approved, is_leaving_early and is_overtime are recomputed from the
+// requested clock-out time rather than left stale from the original clock-out.
+func TestService_ApproveCorrection_RecomputesFlags(t *testing.T) {
+	cases := []struct {
+		name             string
+		clockOutHour     int
+		clockOutMin      int
+		schedEndHour     int // schedule end = schedEndHour:00
+		wantLeavingEarly bool
+		wantOvertime     bool
+	}{
+		{
+			name:             "leaving early: 12:40 clock-out vs 17:00 schedule",
+			clockOutHour:     12,
+			clockOutMin:      40,
+			schedEndHour:     17,
+			wantLeavingEarly: true,
+			wantOvertime:     false,
+		},
+		{
+			name:             "overtime: 19:00 clock-out vs 17:00 schedule",
+			clockOutHour:     19,
+			clockOutMin:      0,
+			schedEndHour:     17,
+			wantLeavingEarly: false,
+			wantOvertime:     true,
+		},
+		{
+			name:             "on-time: exact 17:00 clock-out vs 17:00 schedule",
+			clockOutHour:     17,
+			clockOutMin:      0,
+			schedEndHour:     17,
+			wantLeavingEarly: false,
+			wantOvertime:     false,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			orgID := uuid.New()
+			reviewerID := uuid.New()
+			correctionID := uuid.New()
+			empID := uuid.New()
+
+			// Monday 2026-01-05 at specified clock-out time (UTC)
+			reqClockOut := time.Date(2026, 1, 5, tc.clockOutHour, tc.clockOutMin, 0, 0, time.UTC)
+			endTime := time.Date(0, 1, 1, tc.schedEndHour, 0, 0, 0, time.UTC)
+
+			repo := &fakeRepo{
+				getDefaultSchedFn:        func(_ context.Context, _ uuid.UUID) (*attendance.WorkSchedule, error) { return nil, nil },
+				listHolidaysFn:           func(_ context.Context, _ string, _, _ string) ([]attendance.PublicHoliday, error) { return nil, nil },
+				listActiveEmpsFn:         func(_ context.Context, _ uuid.UUID, _ string) ([]attendance.ActiveEmployee, error) { return nil, nil },
+				getEmployeeNameFn:        func(_ context.Context, _, _ uuid.UUID) (string, error) { return "", nil },
+				getCorrectionFn: func(_ context.Context, _, id uuid.UUID) (*attendance.Correction, error) {
+					return &attendance.Correction{
+						ID:                id,
+						EmployeeID:        empID,
+						Status:            "pending",
+						RequestedClockOut: &reqClockOut,
+					}, nil
+				},
+				getScheduleForEmployeeFn: func(_ context.Context, _, _ uuid.UUID) (*attendance.WorkSchedule, error) {
+					return &attendance.WorkSchedule{
+						WorkDays: []int{1, 2, 3, 4, 5}, // Mon-Fri
+						EndTime:  endTime,
+					}, nil
+				},
+			}
+
+			svc := attendance.NewService(repo, &fakeOrgInfo{tz: "UTC", cc: "ID"}, &fakeEmployeeInfo{}, zerolog.Nop())
+			_, err := svc.ApproveCorrection(context.Background(), orgID, reviewerID, correctionID)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if repo.lastApproveTxIsLeavingEarly != tc.wantLeavingEarly {
+				t.Errorf("is_leaving_early: want %v, got %v", tc.wantLeavingEarly, repo.lastApproveTxIsLeavingEarly)
+			}
+			if repo.lastApproveTxIsOvertime != tc.wantOvertime {
+				t.Errorf("is_overtime: want %v, got %v", tc.wantOvertime, repo.lastApproveTxIsOvertime)
+			}
+		})
 	}
 }
 

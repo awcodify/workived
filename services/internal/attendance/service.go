@@ -40,10 +40,10 @@ type RepositoryInterface interface {
 	GetPendingCorrectionByDate(ctx context.Context, orgID, employeeID uuid.UUID, date string) (*Correction, error)
 	ListCorrections(ctx context.Context, orgID uuid.UUID, f ListCorrectionsFilter) ([]Correction, error)
 	ApproveCorrection(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*Correction, error)
-	ApproveCorrectionTx(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*Correction, error)
+	ApproveCorrectionTx(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time, isLeavingEarly, isOvertime bool) (*Correction, error)
 	RejectCorrection(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, rejectionReason *string, now time.Time) (*Correction, error)
 	CancelCorrection(ctx context.Context, orgID, correctionID, employeeID uuid.UUID) error
-	ApplyCorrection(ctx context.Context, orgID uuid.UUID, recordID uuid.UUID, clockIn, clockOut *time.Time) error
+	ApplyCorrection(ctx context.Context, orgID uuid.UUID, recordID uuid.UUID, clockIn, clockOut *time.Time, isLeavingEarly, isOvertime bool) error
 }
 
 // OrgInfoProvider is the narrow interface for org data the attendance service needs.
@@ -1348,8 +1348,34 @@ func (s *Service) GetCorrections(ctx context.Context, orgID uuid.UUID, f ListCor
 func (s *Service) ApproveCorrection(ctx context.Context, orgID, reviewerEmployeeID, correctionID uuid.UUID) (*Correction, error) {
 	now := s.now()
 
+	// Pre-fetch the correction so we can recompute is_leaving_early / is_overtime
+	// using the requested clock-out time before atomically applying.
+	pending, err := s.repo.GetCorrection(ctx, orgID, correctionID)
+	if err != nil {
+		return nil, fmt.Errorf("get correction: %w", err)
+	}
+
+	var isLeavingEarly, isOvertime bool
+	if pending.RequestedClockOut != nil {
+		tz, err := s.orgRepo.GetOrgTimezone(ctx, orgID)
+		if err != nil {
+			return nil, fmt.Errorf("get org timezone: %w", err)
+		}
+		loc, err := time.LoadLocation(tz)
+		if err != nil {
+			return nil, fmt.Errorf("invalid timezone %q: %w", tz, err)
+		}
+		schedule, err := s.repo.GetScheduleForEmployee(ctx, orgID, pending.EmployeeID)
+		if err != nil {
+			return nil, fmt.Errorf("get employee schedule: %w", err)
+		}
+		localClockOut := pending.RequestedClockOut.In(loc)
+		isLeavingEarly = s.checkLeavingEarly(localClockOut, schedule)
+		isOvertime = s.checkOvertimeClockOut(localClockOut, schedule)
+	}
+
 	// For existing records: approve + apply in one transaction so they cannot diverge.
-	c, err := s.repo.ApproveCorrectionTx(ctx, orgID, correctionID, reviewerEmployeeID, now)
+	c, err := s.repo.ApproveCorrectionTx(ctx, orgID, correctionID, reviewerEmployeeID, now, isLeavingEarly, isOvertime)
 	if err != nil {
 		return nil, fmt.Errorf("approve correction: %w", err)
 	}
@@ -1363,7 +1389,7 @@ func (s *Service) ApproveCorrection(ctx context.Context, orgID, reviewerEmployee
 		} else if c.RequestedClockOut != nil {
 			newRec, getErr := s.repo.GetByEmployeeAndDate(ctx, orgID, c.EmployeeID, c.Date)
 			if getErr == nil {
-				if err := s.repo.ApplyCorrection(ctx, orgID, newRec.ID, nil, c.RequestedClockOut); err != nil {
+				if err := s.repo.ApplyCorrection(ctx, orgID, newRec.ID, nil, c.RequestedClockOut, isLeavingEarly, isOvertime); err != nil {
 					s.log.Error().Err(err).Str("correction_id", correctionID.String()).Msg("failed to apply clock-out to created correction record")
 				}
 			}

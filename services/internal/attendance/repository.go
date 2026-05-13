@@ -694,7 +694,7 @@ func (r *Repository) ApproveCorrection(ctx context.Context, orgID, correctionID,
 
 // ApproveCorrectionTx atomically approves a correction AND applies the corrected times
 // to the attendance record within a single transaction. If either step fails, both roll back.
-func (r *Repository) ApproveCorrectionTx(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time) (*Correction, error) {
+func (r *Repository) ApproveCorrectionTx(ctx context.Context, orgID, correctionID, reviewerID uuid.UUID, now time.Time, isLeavingEarly, isOvertime bool) (*Correction, error) {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin tx: %w", err)
@@ -726,15 +726,18 @@ func (r *Repository) ApproveCorrectionTx(ctx context.Context, orgID, correctionI
 	}
 
 	// Apply corrected times to attendance record within the same transaction.
+	// Recompute is_leaving_early / is_overtime only when clock_out is being corrected.
 	if c.RecordID != nil {
 		_, err = tx.Exec(ctx, `
 			UPDATE attendance_records SET
-			    clock_in_at  = COALESCE($3, clock_in_at),
-			    clock_out_at = $4,
-			    is_corrected = TRUE,
-			    updated_at   = NOW()
+			    clock_in_at      = COALESCE($3, clock_in_at),
+			    clock_out_at     = $4,
+			    is_corrected     = TRUE,
+			    is_leaving_early = CASE WHEN $4::timestamptz IS NOT NULL THEN $5 ELSE is_leaving_early END,
+			    is_overtime      = CASE WHEN $4::timestamptz IS NOT NULL THEN $6 ELSE is_overtime END,
+			    updated_at       = NOW()
 			WHERE organisation_id = $1 AND id = $2
-		`, orgID, *c.RecordID, c.RequestedClockIn, c.RequestedClockOut)
+		`, orgID, *c.RecordID, c.RequestedClockIn, c.RequestedClockOut, isLeavingEarly, isOvertime)
 		if err != nil {
 			return nil, fmt.Errorf("apply correction to record: %w", err)
 		}
@@ -793,15 +796,18 @@ func (r *Repository) CancelCorrection(ctx context.Context, orgID, correctionID, 
 }
 
 // ApplyCorrection updates the attendance_record with the corrected times.
-func (r *Repository) ApplyCorrection(ctx context.Context, orgID uuid.UUID, recordID uuid.UUID, clockIn, clockOut *time.Time) error {
+// isLeavingEarly and isOvertime are recomputed by the caller and applied only when clockOut is non-nil.
+func (r *Repository) ApplyCorrection(ctx context.Context, orgID uuid.UUID, recordID uuid.UUID, clockIn, clockOut *time.Time, isLeavingEarly, isOvertime bool) error {
 	_, err := r.db.Exec(ctx, `
 		UPDATE attendance_records SET
-		    clock_in_at  = COALESCE($3, clock_in_at),
-		    clock_out_at = $4,
-		    is_corrected = TRUE,
-		    updated_at   = NOW()
+		    clock_in_at      = COALESCE($3, clock_in_at),
+		    clock_out_at     = $4,
+		    is_corrected     = TRUE,
+		    is_leaving_early = CASE WHEN $4::timestamptz IS NOT NULL THEN $5 ELSE is_leaving_early END,
+		    is_overtime      = CASE WHEN $4::timestamptz IS NOT NULL THEN $6 ELSE is_overtime END,
+		    updated_at       = NOW()
 		WHERE organisation_id = $1 AND id = $2
-	`, orgID, recordID, clockIn, clockOut)
+	`, orgID, recordID, clockIn, clockOut, isLeavingEarly, isOvertime)
 	return err
 }
 
