@@ -746,6 +746,35 @@ func TestOrgService_AcceptInvitation(t *testing.T) {
 		}
 	})
 
+	t.Run("idempotent accept marks unverified member as verified", func(t *testing.T) {
+		svc, repo, userRepo := newTestService(t)
+		orgID, _, inv := setupOrgAndInvitation(t, svc, repo, userRepo)
+
+		rawToken := extractTokenFromURL(inv.InviteURL)
+
+		// Member exists but email was never verified (MarkEmailVerified silently failed on first join).
+		existingUserID := uuid.New()
+		userRepo.createUnverifiedUser(existingUserID)
+		repo.members[memberKey(orgID, existingUserID)] = &organisation.Member{
+			ID: uuid.New(), UserID: existingUserID, OrgID: orgID,
+			Role: "member", IsActive: true, JoinedAt: time.Now().UTC(),
+		}
+
+		resp, err := svc.AcceptInvitation(context.Background(), existingUserID, organisation.AcceptInvitationRequest{
+			Token: rawToken,
+		})
+		if err != nil {
+			t.Fatalf("expected idempotent success, got error: %v", err)
+		}
+		if resp.AccessToken == "" {
+			t.Error("access token should not be empty")
+		}
+		// MarkEmailVerified should have been called — user should now be verified.
+		if !resp.User.IsVerified {
+			t.Error("user should be verified after idempotent accept")
+		}
+	})
+
 	t.Run("invalid token rejected", func(t *testing.T) {
 		svc, _, _ := newTestService(t)
 

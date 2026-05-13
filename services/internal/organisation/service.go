@@ -494,6 +494,11 @@ func (s *Service) AcceptInvitation(ctx context.Context, userID uuid.UUID, req Ac
 // issueMemberResponse issues a fresh JWT and builds an AcceptInvitationResponse for
 // an already-accepted invitation or an existing active member (idempotent acceptance).
 func (s *Service) issueMemberResponse(ctx context.Context, userID, orgID uuid.UUID, m *Member) (*AcceptInvitationResponse, error) {
+	// Idempotently mark email verified — handles the case where the first acceptance
+	// failed to verify (silent error path in AcceptInvitation).
+	if err := s.userRepo.MarkEmailVerified(ctx, userID); err != nil {
+		s.log.Warn().Err(err).Str("user_id", userID.String()).Msg("failed to mark email verified on idempotent accept")
+	}
 	accessToken, err := s.tokenIssuer.IssueAccessToken(userID, orgID, m.Role, m.HasSubordinate)
 	if err != nil {
 		return nil, fmt.Errorf("issue access token: %w", err)

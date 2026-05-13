@@ -26,6 +26,7 @@ export const Route = createFileRoute('/_app')({
         throw redirect({ to: '/verify-email-required' })
       }
     } catch (err: any) {
+      if (isRedirect(err)) throw err
       // Handle specific error types
       if (err?.response?.status === 403 || err?.response?.status === 401) {
         // User exists but needs verification
