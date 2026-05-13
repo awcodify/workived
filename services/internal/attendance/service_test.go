@@ -1666,6 +1666,17 @@ func TestService_ApproveCorrection_RecomputesFlags(t *testing.T) {
 		wantOvertime     bool
 	}{
 		{
+			// WOR-168: exact scenario reported by Ricko — schedule 09:00-18:00,
+			// employee originally overtime, correction approved to 12:40 PM.
+			// Before fix: is_overtime stayed true (stale). After fix: leaving early.
+			name:             "WOR-168: 12:40 correction vs 18:00 schedule → leaving early not overtime",
+			clockOutHour:     12,
+			clockOutMin:      40,
+			schedEndHour:     18,
+			wantLeavingEarly: true,
+			wantOvertime:     false,
+		},
+		{
 			name:             "leaving early: 12:40 clock-out vs 17:00 schedule",
 			clockOutHour:     12,
 			clockOutMin:      40,

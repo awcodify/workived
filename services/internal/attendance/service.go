@@ -1147,7 +1147,17 @@ func (s *Service) checkLeavingEarly(localNow time.Time, schedule *WorkSchedule) 
 		if wd == weekday {
 			endMinutes := schedule.EndTime.Hour()*60 + schedule.EndTime.Minute()
 			clockOutMinutes := localNow.Hour()*60 + localNow.Minute()
-			return clockOutMinutes < endMinutes
+			result := clockOutMinutes < endMinutes
+			s.log.Debug().
+				Str("local_now", localNow.Format("15:04:05 MST")).
+				Int("clock_out_minutes", clockOutMinutes).
+				Str("schedule_end", schedule.EndTime.Format("15:04:05 MST")).
+				Int("end_minutes", endMinutes).
+				Ints("work_days", schedule.WorkDays).
+				Int("weekday", weekday).
+				Bool("is_leaving_early", result).
+				Msg("checkLeavingEarly comparison")
+			return result
 		}
 	}
 	return false
@@ -1164,10 +1174,25 @@ func (s *Service) checkOvertimeClockOut(localNow time.Time, schedule *WorkSchedu
 		if wd == weekday {
 			endMinutes := schedule.EndTime.Hour()*60 + schedule.EndTime.Minute()
 			clockOutMinutes := localNow.Hour()*60 + localNow.Minute()
-			return clockOutMinutes > endMinutes
+			result := clockOutMinutes > endMinutes
+			s.log.Debug().
+				Str("local_now", localNow.Format("15:04:05 MST")).
+				Int("clock_out_minutes", clockOutMinutes).
+				Str("schedule_end", schedule.EndTime.Format("15:04:05 MST")).
+				Int("end_minutes", endMinutes).
+				Ints("work_days", schedule.WorkDays).
+				Int("weekday", weekday).
+				Bool("is_overtime", result).
+				Msg("checkOvertimeClockOut comparison")
+			return result
 		}
 	}
 	// Clocking out on a non-work day = overtime
+	s.log.Debug().
+		Str("local_now", localNow.Format("15:04:05 MST")).
+		Int("weekday", weekday).
+		Ints("work_days", schedule.WorkDays).
+		Msg("checkOvertimeClockOut: non-work day → overtime")
 	return true
 }
 
